@@ -773,7 +773,8 @@ def test_model_checkpoint_save_on_exception_in_training_step(tmp_path):
 
     model = TroubledModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     print(os.listdir(tmp_path))
@@ -785,15 +786,16 @@ def test_model_checkpoint_save_on_exception_in_validation_step(tmp_path):
         def validation_step(self, batch, batch_idx):
             if not trainer.sanity_checking and batch_idx == 0:
                 raise RuntimeError("Trouble!")
-                
+
     model = TroubledModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
-    
+
 
 def test_model_checkpoint_save_on_exception_in_train_callback_on_train_batch_start(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in a callback on train_batch_start."""
@@ -804,7 +806,8 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_batch_sta
 
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainBatchStart()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainBatchStart()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / "step=1.ckpt")
@@ -816,10 +819,11 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_batch_end
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             if batch_idx == 1:
                 raise RuntimeError("Trouble!")
-            
+
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainBatchEnd()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainBatchEnd()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
 
@@ -832,11 +836,12 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_epoch_sta
         def on_train_epoch_start(self, trainer, pl_module):
             if trainer.current_epoch == 1:
                 raise RuntimeError("Trouble!")
-            
+
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainEpochStart()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainEpochStart()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
@@ -852,7 +857,8 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_epoch_end
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainEpochEnd()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnTrainEpochEnd()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={2*epoch_length}.ckpt")
@@ -868,7 +874,8 @@ def test_model_checkpoint_save_on_exception_in_val_callback(tmp_path):
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchStart()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchStart()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
@@ -880,11 +887,12 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_batch_
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
                 if not trainer.sanity_checking and batch_idx == 1:
                     raise RuntimeError("Trouble!")
-                    
+
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchEnd()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchEnd()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
@@ -900,11 +908,12 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochStart()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochStart()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
-    
+
 
 def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_end(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in a callback on validation_epoch_end."""
@@ -912,11 +921,12 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_
         def on_validation_epoch_end(self, trainer, pl_module):
             if not trainer.sanity_checking and trainer.current_epoch == 0:
                 raise RuntimeError("Trouble!")
-                
+
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochEnd()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochEnd()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
@@ -927,11 +937,12 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_start(
         def on_validation_start(self, trainer, pl_module):
             if not trainer.sanity_checking:
                 raise RuntimeError("Trouble!")
-            
+
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationStart()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationStart()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
@@ -942,16 +953,17 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_end(tm
         def on_validation_end(self, trainer, pl_module):
             if not trainer.sanity_checking:
                 raise RuntimeError("Trouble!")
-                
+
     model = BoringModel()
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEnd()], max_epochs=5, logger=False, enable_progress_bar=False)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEnd()],
+                      max_epochs=5, logger=False, enable_progress_bar=False)
     with pytest.raises(RuntimeError, match="Trouble!"):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
 
-                
+
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmp_path) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
