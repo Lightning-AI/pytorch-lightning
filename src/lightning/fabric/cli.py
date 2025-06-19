@@ -28,7 +28,6 @@ from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
 _log = logging.getLogger(__name__)
 
@@ -188,6 +187,8 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
+    from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
+
     if accelerator == "auto" or accelerator is None:
         accelerator = _AcceleratorConnector._choose_auto_accelerator()
     if devices == "auto":
