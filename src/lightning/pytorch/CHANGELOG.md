@@ -4,41 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+---
 
-## [unreleased] - YYYY-MM-DD
-
-### Added
-
-- Add enable_autolog_hparams argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
-
-
-- Add `toggled_optimizer(optimizer)` method to the LightningModule, which is a context manager version of `toggle_optimize` and `untoggle_optimizer` ([#20771](https://github.com/Lightning-AI/pytorch-lightning/pull/20771))
-
-
-- For cross-device local checkpoints, instruct users to install `fsspec>=2025.5.0` if unavailable ([#20780](https://github.com/Lightning-AI/pytorch-lightning/pull/20780))
-
+## [2.5.2] - 2025-06-20
 
 ### Changed
 
--
-
-### Removed
-
--
-
+- Add `enable_autolog_hparams` argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
+- Add `toggled_optimizer(optimizer)` method to the LightningModule, which is a context manager version of `toggle_optimize` and `untoggle_optimizer` ([#20771](https://github.com/Lightning-AI/pytorch-lightning/pull/20771))
+- For cross-device local checkpoints, instruct users to install `fsspec>=2025.5.0` if unavailable ([#20780](https://github.com/Lightning-AI/pytorch-lightning/pull/20780))
+- Check param is of `nn.Parameter` type for pruning sanitization ([#20783](https://github.com/Lightning-AI/pytorch-lightning/pull/20783))
 
 ### Fixed
 
 - Fixed `save_hyperparameters` not working correctly with `LightningCLI` when there are parsing links applied on instantiation ([#20777](https://github.com/Lightning-AI/pytorch-lightning/pull/20777))
+- Fixed `logger_connector` has an edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/pull/20692))
+- Fixed Synchronize SIGTERM Handling in DDP to Prevent Deadlocks ([#20825](https://github.com/Lightning-AI/pytorch-lightning/pull/20825))
+- Fixed case-sensitive model name ([#20661](https://github.com/Lightning-AI/pytorch-lightning/pull/20661))
+- CLI: resolve jsonargparse deprecation warning ([#20802](https://github.com/Lightning-AI/pytorch-lightning/pull/20802))
+- Fix: move `check_inputs` to the target device if available during `to_torchscript` ([#20873](https://github.com/Lightning-AI/pytorch-lightning/pull/20873))
+- Fixed progress bar display to correctly handle iterable dataset and `max_steps` during training ([#20869](https://github.com/Lightning-AI/pytorch-lightning/pull/20869))
+- Fixed problem for silently supporting `jsonnet` ([#20899](https://github.com/Lightning-AI/pytorch-lightning/pull/20899))
 
-
-- Fixed logger_connector has edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/pull/20692))
-
-
-- Fix: Synchronize SIGTERM Handling in DDP to Prevent Deadlocks ([#20825](https://github.com/Lightning-AI/pytorch-lightning/pull/20825))
-
-
----
 
 ## [2.5.1] - 2025-03-18
 
@@ -52,8 +39,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed CSVLogger logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
-- Fixed OverflowError when resuming from checkpoint with an iterable dataset ([#20565](https://github.com/Lightning-AI/pytorch-lightning/issues/20565))
+- Fixed `CSVLogger` logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
+- Fixed `OverflowError` when resuming from checkpoint with an iterable dataset ([#20565](https://github.com/Lightning-AI/pytorch-lightning/issues/20565))
 - Fixed swapped _R_co and _P to prevent type error ([#20508](https://github.com/Lightning-AI/pytorch-lightning/issues/20508))
 - Always call `WandbLogger.experiment` first in `_call_setup_hook` to ensure `tensorboard` logs can sync to `wandb` ([#20610](https://github.com/Lightning-AI/pytorch-lightning/pull/20610))
 - Fixed TBPTT example ([#20528](https://github.com/Lightning-AI/pytorch-lightning/pull/20528))
