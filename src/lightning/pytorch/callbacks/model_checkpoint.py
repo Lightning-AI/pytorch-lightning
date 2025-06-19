@@ -97,6 +97,7 @@ class ModelCheckpoint(Checkpoint):
             collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
             ranking of the checkpoint, and we recommend formatting the filename to include the monitored metric to avoid
             collisions.
+        save_on_exception: Whether to save a checkpoint when an exception is raised. Default: ``True``.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
@@ -224,6 +225,7 @@ class ModelCheckpoint(Checkpoint):
         verbose: bool = False,
         save_last: Optional[Union[bool, Literal["link"]]] = None,
         save_top_k: int = 1,
+        save_on_exception: bool = True,
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True,
@@ -238,6 +240,7 @@ class ModelCheckpoint(Checkpoint):
         self.verbose = verbose
         self.save_last = save_last
         self.save_top_k = save_top_k
+        self.save_on_exception = save_on_exception
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
@@ -337,6 +340,17 @@ class ModelCheckpoint(Checkpoint):
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             self._save_last_checkpoint(trainer, monitor_candidates)
+
+    @override
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: Exception) -> None:
+        if self.save_on_exception and not self._should_skip_saving_checkpoint(trainer):
+            monitor_candidates = self._monitor_candidates(trainer)
+            filepath = self.format_checkpoint_name(metrics=monitor_candidates)
+            print(type(exception))
+            self._save_checkpoint(trainer, filepath)
+            self._save_last_checkpoint(trainer, monitor_candidates)
+            rank_zero_info(f"An exception was raised saved checkpoint to {filepath}")
+
 
     @override
     def state_dict(self) -> dict[str, Any]:
