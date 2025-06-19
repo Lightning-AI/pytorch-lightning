@@ -438,13 +438,13 @@ class ModelCheckpoint(Checkpoint):
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
-    
+
     def _should_save_on_exception(self, trainer: "pl.Trainer") -> bool:
         return (
                 self.save_on_exception
                 and not bool(trainer.fast_dev_run)  # disable checkpointing with fast_dev_run
                 and not trainer.sanity_checking  # don't save anything during sanity check
-                and not self._last_global_step_saved == trainer.global_step  # already saved at the last step)
+                and not self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
 
     def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
