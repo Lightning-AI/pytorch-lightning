@@ -180,6 +180,7 @@ markers = [
 ]
 filterwarnings = [
     "error::FutureWarning",
+    "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
 ]
 xfail_strict = true
 junit_duration_report = "call"
