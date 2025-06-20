@@ -225,7 +225,7 @@ class ModelCheckpoint(Checkpoint):
         verbose: bool = False,
         save_last: Optional[Union[bool, Literal["link"]]] = None,
         save_top_k: int = 1,
-        save_on_exception: bool = True,
+        save_on_exception: bool = False,
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True,
