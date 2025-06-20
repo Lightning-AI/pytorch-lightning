@@ -19,6 +19,11 @@ from torch.optim import Optimizer
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 
+from torch import nn
+import torch
+
+from lightning.pytorch.plugins.precision import MixedPrecision
+
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
@@ -51,3 +56,20 @@ def test_optimizer_amp_scaling_support_in_step_method():
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
         precision.clip_gradients(optimizer, clip_val=1.0)
+
+
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_amp_with_no_grad(precision: str):
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+    amp = MixedPrecision(precision=precision, device='cpu')
+
+    with amp.autocast_context_manager():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+
+        loss.backward()
+
+        assert loss.grad_fn is not None
