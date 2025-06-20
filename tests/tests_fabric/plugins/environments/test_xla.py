@@ -101,7 +101,7 @@ def test_detect(monkeypatch):
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
-@mock.patch("(lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
 def test_attributes_from_xla_greater_21_used(xla_available, monkeypatch):
     """Test XLA environment attributes when using XLA runtime >= 2.1."""
 
