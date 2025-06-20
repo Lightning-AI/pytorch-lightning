@@ -57,6 +57,8 @@ def test_optimizer_amp_scaling_support_in_step_method():
 
 @pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
 def test_amp_with_no_grad(precision: str):
+    """Test that asserts using `no_grad` context wrapper with a persistent AMP context wrapper does not break gradient
+    tracking."""
     layer = nn.Linear(2, 1)
     x = torch.randn(1, 2)
     amp = MixedPrecision(precision=precision, device="cpu")
@@ -66,7 +68,5 @@ def test_amp_with_no_grad(precision: str):
             _ = layer(x)
 
         loss = layer(x).mean()
-
         loss.backward()
-
         assert loss.grad_fn is not None
