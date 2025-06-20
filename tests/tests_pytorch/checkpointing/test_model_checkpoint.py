@@ -928,6 +928,29 @@ class TroublemakerOnValidationEnd(Callback):
         pytest.param(TroublemakerOnValidationEnd, CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES, id="on_validation_end"),
     ],
 )
+def test_model_checkpoint_save_on_exception_in_other_callbacks(
+    tmp_path, TroubledCallback, expected_checkpoint_global_step
+):
+    """Test that an checkpoint is saved when an exception is raised in an other callback."""
+
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[checkpoint_callback, TroubledCallback()],
+        max_epochs=CHECKPOINT_ON_EXCEPTION_MAX_EPOCHS,
+        limit_train_batches=CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
+        logger=False,
+        enable_progress_bar=False,
+    )
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+
+    assert os.path.isfile(tmp_path / f"step={expected_checkpoint_global_step}.ckpt")
+    checkpoint = torch.load(tmp_path / f"step={expected_checkpoint_global_step}.ckpt", weights_only=True)
+    assert checkpoint["global_step"] == expected_checkpoint_global_step
+
+
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmp_path) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
