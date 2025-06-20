@@ -591,7 +591,11 @@ class ModelCheckpoint(Checkpoint):
         return filename
 
     def format_checkpoint_name(
-        self, metrics: dict[str, Tensor], filename: Optional[str] = None, ver: Optional[int] = None
+        self,
+        metrics: dict[str, Tensor],
+        filename: Optional[str] = None,
+        prefix: Optional[str] = None,
+        ver: Optional[int] = None,
     ) -> str:
         """Generate a filename according to the defined template.
 
@@ -623,7 +627,9 @@ class ModelCheckpoint(Checkpoint):
 
         """
         filename = filename or self.filename
-        filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
+        filename = self._format_checkpoint_name(
+            filename, metrics, prefix, auto_insert_metric_name=self.auto_insert_metric_name
+        )
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
