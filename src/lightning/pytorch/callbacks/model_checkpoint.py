@@ -214,6 +214,7 @@ class ModelCheckpoint(Checkpoint):
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_EQUALS_CHAR = "="
     CHECKPOINT_NAME_LAST = "last"
+    CHECKPOINT_EXCEPTION_PREFIX = "exception"
     FILE_EXTENSION = ".ckpt"
     STARTING_VERSION = 1
 
@@ -345,7 +346,7 @@ class ModelCheckpoint(Checkpoint):
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: Exception) -> None:
         if self._should_save_on_exception(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
-            filepath = self.format_checkpoint_name(metrics=monitor_candidates)
+            filepath = self.format_checkpoint_name(metrics=monitor_candidates, prefix=self.CHECKPOINT_EXCEPTION_PREFIX)
             self._save_checkpoint(trainer, filepath)
             self._save_last_checkpoint(trainer, monitor_candidates)
             rank_zero_info(f"An exception was raised saved checkpoint to {filepath}")
