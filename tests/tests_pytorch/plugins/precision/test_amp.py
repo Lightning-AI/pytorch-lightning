@@ -18,7 +18,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from lightning.pytorch.plugins.precision import MixedPrecision
+from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
