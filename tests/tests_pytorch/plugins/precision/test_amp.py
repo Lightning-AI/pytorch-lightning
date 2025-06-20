@@ -14,15 +14,12 @@
 from unittest.mock import Mock
 
 import pytest
+import torch
+from torch import nn
 from torch.optim import Optimizer
 
-from lightning.pytorch.plugins import MixedPrecision
-from lightning.pytorch.utilities import GradClipAlgorithmType
-
-from torch import nn
-import torch
-
 from lightning.pytorch.plugins.precision import MixedPrecision
+from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
 def test_clip_gradients():
@@ -62,7 +59,7 @@ def test_optimizer_amp_scaling_support_in_step_method():
 def test_amp_with_no_grad(precision: str):
     layer = nn.Linear(2, 1)
     x = torch.randn(1, 2)
-    amp = MixedPrecision(precision=precision, device='cpu')
+    amp = MixedPrecision(precision=precision, device="cpu")
 
     with amp.autocast_context_manager():
         with torch.no_grad():
