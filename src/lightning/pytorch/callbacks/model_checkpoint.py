@@ -97,7 +97,7 @@ class ModelCheckpoint(Checkpoint):
             collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
             ranking of the checkpoint, and we recommend formatting the filename to include the monitored metric to avoid
             collisions.
-        save_on_exception: Whether to save a checkpoint when an exception is raised. Default: ``True``.
+        save_on_exception: Whether to save a checkpoint when an exception is raised. Default: ``False``.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
