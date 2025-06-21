@@ -770,6 +770,73 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
+def test_model_checkpoint_on_exception_run_condition(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a lightning module."""
+
+    # Don't save checkpoint if sanity check fails
+    class TroubledModelSanityCheck(BoringModel):
+        def on_validation_start(self) -> None:
+            if self.trainer.sanity_checking:
+                print("Trouble!")
+                raise RuntimeError("Trouble!")
+
+    model = TroubledModelSanityCheck()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="sanity_check", save_on_exception=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        num_sanity_val_steps=4,
+        limit_train_batches=2,
+        callbacks=[checkpoint_callback],
+        max_epochs=2,
+        logger=False,
+    )
+
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert not os.path.isfile(tmp_path / "exception-sanity_check.ckpt")
+
+    # Don't save checkpoint if fast dev run fails
+    class TroubledModelFastDevRun(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx) -> None:
+            if self.trainer.fast_dev_run and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    model = TroubledModelFastDevRun()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="fast_dev_run", save_on_exception=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        fast_dev_run=2,
+        limit_train_batches=2,
+        callbacks=[checkpoint_callback],
+        max_epochs=2,
+        logger=False,
+    )
+
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert not os.path.isfile(tmp_path / "exception-fast_dev_run.ckpt")
+
+    # Don't save checkpoint if already saved a checkpoint
+    class TroubledModelAlreadySavedCheckpoint(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx) -> None:
+            if self.trainer.global_step == 1:
+                raise RuntimeError("Trouble!")
+
+    model = TroubledModelAlreadySavedCheckpoint()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path, filename="already_saved", save_on_exception=True, every_n_train_steps=1
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path, limit_train_batches=2, callbacks=[checkpoint_callback], max_epochs=2, logger=False
+    )
+
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+
+    assert not os.path.isfile(tmp_path / "exception-already_saved.ckpt")
+    assert os.path.isfile(tmp_path / "already_saved.ckpt")
+
+
 def test_model_checkpoint_on_exception(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in a lightning module."""
 
