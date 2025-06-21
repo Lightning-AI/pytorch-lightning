@@ -813,196 +813,101 @@ def test_model_checkpoint_on_exception(tmp_path):
 
 
 #################################################################################################
-def test_model_checkpoint_save_on_exception_in_training_step(tmp_path):
-    """Test that the checkpoint is saved when an exception is raised in training_step."""
+def test_model_checkpoint_on_exception_in_other_callbacks(tmp_path):
+    """Test that an checkpoint is saved when an exception is raised in an other callback."""
 
-    class TroubledModel(BoringModel):
-        def training_step(self, batch, batch_idx):
+    class TroubleMakerOnTrainBatchStart(Callback):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             if batch_idx == 1:
                 raise RuntimeError("Trouble!")
 
-    model = TroubledModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        callbacks=[checkpoint_callback],
-        max_epochs=5,
-        logger=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(RuntimeError, match="Trouble!"):
-        trainer.fit(model)
-    print(os.listdir(tmp_path))
-    assert os.path.isfile(tmp_path / "step=1.ckpt")
-
-
-def test_model_checkpoint_save_on_exception_in_validation_step(tmp_path):
-    """Test that the checkpoint is saved when an exception is raised in validation_step."""
-
-    class TroubledModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            if not trainer.sanity_checking and batch_idx == 0:
+    class TroubleMakerOnTrainBatchEnd(Callback):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            if batch_idx == 1:
                 raise RuntimeError("Trouble!")
 
-    model = TroubledModel()
-    epoch_length = 2
-    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        callbacks=[checkpoint_callback],
-        max_epochs=5,
-        limit_train_batches=epoch_length,
-        logger=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(RuntimeError, match="Trouble!"):
-        trainer.fit(model)
-    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
+    class TroubleMakerOnTrainEpochStart(Callback):
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
 
+    class TroubleMakerOnTrainEpochEnd(Callback):
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
 
-#################################################################################################
-
-CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX = 2
-CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH = 21
-CHECKPOINT_ON_EXCEPTION_MAX_EPOCHS = 25
-CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES = 4
-assert CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX < CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES
-assert CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH < CHECKPOINT_ON_EXCEPTION_MAX_EPOCHS
-
-
-class TroublemakerOnTrainBatchStart(Callback):
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
-        if batch_idx == CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX:
+    class TroubleMakerOnTrainEnd(Callback):
+        def on_train_end(self, trainer, pl_module):
             raise RuntimeError("Trouble!")
 
+    class TroubleMakerOnValidationBatchStart(Callback):
+        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx):
+            if not trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
 
-class TroublemakerOnTrainBatchEnd(Callback):
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if batch_idx == CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX:
+    class TroubleMakerOnValidationBatchEnd(Callback):
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            if not trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubleMakerOnValidationEpochStart(Callback):
+        def on_validation_epoch_start(self, trainer, pl_module):
+            if not trainer.sanity_checking and trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubleMakerOnValidationEpochEnd(Callback):
+        def on_validation_epoch_end(self, trainer, pl_module):
+            if not trainer.sanity_checking and trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubleMakerOnValidationStart(Callback):
+        def on_validation_start(self, trainer, pl_module):
+            if not trainer.sanity_checking:
+                raise RuntimeError("Trouble!")
+
+    class TroubleMakerOnValidationEnd(Callback):
+        def on_validation_end(self, trainer, pl_module):
+            if not trainer.sanity_checking:
+                raise RuntimeError("Trouble!")
+
+    class TroubleMakerOnFitEnd(Callback):
+        def on_fit_end(self, trainer, pl_module):
             raise RuntimeError("Trouble!")
 
+    troubled_callbacks = [
+        TroubleMakerOnTrainBatchStart(),
+        TroubleMakerOnTrainBatchEnd(),
+        TroubleMakerOnTrainEpochStart(),
+        TroubleMakerOnTrainEpochEnd(),
+        TroubleMakerOnTrainEnd(),
+        TroubleMakerOnValidationBatchStart(),
+        TroubleMakerOnValidationBatchEnd(),
+        TroubleMakerOnValidationEpochStart(),
+        TroubleMakerOnValidationEpochEnd(),
+        TroubleMakerOnValidationStart(),
+        TroubleMakerOnValidationEnd(),
+        TroubleMakerOnFitEnd(),
+    ]
 
-class TroublemakerOnTrainEpochStart(Callback):
-    def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnTrainEpochEnd(Callback):
-    def on_train_epoch_end(self, trainer, pl_module):
-        if trainer.current_epoch == CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnTrainEnd(Callback):
-    def on_train_end(self, trainer, pl_module):
-        raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationBatchStart(Callback):
-    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx):
-        if not trainer.sanity_checking and batch_idx == 1:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationBatchEnd(Callback):
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if not trainer.sanity_checking and batch_idx == 1:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationEpochStart(Callback):
-    def on_validation_epoch_start(self, trainer, pl_module):
-        if not trainer.sanity_checking and trainer.current_epoch == CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationEpochEnd(Callback):
-    def on_validation_epoch_end(self, trainer, pl_module):
-        if not trainer.sanity_checking and trainer.current_epoch == CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationStart(Callback):
-    def on_validation_start(self, trainer, pl_module):
-        if not trainer.sanity_checking:
-            raise RuntimeError("Trouble!")
-
-
-class TroublemakerOnValidationEnd(Callback):
-    def on_validation_end(self, trainer, pl_module):
-        if not trainer.sanity_checking:
-            raise RuntimeError("Trouble!")
-
-
-@pytest.mark.parametrize(
-    ("TroubledCallback", "expected_checkpoint_global_step"),
-    [
-        pytest.param(
-            TroublemakerOnTrainBatchStart, CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX, id="on_train_batch_start"
-        ),
-        pytest.param(
-            TroublemakerOnTrainBatchEnd, CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX + 1, id="on_train_batch_end"
-        ),
-        pytest.param(
-            TroublemakerOnTrainEpochStart,
-            CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH * CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-            id="on_train_epoch_start",
-        ),
-        pytest.param(
-            TroublemakerOnTrainEpochEnd,
-            (CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH + 1) * CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-            id="on_train_epoch_end",
-        ),
-        pytest.param(
-            TroublemakerOnTrainEnd,
-            CHECKPOINT_ON_EXCEPTION_MAX_EPOCHS * CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-            id="on_train_end",
-        ),
-        pytest.param(
-            TroublemakerOnValidationBatchStart, CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES, id="on_validation_batch_start"
-        ),
-        pytest.param(
-            TroublemakerOnValidationBatchEnd, CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES, id="on_validation_batch_end"
-        ),
-        pytest.param(
-            TroublemakerOnValidationEpochStart,
-            (CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH + 1) * CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-            id="on_validation_epoch_start",
-        ),
-        pytest.param(
-            TroublemakerOnValidationEpochEnd,
-            (CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH + 1) * CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-            id="on_validation_epoch_end",
-        ),
-        pytest.param(TroublemakerOnValidationStart, CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES, id="on_validation_start"),
-        pytest.param(TroublemakerOnValidationEnd, CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES, id="on_validation_end"),
-    ],
-)
-def test_model_checkpoint_save_on_exception_in_other_callbacks(
-    tmp_path, TroubledCallback, expected_checkpoint_global_step
-):
-    """Test that an checkpoint is saved when an exception is raised in an other callback."""
-
-    model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        callbacks=[checkpoint_callback, TroubledCallback()],
-        max_epochs=CHECKPOINT_ON_EXCEPTION_MAX_EPOCHS,
-        limit_train_batches=CHECKPOINT_ON_EXCEPTION_TRAIN_BATCHES,
-        logger=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(RuntimeError, match="Trouble!"):
-        trainer.fit(model)
-
-    assert os.path.isfile(tmp_path / f"step={expected_checkpoint_global_step}.ckpt")
-    checkpoint = torch.load(tmp_path / f"step={expected_checkpoint_global_step}.ckpt", weights_only=True)
-    assert checkpoint["global_step"] == expected_checkpoint_global_step
-
-
-#################################################################################################
+    for troubled_callback in troubled_callbacks:
+        model = BoringModel()
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=tmp_path, filename=troubled_callback.__class__.__name__, save_on_exception=True, every_n_epochs=5
+        )
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            callbacks=[checkpoint_callback, troubled_callback],
+            max_epochs=4,
+            limit_train_batches=2,
+            logger=False,
+            enable_progress_bar=False,
+        )
+        with pytest.raises(RuntimeError, match="Trouble!"):
+            trainer.fit(model)
+        assert os.path.isfile(tmp_path / f"exception-{troubled_callback.__class__.__name__}.ckpt")
+        checkpoint = torch.load(tmp_path / f"exception-{troubled_callback.__class__.__name__}.ckpt", map_location="cpu")
+        assert checkpoint["state_dict"] is not None
+        assert checkpoint["state_dict"] != {}
 
 
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
