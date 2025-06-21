@@ -350,7 +350,10 @@ class ModelCheckpoint(Checkpoint):
             filepath = self.format_checkpoint_name(metrics=monitor_candidates, prefix=self.CHECKPOINT_EXCEPTION_PREFIX)
             self._save_checkpoint(trainer, filepath)
             self._save_last_checkpoint(trainer, monitor_candidates)
-            rank_zero_info(f"An exception was raised saved checkpoint to {filepath}")
+            rank_zero_info(
+                f"An {type(exception).__name__} was raised with message: \
+                {str(exception)}, saved checkpoint to {filepath}"
+            )
 
     @override
     def state_dict(self) -> dict[str, Any]:
