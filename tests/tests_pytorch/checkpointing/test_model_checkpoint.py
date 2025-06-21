@@ -776,27 +776,124 @@ def test_ckpt_every_n_train_steps(tmp_path):
 def test_model_checkpoint_on_exception(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in a lightning module."""
 
+    class TroubledModelOnTrainEpochStart(BoringModel):
+        def on_train_epoch_start(self):
+            if self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnTrainBatchStart(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx):
+            if batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
     class TroubledModelInTrainingStep(BoringModel):
         def training_step(self, batch, batch_idx):
             if batch_idx == 1:
                 raise RuntimeError("Trouble!")
 
-    class TroubledModelInValidationStep(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            if not trainer.sanity_checking and batch_idx == 1:
+    class TroubledModelOnBeforeZeroGrad(BoringModel):
+        def on_before_zero_grad(self, optimizer):
+            if self.current_epoch == 1:
                 raise RuntimeError("Trouble!")
 
-    models = [TroubledModelInTrainingStep(), TroubledModelInValidationStep()]
+    class TroubledModelOnBeforeBackward(BoringModel):
+        def on_before_backward(self, loss):
+            if self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnAfterBackward(BoringModel):
+        def on_after_backward(self):
+            if self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnBeforeOptimizerStep(BoringModel):
+        def on_before_optimizer_step(self, optimizer):
+            if self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnTrainBatchEnd(BoringModel):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
+            if batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnTrainEpochEnd(BoringModel):
+        def on_train_epoch_end(self):
+            if self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnTrainEnd(BoringModel):
+        def on_train_end(self):
+            raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationStart(BoringModel):
+        def on_validation_start(self):
+            if not self.trainer.sanity_checking and self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationEpochStart(BoringModel):
+        def on_validation_epoch_start(self):
+            if not self.trainer.sanity_checking and self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationBatchStart(BoringModel):
+        def on_validation_batch_start(self, batch, batch_idx):
+            if not self.trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelInValidationStep(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            if not self.trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationBatchEnd(BoringModel):
+        def on_validation_batch_end(self, outputs, batch, batch_idx):
+            if not self.trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationEpochEnd(BoringModel):
+        def on_validation_epoch_end(self):
+            if not self.trainer.sanity_checking and self.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnValidationEnd(BoringModel):
+        def on_validation_end(self):
+            if not self.trainer.sanity_checking:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelOnFitEnd(BoringModel):
+        def on_fit_end(self):
+            raise RuntimeError("Trouble!")
+
+    models = [
+        TroubledModelOnTrainEpochStart(),
+        TroubledModelOnTrainBatchStart(),
+        TroubledModelInTrainingStep(),
+        TroubledModelOnBeforeZeroGrad(),
+        TroubledModelOnBeforeBackward(),
+        TroubledModelOnAfterBackward(),
+        TroubledModelOnBeforeOptimizerStep(),
+        TroubledModelOnTrainBatchEnd(),
+        TroubledModelOnTrainEpochEnd(),
+        TroubledModelOnTrainEnd(),
+        TroubledModelOnValidationStart(),
+        TroubledModelOnValidationEpochStart(),
+        TroubledModelOnValidationBatchStart(),
+        TroubledModelInValidationStep(),
+        TroubledModelOnValidationBatchEnd(),
+        TroubledModelOnValidationEpochEnd(),
+        TroubledModelOnValidationEnd(),
+        TroubledModelOnFitEnd(),
+    ]
 
     for model in models:
         checkpoint_callback = ModelCheckpoint(
-            dirpath=tmp_path, filename=model.__class__.__name__, save_on_exception=True, every_n_epochs=4
+            dirpath=tmp_path, filename=model.__class__.__name__, save_on_exception=True, every_n_epochs=5
         )
         trainer = Trainer(
             default_root_dir=tmp_path,
             callbacks=[checkpoint_callback],
             limit_train_batches=2,
-            max_epochs=5,
+            max_epochs=4,
             logger=False,
             enable_progress_bar=False,
         )
