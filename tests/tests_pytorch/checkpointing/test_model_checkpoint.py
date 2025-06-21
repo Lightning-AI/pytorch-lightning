@@ -770,9 +770,6 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
-#################################################################################################
-
-
 def test_model_checkpoint_on_exception(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in a lightning module."""
 
@@ -909,7 +906,6 @@ def test_model_checkpoint_on_exception(tmp_path):
         assert checkpoint["state_dict"] != {}
 
 
-#################################################################################################
 def test_model_checkpoint_on_exception_in_other_callbacks(tmp_path):
     """Test that an checkpoint is saved when an exception is raised in an other callback."""
 
