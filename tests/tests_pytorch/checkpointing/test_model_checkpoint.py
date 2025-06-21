@@ -453,6 +453,12 @@ def test_model_checkpoint_format_checkpoint_name(tmp_path, monkeypatch):
     ckpt_name = ckpt.format_checkpoint_name({}, ver=3)
     assert ckpt_name == str(tmp_path / "name-v3.ckpt")
 
+    # with prefix
+    ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=tmp_path, filename="name").format_checkpoint_name(
+        {}, prefix="test"
+    )
+    assert ckpt_name == str(tmp_path / "test-name.ckpt")
+
     # using slashes
     ckpt = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}_{val/loss:.5f}")
     ckpt_name = ckpt.format_checkpoint_name({"epoch": 4, "val/loss": 0.03})
