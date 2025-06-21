@@ -116,7 +116,7 @@ jobs:
           mkdir -p $PYPI_CACHE_DIR
           ls -lh $PYPI_CACHE_DIR
 
-      - name: Env. variables
+      - name: Expand Env. variables
         run: |
           # Switch PyTorch URL between stable and test/future
           python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
@@ -124,8 +124,16 @@ jobs:
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
           python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'fabric-'))" >> $GITHUB_ENV
+      - name: Append Env. vars for MacOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          # trying to avoid "gloo" issue with SIGABRT
+          echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
+      - name: Append Env. vars for Windows
+        if: ${{ runner.os == 'windows' }}
+        run: |
           # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
-          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
+          echo "USE_LIBUV=0" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         timeout-minutes: 20
