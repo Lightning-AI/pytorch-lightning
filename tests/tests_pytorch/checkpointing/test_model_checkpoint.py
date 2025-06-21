@@ -770,6 +770,49 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
+#################################################################################################
+
+
+def test_model_checkpoint_on_exception(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a lightning module."""
+
+    class TroubledModelInTrainingStep(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroubledModelInValidationStep(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            if not trainer.sanity_checking and batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    models = [TroubledModelInTrainingStep(), TroubledModelInValidationStep()]
+
+    for model in models:
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=tmp_path, filename=model.__class__.__name__, save_on_exception=True, every_n_epochs=4
+        )
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            callbacks=[checkpoint_callback],
+            limit_train_batches=2,
+            max_epochs=5,
+            logger=False,
+            enable_progress_bar=False,
+        )
+
+        with pytest.raises(RuntimeError, match="Trouble!"):
+            trainer.fit(model)
+
+        checkpoint_path = tmp_path / f"exception-{model.__class__.__name__}.ckpt"
+
+        assert os.path.isfile(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        assert checkpoint["state_dict"] is not None
+        assert checkpoint["state_dict"] != {}
+
+
+#################################################################################################
 def test_model_checkpoint_save_on_exception_in_training_step(tmp_path):
     """Test that the checkpoint is saved when an exception is raised in training_step."""
 
@@ -816,6 +859,8 @@ def test_model_checkpoint_save_on_exception_in_validation_step(tmp_path):
         trainer.fit(model)
     assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
 
+
+#################################################################################################
 
 CHECKPOINT_ON_EXCEPTION_RAISE_AT_BATCH_IDX = 2
 CHECKPOINT_ON_EXCEPTION_RAISE_AT_EPOCH = 21
@@ -955,6 +1000,9 @@ def test_model_checkpoint_save_on_exception_in_other_callbacks(
     assert os.path.isfile(tmp_path / f"step={expected_checkpoint_global_step}.ckpt")
     checkpoint = torch.load(tmp_path / f"step={expected_checkpoint_global_step}.ckpt", weights_only=True)
     assert checkpoint["global_step"] == expected_checkpoint_global_step
+
+
+#################################################################################################
 
 
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
