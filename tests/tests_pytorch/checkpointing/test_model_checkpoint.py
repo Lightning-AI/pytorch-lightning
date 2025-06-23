@@ -994,6 +994,11 @@ def test_model_checkpoint_on_exception_parametrized(tmp_path, TroubledModel):
     assert checkpoint["state_dict"] != {}
 
 
+class TroubledCallbackOnFitEnd(Callback):
+    def on_fit_end(self, trainer, pl_module):
+        raise RuntimeError("Trouble!")
+
+
 class TroubledCallbackOnTrainBatchStart(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         if batch_idx == 1:
@@ -1018,9 +1023,16 @@ class TroubledCallbackOnTrainEpochEnd(Callback):
             raise RuntimeError("Trouble!")
 
 
-class TroubledCallbackOnTrainEnd(Callback):
-    def on_train_end(self, trainer, pl_module):
-        raise RuntimeError("Trouble!")
+class TroubledCallbackOnValidationEpochStart(Callback):
+    def on_validation_epoch_start(self, trainer, pl_module):
+        if not trainer.sanity_checking and trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
+
+
+class TroubledCallbackOnValidationEpochEnd(Callback):
+    def on_validation_epoch_end(self, trainer, pl_module):
+        if not trainer.sanity_checking and trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationBatchStart(Callback):
@@ -1035,16 +1047,9 @@ class TroubledCallbackOnValidationBatchEnd(Callback):
             raise RuntimeError("Trouble!")
 
 
-class TroubledCallbackOnValidationEpochStart(Callback):
-    def on_validation_epoch_start(self, trainer, pl_module):
-        if not trainer.sanity_checking and trainer.current_epoch == 1:
-            raise RuntimeError("Trouble!")
-
-
-class TroubledCallbackOnValidationEpochEnd(Callback):
-    def on_validation_epoch_end(self, trainer, pl_module):
-        if not trainer.sanity_checking and trainer.current_epoch == 1:
-            raise RuntimeError("Trouble!")
+class TroubledCallbackOnTrainEnd(Callback):
+    def on_train_end(self, trainer, pl_module):
+        raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationStart(Callback):
@@ -1059,26 +1064,52 @@ class TroubledCallbackOnValidationEnd(Callback):
             raise RuntimeError("Trouble!")
 
 
-class TroubledCallbackOnFitEnd(Callback):
-    def on_fit_end(self, trainer, pl_module):
-        raise RuntimeError("Trouble!")
+class TroubleCallbackOnBeforeBackward(Callback):
+    def on_before_backward(self, trainer, pl_module, loss):
+        if trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
+
+
+class TroubleCallbackOnAfterBackward(Callback):
+    def on_after_backward(self, trainer, pl_module):
+        if trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
+
+
+class TroubleCallbackOnBeforeOptimizerStep(Callback):
+    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
+        if trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
+
+
+class TroubleCallbackOnBeforeZeroGrad(Callback):
+    def on_before_zero_grad(self, trainer, pl_module, optimizer):
+        if trainer.current_epoch == 1:
+            raise RuntimeError("Trouble!")
+
+
+####
 
 
 @pytest.mark.parametrize(
     "TroubledCallback",
     [
+        TroubledCallbackOnFitEnd,
         TroubledCallbackOnTrainBatchStart,
         TroubledCallbackOnTrainBatchEnd,
         TroubledCallbackOnTrainEpochStart,
         TroubledCallbackOnTrainEpochEnd,
-        TroubledCallbackOnTrainEnd,
-        TroubledCallbackOnValidationBatchStart,
-        TroubledCallbackOnValidationBatchEnd,
         TroubledCallbackOnValidationEpochStart,
         TroubledCallbackOnValidationEpochEnd,
+        TroubledCallbackOnValidationBatchStart,
+        TroubledCallbackOnValidationBatchEnd,
+        TroubledCallbackOnTrainEnd,
         TroubledCallbackOnValidationStart,
         TroubledCallbackOnValidationEnd,
-        TroubledCallbackOnFitEnd,
+        TroubleCallbackOnBeforeBackward,
+        TroubleCallbackOnAfterBackward,
+        TroubleCallbackOnBeforeOptimizerStep,
+        TroubleCallbackOnBeforeZeroGrad,
     ],
 )
 def test_model_checkpoint_on_exception_in_other_callbacks(tmp_path, TroubledCallback):
