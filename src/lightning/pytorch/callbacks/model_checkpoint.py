@@ -214,7 +214,6 @@ class ModelCheckpoint(Checkpoint):
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_EQUALS_CHAR = "="
     CHECKPOINT_NAME_LAST = "last"
-    CHECKPOINT_EXCEPTION_PREFIX = "exception"
     FILE_EXTENSION = ".ckpt"
     STARTING_VERSION = 1
 
@@ -348,7 +347,7 @@ class ModelCheckpoint(Checkpoint):
         if not self._should_save_on_exception(trainer):
             return
         monitor_candidates = self._monitor_candidates(trainer)
-        filepath = self.format_checkpoint_name(metrics=monitor_candidates, prefix=self.CHECKPOINT_EXCEPTION_PREFIX)
+        filepath = self.format_checkpoint_name(metrics=monitor_candidates)
         self._save_checkpoint(trainer, filepath)
         self._save_last_checkpoint(trainer, monitor_candidates)
         rank_zero_info(
