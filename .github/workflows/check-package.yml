@@ -57,6 +57,11 @@ on:
           {
             "SAMPLE_ENV_VARIABLE": 1,
           }
+      timeout-minutes:
+        description: "timeout-minutes for each install job"
+        required: false
+        type: number
+        default: 30
 
 defaults:
   run:
@@ -161,7 +166,7 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: pypi
       - name: Installing package 📦 as Archive
-        timeout-minutes: 10
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         uses: ./.cicd/.github/actions/pkg-install
         with:
           install-from: "archive"
@@ -170,7 +175,7 @@ jobs:
           import-name: ${{ inputs.import-name }}
           custom-import-code: ${{ inputs.custom-import-code }}
       - name: Installing package 📦 as Wheel
-        timeout-minutes: 10
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         uses: ./.cicd/.github/actions/pkg-install
         with:
           install-from: "wheel"
