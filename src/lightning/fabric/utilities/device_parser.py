@@ -206,7 +206,7 @@ def _check_data_type(device_ids: object) -> None:
         raise TypeError(f"{msg} {device_ids!r}.")
 
 
-def _select_auto_accelerator_fabric() -> str:
+def _select_auto_accelerator() -> str:
     """Choose the accelerator type (str) based on availability."""
     from lightning.fabric.accelerators.cuda import CUDAAccelerator
     from lightning.fabric.accelerators.mps import MPSAccelerator

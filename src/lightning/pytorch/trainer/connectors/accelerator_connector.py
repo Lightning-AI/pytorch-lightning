@@ -29,7 +29,7 @@ from lightning.fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning.fabric.utilities.device_parser import _determine_root_gpu_device, _select_auto_accelerator_fabric
+from lightning.fabric.utilities.device_parser import _determine_root_gpu_device, _select_auto_accelerator
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -337,7 +337,7 @@ class _AcceleratorConnector:
 
             if HPUAccelerator.is_available():
                 return "hpu"
-        return _select_auto_accelerator_fabric()
+        return _select_auto_accelerator()
 
     @staticmethod
     def _choose_gpu_accelerator_backend() -> str:
