@@ -342,7 +342,7 @@ class ModelCheckpoint(Checkpoint):
             self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
-    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: Exception) -> None:
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Save a checkpoint when an exception is raised."""
         if not self._should_save_on_exception(trainer):
             return
