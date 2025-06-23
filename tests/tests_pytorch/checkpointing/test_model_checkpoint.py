@@ -968,7 +968,7 @@ def test_model_checkpoint_on_exception(tmp_path):
         checkpoint_path = tmp_path / f"exception-{model.__class__.__name__}.ckpt"
 
         assert os.path.isfile(checkpoint_path)
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         assert checkpoint["state_dict"] is not None
         assert checkpoint["state_dict"] != {}
 
@@ -1064,8 +1064,11 @@ def test_model_checkpoint_on_exception_in_other_callbacks(tmp_path):
         )
         with pytest.raises(RuntimeError, match="Trouble!"):
             trainer.fit(model)
-        assert os.path.isfile(tmp_path / f"exception-{troubled_callback.__class__.__name__}.ckpt")
-        checkpoint = torch.load(tmp_path / f"exception-{troubled_callback.__class__.__name__}.ckpt", map_location="cpu")
+
+        checkpoint_path = tmp_path / f"exception-{troubled_callback.__class__.__name__}.ckpt"
+
+        assert os.path.isfile(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         assert checkpoint["state_dict"] is not None
         assert checkpoint["state_dict"] != {}
 
