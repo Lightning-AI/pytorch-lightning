@@ -345,15 +345,16 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: Exception) -> None:
         """Save a checkpoint when an exception is raised."""
-        if self._should_save_on_exception(trainer):
-            monitor_candidates = self._monitor_candidates(trainer)
-            filepath = self.format_checkpoint_name(metrics=monitor_candidates, prefix=self.CHECKPOINT_EXCEPTION_PREFIX)
-            self._save_checkpoint(trainer, filepath)
-            self._save_last_checkpoint(trainer, monitor_candidates)
-            rank_zero_info(
-                f"An {type(exception).__name__} was raised with message: \
-                {str(exception)}, saved checkpoint to {filepath}"
-            )
+        if not self._should_save_on_exception(trainer):
+            return
+        monitor_candidates = self._monitor_candidates(trainer)
+        filepath = self.format_checkpoint_name(metrics=monitor_candidates, prefix=self.CHECKPOINT_EXCEPTION_PREFIX)
+        self._save_checkpoint(trainer, filepath)
+        self._save_last_checkpoint(trainer, monitor_candidates)
+        rank_zero_info(
+            f"An {type(exception).__name__} was raised with message: \
+            {str(exception)}, saved checkpoint to {filepath}"
+        )
 
     @override
     def state_dict(self) -> dict[str, Any]:
