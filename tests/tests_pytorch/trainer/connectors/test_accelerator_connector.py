@@ -491,10 +491,11 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
         "LOCAL_RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_torchelastic_priority_over_slurm(*_):
+def test_torchelastic_priority_over_slurm(monkeypatch):
     """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    mock_cuda_count(monkeypatch, 2)
+    mock_mps_count(monkeypatch, 0)
+    mock_hpu_count(monkeypatch, 0)
     assert TorchElasticEnvironment.detect()
     assert SLURMEnvironment.detect()
     connector = _AcceleratorConnector(strategy="ddp")
@@ -1003,6 +1004,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     with monkeypatch.context():
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
+        mock_hpu_count(monkeypatch, 0)
         _mock_tpu_available(True)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, XLAAccelerator)
