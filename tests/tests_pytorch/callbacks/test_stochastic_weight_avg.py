@@ -354,6 +354,8 @@ def test_swa_resume_training_from_checkpoint_custom_scheduler(tmp_path, crash_on
 
 
 @RunIf(skip_windows=True)
+# flaky with "process 0 terminated with signal SIGABRT" (GLOO)
+@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
 def test_swa_resume_training_from_checkpoint_ddp(tmp_path):
     model = SwaTestModel(crash_on_epoch=3)
     resume_model = SwaTestModel()
