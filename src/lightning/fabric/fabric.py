@@ -331,7 +331,7 @@ class Fabric:
         ``.setup(model, optimizer, ...)`` instead to jointly set them up.
 
         Args:
-            *optimizers: One or more optmizers to set up.
+            *optimizers: One or more optimizers to set up.
 
         Returns:
             The wrapped optimizer(s).

@@ -46,7 +46,7 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
     # clip gradients' maximum magnitude to <=0.5
     trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="value")
 
-Read more about :ref:`Configuring Gradient Clipping <configure_gradient_clipping>` for advanced use-cases.
+Read more about :ref:`Configuring Gradient Clipping <configure_gradient_clipping>` for advanced use cases.
 
 ----------
 

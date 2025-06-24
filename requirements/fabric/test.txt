@@ -1,9 +1,9 @@
-coverage ==7.8.0
+coverage ==7.9.1
 numpy >=1.17.2, <1.27.0
-pytest ==8.3.5
-pytest-cov ==6.1.1
-pytest-timeout ==2.1.0
-pytest-rerunfailures ==12.0
-pytest-random-order ==1.1.0
-click ==8.1.7
+pytest ==8.4.1
+pytest-cov ==6.2.1
+pytest-timeout ==2.4.0
+pytest-rerunfailures ==15.1
+pytest-random-order ==1.2.0
+click ==8.1.8
 tensorboardX >=2.2, <2.7.0  # min version is set by torch.onnx missing attribute
