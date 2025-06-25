@@ -563,7 +563,7 @@ class ModelCheckpoint(Checkpoint):
         self,
         filename: Optional[str],
         metrics: dict[str, Tensor],
-        prefix: str = "",
+        prefix: Optional[str] = None,
         auto_insert_metric_name: bool = True,
     ) -> str:
         if not filename:
@@ -590,7 +590,7 @@ class ModelCheckpoint(Checkpoint):
                 metrics[name] = torch.tensor(0)
         filename = filename.format(metrics)
 
-        if prefix:
+        if prefix is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
 
         return filename
