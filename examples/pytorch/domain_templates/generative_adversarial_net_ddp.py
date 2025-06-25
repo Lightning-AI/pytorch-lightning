@@ -18,26 +18,27 @@ After a few epochs, launch TensorBoard to see the images being generated at ever
 tensorboard --logdir default
 
 """
+
 import math
+
+# ! TESTING
+import os
+import sys
 from argparse import ArgumentParser, Namespace
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# ! TESTING
-import os
-import sys
-
-sys.path.append(os.path.join(os.getcwd(), "src"))  # noqa: E402
+sys.path.append(os.path.join(os.getcwd(), "src"))
 # ! TESTING
 
 from lightning.pytorch import cli_lightning_logo
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.strategies.ddp import MultiModelDDPStrategy
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from lightning.pytorch.strategies.ddp import DDPStrategy, MultiModelDDPStrategy
 
 if _TORCHVISION_AVAILABLE:
     import torchvision

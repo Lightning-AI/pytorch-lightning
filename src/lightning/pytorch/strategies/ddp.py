@@ -107,7 +107,9 @@ class DDPStrategy(ParallelStrategy):
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
         """Legacy property kept for backwards compatibility."""
-        rank_zero_deprecation(f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6)
+        rank_zero_deprecation(
+            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
+        )
         return True
 
     @property
@@ -227,7 +229,9 @@ class DDPStrategy(ParallelStrategy):
     def _enable_model_averaging(self) -> None:
         log.debug(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         if self._model_averaging_period is None:
-            raise ValueError("Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy.")
+            raise ValueError(
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
+            )
         from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
         for optimizer in self.optimizers:
@@ -236,7 +240,10 @@ class DDPStrategy(ParallelStrategy):
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
-                raise ValueError(f"Currently model averaging cannot work with a distributed optimizer of type " f"{optimizer.__class__.__name__}.")
+                raise ValueError(
+                    f"Currently model averaging cannot work with a distributed optimizer of type "
+                    f"{optimizer.__class__.__name__}."
+                )
 
         assert self._ddp_comm_state is not None
         self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
@@ -316,7 +323,9 @@ class DDPStrategy(ParallelStrategy):
         self.model.to(self.root_device)
 
     @override
-    def reduce(self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Tensor:
+    def reduce(
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
