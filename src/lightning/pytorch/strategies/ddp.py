@@ -107,9 +107,7 @@ class DDPStrategy(ParallelStrategy):
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
         """Legacy property kept for backwards compatibility."""
-        rank_zero_deprecation(
-            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
-        )
+        rank_zero_deprecation(f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6)
         return True
 
     @property
@@ -229,9 +227,7 @@ class DDPStrategy(ParallelStrategy):
     def _enable_model_averaging(self) -> None:
         log.debug(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         if self._model_averaging_period is None:
-            raise ValueError(
-                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
-            )
+            raise ValueError("Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy.")
         from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
         for optimizer in self.optimizers:
@@ -240,10 +236,7 @@ class DDPStrategy(ParallelStrategy):
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
-                raise ValueError(
-                    f"Currently model averaging cannot work with a distributed optimizer of type "
-                    f"{optimizer.__class__.__name__}."
-                )
+                raise ValueError(f"Currently model averaging cannot work with a distributed optimizer of type " f"{optimizer.__class__.__name__}.")
 
         assert self._ddp_comm_state is not None
         self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
@@ -323,9 +316,7 @@ class DDPStrategy(ParallelStrategy):
         self.model.to(self.root_device)
 
     @override
-    def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def reduce(self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -417,6 +408,39 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class MultiModelDDPStrategy(DDPStrategy):
+    @override
+    def _setup_model(self, model: Module) -> Module:
+        device_ids = self.determine_ddp_device_ids()
+        log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        with ctx:
+            for name, module in model.named_children():
+                if isinstance(module, Module):
+                    ddp_module = DistributedDataParallel(module, device_ids=device_ids, **self._ddp_kwargs)
+                    setattr(model, name, ddp_module)
+
+            return model
+
+    @override
+    def _register_ddp_hooks(self) -> None:
+        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
+        # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
+        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
+        if self.root_device.type == "cuda":
+            assert isinstance(self.model, Module)
+
+            for name, module in self.model.named_children():
+                assert isinstance(module, DistributedDataParallel)
+                _register_ddp_comm_hook(
+                    model=module,
+                    ddp_comm_state=self._ddp_comm_state,
+                    ddp_comm_hook=self._ddp_comm_hook,
+                    ddp_comm_wrapper=self._ddp_comm_wrapper,
+                )
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
