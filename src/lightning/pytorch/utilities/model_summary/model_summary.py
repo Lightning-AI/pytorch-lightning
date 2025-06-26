@@ -272,7 +272,7 @@ class ModelSummary:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
     @property
-    def training_modes(self) -> list[bool]:
+    def training_modes(self) -> list[int]:
         return [(2 if layer.training else 1) if layer.requires_grad else 0 for layer in self._layer_summary.values()]
 
     @property
