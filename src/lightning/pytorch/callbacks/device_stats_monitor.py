@@ -34,7 +34,6 @@ class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
     ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
-
     **Logged Metrics**
 
     Logs device statistics with keys prefixed as ``DeviceStatsMonitor.{hook_name}/{base_metric_name}``.
@@ -49,7 +48,7 @@ class DeviceStatsMonitor(Callback):
 
     **CUDA GPU (via `torch.cuda.memory_stats`)**
 
-    Logs memory statistics from PyTorch caching allocator (all in Bytes). 
+    Logs memory statistics from PyTorch caching allocator (all in Bytes).
     GPU compute utilization is not logged by default.
 
     *General Memory Usage:*
