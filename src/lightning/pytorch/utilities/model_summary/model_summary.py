@@ -144,7 +144,14 @@ class LayerSummary:
     def training(self) -> bool:
         """Returns whether the module is in training mode."""
         return self._module.training
-
+    
+    @property
+    def requires_grad(self) -> bool:
+        """Returns whether the module is requires grad."""
+        if self.num_parameters > 0:
+            return any([param.requires_grad for name, param in self._module.named_parameters()])
+        else:
+            return True
 
 class ModelSummary:
     """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
@@ -266,7 +273,7 @@ class ModelSummary:
 
     @property
     def training_modes(self) -> list[bool]:
-        return [layer.training for layer in self._layer_summary.values()]
+        return [(2 if layer.training else 1) if layer.requires_grad else 0 for layer in self._layer_summary.values()]
 
     @property
     def total_training_modes(self) -> dict[str, int]:
@@ -361,12 +368,13 @@ class ModelSummary:
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
 
         """
+        param_mode = {0: "freeze", 1: "eval", 2: "train"}
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
-            ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
+            ("Mode", [param_mode[mode] for mode in self.training_modes]),
             ("FLOPs", list(map(get_human_readable_count, (sum(x.values()) for x in self.flop_counts.values())))),
         ]
         if self._model.example_input_array is not None:
