@@ -38,8 +38,10 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 class ExperimentWriter(_FabricExperimentWriter):
     r"""Experiment writer for CSVLogger.
 
-    Currently, supports to log hyperparameters and metrics in YAML and CSV
-    format, respectively.
+    Logs hyperparameters to YAML format and metrics to CSV format.
+
+    - **Hyperparameters**: Saved to ``hparams.yaml`` via the ``log_hparams()`` method
+    - **Metrics**: Saved to ``metrics.csv`` (inherited from parent class)
 
     This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
@@ -62,15 +64,24 @@ class ExperimentWriter(_FabricExperimentWriter):
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""Log to local file system in yaml and CSV format.
+    r"""Log to local file system in YAML and CSV format.
 
-    Logs are saved to ``os.path.join(save_dir, name, version)``.
+    This logger automatically saves:
+
+    - **Metrics**: Logged to CSV format in ``metrics.csv``
+    - **Hyperparameters**: Logged to YAML format in ``hparams.yaml`` (when ``log_hyperparams()`` is called)
 
     Example:
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.loggers import CSVLogger
         >>> logger = CSVLogger("logs", name="my_exp_name")
         >>> trainer = Trainer(logger=logger)
+        # This will create:
+        # logs/my_exp_name/version_0/metrics.csv
+        # logs/my_exp_name/version_0/hparams.yaml (when hyperparams are logged)
+
+    Note:
+        Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Args:
         save_dir: Save directory
@@ -140,6 +151,13 @@ class CSVLogger(Logger, FabricCSVLogger):
     @override
     @rank_zero_only
     def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
+        """Log hyperparameters to YAML format.
+
+        Hyperparameters are saved to ``hparams.yaml`` in the log directory.
+
+        Args:
+            params: Dictionary or Namespace containing hyperparameters to log.
+        """
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
