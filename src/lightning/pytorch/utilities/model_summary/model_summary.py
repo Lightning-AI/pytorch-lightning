@@ -144,14 +144,14 @@ class LayerSummary:
     def training(self) -> bool:
         """Returns whether the module is in training mode."""
         return self._module.training
-    
+
     @property
     def requires_grad(self) -> bool:
         """Returns whether the module is requires grad."""
         if self.num_parameters > 0:
-            return any([param.requires_grad for name, param in self._module.named_parameters()])
-        else:
-            return True
+            return any(param.requires_grad for name, param in self._module.named_parameters())
+        return True
+
 
 class ModelSummary:
     """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
