@@ -18,7 +18,7 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, Mock, PropertyMock, call
+from unittest.mock import ANY, Mock, PropertyMock, call, patch
 
 import pytest
 import torch
@@ -109,6 +109,7 @@ def test_tqdm_progress_bar_misconfiguration():
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 @pytest.mark.parametrize("num_dl", [1, 2])
 def test_tqdm_progress_bar_totals(tmp_path, num_dl):
     """Test that the progress finishes with the correct total steps processed."""
@@ -203,6 +204,7 @@ def test_tqdm_progress_bar_totals(tmp_path, num_dl):
     assert pbar.predict_progress_bar.leave
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_fast_dev_run(tmp_path):
     model = BoringModel()
 
@@ -323,6 +325,7 @@ def test_tqdm_progress_bar_default_value(tmp_path):
 
 
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_value_on_colab(tmp_path):
     """Test that Trainer will override the default in Google COLAB."""
     trainer = Trainer(default_root_dir=tmp_path)
@@ -411,6 +414,7 @@ def test_test_progress_bar_update_amount(tmp_path, test_batches: int, refresh_ra
     assert progress_bar.test_progress_bar.n_values == updates
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tensor_to_float_conversion(tmp_path):
     """Check tensor gets converted to float."""
 
@@ -424,7 +428,13 @@ def test_tensor_to_float_conversion(tmp_path):
     trainer = Trainer(
         default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
     )
-    trainer.fit(TestModel())
+
+    with mock.patch.object(sys.stdout, "write") as mock_write:
+        trainer.fit(TestModel())
+    bar_updates = "".join(call.args[0] for call in mock_write.call_args_list)
+    assert "a=0.123" in bar_updates
+    assert "b=1.000" in bar_updates
+    assert "c=2.000" in bar_updates
 
     torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
     assert trainer.progress_bar_metrics["b"] == 1.0
@@ -616,6 +626,7 @@ def test_progress_bar_max_val_check_interval(
     assert pbar_callback.is_enabled
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("val_check_interval", [0.2, 0.5])
 def test_progress_bar_max_val_check_interval_ddp(tmp_path, val_check_interval):
@@ -703,7 +714,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmp_path):
             del items["v_num"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append((
-                trainer.state.stage,
+                trainer.state.stage.value,
                 trainer.current_epoch,
                 trainer.global_step,
                 items,
