@@ -15,13 +15,12 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from contextlib import AbstractContextManager, ExitStack
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
@@ -33,6 +32,9 @@ from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp, _Stateful
+
+if TYPE_CHECKING:
+    from torch.optim.lr_scheduler import _LRScheduler
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -146,8 +148,8 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: list[Optimizer], scheduler: Optional[_LRScheduler] = None
-    ) -> tuple[Module, list[Optimizer], Optional[_LRScheduler]]:
+        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
+    ) -> tuple[Module, list[Optimizer], Optional["_LRScheduler"]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will

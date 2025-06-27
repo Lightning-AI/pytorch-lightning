@@ -18,6 +18,7 @@ from contextlib import AbstractContextManager, contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
@@ -32,7 +33,6 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 import lightning.fabric
@@ -74,6 +74,9 @@ from lightning.fabric.wrappers import (
     _unwrap_compiled,
     _unwrap_objects,
 )
+
+if TYPE_CHECKING:
+    from torch.optim.lr_scheduler import _LRScheduler
 
 
 def _do_nothing(*_: Any) -> None:
@@ -207,7 +210,7 @@ class Fabric:
         self,
         module: nn.Module,
         *optimizers: Optimizer,
-        scheduler: Optional[_LRScheduler] = None,
+        scheduler: Optional["_LRScheduler"] = None,
         move_to_device: bool = True,
         _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
