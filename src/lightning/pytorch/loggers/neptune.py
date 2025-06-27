@@ -886,6 +886,12 @@ class NeptuneScaleLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "Run":
+        r"""Alias for :meth:`run`."""
+        return self.run
+
+    @property
+    @rank_zero_experiment
+    def run(self) -> "Run":
         r"""Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~lightning.pytorch.core.LightningModule`.
 
@@ -905,11 +911,6 @@ class NeptuneScaleLogger(Logger):
         with NeptuneScaleLogger.
 
         """
-        return self.run
-
-    @property
-    @rank_zero_experiment
-    def run(self) -> "Run":
         from neptune_scale import Run
 
         if not self._run_instance:
@@ -987,8 +988,8 @@ class NeptuneScaleLogger(Logger):
 
         flattened = flatten(params)
 
-        for key, value in flattened.items():
-            self.run.log_configs({f"{parameters_key}/{key}": value})
+        batched_configs = {f"{parameters_key}/{key}": value for key, value in flattened.items()}
+        self.run.log_configs(batched_configs)
 
     @override
     @rank_zero_only
