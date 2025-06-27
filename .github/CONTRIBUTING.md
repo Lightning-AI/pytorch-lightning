@@ -97,7 +97,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Add/update the relevant tests!
 
-- [This PR](https://github.com/Lightning-AI/lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/lightning/pull/2721).
+- [This PR](https://github.com/Lightning-AI/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/pytorch-lightning/pull/2721).
 
 ### Test cases:
 
@@ -130,11 +130,11 @@ In case you are adding new dependencies, make sure that they are compatible with
 
 ### Documentation
 
-To learn about development of docs, check out the docs [README.md](https://github.com/Lightning-AI/lightning/blob/master/docs/README.md).
+To learn about development of docs, check out the docs [README.md](https://github.com/Lightning-AI/pytorch-lightning/blob/master/docs/README.md).
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md).
+To learn about tests, check out the tests [README.md](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/README.md).
 
 ### Pull Request
 
@@ -165,8 +165,8 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
 
-   - [Test README](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md)
-   - [CI/CD README](https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/README.md)
+   - [Test README](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/README.md)
+   - [CI/CD README](https://github.com/Lightning-AI/pytorch-lightning/tree/master/.github/workflows#readme)
 
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
 

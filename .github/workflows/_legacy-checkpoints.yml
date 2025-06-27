@@ -111,9 +111,13 @@ jobs:
           retention-days: ${{ env.KEEP_DAYS }}
           include-hidden-files: true
 
+      - name: access secrets
+        # export to env bool if secrets.AWS_REGION is not empty
+        run: echo "WITH_SECRETS=$([ -n '${{ secrets.AWS_REGION }}' ] && echo 1 || echo 0)" >> $GITHUB_ENV
+
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
-        if: secrets.AWS_REGION != ''
+        if: ${{ env.WITH_SECRETS == '1' }}
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -145,8 +149,7 @@ jobs:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          commit-message: "adding `${{ env.PL_VERSION }}` checkpoint"
-          body: "**This is automated addition of created checkpoints with the latest `lightning` release!**"
+          body: "**This is automated addition of created checkpoint with the latest `${{ env.PL_VERSION }}` `lightning` release!**"
           delete-branch: true
           token: ${{ secrets.PAT_GHOST }}
           labels: |
@@ -154,4 +157,3 @@ jobs:
             tests
             pl
           assignees: borda
-          reviewers: borda
