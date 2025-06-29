@@ -22,15 +22,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.5.2] - 2025-3-20
+
+### Changed
+
+- Ensure correct device is used for autocast when mps is selected as Fabric accelerator ([#20876](https://github.com/Lightning-AI/pytorch-lightning/pull/20876))
+
+### Fixed
+
+- Fix: `TransformerEnginePrecision` conversion for layers with `bias=False` ([#20805](https://github.com/Lightning-AI/pytorch-lightning/pull/20805))
+
+
 ## [2.5.1] - 2025-03-18
 
 ### Changed
 
-- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/issues/19957))
+- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/pull/19957))
 
 ### Removed
 
-- Removed legacy support for `lightning run model`. Use `fabric run` instead. ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
+- Removed legacy support for `lightning run model`; use `fabric run` instead ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
 
 
 ## [2.5.0] - 2024-12-19
