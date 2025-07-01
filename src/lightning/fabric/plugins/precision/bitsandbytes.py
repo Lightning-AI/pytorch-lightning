@@ -256,10 +256,12 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                if hasattr(bnb.functional, "double_quant"):
+                # bitsandbytes >= 0.45 supports an improved API
+                if hasattr(bnb.functional, "int8_vectorwise_quant"):
+                    CB, SCB, _ = bnb.functional.int8_vectorwise_quant(B)
+                else:  # old method is deprecated in 0.45, removed in 0.46+.
                     CB, _, SCB, _, _ = bnb.functional.double_quant(B)
-                else:  # for bitsandbytes versions ≥0.46
-                    CB, SCB = bnb.functional.int8_double_quant(B)
+
                 int8params.data = CB
                 setattr(int8params, "CB", CB)
                 setattr(int8params, "SCB", SCB)
