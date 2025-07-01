@@ -56,6 +56,9 @@ class ExperimentWriter(_FabricExperimentWriter):
     def log_hparams(self, params: dict[str, Any]) -> None:
         """Save hyperparameters to a YAML file in the log directory.
 
+        This method updates the internal hyperparameters dictionary and saves
+        all hyperparameters to ``hparams.yaml`` in the log directory.
+
         Args:
             params: Dictionary of hyperparameters to log.
         """
