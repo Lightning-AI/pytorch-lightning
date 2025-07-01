@@ -33,13 +33,22 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
         super().__init__(checkpoint_io)
-
-        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._executor: Optional[ThreadPoolExecutor] = None
         self._error: Optional[BaseException] = None
+
+    # CheckpointIO doesn't have a setup method so we have to do something like.
+    # We can't do setup in __init__ because if train or validate is called more than once the
+    # teardown method deletes the executor.
+    def _ensure_setup(self) -> None:
+        if self._executor is None:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+            self._error: Optional[BaseException] = None
 
     @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
+
+        self._ensure_setup()
 
         def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
             try:
@@ -58,8 +67,10 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def teardown(self) -> None:
         """This method is called to close the threads."""
-        self._executor.shutdown(wait=True)
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
-        # if an error was raised anytime in any of the `executor.submit` calls
-        if self._error:
-            raise self._error
+            # if an error was raised anytime in any of the `executor.submit` calls
+            if self._error:
+                raise self._error
