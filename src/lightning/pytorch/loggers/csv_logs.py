@@ -38,10 +38,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 class ExperimentWriter(_FabricExperimentWriter):
     r"""Experiment writer for CSVLogger.
 
-    Logs hyperparameters to YAML format and metrics to CSV format.
-
-    - **Hyperparameters**: Saved to ``hparams.yaml`` via the ``log_hparams()`` method
-    - **Metrics**: Saved to ``metrics.csv`` (inherited from parent class)
+    Currently, supports to log hyperparameters and metrics in YAML and CSV
+    format, respectively.
 
     This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
@@ -64,24 +62,15 @@ class ExperimentWriter(_FabricExperimentWriter):
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""Log to local file system in YAML and CSV format.
+    r"""Log to local file system in yaml and CSV format.
 
-    This logger automatically saves:
-
-    - **Metrics**: Logged to CSV format in ``metrics.csv``
-    - **Hyperparameters**: Logged to YAML format in ``hparams.yaml`` (when ``log_hyperparams()`` is called)
+    Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Example:
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.loggers import CSVLogger
         >>> logger = CSVLogger("logs", name="my_exp_name")
         >>> trainer = Trainer(logger=logger)
-        # This will create:
-        # logs/my_exp_name/version_0/metrics.csv
-        # logs/my_exp_name/version_0/hparams.yaml (when hyperparams are logged)
-
-    Note:
-        Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Args:
         save_dir: Save directory
@@ -153,7 +142,8 @@ class CSVLogger(Logger, FabricCSVLogger):
     def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
         """Log hyperparameters to YAML format.
 
-        Hyperparameters are saved to ``hparams.yaml`` in the log directory.
+        Hyperparameters are automatically saved to ``hparams.yaml`` in the log directory.
+        This is separate from metrics, which are saved to ``metrics.csv`` via ``self.log()``.
 
         Args:
             params: Dictionary or Namespace containing hyperparameters to log.
