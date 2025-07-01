@@ -70,15 +70,60 @@ class ExperimentWriter(_FabricExperimentWriter):
 class CSVLogger(Logger, FabricCSVLogger):
     r"""Log to local file system in CSV and YAML format.
 
-    Metrics are logged to CSV format while hyperparameters are logged to YAML format.
+    **Metrics** (from ``self.log()`` calls) are logged to CSV format while **hyperparameters**
+    (from ``self.log_hyperparams()`` or ``self.save_hyperparameters()``) are logged to YAML format.
 
-    Logs are saved to ``os.path.join(save_dir, name, version)``.
+    Logs are saved to ``os.path.join(save_dir, name, version)``. The CSV file is named ``metrics.csv``
+    and the YAML file is named ``hparams.yaml``.
+
+    This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
     Example:
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.loggers import CSVLogger
-        >>> logger = CSVLogger("logs", name="my_exp_name")
-        >>> trainer = Trainer(logger=logger)
+
+    .. code-block:: python
+
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.loggers import CSVLogger
+
+        # Basic usage
+        logger = CSVLogger("logs", name="my_exp_name")
+        trainer = Trainer(logger=logger)
+
+    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
+
+    .. code-block:: python
+
+        import torch
+        from lightning.pytorch import LightningModule
+
+        class LitModel(LightningModule):
+            def __init__(self, learning_rate=0.001, batch_size=32):
+                super().__init__()
+                # This will log hyperparameters to hparams.yaml
+                self.save_hyperparameters()
+
+            def training_step(self, batch, batch_idx):
+                loss = self.compute_loss(batch)
+                # This will log metrics to metrics.csv
+                self.log("train_loss", loss)
+                return loss
+
+            def configure_optimizers(self):
+                return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+
+    You can also manually log hyperparameters:
+
+    .. code-block:: python
+
+        # Log additional hyperparameters manually
+        logger.log_hyperparams({"dropout": 0.2, "optimizer": "adam"})
+
+    **File Structure:**
+
+    The logger creates the following files in the log directory:
+
+    - ``metrics.csv``: Contains metrics from ``self.log()`` calls
+    - ``hparams.yaml``: Contains hyperparameters from ``self.save_hyperparameters()`` or ``self.log_hyperparams()``
 
     Args:
         save_dir: Save directory
