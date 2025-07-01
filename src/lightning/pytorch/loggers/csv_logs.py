@@ -61,6 +61,7 @@ class ExperimentWriter(_FabricExperimentWriter):
 
         Args:
             params: Dictionary of hyperparameters to log.
+
         """
         self.hparams.update(params)
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
@@ -206,6 +207,7 @@ class CSVLogger(Logger, FabricCSVLogger):
             >>> logger = CSVLogger("logs")
             >>> logger.log_hyperparams({"learning_rate": 0.001, "batch_size": 32})
             >>> # This creates logs/lightning_logs/version_0/hparams.yaml
+
         """
         params = _convert_params(params)
         self.experiment.log_hparams(params)
