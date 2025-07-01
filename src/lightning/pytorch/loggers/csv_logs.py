@@ -38,13 +38,12 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 class ExperimentWriter(_FabricExperimentWriter):
     r"""Experiment writer for CSVLogger.
 
-    Currently, supports to log hyperparameters and metrics in YAML and CSV
-    format, respectively.
+    Logs metrics in CSV format and hyperparameters in YAML format.
 
     This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
     Args:
-        log_dir: Directory for the experiment logs
+        log_dir: Directory where experiment logs will be saved.
 
     """
 
@@ -55,14 +54,20 @@ class ExperimentWriter(_FabricExperimentWriter):
         self.hparams: dict[str, Any] = {}
 
     def log_hparams(self, params: dict[str, Any]) -> None:
-        """Record hparams and save into files."""
+        """Save hyperparameters to a YAML file in the log directory.
+
+        Args:
+            params: Dictionary of hyperparameters to log.
+        """
         self.hparams.update(params)
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""Log to local file system in yaml and CSV format.
+    r"""Log to local file system in CSV and YAML format.
+
+    Metrics are logged to CSV format while hyperparameters are logged to YAML format.
 
     Logs are saved to ``os.path.join(save_dir, name, version)``.
 
@@ -142,8 +147,7 @@ class CSVLogger(Logger, FabricCSVLogger):
     def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
         """Log hyperparameters to YAML format.
 
-        Hyperparameters are automatically saved to ``hparams.yaml`` in the log directory.
-        This is separate from metrics, which are saved to ``metrics.csv`` via ``self.log()``.
+        Hyperparameters are saved to ``hparams.yaml`` in the log directory.
 
         Args:
             params: Dictionary or Namespace containing hyperparameters to log.
