@@ -31,11 +31,6 @@ class _Loop:
         """Whether the state of this loop was reloaded and it needs to restart."""
         return self._restarting
 
-    @property
-    def is_resuming(self) -> bool:
-        """Whether we're resuming training from a checkpoint."""
-        return self._resuming_from_checkpoint
-
     @restarting.setter
     def restarting(self, restarting: bool) -> None:
         """Connects this loop's restarting value and its children."""
@@ -43,6 +38,11 @@ class _Loop:
         for loop in vars(self).values():
             if isinstance(loop, _Loop):
                 loop.restarting = restarting
+
+    @property
+    def is_resuming(self) -> bool:
+        """Whether we're resuming training from a checkpoint."""
+        return self._resuming_from_checkpoint
 
     def reset_restart_stage(self) -> None:
         pass
