@@ -18,4 +18,6 @@ uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in
 
 tensorboard >=2.9.1, <2.20.0  # for `TensorBoardLogger`
 
-torch-tensorrt >=1.4.0, <2.8.0; platform_system != "Darwin"
+torch-tensorrt >=1.4.0, <2.8.0; platform_system == "Linux" and python_version < "3.11"  # Initial linux support starts from 1.4.0
+torch-tensorrt >=2.3.0, <2.8.0; platform_system != "Darwin" and python_version < "3.11" # Initial windows support starts from 2.3.0
+torch-tensorrt >=2.5.0, <2.8.0; platform_system != "Darwin" and python_version >= "3.12"
