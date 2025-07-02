@@ -33,8 +33,6 @@ import lightning.pytorch._graveyard  # noqa: E402, F401  # isort: skip
 
 __all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 
-# for compatibility with namespace packages
-__import__("pkg_resources").declare_namespace(__name__)
 
 LIGHTNING_LOGO: str = """
                     ####

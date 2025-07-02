@@ -17,9 +17,10 @@ from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
@@ -149,15 +150,17 @@ def test_neptune_additional_methods(neptune_mock):
     run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
 
-def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path):
+def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path, monkeypatch):
     """Verify that neptune experiment was NOT closed after training."""
+    monkeypatch.chdir(tmp_path)
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     _fit_and_test(logger=logger, model=BoringModel(), tmp_path=tmp_path)
     assert run_instance_mock.stop.call_count == 0
 
 
-def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
+def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path, monkeypatch):
     """Verify that trained models do log data."""
+    monkeypatch.chdir(tmp_path)
 
     class LoggingModel(BoringModel):
         def on_validation_epoch_end(self):
@@ -253,11 +256,10 @@ def test_after_save_checkpoint(neptune_mock):
         mock_file.side_effect = mock.Mock()
         logger.after_save_checkpoint(cb_mock)
 
-        assert run_instance_mock.__setitem__.call_count == 3
-        assert run_instance_mock.__getitem__.call_count == 2
-        assert run_attr_mock.upload.call_count == 2
-
-        assert mock_file.from_stream.call_count == 2
+        assert run_instance_mock.__setitem__.call_count == 1  # best_model_path
+        assert run_instance_mock.__getitem__.call_count == 4  # last_model_path, best_k_models, best_model_path
+        assert run_attr_mock.upload.call_count == 4  # last_model_path, best_k_models, best_model_path
+        assert mock_file.from_stream.call_count == 0
 
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
@@ -305,9 +307,10 @@ def test_get_full_model_names_from_exp_structure():
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
 
 
-def test_inactive_run(neptune_mock, tmp_path):
+def test_inactive_run(neptune_mock, tmp_path, monkeypatch):
     from neptune.exceptions import InactiveRunException
 
+    monkeypatch.chdir(tmp_path)
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     run_instance_mock.__setitem__.side_effect = InactiveRunException
 

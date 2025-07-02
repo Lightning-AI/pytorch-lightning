@@ -20,11 +20,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
-from lightning.fabric import Fabric, seed_everything
 from sklearn import model_selection
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
+
+from lightning.fabric import Fabric, seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
 
@@ -101,7 +102,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
 
 
 def run(hparams):
-    # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be proided
+    # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be provided
     # by the command line. See all options: `fabric run --help`
     fabric = Fabric()
 

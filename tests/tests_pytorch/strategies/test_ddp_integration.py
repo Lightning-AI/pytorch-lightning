@@ -15,12 +15,16 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+from torch.distributed.optim import ZeroRedundancyOptimizer
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+
+import lightning.pytorch as pl
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -28,11 +32,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
-from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -112,9 +111,7 @@ def test_ddp_wrapper(tmp_path, precision):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
             expected = ["something"]
-            assert (
-                trainer.strategy.model.parameters_to_ignore == set(expected) if _TORCH_GREATER_EQUAL_2_0 else expected
-            )
+            assert trainer.strategy.model.parameters_to_ignore == set(expected)
             assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == expected
 
     model = CustomModel()
@@ -285,12 +282,14 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
         return ZeroRedundancyOptimizer(self.layer.parameters(), optimizer_class=torch.optim.Adam, lr=0.1)
 
 
+# ZeroRedundancyOptimizer internally calls `torch.load` with `weights_only` not set, triggering the FutureWarning
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
-def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmp_path, strategy):
+def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(strategy, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import platform
 from functools import lru_cache
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -45,7 +46,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -53,7 +54,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, str, list[int]]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None
@@ -70,7 +71,8 @@ class MPSAccelerator(Accelerator):
     @lru_cache(1)
     def is_available() -> bool:
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
-        return torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+        mps_disabled = os.getenv("DISABLE_MPS", "0") == "1"
+        return not mps_disabled and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
 
     @classmethod
     @override
@@ -82,7 +84,7 @@ class MPSAccelerator(Accelerator):
         )
 
 
-def _get_all_available_mps_gpus() -> List[int]:
+def _get_all_available_mps_gpus() -> list[int]:
     """
     Returns:
         A list of all available MPS GPUs

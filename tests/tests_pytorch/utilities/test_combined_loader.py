@@ -13,11 +13,19 @@
 # limitations under the License.
 import math
 import pickle
-from typing import Any, NamedTuple, Sequence, get_args
+from collections.abc import Sequence
+from typing import Any, NamedTuple, get_args
 from unittest.mock import Mock
 
 import pytest
 import torch
+from torch import Tensor
+from torch.utils._pytree import tree_flatten
+from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import RandomSampler, SequentialSampler
+
 from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -30,13 +38,6 @@ from lightning.pytorch.utilities.combined_loader import (
     _MinSize,
     _Sequential,
 )
-from torch import Tensor
-from torch.utils._pytree import tree_flatten
-from torch.utils.data import DataLoader, TensorDataset
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import RandomSampler, SequentialSampler
-
 from tests_pytorch.helpers.runif import RunIf
 
 

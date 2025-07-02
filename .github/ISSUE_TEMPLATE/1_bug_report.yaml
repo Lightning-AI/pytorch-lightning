@@ -32,11 +32,12 @@ body:
       description: select all version where you have experienced this issue
       multiple: true
       options:
-        - "v1.8"
-        - "v1.9"
-        - "v2.0"
+        - "v1.x"
         - "v2.1"
         - "v2.2"
+        - "v2.3"
+        - "v2.4"
+        - "v2.5"
         - "master"
     validations:
       required: true
@@ -45,12 +46,22 @@ body:
     attributes:
       value: "**Note: The rest of this form is optional, but filling it out may help us to provide better support.**"
 
+  - type: input
+    attributes:
+      label: Reproduced in studio
+      description: >
+        Create a new Lightning Studio with code that reproduces the issue and share the link.
+        Also include all the relevant files and data required to reproduce shared issue.
+        In case the code does not crash, please add assert statements to show what is the real and expected output.
+        A simple guide on how to create such a studio can be found [here](https://www.youtube.com/watch?v=YcW-2Zt_bFg&ab_channel=LightningAI).
+      placeholder: https://lightning.ai/live-session/...
+    validations:
+      required: false
   - type: textarea
     attributes:
       label: How to reproduce the bug
       description: >
-        Provide steps and example code here.
-        You can also paste a link to Google Colab (see our [Colab bug report template](https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pytorch/bug_report/bug_report_model.ipynb)) or adapt this minimal [snippet](https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/bug_report/bug_report_model.py).
+        In the special case when the issue can't be reproduced in a studio, provide steps and example code here.
       placeholder: |
         ```python
         # Sample code to reproduce the problem
@@ -91,16 +102,13 @@ body:
           <summary>Current environment</summary>
 
         ```
-        #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
-        #- PyTorch Lightning Version (e.g., 1.5.0):
-        #- Lightning App Version (e.g., 0.5.2):
-        #- PyTorch Version (e.g., 2.0):
-        #- Python version (e.g., 3.9):
+        #- PyTorch Lightning Version (e.g., 2.5.0):
+        #- PyTorch Version (e.g., 2.5):
+        #- Python version (e.g., 3.12):
         #- OS (e.g., Linux):
         #- CUDA/cuDNN version:
         #- GPU models and configuration:
         #- How you installed Lightning(`conda`, `pip`, source):
-        #- Running environment of LightningApp (e.g. local, cloud):
         ```
 
         </details>

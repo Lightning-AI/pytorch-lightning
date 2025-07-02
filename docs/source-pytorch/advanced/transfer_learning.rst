@@ -116,6 +116,7 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             super().__init__()
 
             self.bert = BertModel.from_pretrained("bert-base-cased", output_attentions=True)
+            self.bert.train()
             self.W = nn.Linear(bert.config.hidden_size, 3)
             self.num_classes = 3
 

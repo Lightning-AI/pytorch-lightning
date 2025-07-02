@@ -18,7 +18,7 @@ import sys
 import threading
 import warnings
 from types import ModuleType, TracebackType
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Optional
 
 from packaging.version import Version
 from typing_extensions import override
@@ -32,13 +32,13 @@ from lightning.pytorch.utilities.migration.migration import _migration_index
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
-_CHECKPOINT = Dict[str, Any]
+_CHECKPOINT = dict[str, Any]
 _lock = threading.Lock()
 
 
 def migrate_checkpoint(
     checkpoint: _CHECKPOINT, target_version: Optional[str] = None
-) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
+) -> tuple[_CHECKPOINT, dict[str, list[str]]]:
     """Applies Lightning version migrations to a checkpoint dictionary.
 
     Args:
@@ -81,7 +81,7 @@ class pl_legacy_patch:
     unpickling old checkpoints. The following patches apply.
 
         1. ``lightning.pytorch.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
-           version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
+           version 1.2.8. See: https://github.com/Lightning-AI/pytorch-lightning/pull/6898
         2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
         3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
@@ -121,7 +121,7 @@ class pl_legacy_patch:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_value: Optional[BaseException],
         exc_traceback: Optional[TracebackType],
     ) -> None:

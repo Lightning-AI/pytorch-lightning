@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 
 from torch import Tensor
 from typing_extensions import override
@@ -40,7 +40,7 @@ class ManualResult(OutputResult):
 
     """
 
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
@@ -61,11 +61,11 @@ class ManualResult(OutputResult):
         return cls(extra=extra)
 
     @override
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return self.extra
 
 
-_OUTPUTS_TYPE = Dict[str, Any]
+_OUTPUTS_TYPE = dict[str, Any]
 
 
 class _ManualOptimization(_Loop):

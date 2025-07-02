@@ -116,7 +116,7 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
                                       machine.
       --precision [16-mixed|bf16-mixed|32-true|64-true|64|32|16|bf16]
                                       Double precision (``64-true`` or ``64``),
-                                      full precision (``32-true`` or ``64``), half
+                                      full precision (``32-true`` or ``32``), half
                                       precision (``16-mixed`` or ``16``) or
                                       bfloat16 precision (``bf16-mixed`` or
                                       ``bf16``)
@@ -223,7 +223,7 @@ Next steps
 
 .. displayitem::
     :header: Mixed Precision Training
-    :description:  Save memory and speed up training using mixed precision
+    :description: Save memory and speed up training using mixed precision
     :col_css: col-md-4
     :button_link: ../fundamentals/precision.html
     :height: 160

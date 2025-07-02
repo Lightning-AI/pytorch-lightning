@@ -16,11 +16,11 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins.precision.double import DoublePrecision
-from torch.utils.data import DataLoader, Dataset
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -134,6 +134,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
+@RunIf(mps=False)  # mps does not support float64
 @pytest.mark.parametrize(
     "boring_model",
     [

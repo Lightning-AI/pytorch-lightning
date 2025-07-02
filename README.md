@@ -1,24 +1,24 @@
 <div align="center">
 
-<img alt="Lightning" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/LightningColor.png" width="800px" style="max-width: 100%;">
+<img alt="Lightning" src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/ptl_banner.png" width="800px" style="max-width: 100%;">
 
 <br/>
 <br/>
 
 **The deep learning framework to pretrain, finetune and deploy AI models.**
 
-**NEW- Lightning 2.0 features a clean and stable API!!**
+**NEW- Deploying models? Check out [LitServe](https://github.com/Lightning-AI/litserve), the PyTorch Lightning for model serving**
 
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://lightning.ai/">Lightning.ai</a> •
-  <a href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> •
-  <a href="https://lightning.ai/docs/fabric/stable/">Fabric</a> •
-  <a href="https://lightning.ai/docs/app/stable/">Lightning Apps</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
+    <a href="#quick-start" style="margin: 0 10px;">Quick start</a> •
+  <a href="#examples">Examples</a> •
+  <a href="#why-pytorch-lightning">PyTorch Lightning</a> •
+  <a href="#lightning-fabric-expert-control">Fabric</a> •
+  <a href="https://lightning.ai/">Lightning AI</a> •   
   <a href="#community">Community</a> •
-  <a href="https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html">Contribute</a> •
+  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -31,7 +31,7 @@ ______________________________________________________________________
 
 [![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/lightning-ai/lightning)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/pytorch-lightning/blob/master/LICENSE)
 
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/lightning)
@@ -39,9 +39,38 @@ ______________________________________________________________________
 
 </div>
 
-## Install Lightning
+<div align="center">
+  
+<p align="center">
 
-Simple installation from PyPI
+&nbsp;
+  
+<a target="_blank" href="https://lightning.ai/docs/pytorch/latest/starter/introduction.html#define-a-lightningmodule">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/get-started-badge.svg" height="36px" alt="Get started"/>
+</a>
+
+</p>
+
+</div>
+
+&nbsp;
+
+# Lightning has 2 core packages
+
+[PyTorch Lightning: Train and deploy PyTorch at scale](#why-pytorch-lightning).
+<br/>
+[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+
+Lightning gives you granular control over how much abstraction you want to add over PyTorch.
+
+<div align="center">
+    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
+</div>
+
+&nbsp;
+
+# Quick start
+Install Lightning:
 
 ```bash
 pip install lightning
@@ -50,7 +79,7 @@ pip install lightning
 <!-- following section will be skipped from PyPI description -->
 
 <details>
-  <summary>Other installation options</summary>
+  <summary>Advanced install options</summary>
     <!-- following section will be skipped from PyPI description -->
 
 #### Install with optional dependencies
@@ -90,35 +119,8 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 </details>
 <!-- end skipping PyPI description -->
 
-______________________________________________________________________
-
-## Lightning has 4 core packages
-
-[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
-<br/>
-[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
-<br/>
-[Lightning Data: Blazing fast, distributed streaming of training data from cloud storage](https://github.com/Lightning-AI/pytorch-lightning/tree/master/src/lightning/data).
-<br/>
-[Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).
-
-Lightning gives you granular control over how much abstraction you want to add over PyTorch.
-
-<div align="center">
-    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
-</div>
-
-______________________________________________________________________
-
-# PyTorch Lightning: Train and Deploy PyTorch at Scale
-
-PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
-
-![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
-
-______________________________________________________________________
-
-### Hello simple model
+### PyTorch Lightning example
+Define the training workflow. Here's a toy example ([explore real examples](https://lightning.ai/lightning-ai/studios?view=public&section=featured&query=pytorch+lightning)):
 
 ```python
 # main.py
@@ -179,6 +181,36 @@ Run the model on your terminal
 pip install torchvision
 python main.py
 ```
+
+&nbsp;
+
+
+# Why PyTorch Lightning?
+
+PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
+
+![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
+
+&nbsp;
+
+----
+
+### Examples
+Explore various types of training possible with PyTorch Lightning. Pretrain and finetune ANY kind of model to perform ANY task like classification, segmentation, summarization and more:    
+
+| Task                                                                                                        | Description                                                    | Run |
+|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|---|
+| [Hello world](#hello-simple-model)                                                                          | Pretrain - Hello world example                                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning) | Finetune - ResNet-34 model to classify images of cars          | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)   | Finetune - ResNet-50 model to segment images                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning)       | Finetune - Faster R-CNN model to detect objects                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning) | Finetune - text classifier (BERT model)                        | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Text summarization](https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning)   | Finetune - text summarization (Hugging Face transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator)        | Finetune - audio generator (transformer model)                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [LLM finetuning](https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning)          | Finetune - LLM (Meta Llama 3.1 8B)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
+| [Image generation](https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning)          | Pretrain - Image generator (diffusion model)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
+| [Recommendation system](https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning)  | Train - recommendation system (factorization and embedding)    | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
+| [Time-series forecasting](https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning) | Train - Time-series forecasting with LSTM               | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
 
 ______________________________________________________________________
 
@@ -319,7 +351,10 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-# Lightning Fabric: Expert control.
+&nbsp;
+&nbsp;
+
+# Lightning Fabric: Expert control
 
 Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
@@ -501,62 +536,8 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-# Lightning Apps: Build AI products and ML workflows
-
-Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
-
-<div align="center">
-    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning-apps-teaser.png" width="80%">
-</div>
-
-## Hello Lightning app world
-
-```python
-# app.py
-import lightning as L
-
-
-class TrainComponent(L.LightningWork):
-    def run(self, x):
-        print(f"train a model on {x}")
-
-
-class AnalyzeComponent(L.LightningWork):
-    def run(self, x):
-        print(f"analyze model on {x}")
-
-
-class WorkflowOrchestrator(L.LightningFlow):
-    def __init__(self) -> None:
-        super().__init__()
-        self.train = TrainComponent(cloud_compute=L.CloudCompute("cpu"))
-        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute("gpu"))
-
-    def run(self):
-        self.train.run("CPU machine 1")
-        self.analyze.run("GPU machine 2")
-
-
-app = L.LightningApp(WorkflowOrchestrator())
-```
-
-Run on the cloud or locally
-
-```bash
-# run on the cloud
-lightning run app app.py --setup --cloud
-
-# run locally
-lightning run app app.py
-```
-
-______________________________________________________________________
-
-<div align="center">
-    <a href="https://lightning.ai/docs/app/stable/">Read the Lightning Apps docs</a>
-</div>
-
-______________________________________________________________________
+&nbsp;
+&nbsp;
 
 ## Examples
 
@@ -587,7 +568,8 @@ ______________________________________________________________________
 - [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#logistic-regression)
 - [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#linear-regression)
 
-______________________________________________________________________
+&nbsp;
+&nbsp;
 
 ## Continuous Integration
 
@@ -603,7 +585,6 @@ Lightning is rigorously tested across multiple CPUs, GPUs and TPUs and against m
 |       System / PyTorch ver.        | 1.13                                                                                                                                                                                                                            | 2.0                                                                                                                                                                                                                             |                                                                                                               2.1                                                                                                               |
 | :--------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 |        Linux py3.9 \[GPUs\]        |  |  | [![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Fpytorch-lightning%20%28GPUs%29?branchName=master)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) |
-|        Linux py3.9 \[TPUs\]        |                                                                                                                                                                                                                                 |  [![Test PyTorch - TPU](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml)     |      |
 |  Linux (multiple Python versions)  | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
 |   OSX (multiple Python versions)   | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
 | Windows (multiple Python versions) | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
@@ -611,7 +592,8 @@ Lightning is rigorously tested across multiple CPUs, GPUs and TPUs and against m
 </center>
 </details>
 
-______________________________________________________________________
+&nbsp;
+&nbsp;
 
 ## Community
 

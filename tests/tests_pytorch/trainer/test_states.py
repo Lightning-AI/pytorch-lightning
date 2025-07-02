@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -84,5 +85,6 @@ def test_interrupt_state_on_keyboard_interrupt(tmp_path, extra_params):
 
     trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmp_path, **extra_params)
 
-    trainer.fit(model)
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
     assert trainer.interrupted
