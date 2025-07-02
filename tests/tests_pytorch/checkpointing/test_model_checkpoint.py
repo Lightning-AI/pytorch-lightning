@@ -1601,3 +1601,30 @@ def test_expand_home():
     # it is possible to have a folder with the name `~`
     checkpoint = ModelCheckpoint(dirpath="./~/checkpoints")
     assert checkpoint.dirpath == str(Path.cwd() / "~" / "checkpoints")
+
+
+def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
+    """Test that save_last=True when save_on_train_epoch_end=False"""
+
+    # Remove validation methods to reproduce the bug
+    model = BoringModel()
+    model.validation_step = None
+    model.val_dataloader = None
+    
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        save_last=True,
+        save_on_train_epoch_end=False,
+    )
+    
+    trainer = Trainer(
+        max_epochs=2,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_progress_bar=False,
+    )
+    
+    trainer.fit(model)
+    
+    # save_last=True should always save last.ckpt
+    assert (tmp_path / "last.ckpt").exists()
