@@ -1668,7 +1668,7 @@ def test_load_with_inf_data_loader(tmp_path):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-    def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
+def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
     """Test that save_last=True when save_on_train_epoch_end=False."""
 
     # Remove validation methods to reproduce the bug
