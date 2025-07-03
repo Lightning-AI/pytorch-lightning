@@ -109,6 +109,43 @@ ______________________________________________________________________
 
 ## Guidelines
 
+### Development environment
+
+To set up a local development environment, begin by cloning the repository:
+
+```bash
+# clone the repo
+git clone git@github.com:Lightning-AI/pytorch-lightning.git
+cd pytorch-lightning
+```
+
+Once in root level of the repository, install the dependencies using a package manager of your choice:
+
+```bash
+# pip
+python -m venv ./venv
+source ./venv/bin/activate
+pip install ".[dev, examples]"
+
+# uv
+uv venv
+source ./venv/bin/activate
+uv pip install ".[dev, examples]"
+```
+
+Once the dependencies have been installed, install pre-commit and set up the git hook scripts:
+
+```bash
+# pip
+pip install pre-commit
+
+# uv
+uv pip install pre-commit
+
+# Install git hook scripts
+pre-commit install
+```
+
 ### Developments scripts
 
 To build the documentation locally, simply execute the following commands from project root (only for Unix):
