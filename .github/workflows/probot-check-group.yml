@@ -14,7 +14,7 @@ jobs:
     if: github.event.pull_request.draft == false
     timeout-minutes: 61 # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@dependabot/npm_and_yarn/braces-3.0.3
+      - uses: Lightning-AI/probot@dependabot/npm_and_yarn/multi-4e11cecdf1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
