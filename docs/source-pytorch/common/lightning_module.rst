@@ -286,6 +286,9 @@ Under the hood, Lightning does the following (pseudocode):
         # ...
 
         if validate_at_some_point:
+            # capture .training mode of every submodule
+            capture_training_mode()
+
             # disable grads + batchnorm + dropout
             torch.set_grad_enabled(False)
             model.eval()
@@ -295,9 +298,11 @@ Under the hood, Lightning does the following (pseudocode):
                 val_out = model.validation_step(val_batch, val_batch_idx)
             # ----------------- VAL LOOP ---------------
 
-            # enable grads + batchnorm + dropout
+            # enable grads
             torch.set_grad_enabled(True)
-            model.train()
+
+            # restore .training mode of every submodule
+            restore_training_mode()
 
 You can also run just the validation loop on your validation dataloaders by overriding :meth:`~lightning.pytorch.core.LightningModule.validation_step`
 and calling :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`.
@@ -368,7 +373,7 @@ The only difference is that the test loop is only called when :meth:`~lightning.
     trainer = L.Trainer()
     trainer.fit(model=model, train_dataloaders=dataloader)
 
-    # automatically loads the best weights for you
+    # use the current weights
     trainer.test(model)
 
 There are two ways to call ``test()``:
