@@ -584,7 +584,7 @@ def test_check_fsdp_strategy_and_fallback():
 
 @RunIf(min_cuda_gpus=1)
 def test_check_fsdp_strategy_and_fallback_with_cudaaccelerator():
-    Trainer(strategy="fsdp", accelerator=CUDAAccelerator(), devices=1, fast_dev_run=True)
+    Trainer(strategy="fsdp", accelerator=CUDAAccelerator())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
