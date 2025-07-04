@@ -1084,4 +1084,3 @@ def test_precision_selection_model_parallel(precision, raises, mps_count_0):
     error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
     with error_context:
         _AcceleratorConnector(precision=precision, strategy=ModelParallelStrategy())
-
