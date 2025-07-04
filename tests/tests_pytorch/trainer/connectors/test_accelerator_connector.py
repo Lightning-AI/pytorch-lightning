@@ -1079,3 +1079,20 @@ def test_precision_selection_model_parallel(precision, raises, mps_count_0):
     error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
     with error_context:
         _AcceleratorConnector(precision=precision, strategy=ModelParallelStrategy())
+
+
+@RunIf(min_cuda_gpus=1)
+def test_fsdp_with_cudaaccelerator_instance(tmp_path):
+    # Minimal test to ensure FSDP works with CUDAAccelerator instance
+    from lightning.pytorch.demos.boring_classes import BoringModel
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        strategy="fsdp",
+        accelerator=CUDAAccelerator(),
+        devices=1,
+        fast_dev_run=True,
+    )
+    # Should not raise ValueError
+    trainer.fit(model)
