@@ -582,6 +582,11 @@ def test_check_fsdp_strategy_and_fallback():
     Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
+@RunIf(min_cuda_gpus=1)
+def test_check_fsdp_strategy_and_fallback_with_cudaaccelerator():
+    Trainer(strategy="fsdp", accelerator=CUDAAccelerator())
+
+
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_unsupported_tpu_choice(xla_available, tpu_available):
     # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
