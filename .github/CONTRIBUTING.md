@@ -114,7 +114,6 @@ ______________________________________________________________________
 To set up a local development environment, begin by cloning the repository:
 
 ```bash
-# clone the repo
 git clone https://github.com/Lightning-AI/pytorch-lightning.git
 cd pytorch-lightning
 ```
@@ -123,13 +122,13 @@ Once in root level of the repository, install the dependencies using a package m
 
 ```bash
 # pip
-python -m venv ./venv
-source ./venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install ".[dev, examples]"
 
 # uv
 uv venv
-source ./venv/bin/activate
+source .venv/bin/activate
 uv pip install ".[dev, examples]"
 ```
 
