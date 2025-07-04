@@ -1085,6 +1085,7 @@ def test_precision_selection_model_parallel(precision, raises, mps_count_0):
 def test_fsdp_with_cudaaccelerator_instance(tmp_path):
     # Minimal test to ensure FSDP works with CUDAAccelerator instance
     from lightning.pytorch.demos.boring_classes import BoringModel
+
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
