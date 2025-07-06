@@ -114,8 +114,8 @@ ______________________________________________________________________
 To set up a local development environment, begin by cloning the repository:
 
 ```bash
-git clone https://github.com/Lightning-AI/pytorch-lightning.git
-cd pytorch-lightning
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
 ```
 
 Once in root level of the repository, install the dependencies using a package manager of your choice:

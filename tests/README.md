@@ -9,8 +9,8 @@ To setup a local development environment, install both local and test dependenci
 
 ```bash
 # clone the repo
-git clone https://github.com/Lightning-AI/pytorch-lightning.git
-cd pytorch-lightning
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
 
 # install required dependencies
 export PACKAGE_NAME=pytorch
