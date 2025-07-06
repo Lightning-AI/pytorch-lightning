@@ -35,12 +35,11 @@ class WeightAveraging(Callback):
     r"""A callback that updates an averaged model for Stochastic Weight Averaging (SWA) or Exponential Moving Average
     (EMA) after each training step.
 
-    Arguments given to the constructor will be passed to the :class:`AveragedModel` constructor. There are a couple of
-    differences to the default values, however. By default, the average model is stored on the CPU. If ``device`` is set
-    to ``None``, the device will be inferred from the original model. By default, the callback will compute running
-    averages for both the parameters and the buffers of the model. Setting ``use_buffers`` to ``False`` will cause only
-    the model parameters to be averaged, leaving updating the batch normalization statistics to the user (using
-    ``torch.optim.swa_utils.update_bn()``).
+    Arguments given to the constructor will be passed to the :class:`AveragedModel` constructor. If no ``device`` is
+    specified, the device of the original model will be used. Contrary to :class:`AveragedModel`, ``use_buffers`` is set
+    to ``True`` by default. That is, by default the callback will compute running averages for both the parameters and
+    the buffers of the model. Setting ``use_buffers`` to ``False`` will cause only the model parameters to be averaged,
+    leaving updating the batch normalization statistics to the user (using ``torch.optim.swa_utils.update_bn()``).
 
     You can provide a custom averaging function with the ``avg_fn`` or ``multi_avg_fn`` parameter. See the
     :class:`AveragedModel` class for details. If no averaging function is provided, the default is to compute the
@@ -79,8 +78,9 @@ class WeightAveraging(Callback):
         trainer.fit(model, dataloader)
 
     Args:
-        device: If provided, the :class:`AveragedModel` will be stored on the ``device``. If ``None`` the device will be
-            inferred from the original model.
+        device: By default, the :class:`AveragedModel` will be stored on the same device as the original model. If the
+            ``device`` argument is provided, the :class:`AveragedModel` will be stored on this device instead. If you
+            run out of GPU memory, you might want to use ``"cpu"``.
         use_buffers: If ``False``, the buffers of the model will not be averaged.
         kwargs: Additional keyword arguments to be passed to the :class:`AveragedModel` constructor, such as ``avg_fn``
             or ``multi_avg_fn``.
@@ -89,7 +89,7 @@ class WeightAveraging(Callback):
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, str, int]] = "cpu",
+        device: Optional[Union[torch.device, str, int]] = None,
         use_buffers: bool = True,
         **kwargs: Any,
     ) -> None:
