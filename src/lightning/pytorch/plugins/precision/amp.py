@@ -112,9 +112,8 @@ class MixedPrecision(Precision):
         super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def autocast_context_manager(self) -> torch.autocast:
-        return torch.autocast(
-            self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half), cache_enabled=False
-        )
+        dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.half
+        return torch.autocast(self.device, dtype=dtype, cache_enabled=False)
 
     @override
     @contextmanager
