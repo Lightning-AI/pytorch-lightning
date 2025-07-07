@@ -133,8 +133,10 @@ class ModelCheckpoint(Checkpoint):
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
-            If ``False``, then the check runs at the end of the validation.
-            If ``None`` and ``check_val_every_n_epoch != 1``, checkpointing will not be performed at the end of
+            If ``True``, checkpoints are saved at the end of every training epoch.
+            If ``False``, checkpoints are saved at the end of validation.
+            If ``None`` (default), checkpointing behavior is determined based on training configuration.
+            If ``check_val_every_n_epoch != 1``, checkpointing will not be performed at the end of
             every training epoch. If there are no validation batches of data, checkpointing will occur at the
             end of the training epoch. If there is a non-default number of validation runs per training epoch
             (``val_check_interval != 1``), checkpointing is performed after validation.
