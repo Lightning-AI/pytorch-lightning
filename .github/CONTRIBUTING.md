@@ -111,39 +111,33 @@ ______________________________________________________________________
 
 ### Development environment
 
-To set up a local development environment, begin by cloning the repository:
+To set up a local development environment, we recommend using `uv`, which can be installed following their [instructions](https://docs.astral.sh/uv/getting-started/installation/).
+
+Once `uv` has been installed, begin by cloning the repository:
 
 ```bash
 git clone https://github.com/Lightning-AI/lightning.git
 cd lightning
 ```
 
-Once in root level of the repository, install the dependencies using a package manager of your choice:
+Once in root level of the repository, create a new virtual environment and install the project dependencies.
 
 ```bash
-# pip
-python -m venv .venv
-source .venv/bin/activate
-pip install ".[dev, examples]"
-
-# uv
 uv venv
-source .venv/bin/activate
+# uv venv --python 3.11 # use this instead if you need a specific python version
+
+source .venv/bin/activate # command may differ based on your shell
 uv pip install ".[dev, examples]"
 ```
 
 Once the dependencies have been installed, install pre-commit and set up the git hook scripts:
 
 ```bash
-# pip
-pip install pre-commit
-
-# uv
 uv pip install pre-commit
-
-# Install git hook scripts
 pre-commit install
 ```
+
+If you would like more information regarding the uv commands, please refer to uv's documentation for more information on their [pip interface](https://docs.astral.sh/uv/pip/).
 
 ### Developments scripts
 
