@@ -303,7 +303,7 @@ def test_throughput_monitor_eval(tmp_path, fn):
     assert logger_mock.log_metrics.mock_calls == [
         call(metrics={**expected, f"{fn}|batches": 3, f"{fn}|samples": 9}, step=3),
         call(metrics={**expected, f"{fn}|batches": 6, f"{fn}|samples": 18}, step=6),
-        # the step doesnt repeat
+        # the step doesn't repeat
         call(metrics={**expected, f"{fn}|batches": 9, f"{fn}|samples": 27}, step=9),
         call(metrics={**expected, f"{fn}|batches": 12, f"{fn}|samples": 36}, step=12),
     ]
