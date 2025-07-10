@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Add a `save_on_exception` option to `ModelCheckpoint` Callback
+- Added `save_on_exception` option to `ModelCheckpoint` Callback
 
 
 ### Changed
