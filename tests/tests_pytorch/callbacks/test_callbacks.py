@@ -13,7 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 from re import escape
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
@@ -119,6 +119,7 @@ class OldStatefulCallback(Callback):
         self.state = state_dict["state"]
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_resume_callback_state_saved_by_type_stateful(tmp_path):
     """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
     state_dict/load_state_dict."""
