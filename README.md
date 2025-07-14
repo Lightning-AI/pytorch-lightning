@@ -55,6 +55,12 @@ ______________________________________________________________________
 
 &nbsp;
 
+# Why PyTorch Lightning?   
+
+Training models in plain PyTorch is tedious and error-prone - you have to manually handle things like backprop, mixed precision, multi-GPU, and distributed training, often rewriting code for every new project. PyTorch Lightning organizes PyTorch code to automate those complexities so you can focus on your model and data, while keeping full control and scaling from CPU to multi-node without changing your core code.
+
+Fun analogy: If PyTorch is Javascript, PyTorch Lightning is ReactJS or NextJS.
+
 # Lightning has 2 core packages
 
 [PyTorch Lightning: Train and deploy PyTorch at scale](#why-pytorch-lightning).
