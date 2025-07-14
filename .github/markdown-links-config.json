@@ -23,7 +23,7 @@
       }
     }
   ],
-  "timeout": "15s",
+  "timeout": "30s",
   "retryOn429": true,
   "retryCount": 5,
   "fallbackRetryDelay": "20s"
