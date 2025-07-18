@@ -3,7 +3,7 @@
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices
 and integrations that the amazing PyTorch team and other research organization rolls out!
 
-If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
+If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a).
 
 ## Main Core Value: One less thing to remember
 
