@@ -432,30 +432,38 @@ def test_set_tracking_uri(mlflow_mock):
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_save_dir_file_uri_handling(mlflow_mock):
     """Test that save_dir correctly handles file URIs, especially on Windows."""
-    # Test Unix-style absolute file URI
-    logger = MLFlowLogger(tracking_uri="file:///home/user/mlruns")
-    expected_unix = "/home/user/mlruns"
-    assert logger.save_dir == expected_unix
-
-    # Test Windows-style absolute file URI
-    logger_win = MLFlowLogger(tracking_uri="file:///C:/Dev/example/mlruns")
-    # On Windows, url2pathname converts file:///C:/path to C:\path
-    # On Unix, it converts to /C:/path, but we test the actual behavior
     import platform
 
+    # Test proper Windows-style absolute file URI (the main fix)
+    logger_win = MLFlowLogger(tracking_uri="file:///C:/Dev/example/mlruns")
+    result_win = logger_win.save_dir
     expected_win = "C:\\Dev\\example\\mlruns" if platform.system() == "Windows" else "/C:/Dev/example/mlruns"
-    assert logger_win.save_dir == expected_win
+    assert result_win == expected_win
 
-    # Test relative file URI
+    # Test proper Unix-style absolute file URI
+    logger_unix = MLFlowLogger(tracking_uri="file:///home/user/mlruns")
+    result_unix = logger_unix.save_dir
+    expected_unix = "\\home\\user\\mlruns" if platform.system() == "Windows" else "/home/user/mlruns"
+    assert result_unix == expected_unix
+
+    # Test proper file URI with special characters and spaces
+    logger_special = MLFlowLogger(tracking_uri="file:///path/with%20spaces/mlruns")
+    result_special = logger_special.save_dir
+    expected_special = "\\path\\with spaces\\mlruns" if platform.system() == "Windows" else "/path/with spaces/mlruns"
+    assert result_special == expected_special
+
+    # Test legacy format used by constructor (file:/path - should return as-is)
+    logger_legacy = MLFlowLogger(tracking_uri="file:/tmp/mlruns")
+    result_legacy = logger_legacy.save_dir
+    expected_legacy = "/tmp/mlruns"
+    assert result_legacy == expected_legacy
+
+    # Test legacy relative format
     logger_rel = MLFlowLogger(tracking_uri="file:./mlruns")
+    result_rel = logger_rel.save_dir
     expected_rel = "./mlruns"
-    assert logger_rel.save_dir == expected_rel
+    assert result_rel == expected_rel
 
     # Test non-file URI (should return None)
     logger_http = MLFlowLogger(tracking_uri="http://localhost:8080")
     assert logger_http.save_dir is None
-
-    # Test file URI with special characters and spaces
-    logger_special = MLFlowLogger(tracking_uri="file:///path/with%20spaces/mlruns")
-    expected_special = "/path/with spaces/mlruns"
-    assert logger_special.save_dir == expected_special
