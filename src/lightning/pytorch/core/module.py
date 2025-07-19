@@ -218,7 +218,7 @@ class LightningModule(
     def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v.trainer = trainer  # type: ignore[assignment]
+                v.trainer = trainer
         self._trainer = trainer
 
     @property
@@ -262,7 +262,7 @@ class LightningModule(
     def global_step(self) -> int:
         """Total training batches seen across all epochs.
 
-        If no Trainer is attached, this propery is 0.
+        If no Trainer is attached, this property is 0.
 
         """
         return self.trainer.global_step if self._trainer else 0
@@ -381,7 +381,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
@@ -466,10 +466,10 @@ class LightningModule(
         )
 
         # make sure user doesn't introduce logic for multi-dataloaders
-        if "/dataloader_idx_" in name:
+        if add_dataloader_idx and "/dataloader_idx_" in name:
             raise MisconfigurationException(
                 f"You called `self.log` with the key `{name}`"
-                " but it should not contain information about `dataloader_idx`"
+                " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
@@ -546,7 +546,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
@@ -1149,6 +1149,32 @@ class LightningModule(
         # save memory
         self._param_requires_grad_state = {}
 
+    @contextmanager
+    def toggled_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> Generator:
+        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
+        prevent dangling gradients in multiple-optimizer setup. Combines :meth:`toggle_optimizer` and
+        :meth:`untoggle_optimizer` into context manager.
+
+        Args:
+            optimizer: The optimizer to toggle.
+
+        Example::
+
+            def training_step(...):
+                opt = self.optimizers()
+                with self.toggled_optimizer(opt):
+                    loss = ...
+                    opt.zero_grad()
+                    self.manual_backward(loss)
+                    opt.step()
+
+        """
+        self.toggle_optimizer(optimizer)
+        try:
+            yield
+        finally:
+            self.untoggle_optimizer(optimizer)
+
     def clip_gradients(
         self,
         optimizer: Optimizer,
@@ -1479,6 +1505,10 @@ class LightningModule(
                         " or `model.example_input_array` to be defined."
                     )
                 example_inputs = self.example_input_array
+
+            if kwargs.get("check_inputs") is not None:
+                kwargs["check_inputs"] = self._on_before_batch_transfer(kwargs["check_inputs"])
+                kwargs["check_inputs"] = self._apply_batch_transfer_handler(kwargs["check_inputs"])
 
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)

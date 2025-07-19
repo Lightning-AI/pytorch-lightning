@@ -184,7 +184,7 @@ def _load_state(
         obj.on_load_checkpoint(checkpoint)
 
     # load the state_dict on the model automatically
-    keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
+    keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)  # type: ignore[arg-type]
 
     if not strict:
         if keys.missing_keys:

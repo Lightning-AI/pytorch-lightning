@@ -251,7 +251,7 @@ needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
 
             self.model = torch.compile(model)
 
-For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/fp8_distributed_transformer>`_.
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/pytorch/fp8_distributed_transformer>`_.
 
 ----
 
@@ -262,7 +262,7 @@ Avoid graph breaks
 When ``torch.compile`` looks at the code in your model's ``forward()`` or ``*_step()`` method, it will try to compile as much of the code as possible.
 If there are regions in the code that it doesn't understand, it will introduce a so-called "graph break" that essentially splits the code in optimized and unoptimized parts.
 Graph breaks aren't a deal breaker, since the optimized parts should still run faster.
-But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produce the breaks.
+But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produces the breaks.
 
 You can check whether your model produces graph breaks by calling ``torch.compile`` with ``fullgraph=True``:
 
@@ -332,7 +332,7 @@ Enabling CUDA Graphs often results in a significant speedup, but sometimes also 
 
 **Shape padding:** The specific shape/size of the tensors involved in the computation of your model (input, activations, weights, gradients, etc.) can have an impact on the performance.
 With shape padding enabled, ``torch.compile`` can extend the tensors by padding to a size that gives a better memory alignment.
-Naturally, the tradoff here is that it will consume a bit more memory.
+Naturally, the tradeoff here is that it will consume a bit more memory.
 
 .. code-block:: python
 
