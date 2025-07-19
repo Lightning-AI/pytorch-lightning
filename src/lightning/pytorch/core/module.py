@@ -466,10 +466,10 @@ class LightningModule(
         )
 
         # make sure user doesn't introduce logic for multi-dataloaders
-        if "/dataloader_idx_" in name:
+        if add_dataloader_idx and "/dataloader_idx_" in name:
             raise MisconfigurationException(
                 f"You called `self.log` with the key `{name}`"
-                " but it should not contain information about `dataloader_idx`"
+                " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
