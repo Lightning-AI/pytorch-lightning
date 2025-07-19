@@ -427,3 +427,35 @@ def test_set_tracking_uri(mlflow_mock):
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
     mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+def test_mlflow_logger_save_dir_file_uri_handling(mlflow_mock):
+    """Test that save_dir correctly handles file URIs, especially on Windows."""
+    # Test Unix-style absolute file URI
+    logger = MLFlowLogger(tracking_uri="file:///home/user/mlruns")
+    expected_unix = "/home/user/mlruns"
+    assert logger.save_dir == expected_unix
+
+    # Test Windows-style absolute file URI
+    logger_win = MLFlowLogger(tracking_uri="file:///C:/Dev/example/mlruns")
+    # On Windows, url2pathname converts file:///C:/path to C:\path
+    # On Unix, it converts to /C:/path, but we test the actual behavior
+    import platform
+
+    expected_win = "C:\\Dev\\example\\mlruns" if platform.system() == "Windows" else "/C:/Dev/example/mlruns"
+    assert logger_win.save_dir == expected_win
+
+    # Test relative file URI
+    logger_rel = MLFlowLogger(tracking_uri="file:./mlruns")
+    expected_rel = "./mlruns"
+    assert logger_rel.save_dir == expected_rel
+
+    # Test non-file URI (should return None)
+    logger_http = MLFlowLogger(tracking_uri="http://localhost:8080")
+    assert logger_http.save_dir is None
+
+    # Test file URI with special characters and spaces
+    logger_special = MLFlowLogger(tracking_uri="file:///path/with%20spaces/mlruns")
+    expected_special = "/path/with spaces/mlruns"
+    assert logger_special.save_dir == expected_special

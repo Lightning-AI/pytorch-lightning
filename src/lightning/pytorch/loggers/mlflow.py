@@ -300,7 +300,11 @@ class MLFlowLogger(Logger):
 
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
+            from urllib.parse import urlparse
+            from urllib.request import url2pathname
+
+            parsed_uri = urlparse(self._tracking_uri)
+            return url2pathname(parsed_uri.path)
         return None
 
     @property
