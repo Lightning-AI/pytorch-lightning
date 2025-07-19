@@ -244,15 +244,23 @@ def _get_distributed_sampler(
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
+    """Resolve overfit batches by disabling shuffling.
+
+    When overfit_batches > 0, this function ensures that sequential sampling is used without shuffling for consistent
+    batches across epochs. Training and validation use different sets of data.
+
+    """
     all_have_sequential_sampler = all(
         isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
     )
     if all_have_sequential_sampler:
         return
+
     rank_zero_warn(
         f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
+
     updated = [
         _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) if hasattr(dl, "dataset") else dl
         for dl in combined_loader.flattened
