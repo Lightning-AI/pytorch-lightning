@@ -24,6 +24,7 @@ def test_torch_minimum_version():
 
 
 @pytest.mark.skipif(_TORCH_TRT_AVAILABLE, reason="Run this test only if tensorrt is not available.")
+@RunIf(min_torch="2.2.0")
 def test_missing_tensorrt_package():
     model = BoringModel()
     with pytest.raises(
