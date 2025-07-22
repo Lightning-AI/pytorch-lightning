@@ -16,4 +16,4 @@ pandas >2.0, <2.4.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
-tensorboard >=2.9.1, <2.20.0  # for `TensorBoardLogger`
+tensorboard >=2.9.1, <2.21.0  # for `TensorBoardLogger`
