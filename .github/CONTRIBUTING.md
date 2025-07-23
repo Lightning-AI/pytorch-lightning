@@ -117,7 +117,7 @@ Once `uv` has been installed, begin by cloning the forked repository:
 
 ```bash
 git clone https://github.com/{YOUR_GITHUB_USERNAME}/pytorch-lightning.git
-cd lightning
+cd pytorch-lightning
 ```
 
 > If you're using [Lightning Studio](https://lightning.ai) or already have your `uv venv` activated, you can quickly set up the project by running:
