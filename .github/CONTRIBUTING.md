@@ -120,7 +120,7 @@ git clone https://github.com/{YOUR_GITHUB_USERNAME}/pytorch-lightning.git
 cd lightning
 ```
 
-To quickly set up the project, run:
+> If you're using [Lightning Studio](https://lightning.ai) or already have your `uv venv` activated, you can quickly set up the project by running:
 
 ```bash
 make setup
