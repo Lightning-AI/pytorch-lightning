@@ -26,7 +26,7 @@ Additionally, for testing backward compatibility with older versions of PyTorch 
 bash .actions/pull_legacy_checkpoints.sh
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/pytorch-lightning/tree/master/tests/legacy/README.md).
 
 You can run the full test suite in your terminal via this make script:
 
