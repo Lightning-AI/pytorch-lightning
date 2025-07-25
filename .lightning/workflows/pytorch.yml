@@ -64,7 +64,7 @@ run: |
       --source_import="lightning.fabric,lightning.pytorch" \
       --target_import="lightning_fabric,pytorch_lightning"
   fi
-  
+
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
   pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
 
@@ -75,39 +75,39 @@ run: |
     # Drop PL for LAI
     pip uninstall -y pytorch-lightning
   fi
-  
+
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
   python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
-  
+
   # Testing: Fabric doctests
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     cd src/
     python -m pytest pytorch_lightning
     cd ..
   fi
-  
+
   # Get legacy checkpoints
   bash .actions/pull_legacy_checkpoints.sh
   cd tests/legacy
   bash generate_checkpoints.sh
   ls -l checkpoints/
-  
+
   cd tests/
   # Testing: fabric standard
   python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_pytorch/ -v --durations=50
-  
+
   # Testing: fabric standalone
   export PL_USE_MOCKED_MNIST=1
   export PL_RUN_STANDALONE_TESTS=1
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_pytorch"
-  
+
   # Testing: PyTorch standalone tasks
   cd tests_pytorch/
   bash run_standalone_tasks.sh
-  
+
   python -m coverage report
   python -m coverage xml
   python -m coverage html
@@ -120,7 +120,7 @@ run: |
   #    --flags=gpu,pytest,${COVERAGE_SOURCE} --name="GPU-coverage" --env=linux,azure
   #  ls -l
   cd ../..
-  
+
   # Testing: PyTorch examples
   cd examples/
   bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=1
