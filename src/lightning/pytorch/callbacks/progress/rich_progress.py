@@ -448,8 +448,6 @@ class RichProgressBar(ProgressBar):
         )
 
     def _initialize_progress_bar_id(self) -> None:
-        # Initialize the training progress bar here because
-        # `on_train_epoch_start` is not called when resuming from a mid-epoch restart
         total_batches = self.total_train_batches
         train_description = self._get_train_description(self.trainer.current_epoch)
         assert self.progress is not None
