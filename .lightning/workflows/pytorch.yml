@@ -11,11 +11,11 @@ parametrize:
   include:
     # note that this is setting also all oldest requirements which is linked to Torch == 2.0
     - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.10-torch2.1-cuda12.1.1"
-      PACKAGE_NAME: "fabric"
+      PACKAGE_NAME: "pytorch"
     - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
-      PACKAGE_NAME: "fabric"
+      PACKAGE_NAME: "pytorch"
     # - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
-    #   PACKAGE_NAME: "fabric"
+    #   PACKAGE_NAME: "pytorch"
     - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
       PACKAGE_NAME: "lightning"
   exclude: []
@@ -38,7 +38,7 @@ run: |
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
   TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
   echo ${TORCH_URL}
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
+  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="pytorch_lightning").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
   if [ "${TORCH_VER}" == "2.1" ]; then
@@ -55,18 +55,26 @@ run: |
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
   done
 
-  if [ "${PACKAGE_NAME}" == "fabric" ]; then
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     pip install -U -q -r .actions/requirements.txt
-    python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
-      --source_import="lightning.fabric" \
-      --target_import="lightning_fabric"
-    python .actions/assistant.py copy_replace_imports --source_dir="./examples/fabric" \
-      --source_import="lightning.fabric" \
-      --target_import="lightning_fabric"
+    python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_pytorch" \
+      --source_import="lightning.fabric,lightning.pytorch" \
+      --target_import="lightning_fabric,pytorch_lightning"
+    python .actions/assistant.py copy_replace_imports --source_dir="./examples/pytorch/basics" \
+      --source_import="lightning.fabric,lightning.pytorch" \
+      --target_import="lightning_fabric,pytorch_lightning"
   fi
   
-  extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
+  extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
   pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
+    # Drop LAI from extensions
+    pip uninstall -y lightning
+  elif [ "${PACKAGE_NAME}" == "lightning" ]; then
+    # Drop PL for LAI
+    pip uninstall -y pytorch-lightning
+  fi
   
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
@@ -74,20 +82,31 @@ run: |
   python -c "import bitsandbytes"
   
   # Testing: Fabric doctests
-  if [ "${PACKAGE_NAME}" == "fabric" ]; then
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     cd src/
-    python -m pytest lightning_fabric
+    python -m pytest pytorch_lightning
     cd ..
   fi
   
+  # Get legacy checkpoints
+  bash .actions/pull_legacy_checkpoints.sh
+  cd tests/legacy
+  bash generate_checkpoints.sh
+  ls -l checkpoints/
+  
   cd tests/
   # Testing: fabric standard
-  python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_fabric/ -v --durations=50
+  python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_pytorch/ -v --durations=50
   
   # Testing: fabric standalone
+  export PL_USE_MOCKED_MNIST=1
   export PL_RUN_STANDALONE_TESTS=1
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
-  bash ./run_standalone_tests.sh "tests_fabric"
+  bash ./run_standalone_tests.sh "tests_pytorch"
+  
+  # Testing: PyTorch standalone tasks
+  cd tests_pytorch/
+  bash run_standalone_tasks.sh
   
   python -m coverage report
   python -m coverage xml
@@ -100,9 +119,10 @@ run: |
   #  ./codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) \
   #    --flags=gpu,pytest,${COVERAGE_SOURCE} --name="GPU-coverage" --env=linux,azure
   #  ls -l
-  cd ..
+  cd ../..
   
-  # Testing: fabric examples
+  # Testing: PyTorch examples
   cd examples/
-  bash run_fabric_examples.sh --accelerator=cuda --devices=1
-  bash run_fabric_examples.sh --accelerator=cuda --devices=2 --strategy ddp
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=1
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
