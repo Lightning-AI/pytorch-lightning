@@ -357,13 +357,6 @@ class RichProgressBar(ProgressBar):
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-        # Initialize the training progress bar here because
-        # `on_train_epoch_start` is not called when resuming from a mid-epoch restart
-        total_batches = self.total_train_batches
-        train_description = self._get_train_description(trainer.current_epoch)
-        assert self.progress is not None
-        self.train_progress_bar_id = self._add_task(total_batches, train_description)
-
     @override
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
@@ -454,6 +447,14 @@ class RichProgressBar(ProgressBar):
             visible=visible,
         )
 
+    def _initialize_progress_bar_id(self) -> None:
+        # Initialize the training progress bar here because
+        # `on_train_epoch_start` is not called when resuming from a mid-epoch restart
+        total_batches = self.total_train_batches
+        train_description = self._get_train_description(self.trainer.current_epoch)
+        assert self.progress is not None
+        self.train_progress_bar_id = self._add_task(total_batches, train_description)
+
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
@@ -538,6 +539,9 @@ class RichProgressBar(ProgressBar):
         batch: Any,
         batch_idx: int,
     ) -> None:
+        if self.train_progress_bar_id is None:
+            # can happen when resuming from a mid-epoch restart
+            self._initialize_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
         self.refresh()
