@@ -46,6 +46,10 @@ jobs:
               }
             }
           ]
+          "timeout": "10s",
+          "retryOn429": true,
+          "retryCount": 3,
+          "fallbackRetryDelay": "5s"
           }' > 'markdown.links.config.json'
           echo "CONFIG_FILE=markdown.links.config.json" >> $GITHUB_ENV
           cat 'markdown.links.config.json'
