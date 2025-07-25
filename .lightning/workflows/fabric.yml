@@ -64,31 +64,31 @@ run: |
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
   fi
-  
+
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
   pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
-  
+
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
   python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
-  
+
   # Testing: Fabric doctests
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     cd src/
     python -m pytest lightning_fabric
     cd ..
   fi
-  
+
   cd tests/
   # Testing: fabric standard
   python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_fabric/ -v --durations=50
-  
+
   # Testing: fabric standalone
   export PL_RUN_STANDALONE_TESTS=1
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
-  
+
   python -m coverage report
   python -m coverage xml
   python -m coverage html
@@ -100,7 +100,7 @@ run: |
   #  ./codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) \
   #    --flags=gpu,pytest,${COVERAGE_SOURCE} --name="GPU-coverage" --env=linux,azure
   #  ls -l
-  
+
   # Testing: fabric examples
   bash run_fabric_examples.sh --accelerator=cuda --devices=1
   bash run_fabric_examples.sh --accelerator=cuda --devices=2 --strategy ddp
