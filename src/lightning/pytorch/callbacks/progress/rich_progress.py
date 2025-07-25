@@ -448,9 +448,10 @@ class RichProgressBar(ProgressBar):
         )
 
     def _initialize_progress_bar_id(self) -> None:
+        if self.is_disabled:
+            return
         total_batches = self.total_train_batches
         train_description = self._get_train_description(self.trainer.current_epoch)
-        assert self.progress is not None
         self.train_progress_bar_id = self._add_task(total_batches, train_description)
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
