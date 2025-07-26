@@ -57,13 +57,15 @@ jobs:
       - name: Print 🖨️ dependencies
         uses: ./.github/actions/pip-list
 
-      - name: Unittest and coverage
-        uses: ./.github/actions/unittesting
-        with:
-          python-version: ${{ matrix.python-version }}
-          dirs: "unittests"
-          pkg-name: "lightning_utilities"
-          pytest-args: "--timeout=120"
+      - name: Unittests
+        working-directory: ./tests
+        run: python -m pytest unittests --cov=lightning_utilities --durations=50 --timeout=120
+
+      - name: Statistics
+        working-directory: ./tests
+        run: |
+          coverage xml
+          coverage report
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.4.3
