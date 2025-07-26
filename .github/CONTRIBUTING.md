@@ -113,14 +113,28 @@ ______________________________________________________________________
 
 To set up a local development environment, we recommend using `uv`, which can be installed following their [instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
-Once `uv` has been installed, begin by cloning the repository:
+Once `uv` has been installed, begin by cloning the forked repository:
 
 ```bash
-git clone https://github.com/Lightning-AI/lightning.git
-cd lightning
+git clone https://github.com/{YOUR_GITHUB_USERNAME}/pytorch-lightning.git
+cd pytorch-lightning
 ```
 
-Once in root level of the repository, create a new virtual environment and install the project dependencies.
+> If you're using [Lightning Studio](https://lightning.ai) or already have your `uv venv` activated, you can quickly set up the project by running:
+
+```bash
+make setup
+```
+
+This will:
+
+- Install all required dependencies.
+- Perform an editable install of the `pytorch-lightning` project.
+- Install and configure `pre-commit`.
+
+#### Manual Setup (Optional)
+
+If you prefer more fine-grained control over the dependencies, you can set up the environment manually:
 
 ```bash
 uv venv
