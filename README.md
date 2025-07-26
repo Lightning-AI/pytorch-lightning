@@ -1,7 +1,7 @@
 # Lightning Utilities
 
 [![PyPI Status](https://badge.fury.io/py/lightning-utilities.svg)](https://badge.fury.io/py/lightning-utilities)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/utilities/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/utilities/blob/main/LICENSE)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/lightning-utilities)](https://pepy.tech/project/lightning-utilities)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning-utilities)](https://pypi.org/project/lightning-utilities/)
 

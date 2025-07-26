@@ -1,8 +1,8 @@
 import time
 
-__version__ = "0.15.0dev"
+__version__ = "0.15.0"
 __author__ = "Lightning AI et al."
-__author_email__ = "pytorch@lightning.ai"
+__author_email__ = "developer@lightning.ai"
 __license__ = "Apache-2.0"
 __copyright__ = f"Copyright (c) 2022-{time.strftime('%Y')}, {__author__}."
 __homepage__ = "https://github.com/Lightning-AI/utilities"
