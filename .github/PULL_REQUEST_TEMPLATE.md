@@ -2,7 +2,7 @@
   <summary><b>Before submitting</b></summary>
 
 - [ ] Was this discussed/agreed via a Github issue? (no need for typos and docs improvements)
-- [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/lightning/blob/master/.github/CONTRIBUTING.md), Pull Request section?
+- [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CONTRIBUTING.md), Pull Request section?
 - Did you make sure to update the docs?
 - [ ] Did all existing and newly added tests pass locally?
 
