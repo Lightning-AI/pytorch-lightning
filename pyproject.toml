@@ -70,7 +70,7 @@ lint.per-file-ignores."src/**" = [
 lint.per-file-ignores."tests/**" = [
   "ANN001", # Missing type annotation for function argument
   "ANN101", # Missing type annotation for `self` in method
-  "ANN201", #  Missing return type annotation for public function
+  "ANN201", # Missing return type annotation for public function
   "ANN202", # Missing return type annotation for private function
   "ANN204", # Missing return type annotation for special method
   "ANN401", # Dynamically typed expressions (typing.Any)

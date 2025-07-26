@@ -56,7 +56,7 @@ jobs:
         timeout-minutes: 20
         run: |
           set -e
-          pip install -e . -U -r requirements/_tests.txt -f $TORCH_URL
+          pip install -e ".[cli]" -U -r requirements/_tests.txt -f $TORCH_URL
           pip --version
           pip list
 

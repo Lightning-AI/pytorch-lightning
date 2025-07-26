@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: add `force-check-all` input to MD link check workflow ([#408](https://github.com/Lightning-AI/utilities/pull/408))
 
 
+- CLI: replace min dependencies also in `pyproject.toml` ([#414](https://github.com/Lightning-AI/utilities/pull/414))
+
+
 ### Changed
 
 - CLI: switch from `fire` to `jsonargparse` ([#371](https://github.com/Lightning-AI/utilities/pull/371))
