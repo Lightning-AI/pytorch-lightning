@@ -1,5 +1,5 @@
 ## Tensor Parallel and 2D Parallel
-    
+
 This example shows how to apply tensor-parallelism to your model (here Llama 3 7B) with the `ModelParallelStrategy`, and how it can be combined with FSDP (2D parallelism).
 PyTorch 2.3+ and a machine with at least 4 GPUs and 24 GB memory each are required to run this example.
 
