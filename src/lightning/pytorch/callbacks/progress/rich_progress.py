@@ -340,7 +340,7 @@ class RichProgressBar(ProgressBar):
             # both old and new Rich versions.
             if hasattr(self._console, "_live_stack"):
                 if len(self._console._live_stack) > 0:
-                    self._console._live_stack.clear()
+                    self._console.clear_live()
             else:
                 self._console.clear_live()
 
