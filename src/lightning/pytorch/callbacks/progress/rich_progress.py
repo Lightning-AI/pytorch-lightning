@@ -447,7 +447,7 @@ class RichProgressBar(ProgressBar):
             visible=visible,
         )
 
-    def _initialize_progress_bar_id(self) -> None:
+    def _initialize_train_progress_bar_id(self) -> None:
         total_batches = self.total_train_batches
         train_description = self._get_train_description(self.trainer.current_epoch)
         self.train_progress_bar_id = self._add_task(total_batches, train_description)
@@ -536,9 +536,9 @@ class RichProgressBar(ProgressBar):
         batch: Any,
         batch_idx: int,
     ) -> None:
-        if self.train_progress_bar_id is None and not self.is_disabled:
+        if not self.is_disabled and self.train_progress_bar_id is None:
             # can happen when resuming from a mid-epoch restart
-            self._initialize_progress_bar_id()
+            self._initialize_train_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
         self.refresh()
