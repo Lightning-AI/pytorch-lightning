@@ -247,7 +247,10 @@ class XLAStrategy(DDPStrategy):
 
     @override
     def reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+        self,
+        output: Union[Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
