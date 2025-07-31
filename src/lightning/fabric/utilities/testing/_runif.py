@@ -17,7 +17,7 @@ import sys
 from typing import Optional
 
 import torch
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators import XLAAccelerator
@@ -112,9 +112,7 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not (
-        _DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4 and RequirementCache(module="deepspeed.utils")
-    ):
+    if deepspeed and not (_DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4):
         reasons.append("Deepspeed")
 
     if dynamo:
