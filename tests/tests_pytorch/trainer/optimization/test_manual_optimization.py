@@ -305,7 +305,8 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_multiple_optimizers_step(tmp_path):
+@pytest.mark.parametrize("dicttype", [dict, collections.OrderedDict])
+def test_multiple_optimizers_step(tmp_path, dicttype):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
@@ -335,7 +336,7 @@ def test_multiple_optimizers_step(tmp_path):
             opt_b.step()
             opt_b.zero_grad()
 
-            return {"loss1": loss_1.detach(), "loss2": loss_2.detach()}
+            return dicttype(loss1=loss_1.detach(), loss2=loss_2.detach())
 
         # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
         def on_after_backward(self) -> None:
