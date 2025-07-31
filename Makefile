@@ -1,4 +1,4 @@
-.PHONY: test clean docs
+.PHONY: test clean docs setup
 
 # to imitate SLURM set only single node
 export SLURM_LOCALID=0
@@ -6,6 +6,23 @@ export SLURM_LOCALID=0
 export SPHINX_MOCK_REQUIREMENTS=1
 # install only Lightning Trainer packages
 export PACKAGE_NAME=pytorch
+
+setup:
+	uv sync requirements.txt \
+	    requirements/pytorch/base.txt \
+	    requirements/pytorch/test.txt \
+	    requirements/pytorch/extra.txt \
+	    requirements/pytorch/strategies.txt \
+	    requirements/fabric/base.txt \
+	    requirements/fabric/test.txt \
+	    requirements/fabric/strategies.txt \
+	    requirements/typing.txt \
+	    -e ".[all]" \
+	    pre-commit
+	pre-commit install
+	@echo "-----------------------------"
+	@echo "✅ Environment setup complete. Ready to Contribute ⚡️!"
+
 
 clean:
 	# clean all temp runs
