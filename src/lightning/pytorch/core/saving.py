@@ -362,6 +362,10 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
         except (TypeError, ValueError):
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
+        except Exception as e:
+            raise RuntimeError(
+                f"Unexpected error while dumping hyperparameter '{k}' (value: {v!r}) to YAML. Please report this issue."
+            ) from e
         else:
             hparams_allowed[k] = v
 
