@@ -4,4 +4,4 @@
 requests <2.33.0
 torchvision >=0.16.0, <0.23.0
 ipython[all] <8.19.0
-torchmetrics >=0.10.0, <1.8.0
+torchmetrics >=0.10.0, <1.9.0
