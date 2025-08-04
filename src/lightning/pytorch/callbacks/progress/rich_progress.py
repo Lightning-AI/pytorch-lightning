@@ -331,7 +331,19 @@ class RichProgressBar(ProgressBar):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
             self._console = get_console()
-            self._console.clear_live()
+
+            # Compatibility shim for Rich >= 14.1.0:
+            if hasattr(self._console, "_live_stack"):
+                # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
+                # to support nested Live displays. This broke our original call to `clear_live()`,
+                # because it now only pops one Live instance instead of clearing them all.
+                # We check for `_live_stack` and clear it manually for compatibility across
+                # both old and new Rich versions.
+                if len(self._console._live_stack) > 0:
+                    self._console.clear_live()
+            else:
+                self._console.clear_live()
+
             self._metric_component = MetricsTextColumn(
                 trainer,
                 self.theme.metrics,
@@ -447,6 +459,11 @@ class RichProgressBar(ProgressBar):
             visible=visible,
         )
 
+    def _initialize_train_progress_bar_id(self) -> None:
+        total_batches = self.total_train_batches
+        train_description = self._get_train_description(self.trainer.current_epoch)
+        self.train_progress_bar_id = self._add_task(total_batches, train_description)
+
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
@@ -531,6 +548,9 @@ class RichProgressBar(ProgressBar):
         batch: Any,
         batch_idx: int,
     ) -> None:
+        if not self.is_disabled and self.train_progress_bar_id is None:
+            # can happen when resuming from a mid-epoch restart
+            self._initialize_train_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
         self.refresh()
