@@ -333,13 +333,14 @@ class RichProgressBar(ProgressBar):
             self._console = get_console()
 
             # Compatibility shim for Rich >= 14.1.0:
-            # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
-            # to support nested Live displays. This broke our original call to `clear_live()`,
-            # because it now only pops one Live instance instead of clearing them all.
-            # We check for `_live_stack` and clear it manually for compatibility across
-            # both old and new Rich versions.
-            if hasattr(self._console, "_live_stack") and len(self._console._live_stack) > 0:
-                self._console.clear_live()
+            if hasattr(self._console, "_live_stack"):
+                # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
+                # to support nested Live displays. This broke our original call to `clear_live()`,
+                # because it now only pops one Live instance instead of clearing them all.
+                # We check for `_live_stack` and clear it manually for compatibility across
+                # both old and new Rich versions.
+                if len(self._console._live_stack) > 0:
+                    self._console.clear_live()
             else:
                 self._console.clear_live()
 
