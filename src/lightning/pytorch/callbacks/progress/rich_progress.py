@@ -331,7 +331,19 @@ class RichProgressBar(ProgressBar):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
             self._console = get_console()
-            self._console.clear_live()
+
+            # Compatibility shim for Rich >= 14.1.0:
+            if hasattr(self._console, "_live_stack"):
+                # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
+                # to support nested Live displays. This broke our original call to `clear_live()`,
+                # because it now only pops one Live instance instead of clearing them all.
+                # We check for `_live_stack` and clear it manually for compatibility across
+                # both old and new Rich versions.
+                if len(self._console._live_stack) > 0:
+                    self._console.clear_live()
+            else:
+                self._console.clear_live()
+
             self._metric_component = MetricsTextColumn(
                 trainer,
                 self.theme.metrics,
