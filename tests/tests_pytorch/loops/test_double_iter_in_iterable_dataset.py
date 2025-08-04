@@ -48,7 +48,7 @@ def create_queue() -> Queue:
 
 
 def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> None:
-    dataloader = DataLoader(QueueDataset(queue), num_workers=1, batch_size=None, persistent_workers=True)
+    dataloader = DataLoader(QueueDataset(queue), num_workers=1, batch_size=None)
     trainer = Trainer(
         max_epochs=max_epochs,
         enable_progress_bar=False,
