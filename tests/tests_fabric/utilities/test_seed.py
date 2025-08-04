@@ -49,7 +49,8 @@ def test_correct_seed_with_environment_variable():
 def test_invalid_seed():
     """Ensure that a ValueError is raised if an invalid seed is given."""
     with pytest.raises(ValueError, match="Invalid seed specified"):
-        seed = seed_everything()
+        seed_everything()
+
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
