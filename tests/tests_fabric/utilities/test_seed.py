@@ -47,11 +47,9 @@ def test_correct_seed_with_environment_variable():
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 def test_invalid_seed():
-    """Ensure that we still fix the seed even if an invalid seed is given."""
-    with pytest.warns(UserWarning, match="Invalid seed found"):
+    """Ensure that a ValueError is raised if an invalid seed is given."""
+    with pytest.raises(ValueError, match="Invalid seed specified"):
         seed = seed_everything()
-    assert seed == 0
-
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
