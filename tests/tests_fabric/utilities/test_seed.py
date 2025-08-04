@@ -56,10 +56,9 @@ def test_invalid_seed():
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
 def test_out_of_bounds_seed(seed):
-    """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
-    with pytest.warns(UserWarning, match="is not in bounds"):
-        actual = seed_everything(seed)
-    assert actual == 0
+    """Ensure that a ValueError is raised if an out-of-bounds seed is given."""
+    with pytest.raises(ValueError, match="is not in bounds"):
+        seed_everything(seed)
 
 
 def test_reset_seed_no_op():
