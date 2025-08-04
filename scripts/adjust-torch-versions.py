@@ -206,4 +206,14 @@ if __name__ == "__main__":
         set_parsing_settings(parse_optionals_as_positionals=True)
         auto_cli(main)
     except (ModuleNotFoundError, ImportError):
-        main(*sys.argv[1:])
+        logging.warning(
+            "Expected `jsonargparse` is not installed,"
+            " using the native `sys.argv` parser with positional arguments only."
+            " Please install `pip install lightning_utilities[cli]` for better CLI experience."
+        )
+        cli_args = sys.argv[1:]
+        if len(cli_args) < 1:
+            logging.error("Expected at least 1 positional argument: <requirements_path> [<torch_version>]")
+            sys.exit(1)
+        # Use sys.argv directly if jsonargparse is not available
+        main(*cli_args)

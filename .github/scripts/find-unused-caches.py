@@ -80,7 +80,24 @@ def main(repository: str, token: str, age_days: float = 7, output_file: str = "u
 
 
 if __name__ == "__main__":
-    from jsonargparse import auto_cli, set_parsing_settings
+    import logging
 
-    set_parsing_settings(parse_optionals_as_positionals=True)
-    auto_cli(main)
+    logging.basicConfig(level=logging.INFO)
+    try:
+        from jsonargparse import auto_cli, set_parsing_settings
+
+        set_parsing_settings(parse_optionals_as_positionals=True)
+        auto_cli(main)
+    except ImportError:
+        import sys
+
+        logging.warning(
+            "Expected `jsonargparse` is not installed,"
+            " using the native `sys.argv` parser with positional arguments only."
+            " Please install `pip install lightning_utilities[cli]` for better CLI experience."
+        )
+        cli_args = sys.argv[1:]
+        if len(cli_args) < 3:
+            logging.error("Expected at least 3 positional arguments: <repository> <token> <age_days> [<output_file>]")
+            sys.exit(1)
+        main(*cli_args)
