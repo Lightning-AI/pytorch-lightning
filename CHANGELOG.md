@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- CLI: fix accepting keyword arguments ([#420](https://github.com/Lightning-AI/utilities/pull/420))
 - Scripts: fix CLI parsing ([#419](https://github.com/Lightning-AI/utilities/pull/419))
 
 

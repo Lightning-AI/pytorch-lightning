@@ -21,15 +21,18 @@ def main() -> None:
     from jsonargparse import auto_cli, set_parsing_settings
 
     set_parsing_settings(parse_optionals_as_positionals=True)
-    auto_cli({
-        "requirements": {
-            "_help": "Manage requirements files.",
-            "prune-pkgs": prune_packages_in_requirements,
-            "set-oldest": replace_oldest_version,
-            "replace-pkg": replace_package_in_requirements,
+    auto_cli(
+        {
+            "requirements": {
+                "_help": "Manage requirements files.",
+                "prune-pkgs": prune_packages_in_requirements,
+                "set-oldest": replace_oldest_version,
+                "replace-pkg": replace_package_in_requirements,
+            },
+            "version": _get_version,
         },
-        "version": _get_version,
-    })
+        as_positional=False,
+    )
 
 
 if __name__ == "__main__":
