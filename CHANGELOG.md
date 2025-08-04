@@ -7,20 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - 2025-08-DD
-
-### Changed
-
--
-
+## [0.15.1] - 2025-08-04
 
 ### Fixed
 
-- CLI: fix accepting keyword arguments ([#420](https://github.com/Lightning-AI/utilities/pull/420))
-- Scripts: fix CLI parsing ([#419](https://github.com/Lightning-AI/utilities/pull/419))
+- CLI: fixed accepting keyword arguments ([#420](https://github.com/Lightning-AI/utilities/pull/420))
+- Scripts: fixed CLI parsing ([#419](https://github.com/Lightning-AI/utilities/pull/419))
 
-
----
 
 ## [0.15.0] - 2025-07-26
 
@@ -29,14 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: add `force-check-all` input to MD link check workflow ([#408](https://github.com/Lightning-AI/utilities/pull/408))
 - CLI: replace min dependencies also in `pyproject.toml` ([#414](https://github.com/Lightning-AI/utilities/pull/414))
 
-
 ### Changed
 
 - CLI: switch from `fire` to `jsonargparse` ([#371](https://github.com/Lightning-AI/utilities/pull/371))
 - CI: relax markdown-link-check ([#416](https://github.com/Lightning-AI/utilities/pull/416))
 
 ---
-
 
 ## [0.14.3] - 2025-04-03
 
