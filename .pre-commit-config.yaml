@@ -47,7 +47,7 @@ repos:
         exclude: CHANGELOG.md
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.5.3
+    rev: b3e25fa39aa676c36bc18eb9eae6f26d9bb63f39 # v3.6.2 using SHA as tags are not persistent
     hooks:
       - id: prettier
         files: \.(json|yml|yaml|toml)
@@ -55,7 +55,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.12
+    rev: v0.12.2
     hooks:
       - id: ruff
         args: ["--fix"]

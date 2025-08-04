@@ -73,7 +73,7 @@ def _linkcode_resolve(
     branch = filename.split("/")[0]
     # do mapping from latest tags to master
     branch = {"latest": main_branch, "stable": stable_branch}.get(branch, branch)
-    filename = "/".join([branch] + filename.split("/")[1:])
+    filename = "/".join([branch, *filename.split("/")[1:]])
     return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 
 
