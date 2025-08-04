@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - 2025-08-DD
+
+### Changed
+
+-
+
+
+### Fixed
+
+- Scripts: fix CLI parsing ([#419](https://github.com/Lightning-AI/utilities/pull/419))
+
+
+---
+
 ## [0.15.0] - 2025-07-26
 
 ### Added
