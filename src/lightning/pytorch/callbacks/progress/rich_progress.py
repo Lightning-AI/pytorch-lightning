@@ -338,9 +338,8 @@ class RichProgressBar(ProgressBar):
             # because it now only pops one Live instance instead of clearing them all.
             # We check for `_live_stack` and clear it manually for compatibility across
             # both old and new Rich versions.
-            if hasattr(self._console, "_live_stack"):
-                if len(self._console._live_stack) > 0:
-                    self._console.clear_live()
+            if hasattr(self._console, "_live_stack") and len(self._console._live_stack) > 0:
+                self._console.clear_live()
             else:
                 self._console.clear_live()
 
