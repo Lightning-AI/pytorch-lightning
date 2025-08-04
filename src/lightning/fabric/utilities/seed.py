@@ -28,7 +28,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: 
         seed: the integer value seed for global random state in Lightning.
             If ``None``, it will read the seed from ``PL_GLOBAL_SEED`` env variable. If ``None`` and the
             ``PL_GLOBAL_SEED`` env variable is not set, then the seed defaults to 0. If the seed is provided
-            but is not in bounds or cannot be casted to int, a ValueError is raised.
+            but is not in bounds or cannot be cast to int, a ValueError is raised.
         workers: if set to ``True``, will properly configure all dataloaders passed to the
             Trainer with a ``worker_init_fn``. If the user already provides such a function
             for their dataloaders, setting this argument will have no influence. See also:
