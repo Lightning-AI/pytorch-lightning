@@ -17,11 +17,13 @@
 # Ref: https://github.com/Lightning-AI/pytorch-lightning/issues/19427
 import multiprocessing as mp
 import os
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 from queue import Queue
 
 import numpy as np
+import pytest
 from torch.utils.data import DataLoader, IterableDataset
 
 from lightning.pytorch import Trainer
@@ -37,14 +39,6 @@ class QueueDataset(IterableDataset):
         for _ in range(5):
             tensor, _ = self.queue.get(timeout=5)
             yield tensor
-
-
-def create_queue() -> Queue:
-    q = mp.Queue()
-    arr = np.random.random([1, 32]).astype(np.float32)
-    for ind in range(20):
-        q.put((arr, ind))
-    return q
 
 
 def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> None:
@@ -63,15 +57,20 @@ def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> None:
         trainer.save_checkpoint(str(ckpt_path))
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="Skip on macOS due to multiprocessing issues")
 def test_resume_training_with(tmp_path):
     """Test resuming training from checkpoint file using a IterableDataset."""
-    queue = create_queue()
+    q = mp.Queue()
+    arr = np.random.random([1, 32]).astype(np.float32)
+    for idx in range(20):
+        q.put((arr, idx))
+
     max_epoch = 2
     ckpt_path = tmp_path / "model.ckpt"
-    train_model(queue, max_epoch, ckpt_path)
+    train_model(q, max_epoch, ckpt_path)
 
     assert os.path.exists(ckpt_path), f"Checkpoint file '{ckpt_path}' wasn't created"
     ckpt_size = os.path.getsize(ckpt_path)
     assert ckpt_size > 0, f"Checkpoint file is empty (size: {ckpt_size} bytes)"
 
-    train_model(queue, max_epoch + 2, ckpt_path)
+    train_model(q, max_epoch + 2, ckpt_path)
