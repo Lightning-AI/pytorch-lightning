@@ -60,6 +60,18 @@ def test_out_of_bounds_seed(seed):
         seed_everything(seed)
 
 
+def test_seed_everything_accepts_valid_seed_argument():
+    """Ensure that seed_everything returns the provided valid seed."""
+    seed_value = 45
+    assert seed_everything(seed_value) == seed_value
+
+
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "17"}, clear=True)
+def test_seed_everything_accepts_valid_seed_from_env():
+    """Ensure that seed_everything uses the valid seed from the PL_GLOBAL_SEED environment variable."""
+    assert seed_everything() == 17
+
+
 def test_reset_seed_no_op():
     """Test that the reset_seed function is a no-op when seed_everything() was not used."""
     assert "PL_GLOBAL_SEED" not in os.environ
