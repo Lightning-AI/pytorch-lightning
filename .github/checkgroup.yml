@@ -71,7 +71,7 @@ subprojects:
   #    paths:
   #      # tpu CI availability is very limited, so we only require tpu tests
   #      # to pass when their configurations are modified
-  #      - ".github/workflows/tpu-tests.yml"
+  #      - ".github/workflows/tpu-tests.yml.disabled"
   #      - "tests/tests_pytorch/run_tpu_tests.sh"
   #    checks:
   #      - "test-on-tpus (pytorch, pjrt, v4-8)"
@@ -176,14 +176,15 @@ subprojects:
       - "lightning-fabric (GPUs) (testing Fabric | latest)"
       - "lightning-fabric (GPUs) (testing Lightning | latest)"
 
-  - id: "lightning_fabric: TPU workflow"
-    paths:
-      # tpu CI availability is very limited, so we only require tpu tests
-      # to pass when their configurations are modified
-      - ".github/workflows/tpu-tests.yml"
-      - "tests/tests_fabric/run_tpu_tests.sh"
-    checks:
-      - "test-on-tpus (pytorch, pjrt, v4-8)"
+  # Temporarily disabled
+  #  - id: "lightning_fabric: TPU workflow"
+  #    paths:
+  #      # tpu CI availability is very limited, so we only require tpu tests
+  #      # to pass when their configurations are modified
+  #      - ".github/workflows/tpu-tests.yml.disabled"
+  #      - "tests/tests_fabric/run_tpu_tests.sh"
+  #    checks:
+  #      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: common
 

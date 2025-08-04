@@ -79,10 +79,16 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - ``torch``
      - ``torchmetrics``
      - Python
+   * - 2.5
+     - 2.5
+     - 2.5
+     - ≥2.1, ≤2.7
+     - ≥0.7.0
+     - ≥3.9, ≤3.12
    * - 2.4
      - 2.4
      - 2.4
-     - ≥2.1, ≤2.4
+     - ≥2.1, ≤2.6
      - ≥0.7.0
      - ≥3.9, ≤3.12
    * - 2.3
