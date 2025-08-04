@@ -116,7 +116,7 @@ class AdvancedProfiler(Profiler):
     @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
-        self.profiled_actions = defaultdict(cProfile.Profile)
+        self.profiled_actions.clear()
 
     def __reduce__(self) -> tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
