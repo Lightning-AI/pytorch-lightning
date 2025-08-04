@@ -241,7 +241,7 @@ class _TrainingEpochLoop(loops._Loop):
         #       1. Not restarting
         #       2. Not resuming from checkpoint (not is_resuming)
         #       3. Past first epoch (current_epoch > 0)
-        if (self.trainer.current_epoch > 0 and not self.trainer.fit_loop.is_resuming) and not self.restarting:
+        if self.trainer.current_epoch > 0 and not self.trainer.fit_loop.is_resuming and not self.restarting:
             iter(data_fetcher)  # creates the iterator inside the fetcher
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
