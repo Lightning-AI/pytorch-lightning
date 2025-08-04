@@ -41,7 +41,7 @@ class _Loop:
 
     @property
     def is_resuming(self) -> bool:
-        """Whether we're resuming training from a checkpoint."""
+        """Indicates whether training is being resumed from a checkpoint."""
         return self._resuming_from_checkpoint
 
     def reset_restart_stage(self) -> None:
