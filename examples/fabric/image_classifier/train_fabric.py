@@ -158,7 +158,7 @@ def run(hparams):
     # When using distributed training, use `fabric.save`
     # to ensure the current process is allowed to save a checkpoint
     if hparams.save_model:
-        fabric.save("mnist_cnn.pt", model.state_dict())
+        fabric.save(path="mnist_cnn.pt", state=model.state_dict())
 
 
 if __name__ == "__main__":
