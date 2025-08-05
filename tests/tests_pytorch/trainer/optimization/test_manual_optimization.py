@@ -304,8 +304,26 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
     trainer.fit(model)
 
 
+class CustomMapping(collections.abc.Mapping):
+    """A custom implementation of Mapping for testing purposes."""
+    def __init__(self, *args, **kwargs):
+        self._store = dict(*args, **kwargs)
+
+    def __getitem__(self, key):
+        return self._store[key]
+
+    def __iter__(self):
+        return iter(self._store)
+
+    def __len__(self):
+        return len(self._store)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._store})"
+
+
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("dicttype", [dict, collections.OrderedDict])
+@pytest.mark.parametrize("dicttype", [dict, CustomMapping])
 def test_multiple_optimizers_step(tmp_path, dicttype):
     """Tests that `step` works with several optimizers."""
 
