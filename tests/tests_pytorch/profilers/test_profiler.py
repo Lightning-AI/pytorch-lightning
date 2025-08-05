@@ -336,6 +336,12 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
+def test_advanced_profiler_nested(advanced_profiler):
+    """Ensure AdvancedProfiler does not raise ValueError for nested profiling actions (Python 3.12+ compatibility)."""
+    with advanced_profiler.profile("outer"), advanced_profiler.profile("inner"):
+        pass  # Should not raise ValueError
+
+
 @pytest.fixture
 def pytorch_profiler(tmp_path):
     return PyTorchProfiler(dirpath=tmp_path, filename="profiler")
