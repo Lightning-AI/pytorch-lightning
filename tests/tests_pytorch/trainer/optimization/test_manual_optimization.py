@@ -306,6 +306,7 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
 
 class CustomMapping(collections.abc.Mapping):
     """A custom implementation of Mapping for testing purposes."""
+
     def __init__(self, *args, **kwargs):
         self._store = dict(*args, **kwargs)
 
