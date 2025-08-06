@@ -8,15 +8,15 @@ export SPHINX_MOCK_REQUIREMENTS=1
 export PACKAGE_NAME=pytorch
 
 setup:
-	uv sync requirements.txt \
-	    requirements/pytorch/base.txt \
-	    requirements/pytorch/test.txt \
-	    requirements/pytorch/extra.txt \
-	    requirements/pytorch/strategies.txt \
-	    requirements/fabric/base.txt \
-	    requirements/fabric/test.txt \
-	    requirements/fabric/strategies.txt \
-	    requirements/typing.txt \
+	uv pip install -r requirements.txt \
+	    -r requirements/pytorch/base.txt \
+	    -r requirements/pytorch/test.txt \
+	    -r requirements/pytorch/extra.txt \
+	    -r requirements/pytorch/strategies.txt \
+	    -r requirements/fabric/base.txt \
+	    -r requirements/fabric/test.txt \
+	    -r requirements/fabric/strategies.txt \
+	    -r requirements/typing.txt \
 	    -e ".[all]" \
 	    pre-commit
 	pre-commit install
