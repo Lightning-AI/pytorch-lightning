@@ -238,7 +238,7 @@ class ModelSummary:
             "32-true": 32,
             "64-true": 64,
         }
-        if self._model.trainer is not None and self._model.trainer.precision not in precision_to_bits:
+        if self._model._trainer and self._model.trainer.precision not in precision_to_bits:
             rank_zero_warn(
                 f"Precision {self._model.trainer.precision} is not supported by the model summary. "
                 " Estimated model size in MB will not be accurate. Using 32 bits instead.",
