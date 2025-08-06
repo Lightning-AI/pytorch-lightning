@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [2.5.3] - 2025-08-DD
 
+### Added
+
+- Added support for general mappings being returned from `training_step` when using manual optimization ([#21011](https://github.com/Lightning-AI/pytorch-lightning/pull/21011))
+
+
 ### Changed
 
 - Allow `dataloader_idx_` in log names when `add_dataloader_idx=False` ([#20987](https://github.com/Lightning-AI/pytorch-lightning/pull/20987))
