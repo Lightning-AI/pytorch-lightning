@@ -327,6 +327,9 @@ class CustomMapping(collections.abc.Mapping):
         new_obj = cls(self._store.copy())
         return new_obj
 
+    def copy(self):
+        return self.__copy__()
+
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("dicttype", [dict, CustomMapping])
