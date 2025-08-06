@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enable "auto" for `devices` and `accelerator` as CLI arguments ([#20913](https://github.com/Lightning-AI/pytorch-lightning/pull/20913))
 
 
+- Raise ValueError when seed is `out-of-bounds` or `cannot be cast to int` ([#21029](https://github.com/Lightning-AI/pytorch-lightning/pull/21029))
+
+
 ### Fixed
 
 -
