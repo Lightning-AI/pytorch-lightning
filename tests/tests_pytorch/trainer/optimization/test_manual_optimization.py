@@ -322,6 +322,10 @@ class CustomMapping(collections.abc.Mapping):
     def __repr__(self):
         return f"{self.__class__.__name__}({self._store})"
 
+    def __copy__(self):
+        cls = self.__class__
+        new_obj = cls(self._store.copy())
+        return new_obj
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("dicttype", [dict, CustomMapping])
