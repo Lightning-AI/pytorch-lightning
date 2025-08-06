@@ -8,14 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [UnReleased] - 2025-08-DD
+## [0.15.2] - 2025-08-06
 
 ### Changed
 
 - CLI: replace dependencies also in `pyproject.toml` ([#423](https://github.com/Lightning-AI/utilities/pull/423))
 
-
----
 
 ## [0.15.1] - 2025-08-04
 

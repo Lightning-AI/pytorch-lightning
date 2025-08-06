@@ -60,7 +60,7 @@ repos:
       - id: ruff
         args: ["--fix"]
       - id: ruff-format
-      - id: ruff
+      - id: ruff-check
 
   - repo: https://github.com/sphinx-contrib/sphinx-lint
     rev: v1.0.0
