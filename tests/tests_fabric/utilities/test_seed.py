@@ -47,19 +47,29 @@ def test_correct_seed_with_environment_variable():
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 def test_invalid_seed():
-    """Ensure that we still fix the seed even if an invalid seed is given."""
-    with pytest.warns(UserWarning, match="Invalid seed found"):
-        seed = seed_everything()
-    assert seed == 0
+    """Ensure that a ValueError is raised if an invalid seed is given."""
+    with pytest.raises(ValueError, match="Invalid seed specified"):
+        seed_everything()
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
 def test_out_of_bounds_seed(seed):
-    """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
-    with pytest.warns(UserWarning, match="is not in bounds"):
-        actual = seed_everything(seed)
-    assert actual == 0
+    """Ensure that a ValueError is raised if an out-of-bounds seed is given."""
+    with pytest.raises(ValueError, match="is not in bounds"):
+        seed_everything(seed)
+
+
+def test_seed_everything_accepts_valid_seed_argument():
+    """Ensure that seed_everything returns the provided valid seed."""
+    seed_value = 45
+    assert seed_everything(seed_value) == seed_value
+
+
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "17"}, clear=True)
+def test_seed_everything_accepts_valid_seed_from_env():
+    """Ensure that seed_everything uses the valid seed from the PL_GLOBAL_SEED environment variable."""
+    assert seed_everything() == 17
 
 
 def test_reset_seed_no_op():
