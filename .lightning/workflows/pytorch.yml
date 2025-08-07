@@ -70,7 +70,7 @@ run: |
   pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
 
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
-    echo "uninstall lightning to have just single package" 
+    echo "uninstall lightning to have just single package"
     pip uninstall -y lightning
   elif [ "${PACKAGE_NAME}" == "lightning" ]; then
     echo "uninstall PL to have just single package"
