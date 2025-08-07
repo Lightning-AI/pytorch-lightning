@@ -37,17 +37,17 @@ run: |
   CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
   TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo ${TORCH_URL}
+  echo "Torch URL: ${TORCH_URL}"
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
   if [ "${TORCH_VER}" == "2.1" ]; then
-    # Set oldest versions
+    echo "Set oldest versions"
     python .actions/assistant.py replace_oldest_ver
     pip install "cython<3.0" wheel  # for compatibility
   fi
 
-  # Adjust torch versions in requirements files
+  echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
   pip install -q wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
@@ -56,6 +56,7 @@ run: |
   done
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
+    echo "Replaced PL imports"
     pip install -U -q -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
@@ -73,7 +74,7 @@ run: |
   python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
 
-  # Testing: Fabric doctests
+  echo "Testing: Fabric doctests"
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     cd src/
     python -m pytest lightning_fabric
@@ -81,14 +82,15 @@ run: |
   fi
 
   cd tests/
-  # Testing: fabric standard
+  echo "Testing: fabric standard"
   python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_fabric/ -v --durations=50
 
-  # Testing: fabric standalone
+  echo "Testing: fabric standalone"
   export PL_RUN_STANDALONE_TESTS=1
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
 
+  echo "Reporting coverage"
   python -m coverage report
   python -m coverage xml
   python -m coverage html
@@ -102,7 +104,7 @@ run: |
   #  ls -l
   cd ..
 
-  # Testing: fabric examples
+  echo "Testing: fabric examples"
   cd examples/
   bash run_fabric_examples.sh --accelerator=cuda --devices=1
   bash run_fabric_examples.sh --accelerator=cuda --devices=2 --strategy ddp
