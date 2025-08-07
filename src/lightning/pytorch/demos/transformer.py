@@ -54,7 +54,7 @@ class Transformer(nn.Module):
 
         self.ninp = ninp
         self.vocab_size = vocab_size
-        self.src_mask = None
+        self.src_mask: Optional[Tensor] = None
 
     def generate_square_subsequent_mask(self, size: int) -> Tensor:
         """Generate a square mask for the sequence to prevent future tokens from being seen."""
