@@ -82,7 +82,7 @@ run: |
   python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
 
-  echo "Testing: Fabric doctests"
+  echo "Testing: Pytorch doctests"
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     cd src/
     python -m pytest pytorch_lightning
@@ -92,8 +92,9 @@ run: |
   echo "Get legacy checkpoints"
   bash .actions/pull_legacy_checkpoints.sh
   cd tests/legacy
-  bash generate_checkpoints.sh
-  ls -l checkpoints/
+  # bash generate_checkpoints.sh
+  ls -lh checkpoints/
+  cd ../..
 
   cd tests/
   echo "Testing: fabric standard"
