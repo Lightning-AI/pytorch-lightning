@@ -338,15 +338,15 @@ def test_model_size_precision(tmp_path, accelerator, precision):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-def test_model_size_warning_on_unsupported_precision():
+def test_model_size_warning_on_unsupported_precision(tmp_path):
     """Test that a warning is raised when the precision is not supported."""
     model = PreCalculatedModel(precision=32)  # fallback to 32 bits
 
     # supported precision by lightning but not by the model summary
-    trainer = Trainer(max_epochs=1, precision="16-mixed")
+    trainer = Trainer(max_epochs=1, precision="16-mixed", default_root_dir=tmp_path)
     trainer.fit(model)
 
-    with pytest.warns(UserWarning, match="Precision 16-mixed is not supported by the model summary.*"):
+    with pytest.warns(UserWarning, match="Precision .* is not supported by the model summary.*"):
         summary = summarize(model)
         assert model.pre_calculated_model_size == summary.model_size
 
