@@ -128,9 +128,10 @@ def test_collective_operations(devices, process):
 
 
 @pytest.mark.skipif(
-    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    RequirementCache("numpy>=2.0"),
     reason="torch.distributed not compatible with numpy>=2.0",
 )
+@RunIf(min_torch="2.4", skip_windows=True)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'

@@ -29,7 +29,8 @@ class SimpleModel(nn.Module):
         self.register_buffer("buffer", torch.ones(3))
 
 
-@pytest.mark.parametrize("strategy", ["ddp_spawn", pytest.param("ddp_fork", marks=RunIf(skip_windows=True))])
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork"])
 def test_memory_sharing_disabled(strategy):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
