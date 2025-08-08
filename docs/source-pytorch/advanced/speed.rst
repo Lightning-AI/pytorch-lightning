@@ -464,7 +464,7 @@ takes a great deal of care to be optimized for this.
 Clear Cache
 ===========
 
-Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
+Don't call ``torch.cuda.empty_cache`` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
 
 Transferring Tensors to Device
 ==============================

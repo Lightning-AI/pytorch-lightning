@@ -111,7 +111,7 @@ The LightningModule also has access to the Hyperparameters
 .. code-block:: python
 
     model = MyLightningModule.load_from_checkpoint("/path/to/checkpoint.ckpt")
-    print(model.learning_rate)
+    print(model.hparams.learning_rate)
 
 ----
 
