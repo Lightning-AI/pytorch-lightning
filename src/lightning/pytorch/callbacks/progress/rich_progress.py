@@ -184,7 +184,7 @@ if _RICH_AVAILABLE:
 
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
-                if not isinstance(value, str):
+                if not isinstance(value, (str, int)):
                     value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
@@ -331,7 +331,19 @@ class RichProgressBar(ProgressBar):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
             self._console = get_console()
-            self._console.clear_live()
+
+            # Compatibility shim for Rich >= 14.1.0:
+            if hasattr(self._console, "_live_stack"):
+                # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
+                # to support nested Live displays. This broke our original call to `clear_live()`,
+                # because it now only pops one Live instance instead of clearing them all.
+                # We check for `_live_stack` and clear it manually for compatibility across
+                # both old and new Rich versions.
+                if len(self._console._live_stack) > 0:
+                    self._console.clear_live()
+            else:
+                self._console.clear_live()
+
             self._metric_component = MetricsTextColumn(
                 trainer,
                 self.theme.metrics,
@@ -540,12 +552,12 @@ class RichProgressBar(ProgressBar):
             # can happen when resuming from a mid-epoch restart
             self._initialize_train_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, batch_idx + 1)
         self.refresh()
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, total_batches=True)
 
     @override
     def on_validation_batch_end(
@@ -620,7 +632,21 @@ class RichProgressBar(ProgressBar):
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
 
-    def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def _update_metrics(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        current: Optional[int] = None,
+        total_batches: bool = False,
+    ) -> None:
+        if not self.is_enabled or self._metric_component is None:
+            return
+
+        if current is not None and not total_batches:
+            total = self.total_train_batches
+            if not self._should_update(current, total):
+                return
+
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
             self._metric_component.update(metrics)
