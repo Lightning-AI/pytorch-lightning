@@ -227,7 +227,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[FSDPPrecision]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecision):
             raise TypeError(
                 f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision_plugin}"

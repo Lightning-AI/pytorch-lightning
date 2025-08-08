@@ -226,7 +226,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
             self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -256,9 +256,12 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                CB, CBt, SCB, SCBt, _ = bnb.functional.double_quant(B)
-                del CBt
-                del SCBt
+                # bitsandbytes >= 0.45 supports an improved API
+                if hasattr(bnb.functional, "int8_vectorwise_quant"):
+                    CB, SCB, _ = bnb.functional.int8_vectorwise_quant(B)
+                else:  # old method is deprecated in 0.45, removed in 0.46+.
+                    CB, _, SCB, _, _ = bnb.functional.double_quant(B)
+
                 int8params.data = CB
                 setattr(int8params, "CB", CB)
                 setattr(int8params, "SCB", SCB)
@@ -310,7 +313,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
             self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":

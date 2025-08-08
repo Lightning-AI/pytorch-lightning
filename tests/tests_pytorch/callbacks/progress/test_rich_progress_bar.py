@@ -246,6 +246,9 @@ def test_rich_progress_bar_with_refresh_rate(tmp_path, refresh_rate, train_batch
     with mock.patch.object(
         trainer.progress_bar_callback.progress, "update", wraps=trainer.progress_bar_callback.progress.update
     ) as progress_update:
+        metrics_update = mock.MagicMock()
+        trainer.progress_bar_callback._update_metrics = metrics_update
+
         trainer.fit(model)
         assert progress_update.call_count == expected_call_count
 
@@ -259,6 +262,9 @@ def test_rich_progress_bar_with_refresh_rate(tmp_path, refresh_rate, train_batch
         assert fit_val_bar.completed == val_batches
         assert fit_val_bar.total == val_batches
         assert not fit_val_bar.visible
+
+    # one call for each train batch + one at the end of training epoch + one for validation end
+    assert metrics_update.call_count == train_batches + (1 if train_batches > 0 else 0) + (1 if val_batches > 0 else 0)
 
 
 @RunIf(rich=True)

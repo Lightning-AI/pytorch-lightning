@@ -194,23 +194,23 @@ def test_custom_accelerator(*_):
     class Prec(Precision):
         pass
 
-    class Strat(SingleDeviceStrategy):
+    class TestStrategy(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
-    class Strat(DDPStrategy):
+    class TestStrategy(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
