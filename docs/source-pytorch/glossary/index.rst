@@ -209,7 +209,7 @@ Glossary
 
 .. displayitem::
    :header: LightningModule
-   :description: A base class organizug your neural network module
+   :description: A base class organizing your neural network module
    :col_css: col-md-12
    :button_link: ../common/lightning_module.html
    :height: 100
