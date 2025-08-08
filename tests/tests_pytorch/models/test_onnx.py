@@ -32,11 +32,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
-if _TORCH_GREATER_EQUAL_2_6:
-    from torch.onnx import ONNXProgram
-else:
-    from torch.onnx._internal.exporter import ONNXProgram
-
 
 @RunIf(onnx=True)
 def test_model_saves_with_input_sample(tmp_path):
@@ -208,6 +203,11 @@ def test_model_onnx_export_missing_onnxscript():
 
 @RunIf(onnx=True, min_torch="2.5.0", dynamo=True, onnxscript=True)
 def test_model_return_type():
+    if _TORCH_GREATER_EQUAL_2_6:
+        from torch.onnx import ONNXProgram
+    else:
+        from torch.onnx._internal.exporter import ONNXProgram
+
     model = BoringModel()
     model.example_input_array = torch.randn((1, 32))
     model.eval()
