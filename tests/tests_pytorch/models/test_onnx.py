@@ -25,10 +25,10 @@ import torch
 from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import _ONNXSCRIPT_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 

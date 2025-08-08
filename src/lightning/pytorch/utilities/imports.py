@@ -17,7 +17,7 @@ import functools
 import operator
 import sys
 
-from lightning_utilities.core.imports import RequirementCache, package_available, compare_version
+from lightning_utilities.core.imports import RequirementCache, compare_version, package_available
 
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
