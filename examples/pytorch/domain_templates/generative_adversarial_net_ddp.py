@@ -20,15 +20,23 @@ tensorboard --logdir default
 """
 
 import math
+
+# ! TESTING
+import os
+import sys
 from argparse import ArgumentParser, Namespace
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+sys.path.append(os.path.join(os.getcwd(), "src"))
+# ! TESTING
+
 from lightning.pytorch import cli_lightning_logo
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.strategies.ddp import MultiModelDDPStrategy
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -36,7 +44,7 @@ if _TORCHVISION_AVAILABLE:
     import torchvision
 
 
-def _block(in_feat: int, out_feat: int, normalize: bool = True) -> list:
+def _block(in_feat: int, out_feat: int, normalize: bool = True):
     layers = [nn.Linear(in_feat, out_feat)]
     if normalize:
         layers.append(nn.BatchNorm1d(out_feat, 0.8))
@@ -55,6 +63,7 @@ class Generator(nn.Module):
     def __init__(self, latent_dim: int = 100, img_shape: tuple = (1, 28, 28)):
         super().__init__()
         self.img_shape = img_shape
+
         self.model = nn.Sequential(
             *_block(latent_dim, 128, normalize=False),
             *_block(128, 256),
@@ -126,6 +135,10 @@ class GAN(LightningModule):
 
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
+        # ! TESTING
+        self.save_path = "pl_test_multi_gpu"
+        os.makedirs(self.save_path, exist_ok=True)
+
     def forward(self, z):
         return self.generator(z)
 
@@ -190,33 +203,49 @@ class GAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return opt_g, opt_d
 
-    def on_train_epoch_end(self):
-        z = self.validation_z.type_as(self.generator.model[0].weight)
+    # ! TESTING
+    def on_train_epoch_start(self):
+        if self.trainer.is_global_zero:
+            print("GEN: ", self.generator.module.model[0].bias[:10])
+            print("DISC: ", self.discriminator.module.model[0].bias[:10])
 
-        # log sampled images
+    # ! TESTING
+    def validation_step(self, batch, batch_idx):
+        pass
+
+    # ! TESTING
+    @torch.no_grad()
+    def on_validation_epoch_end(self):
+        if not self.current_epoch % 5:
+            return
+        self.generator.eval(), self.discriminator.eval()
+
+        z = self.validation_z.type_as(self.generator.module.model[0].weight)
         sample_imgs = self(z)
-        grid = torchvision.utils.make_grid(sample_imgs)
-        for logger in self.loggers:
-            logger.experiment.add_image("generated_images", grid, self.current_epoch)
+
+        if self.trainer.is_global_zero:
+            grid = torchvision.utils.make_grid(sample_imgs)
+            torchvision.utils.save_image(grid, os.path.join(self.save_path, f"epoch_{self.current_epoch}.png"))
+
+        self.generator.train(), self.discriminator.train()
 
 
 def main(args: Namespace) -> None:
-    # ------------------------
-    # 1 INIT LIGHTNING MODEL
-    # ------------------------
     model = GAN(lr=args.lr, b1=args.b1, b2=args.b2, latent_dim=args.latent_dim)
 
-    # ------------------------
-    # 2 INIT TRAINER
-    # ------------------------
-    # If use distributed training  PyTorch recommends to use DistributedDataParallel.
-    # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    # ! `MultiModelDDPStrategy` is critical for multi-gpu training
+    # ! Otherwise, it will not work with multiple models.
+    # ! There are two ways to run training codes with previous `DDPStrategy`;
+    # ! 1) activate `find_unused_parameters=True`, 2) change from self.manual_backward(loss) to loss.backward()
+    # ! Neither of them is desirable.
     dm = MNISTDataModule()
-    trainer = Trainer(accelerator="gpu", devices=1)
+    trainer = Trainer(
+        accelerator="auto",
+        devices=[0, 1, 2, 3],
+        strategy=MultiModelDDPStrategy(),
+        max_epochs=100,
+    )
 
-    # ------------------------
-    # 3 START TRAINING
-    # ------------------------
     trainer.fit(model, dm)
 
 
