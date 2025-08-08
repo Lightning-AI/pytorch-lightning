@@ -1,2 +1,0 @@
-fastapi >= 0.98.0
-pydantic >= 1.10.22
