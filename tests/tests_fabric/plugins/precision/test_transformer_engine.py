@@ -115,3 +115,35 @@ def test_transformer_engine_plugin(monkeypatch):
     assert isinstance(model.l1, TELinearMock)
     assert isinstance(model.l2, TELayerNormMock)
     assert isinstance(model.l3.l, TELinearMock)
+
+
+def test_convert_module_handles_linear_without_bias(monkeypatch):
+    module = lightning.fabric.plugins.precision.transformer_engine  # Set up mock transformer_engine
+    monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)
+
+    transformer_engine_mock = Mock()
+    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
+    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", transformer_engine_mock.pytorch)
+    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", transformer_engine_mock.recipe)
+
+    class TELinearMock(torch.nn.Linear):  # Mock the Linear replacement class
+        def __init__(self, in_features, out_features, bias=True):
+            super().__init__(in_features, out_features, bias)
+
+    transformer_engine_mock.pytorch.Linear = TELinearMock
+    transformer_engine_mock.pytorch.LayerNorm = torch.nn.LayerNorm
+    transformer_engine_mock.recipe.DelayedScaling.return_value = None
+
+    class BiaslessModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = torch.nn.Linear(16, 32, bias=False)  #  This was causing the bug
+
+    model = BiaslessModel()
+    precision = TransformerEnginePrecision(weights_dtype=torch.float16)
+    precision.replace_layers = True
+
+    precision.convert_module(model)  # This should no longer raise AttributeError
+
+    assert isinstance(model.linear, TELinearMock)
+    assert model.linear.bias is None

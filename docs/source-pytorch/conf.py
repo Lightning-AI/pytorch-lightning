@@ -377,6 +377,7 @@ nitpick_ignore = [
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
+    ('py:class', 'tensorboardX.SummaryWriter'),
     ("py:class", "AveragedModel"),
     ("py:class", "CometExperiment"),
     ("py:meth", "DataModule.__init__"),
@@ -486,6 +487,7 @@ nitpick_ignore = [
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
+    ("py:meth", "toggled_optimizer"),
     ("py:class", "torch.ScriptModule"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.CPUOffload"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),
