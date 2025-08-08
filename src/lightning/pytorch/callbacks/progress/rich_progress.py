@@ -552,12 +552,12 @@ class RichProgressBar(ProgressBar):
             # can happen when resuming from a mid-epoch restart
             self._initialize_train_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, batch_idx + 1)
         self.refresh()
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, total_batches=True)
 
     @override
     def on_validation_batch_end(
@@ -632,7 +632,21 @@ class RichProgressBar(ProgressBar):
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
 
-    def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def _update_metrics(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        current: Optional[int] = None,
+        total_batches: bool = False,
+    ) -> None:
+        if not self.is_enabled or self._metric_component is None:
+            return
+
+        if current is not None and not total_batches:
+            total = self.total_train_batches
+            if not self._should_update(current, total):
+                return
+
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
             self._metric_component.update(metrics)
