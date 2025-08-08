@@ -36,7 +36,7 @@ from tests_fabric.test_fabric import BoringModel
 @pytest.mark.parametrize(
     "accelerator",
     [
-        "cpu",
+        pytest.param("cpu",marks=RunIf(skip_windows=True)),
         pytest.param("cuda", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
