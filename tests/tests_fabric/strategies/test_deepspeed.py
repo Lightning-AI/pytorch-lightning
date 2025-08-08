@@ -137,6 +137,7 @@ def test_deepspeed_setup_module(init_mock):
         model=model,
         model_parameters=ANY,
         optimizer=None,
+        lr_scheduler=None,
         dist_init_required=False,
     )
 

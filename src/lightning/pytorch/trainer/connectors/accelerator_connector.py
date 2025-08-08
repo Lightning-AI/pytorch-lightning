@@ -29,7 +29,7 @@ from lightning.fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
+from lightning.fabric.utilities.device_parser import _determine_root_gpu_device, _select_auto_accelerator
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -332,18 +332,12 @@ class _AcceleratorConnector:
     @staticmethod
     def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability."""
-        if XLAAccelerator.is_available():
-            return "tpu"
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if HPUAccelerator.is_available():
                 return "hpu"
-        if MPSAccelerator.is_available():
-            return "mps"
-        if CUDAAccelerator.is_available():
-            return "cuda"
-        return "cpu"
+        return _select_auto_accelerator()
 
     @staticmethod
     def _choose_gpu_accelerator_backend() -> str:
@@ -459,10 +453,11 @@ class _AcceleratorConnector:
 
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
             raise ValueError(
-                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but got:"
-                f" {self._accelerator_flag}"
+                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
+                f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
+                " or pass a `CUDAAccelerator()` instance to use FSDP."
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(

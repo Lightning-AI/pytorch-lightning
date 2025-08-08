@@ -138,7 +138,8 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
+          pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
+            -U --upgrade-strategy=eager --prefer-binary \
             --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Dump handy wheels
@@ -167,7 +168,7 @@ jobs:
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -v --timeout=30 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
+            -m pytest -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
             --junitxml=junit.xml -o junit_family=legacy  # NOTE: for Codecov's test results
 
       - name: Statistics

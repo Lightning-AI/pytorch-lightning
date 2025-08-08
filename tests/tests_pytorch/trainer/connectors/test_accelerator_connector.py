@@ -491,13 +491,15 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
         "LOCAL_RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_torchelastic_priority_over_slurm(*_):
+def test_torchelastic_priority_over_slurm(monkeypatch):
     """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 2)
+        mock_mps_count(monkeypatch, 0)
+        mock_hpu_count(monkeypatch, 0)
+        connector = _AcceleratorConnector(strategy="ddp")
     assert TorchElasticEnvironment.detect()
     assert SLURMEnvironment.detect()
-    connector = _AcceleratorConnector(strategy="ddp")
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
@@ -578,6 +580,11 @@ def test_check_fsdp_strategy_and_fallback():
     # we allow subclasses of FSDPStrategy to be used with other accelerators
     Trainer(accelerator="cpu", strategy=FSDPStrategySubclass())
     Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
+
+
+@RunIf(min_cuda_gpus=1)
+def test_check_fsdp_strategy_and_fallback_with_cudaaccelerator():
+    Trainer(strategy="fsdp", accelerator=CUDAAccelerator())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -1003,6 +1010,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     with monkeypatch.context():
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
+        mock_hpu_count(monkeypatch, 0)
         _mock_tpu_available(True)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, XLAAccelerator)
