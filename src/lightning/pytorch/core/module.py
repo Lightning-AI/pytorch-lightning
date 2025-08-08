@@ -79,10 +79,11 @@ _ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
 
-    if _TORCH_GREATER_EQUAL_2_6:
-        from torch.onnx import ONNXProgram
-    else:
-        from torch.onnx._internal.exporter import ONNXProgram
+    if _TORCH_GREATER_EQUAL_2_5:
+        if _TORCH_GREATER_EQUAL_2_6:
+            from torch.onnx import ONNXProgram
+        else:
+            from torch.onnx._internal.exporter import ONNXProgram
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
