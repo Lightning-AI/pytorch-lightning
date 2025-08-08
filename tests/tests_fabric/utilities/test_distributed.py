@@ -127,7 +127,8 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
-@pytest.mark.skipif(RequirementCache("numpy>=2.0"),
+@pytest.mark.skipif(
+    RequirementCache("numpy>=2.0"),
     reason="torch.distributed not compatible with numpy>=2.0",
 )
 @RunIf(min_torch="2.4", skip_windows=True)
