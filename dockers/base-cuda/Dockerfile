@@ -19,8 +19,9 @@ ARG CUDA_VERSION=11.7.1
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
-ARG PYTORCH_VERSION=2.1
+ARG PYTORCH_VERSION=2.8
 ARG MAX_ALLOWED_NCCL=2.22.3
+ARG MAKE_FLAGS="-j$(nproc)"
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -30,8 +31,7 @@ ENV \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER="GNU" \
-    # MAKEFLAGS="-j$(nproc)"
-    MAKEFLAGS="-j2"
+    MAKEFLAGS=${MAKE_FLAGS}
 
 RUN \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
