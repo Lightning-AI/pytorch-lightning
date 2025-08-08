@@ -25,11 +25,17 @@ import torch
 from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import _ONNXSCRIPT_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
+
+if _TORCH_GREATER_EQUAL_2_6:
+    from torch.onnx import ONNXProgram
+else:
+    from torch.onnx._internal.exporter import ONNXProgram
 
 
 @RunIf(onnx=True)
@@ -207,14 +213,10 @@ def test_model_return_type():
     model.eval()
 
     onnx_pg = model.to_onnx(dynamo=True)
-
-    onnx_cls = torch.onnx.ONNXProgram if torch.__version__ >= "2.6.0" else torch.onnx._internal.exporter.ONNXProgram
-
-    assert isinstance(onnx_pg, onnx_cls)
+    assert isinstance(onnx_pg, ONNXProgram)
 
     model_ret = model(model.example_input_array)
     inf_ret = onnx_pg(model.example_input_array)
-
     assert torch.allclose(model_ret, inf_ret[0], rtol=1e-03, atol=1e-05)
 
 

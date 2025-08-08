@@ -61,7 +61,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1, _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -73,14 +73,16 @@ from lightning.pytorch.utilities.types import (
     OptimizerLRScheduler,
 )
 
-if TYPE_CHECKING:
-    from torch.distributed.device_mesh import DeviceMesh
-
 _ONNX_AVAILABLE = RequirementCache("onnx")
 _ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
 
-if TYPE_CHECKING and _ONNXSCRIPT_AVAILABLE:
-    from torch.onnx import ONNXProgram
+if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
+
+    if _TORCH_GREATER_EQUAL_2_6:
+        from torch.onnx import ONNXProgram
+    else:
+        from torch.onnx._internal.exporter import ONNXProgram
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)

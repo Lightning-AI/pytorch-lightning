@@ -14,13 +14,15 @@
 """General utilities."""
 
 import functools
+import operator
 import sys
 
-from lightning_utilities.core.imports import RequirementCache, package_available
+from lightning_utilities.core.imports import RequirementCache, package_available, compare_version
 
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
+_TORCH_GREATER_EQUAL_2_6 = compare_version("torch", operator.ge, "2.6.0")
 _TORCHMETRICS_GREATER_EQUAL_0_8_0 = RequirementCache("torchmetrics>=0.8.0")
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
