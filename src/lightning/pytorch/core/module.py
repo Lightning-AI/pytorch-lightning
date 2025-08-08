@@ -83,7 +83,7 @@ if TYPE_CHECKING:
         if _TORCH_GREATER_EQUAL_2_6:
             from torch.onnx import ONNXProgram
         else:
-            from torch.onnx._internal.exporter import ONNXProgram # type: ignore[no-redef]
+            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
