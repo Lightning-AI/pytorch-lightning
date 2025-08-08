@@ -65,7 +65,7 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
-        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Stochastic Weight Averaging>`
+        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Weight Averaging>`.
 
         Arguments:
 
