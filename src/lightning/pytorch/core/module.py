@@ -75,10 +75,12 @@ from lightning.pytorch.utilities.types import (
 
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
-    from torch.onnx import ONNXProgram
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
 _ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
+
+if TYPE_CHECKING and _ONNXSCRIPT_AVAILABLE:
+    from torch.onnx import ONNXProgram
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
