@@ -251,13 +251,13 @@ class LearningRateMonitor(Callback):
                 elif new_name not in self.lrs:
                     self.lrs[new_name] = []
 
-    def _extract_momentum(self, param_group: dict[str, list], name: str, use_betas: bool) -> dict[str, float]:
+    def _extract_momentum(self, param_group: dict[str, list[float]], name: str, use_betas: bool) -> dict[str, float]:
         if not self.log_momentum:
             return {}
 
         momentum = param_group["betas"][0] if use_betas else param_group.get("momentum", 0)
-        self.last_momentum_values[name] = momentum
-        return {name: momentum}
+        self.last_momentum_values[name] = momentum  # type: ignore[assignment]
+        return {name: momentum}  # type: ignore[dict-item]
 
     def _extract_weight_decay(self, param_group: dict[str, Any], name: str) -> dict[str, Any]:
         """Extracts the weight decay statistics from a parameter group."""

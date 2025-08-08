@@ -18,6 +18,7 @@ from contextlib import AbstractContextManager, contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
@@ -73,6 +74,9 @@ from lightning.fabric.wrappers import (
     _unwrap_compiled,
     _unwrap_objects,
 )
+
+if TYPE_CHECKING:
+    from torch.optim.lr_scheduler import _LRScheduler
 
 
 def _do_nothing(*_: Any) -> None:
@@ -206,6 +210,7 @@ class Fabric:
         self,
         module: nn.Module,
         *optimizers: Optimizer,
+        scheduler: Optional["_LRScheduler"] = None,
         move_to_device: bool = True,
         _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
@@ -214,6 +219,7 @@ class Fabric:
         Args:
             module: A :class:`torch.nn.Module` to set up
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
+            scheduler: The learning rate scheduler to set up (no learning rate scheduler is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
             _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
@@ -222,7 +228,8 @@ class Fabric:
                 FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
 
         Returns:
-            The tuple containing wrapped module and the optimizers, in the same order they were passed in.
+            The tuple containing wrapped module, optimizers, and an optional learning rate scheduler,
+            in the same order they were passed in.
 
         """
         self._validate_setup(module, optimizers)
@@ -236,8 +243,8 @@ class Fabric:
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         if optimizers:
-            module, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
-                module, list(optimizers)
+            module, optimizers, scheduler = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
+                module, list(optimizers), scheduler
             )
         else:
             module = self._strategy.setup_module(module)
@@ -266,7 +273,7 @@ class Fabric:
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return (module, *optimizers)
+            return (module, *optimizers, scheduler) if scheduler is not None else (module, *optimizers)
         return module
 
     def setup_module(
@@ -327,7 +334,7 @@ class Fabric:
         ``.setup(model, optimizer, ...)`` instead to jointly set them up.
 
         Args:
-            *optimizers: One or more optmizers to set up.
+            *optimizers: One or more optimizers to set up.
 
         Returns:
             The wrapped optimizer(s).
@@ -367,8 +374,7 @@ class Fabric:
             )
             for dataloader in dataloaders
         ]
-        dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders  # type: ignore[return-value]
+        return dataloaders[0] if len(dataloaders) == 1 else dataloaders
 
     def _setup_dataloader(
         self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
