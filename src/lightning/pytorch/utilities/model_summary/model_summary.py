@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.distributed import _is_dtensor
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
@@ -216,7 +217,22 @@ class ModelSummary:
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
-        precision_to_bits = {"64": 64, "32": 32, "16": 16, "bf16": 16}
+        precision_to_bits = {
+            "64": 64,
+            "32": 32,
+            "16": 16,
+            "bf16": 16,
+            "16-true": 16,
+            "bf16-true": 16,
+            "32-true": 32,
+            "64-true": 64,
+        }
+        if self._model._trainer and self._model.trainer.precision not in precision_to_bits:
+            rank_zero_warn(
+                f"Precision {self._model.trainer.precision} is not supported by the model summary. "
+                " Estimated model size in MB will not be accurate. Using 32 bits instead.",
+                category=UserWarning,
+            )
         precision = precision_to_bits.get(self._model.trainer.precision, 32) if self._model._trainer else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
