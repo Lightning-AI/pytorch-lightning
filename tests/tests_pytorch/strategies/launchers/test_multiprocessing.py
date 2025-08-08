@@ -230,7 +230,7 @@ def test_fit_twice_raises(mps_count_0):
         barebones=True,
     )
     trainer.fit(model)
-    trainer.test(model)  # make sure testing in between doesnt impact the result
+    trainer.test(model)  # make sure testing in between doesn't impact the result
     trainer.fit_loop.max_epochs += 1
     with pytest.raises(NotImplementedError, match=r"twice.*is not supported"):
         trainer.fit(model)

@@ -171,7 +171,9 @@ def _convert_layers(module: torch.nn.Module) -> None:
         elif isinstance(child, torch.nn.LayerNorm):
             replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
             replacement.weight.data = child.weight.data.clone()
-            replacement.bias.data = child.bias.data.clone()
+            # Check if bias exists before attempting to clone its data
+            if child.bias is not None and replacement.bias is not None:
+                replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         else:

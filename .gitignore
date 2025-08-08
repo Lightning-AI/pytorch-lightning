@@ -198,7 +198,7 @@ node_modules/
 **/events.out.tfevents.*
 examples/**/*.png
 
-# instalation artifacts
+# installation artifacts
 requirements/base.txt
 
 # CI
