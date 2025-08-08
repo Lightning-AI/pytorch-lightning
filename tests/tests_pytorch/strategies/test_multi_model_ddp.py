@@ -51,10 +51,12 @@ def test_multi_model_ddp_setup_and_register_hooks():
         assert wrapped_device_ids == [None, None]
 
         strategy.model = model
-        with mock.patch("lightning.pytorch.strategies.ddp._register_ddp_comm_hook") as register_hook:
-            with mock.patch.object(MultiModelDDPStrategy, "root_device", new_callable=PropertyMock) as root_device:
-                root_device.return_value = torch.device("cuda", 0)
-                strategy._register_ddp_hooks()
+        with (
+            mock.patch("lightning.pytorch.strategies.ddp._register_ddp_comm_hook") as register_hook,
+            mock.patch.object(MultiModelDDPStrategy, "root_device", new_callable=PropertyMock) as root_device,
+        ):
+            root_device.return_value = torch.device("cuda", 0)
+            strategy._register_ddp_hooks()
 
         assert register_hook.call_count == 2
         register_hook.assert_any_call(
