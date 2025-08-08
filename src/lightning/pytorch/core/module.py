@@ -381,7 +381,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
@@ -466,10 +466,10 @@ class LightningModule(
         )
 
         # make sure user doesn't introduce logic for multi-dataloaders
-        if "/dataloader_idx_" in name:
+        if add_dataloader_idx and "/dataloader_idx_" in name:
             raise MisconfigurationException(
                 f"You called `self.log` with the key `{name}`"
-                " but it should not contain information about `dataloader_idx`"
+                " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
@@ -546,7 +546,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
