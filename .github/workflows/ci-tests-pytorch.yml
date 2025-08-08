@@ -136,7 +136,8 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
+          pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
+            -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
             --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
