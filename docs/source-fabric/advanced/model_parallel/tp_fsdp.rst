@@ -9,7 +9,7 @@ The :doc:`Tensor Parallelism documentation <tp>` and a general understanding of 
 
 .. raw:: html
 
-    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/tensor-parallelism-supercharging-large-model-training-with-lightning-fabric">
+    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pretrain-an-llm-with-pytorch-lightning">
       <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio" style="width: auto; max-width: none;"/>
     </a>
 
