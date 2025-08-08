@@ -36,7 +36,7 @@ if _TORCHVISION_AVAILABLE:
     import torchvision
 
 
-def _block(in_feat: int, out_feat: int, normalize: bool = True):
+def _block(in_feat: int, out_feat: int, normalize: bool = True) -> list:
     layers = [nn.Linear(in_feat, out_feat)]
     if normalize:
         layers.append(nn.BatchNorm1d(out_feat, 0.8))

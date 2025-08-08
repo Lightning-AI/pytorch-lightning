@@ -216,17 +216,18 @@ class GAN(LightningModule):
     # ! TESTING
     @torch.no_grad()
     def on_validation_epoch_end(self):
-        if self.current_epoch % 5:
-            self.generator.eval(), self.discriminator.eval()
+        if not self.current_epoch % 5:
+            return
+        self.generator.eval(), self.discriminator.eval()
 
-            z = self.validation_z.type_as(self.generator.module.model[0].weight)
-            sample_imgs = self(z)
+        z = self.validation_z.type_as(self.generator.module.model[0].weight)
+        sample_imgs = self(z)
 
-            if self.trainer.is_global_zero:
-                grid = torchvision.utils.make_grid(sample_imgs)
-                torchvision.utils.save_image(grid, os.path.join(self.save_path, f"epoch_{self.current_epoch}.png"))
+        if self.trainer.is_global_zero:
+            grid = torchvision.utils.make_grid(sample_imgs)
+            torchvision.utils.save_image(grid, os.path.join(self.save_path, f"epoch_{self.current_epoch}.png"))
 
-            self.generator.train(), self.discriminator.train()
+        self.generator.train(), self.discriminator.train()
 
 
 def main(args: Namespace) -> None:
