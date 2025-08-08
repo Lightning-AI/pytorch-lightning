@@ -133,9 +133,15 @@ class ModelCheckpoint(Checkpoint):
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
-            If this is ``False``, then the check runs at the end of the validation.
+            If ``True``, checkpoints are saved at the end of every training epoch.
+            If ``False``, checkpoints are saved at the end of validation.
+            If ``None`` (default), checkpointing behavior is determined based on training configuration.
+            If ``check_val_every_n_epoch != 1``, checkpointing will not be performed at the end of
+            every training epoch. If there are no validation batches of data, checkpointing will occur at the
+            end of the training epoch. If there is a non-default number of validation runs per training epoch
+            (``val_check_interval != 1``), checkpointing is performed after validation.
         enable_version_counter: Whether to append a version to the existing file name.
-            If this is ``False``, then the checkpoint files will be overwritten.
+            If ``False``, then the checkpoint files will be overwritten.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -154,6 +160,10 @@ class ModelCheckpoint(Checkpoint):
 
         If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
         only ``best_model_path`` will be reloaded and a warning will be issued.
+
+        If you provide a ``filename`` on a mounted device where changing permissions is not allowed (causing ``chmod``
+        to raise a ``PermissionError``), install `fsspec>=2025.5.0`. Then the error is caught, the file's permissions
+        remain unchanged, and the checkpoint is still saved. Otherwise, no checkpoint will be saved and training stops.
 
     Raises:
         MisconfigurationException:

@@ -67,7 +67,8 @@ def _materialize(module: Module, device: _DEVICE) -> None:
             f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."
             " This method is used to initialize any children parameters or buffers in this module."
         )
-    module.reset_parameters()
+    if callable(module.reset_parameters):
+        module.reset_parameters()
 
 
 def _materialize_meta_tensors(module: Module, device: _DEVICE) -> None:

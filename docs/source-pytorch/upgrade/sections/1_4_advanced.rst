@@ -35,9 +35,9 @@
      - `PR6388`_
 
 
-.. _pr7201: https://github.com/Lightning-AI/lightning/pull/7201
-.. _pr4945: https://github.com/Lightning-AI/lightning/pull/4945
-.. _pr7292: https://github.com/Lightning-AI/lightning/pull/7292
-.. _pr6834: https://github.com/Lightning-AI/lightning/pull/6834
-.. _pr7180: https://github.com/Lightning-AI/lightning/pull/7180
-.. _pr6388: https://github.com/Lightning-AI/lightning/pull/6388
+.. _pr7201: https://github.com/Lightning-AI/pytorch-lightning/pull/7201
+.. _pr4945: https://github.com/Lightning-AI/pytorch-lightning/pull/4945
+.. _pr7292: https://github.com/Lightning-AI/pytorch-lightning/pull/7292
+.. _pr6834: https://github.com/Lightning-AI/pytorch-lightning/pull/6834
+.. _pr7180: https://github.com/Lightning-AI/pytorch-lightning/pull/7180
+.. _pr6388: https://github.com/Lightning-AI/pytorch-lightning/pull/6388
