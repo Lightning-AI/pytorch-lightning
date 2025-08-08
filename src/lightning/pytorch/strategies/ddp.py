@@ -214,7 +214,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
-        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if self.root_device.type == "cuda":
@@ -431,25 +431,25 @@ class MultiModelDDPStrategy(DDPStrategy):
                 if isinstance(module, Module):
                     ddp_module = DistributedDataParallel(module, device_ids=device_ids, **self._ddp_kwargs)
                     setattr(model, name, ddp_module)
-
             return model
 
     @override
     def _register_ddp_hooks(self) -> None:
-        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if self.root_device.type == "cuda":
-            assert isinstance(self.model, Module)
+        if self.root_device.type != "cuda":
+            return
+        assert isinstance(self.model, Module)
 
-            for name, module in self.model.named_children():
-                assert isinstance(module, DistributedDataParallel)
-                _register_ddp_comm_hook(
-                    model=module,
-                    ddp_comm_state=self._ddp_comm_state,
-                    ddp_comm_hook=self._ddp_comm_hook,
-                    ddp_comm_wrapper=self._ddp_comm_wrapper,
-                )
+        for name, module in self.model.named_children():
+            assert isinstance(module, DistributedDataParallel)
+            _register_ddp_comm_hook(
+                model=module,
+                ddp_comm_state=self._ddp_comm_state,
+                ddp_comm_hook=self._ddp_comm_hook,
+                ddp_comm_wrapper=self._ddp_comm_wrapper,
+            )
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
