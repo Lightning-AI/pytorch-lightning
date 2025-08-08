@@ -90,10 +90,10 @@ run: |
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
 
-  echo "Reporting coverage"
-  python -m coverage report
-  python -m coverage xml
-  python -m coverage html
+  #  echo "Reporting coverage" # todo
+  #  python -m coverage report
+  #  python -m coverage xml
+  #  python -m coverage html
 
   # TODO: enable coverage
   #  # https://docs.codecov.com/docs/codecov-uploader
