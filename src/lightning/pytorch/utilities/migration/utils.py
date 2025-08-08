@@ -81,7 +81,7 @@ class pl_legacy_patch:
     unpickling old checkpoints. The following patches apply.
 
         1. ``lightning.pytorch.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
-           version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
+           version 1.2.8. See: https://github.com/Lightning-AI/pytorch-lightning/pull/6898
         2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
         3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
