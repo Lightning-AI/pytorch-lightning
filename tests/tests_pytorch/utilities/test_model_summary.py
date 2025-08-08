@@ -18,6 +18,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning_utilities.test.warning import no_warning_call
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -347,7 +348,7 @@ def test_model_size_warning_on_unsupported_precision(tmp_path):
 
     with pytest.warns(UserWarning, match="Precision .* is not supported by the model summary.*"):
         summary = summarize(model)
-        assert model.pre_calculated_model_size == summary.model_size
+    assert model.pre_calculated_model_size == summary.model_size
 
 
 def test_lazy_model_summary():
@@ -357,6 +358,7 @@ def test_lazy_model_summary():
 
     with pytest.warns(UserWarning, match="The total number of parameters detected may be inaccurate."):
         assert summary.total_parameters == 0
+    with no_warning_call():
         assert summary.trainable_parameters == 0
 
 
