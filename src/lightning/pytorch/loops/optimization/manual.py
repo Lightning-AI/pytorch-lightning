@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
@@ -45,7 +46,7 @@ class ManualResult(OutputResult):
     @classmethod
     def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
         extra = {}
-        if isinstance(training_step_output, dict):
+        if isinstance(training_step_output, Mapping):
             extra = training_step_output.copy()
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
