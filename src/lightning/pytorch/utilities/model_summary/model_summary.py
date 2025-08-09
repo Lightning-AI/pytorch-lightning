@@ -307,17 +307,17 @@ class ModelSummary:
     def total_training_modes(self) -> dict[str, int]:
         modes = [
             (
-                (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) 
-                if layer.requires_grad 
+                (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
+                if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
-             ).value[0]
+            ).value[0]
             for layer in self._layer_summary.values()
         ]
         modes = modes[1:]  # exclude the root module
         return {
-            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value[0]), 
-            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value[0]), 
-            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value[0])
+            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value[0]),
+            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value[0]),
+            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value[0]),
         }
 
     @property
