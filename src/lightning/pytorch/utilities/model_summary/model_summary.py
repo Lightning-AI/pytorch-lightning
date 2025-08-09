@@ -17,6 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
+from enum import Enum, auto
 from typing import Any, Optional, Union
 
 import torch
@@ -32,8 +33,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
-from enum import Enum, auto
-
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
@@ -41,6 +40,7 @@ PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
 LEFTOVER_PARAMS_NAME = "other params"
 NOT_APPLICABLE = "n/a"
+
 
 class ModelSummaryTrainingMode(Enum):
     TRAIN = auto(), "train"
@@ -297,18 +297,26 @@ class ModelSummary:
     @property
     def training_modes(self) -> list[int]:
         return [
-            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE
+            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
+            if layer.requires_grad
+            else ModelSummaryTrainingMode.FREEZE
             for layer in self._layer_summary.values()
         ]
 
     @property
     def total_training_modes(self) -> dict[str, int]:
         modes = [
-            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE
+            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
+            if layer.requires_grad
+            else ModelSummaryTrainingMode.FREEZE
             for layer in self._layer_summary.values()
         ]
         modes = modes[1:]  # exclude the root module
-        return {"train": modes.count(ModelSummaryTrainingMode.TRAIN), "eval": modes.count(ModelSummaryTrainingMode.EVAL), "freeze": modes.count(ModelSummaryTrainingMode.FREEZE)}
+        return {
+            "train": modes.count(ModelSummaryTrainingMode.TRAIN),
+            "eval": modes.count(ModelSummaryTrainingMode.EVAL),
+            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE),
+        }
 
     @property
     def total_parameters(self) -> int:
