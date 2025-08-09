@@ -310,7 +310,7 @@ class ModelSummary:
                 (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
                 if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
-             ).value
+            ).value
             for layer in self._module.values()
         ]
         modes = modes[1:]  # exclude the root module
