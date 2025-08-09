@@ -17,7 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
@@ -310,14 +310,14 @@ class ModelSummary:
                 (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
                 if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
-             ).value
+            ).value
             for layer in self._layer_summary.values()
         ]
         modes = modes[1:]  # exclude the root module
         return {
-            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value), 
-            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value), 
-            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value)
+            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value),
+            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value),
+            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value),
         }
 
     @property
