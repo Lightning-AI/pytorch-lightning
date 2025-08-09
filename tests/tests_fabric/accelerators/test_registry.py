@@ -21,7 +21,7 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 
 class TestAccelerator(Accelerator):
     """Helper accelerator class for testing."""
-    
+
     def __init__(self, param1=None, param2=None):
         self.param1 = param1
         self.param2 = param2
@@ -108,19 +108,19 @@ def test_available_accelerators_in_registry():
 def test_registry_as_decorator():
     """Test that the registry can be used as a decorator."""
     test_registry = _AcceleratorRegistry()
-    
+
     # Test decorator usage
     @test_registry.register("test_decorator", description="Test decorator accelerator", param1="value1", param2=42)
     class DecoratorAccelerator(TestAccelerator):
         pass
-    
+
     # Verify registration worked
     assert "test_decorator" in test_registry
     assert test_registry["test_decorator"]["description"] == "Test decorator accelerator"
     assert test_registry["test_decorator"]["init_params"] == {"param1": "value1", "param2": 42}
     assert test_registry["test_decorator"]["accelerator"] == DecoratorAccelerator
     assert test_registry["test_decorator"]["accelerator_name"] == "test_decorator"
-    
+
     # Test that we can instantiate the accelerator
     instance = test_registry.get("test_decorator")
     assert isinstance(instance, DecoratorAccelerator)
@@ -131,19 +131,19 @@ def test_registry_as_decorator():
 def test_registry_as_static_method():
     """Test that the registry can be used as a static method call."""
     test_registry = _AcceleratorRegistry()
-    
+
     class StaticMethodAccelerator(TestAccelerator):
         pass
-    
+
     # Test static method usage
     result = test_registry.register(
-        "test_static", 
-        StaticMethodAccelerator, 
-        description="Test static method accelerator", 
-        param1="static_value", 
-        param2=100
+        "test_static",
+        StaticMethodAccelerator,
+        description="Test static method accelerator",
+        param1="static_value",
+        param2=100,
     )
-    
+
     # Verify registration worked
     assert "test_static" in test_registry
     assert test_registry["test_static"]["description"] == "Test static method accelerator"
@@ -151,7 +151,7 @@ def test_registry_as_static_method():
     assert test_registry["test_static"]["accelerator"] == StaticMethodAccelerator
     assert test_registry["test_static"]["accelerator_name"] == "test_static"
     assert result == StaticMethodAccelerator  # Should return the accelerator class
-    
+
     # Test that we can instantiate the accelerator
     instance = test_registry.get("test_static")
     assert isinstance(instance, StaticMethodAccelerator)
@@ -162,16 +162,16 @@ def test_registry_as_static_method():
 def test_registry_without_parameters():
     """Test registration without init parameters."""
     test_registry = _AcceleratorRegistry()
-    
+
     class SimpleAccelerator(TestAccelerator):
         def __init__(self):
             super().__init__()
-    
+
     test_registry.register("simple", SimpleAccelerator, description="Simple accelerator")
-    
+
     assert "simple" in test_registry
     assert test_registry["simple"]["description"] == "Simple accelerator"
     assert test_registry["simple"]["init_params"] == {}
-    
+
     instance = test_registry.get("simple")
     assert isinstance(instance, SimpleAccelerator)
