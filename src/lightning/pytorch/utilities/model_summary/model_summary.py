@@ -18,6 +18,7 @@ import logging
 import math
 from collections import OrderedDict
 from enum import Enum
+from itertools import islice
 from typing import Any, Optional, Union
 
 import torch
@@ -311,7 +312,7 @@ class ModelSummary:
                 if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
             ).value
-            for layer in self._model.modules()[1:]  # exclude the root module
+            for layer in islice(self._model.modules(), 1, None)  # exclude the root module
         ]
         return {
             "train": modes.count(ModelSummaryTrainingMode.TRAIN.value),
