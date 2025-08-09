@@ -95,6 +95,12 @@ def restore_env_variables():
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
         "TORCHINDUCTOR_CACHE_DIR",  # leaked by torch.compile
+        # TensorFlow and TPU related variables
+        "TF2_BEHAVIOR",
+        "TPU_ML_PLATFORM",
+        "TPU_ML_PLATFORM_VERSION",
+        "LD_LIBRARY_PATH",
+        "ENABLE_RUNTIME_UPTIME_TELEMETRY",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

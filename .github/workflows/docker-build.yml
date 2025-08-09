@@ -49,7 +49,8 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.1" }
           - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.1" }
           - { python_version: "3.12", pytorch_version: "2.6", cuda_version: "12.4.1" }
-          - { python_version: "3.12", pytorch_version: "2.7", cuda_version: "12.6.3", latest: "true" }
+          - { python_version: "3.12", pytorch_version: "2.7", cuda_version: "12.6.3" }
+          - { python_version: "3.12", pytorch_version: "2.8", cuda_version: "12.6.3", latest: "true" }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -97,7 +98,7 @@ jobs:
         # adding dome more images as Thunder mainly using python 3.10,
         # and we need to support integrations as for example LitGPT
         python_version: ["3.10"]
-        pytorch_version: ["2.6.0", "2.7.1"]
+        pytorch_version: ["2.7.1", "2.8.0"]
         cuda_version: ["12.6.3"]
         include:
           # These are the base images for PL release docker images.
@@ -109,6 +110,7 @@ jobs:
           - { python_version: "3.12", pytorch_version: "2.5.1", cuda_version: "12.1.1" }
           - { python_version: "3.12", pytorch_version: "2.6.0", cuda_version: "12.4.1" }
           - { python_version: "3.12", pytorch_version: "2.7.1", cuda_version: "12.6.3" }
+          - { python_version: "3.12", pytorch_version: "2.8.0", cuda_version: "12.6.3" }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -129,6 +131,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
+            MAKE_FLAGS="-j2"
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_NIGHTLY }}
           tags: "pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ env.PT_VERSION }}-cuda${{ matrix.cuda_version }}"
@@ -157,6 +160,8 @@ jobs:
         continue-on-error: true
         uses: docker/build-push-action@v6
         with:
+          build-args: |
+            PYTORCH_VERSION="25.04"
           file: dockers/nvidia/Dockerfile
           push: false
         timeout-minutes: 55
