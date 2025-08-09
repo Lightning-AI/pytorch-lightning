@@ -32,6 +32,8 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
+from enum import Enum, auto
+
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
@@ -39,6 +41,11 @@ PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
 LEFTOVER_PARAMS_NAME = "other params"
 NOT_APPLICABLE = "n/a"
+
+class ModelSummaryTrainingMode(Enum):
+    TRAIN = auto(), "train"
+    EVAL = auto(), "eval"
+    FREEZE = auto(), "freeze"
 
 
 class LayerSummary:
@@ -148,7 +155,7 @@ class LayerSummary:
 
     @property
     def requires_grad(self) -> bool:
-        """Returns whether the module is requires grad."""
+        """Returns whether the module requires grad."""
         if self.num_parameters > 0:
             return any(param.requires_grad for name, param in self._module.named_parameters())
         return True
@@ -289,13 +296,19 @@ class ModelSummary:
 
     @property
     def training_modes(self) -> list[int]:
-        return [(2 if layer.training else 1) if layer.requires_grad else 0 for layer in self._layer_summary.values()]
+        return [
+            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE
+            for layer in self._layer_summary.values()
+        ]
 
     @property
     def total_training_modes(self) -> dict[str, int]:
-        modes = [layer.training for layer in self._model.modules()]
+        modes = [
+            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE
+            for layer in self._layer_summary.values()
+        ]
         modes = modes[1:]  # exclude the root module
-        return {"train": modes.count(True), "eval": modes.count(False)}
+        return {"train": modes.count(ModelSummaryTrainingMode.TRAIN), "eval": modes.count(ModelSummaryTrainingMode.EVAL), "freeze": modes.count(ModelSummaryTrainingMode.FREEZE)}
 
     @property
     def total_parameters(self) -> int:
@@ -384,13 +397,12 @@ class ModelSummary:
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
 
         """
-        param_mode = {0: "freeze", 1: "eval", 2: "train"}
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
-            ("Mode", [param_mode[mode] for mode in self.training_modes]),
+            ("Mode", [mode.value[1] for mode in self.training_modes]),
             ("FLOPs", list(map(get_human_readable_count, (sum(x.values()) for x in self.flop_counts.values())))),
         ]
         if self._model.example_input_array is not None:
