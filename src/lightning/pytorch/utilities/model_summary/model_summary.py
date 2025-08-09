@@ -18,7 +18,6 @@ import logging
 import math
 from collections import OrderedDict
 from enum import Enum
-from itertools import islice
 from typing import Any, Optional, Union
 
 import torch
