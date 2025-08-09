@@ -304,11 +304,11 @@ class ModelSummary:
     @property
     def total_training_modes(self) -> dict[str, int]:
         modes = [
-            (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE
+            ((ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) if layer.requires_grad else ModelSummaryTrainingMode.FREEZE).value[0]
             for layer in self._layer_summary.values()
         ]
         modes = modes[1:]  # exclude the root module
-        return {"train": modes.count(ModelSummaryTrainingMode.TRAIN), "eval": modes.count(ModelSummaryTrainingMode.EVAL), "freeze": modes.count(ModelSummaryTrainingMode.FREEZE)}
+        return {"train": modes.count(ModelSummaryTrainingMode.TRAIN.value[0]), "eval": modes.count(ModelSummaryTrainingMode.EVAL.value[0]), "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value[0])}
 
     @property
     def total_parameters(self) -> int:
@@ -507,6 +507,8 @@ def _format_summary_table(
     summary += "Modules in train mode"
     summary += "\n" + s.format(total_training_modes["eval"], 10)
     summary += "Modules in eval mode"
+    summary += "\n" + s.format(total_training_modes["freeze"], 10)
+    summary += "Modules in freeze mode"
     summary += "\n" + s.format(get_human_readable_count(total_flops), 10)
     summary += "Total Flops"
 
