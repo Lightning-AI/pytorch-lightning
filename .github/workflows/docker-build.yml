@@ -134,7 +134,7 @@ jobs:
             MAKE_FLAGS="-j2"
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_NIGHTLY }}
-          tags: "pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ env.PT_VERSION }}-cuda${{ matrix.cuda_version }}"
+          tags: "pytorchlightning/pytorch_lightning:base-cuda${{ matrix.cuda_version }}-py${{ matrix.python_version }}-torch${{ env.PT_VERSION }}"
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_NIGHTLY == 'true'
