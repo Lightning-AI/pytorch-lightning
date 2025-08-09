@@ -309,7 +309,7 @@ class ModelSummary:
         modes = [
             (
                 (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
-                if layer.requires_grad
+                if any(p.requires_grad for p in layer.parameters())
                 else ModelSummaryTrainingMode.FREEZE
             ).value
             for layer in islice(self._model.modules(), 1, None)  # exclude the root module
