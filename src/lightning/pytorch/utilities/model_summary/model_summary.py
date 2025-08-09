@@ -520,8 +520,8 @@ def _format_summary_table(
     summary += "Modules in train mode"
     summary += "\n" + s.format(total_training_modes["eval"], 10)
     summary += "Modules in eval mode"
-    summary += "\n" + s.format(total_training_modes["freeze"], 10)
-    summary += "Modules in freeze mode"
+    # summary += "\n" + s.format(total_training_modes["freeze"], 10)
+    # summary += "Modules in freeze mode"
     summary += "\n" + s.format(get_human_readable_count(total_flops), 10)
     summary += "Total Flops"
 
