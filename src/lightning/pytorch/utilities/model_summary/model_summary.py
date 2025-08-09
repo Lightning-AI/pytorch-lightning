@@ -307,8 +307,8 @@ class ModelSummary:
     def total_training_modes(self) -> dict[str, int]:
         modes = [
             (
-                (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) 
-                if layer.requires_grad 
+                (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL)
+                if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
              ).value
             for layer in self._layer_summary.values()
