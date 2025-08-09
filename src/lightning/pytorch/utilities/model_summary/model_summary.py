@@ -43,9 +43,9 @@ NOT_APPLICABLE = "n/a"
 
 
 class ModelSummaryTrainingMode(Enum):
-    TRAIN = auto(), "train"
-    EVAL = auto(), "eval"
-    FREEZE = auto(), "freeze"
+    TRAIN = "train"
+    EVAL = "eval"
+    FREEZE = "freeze"
 
 
 class LayerSummary:
@@ -310,14 +310,14 @@ class ModelSummary:
                 (ModelSummaryTrainingMode.TRAIN if layer.training else ModelSummaryTrainingMode.EVAL) 
                 if layer.requires_grad 
                 else ModelSummaryTrainingMode.FREEZE
-             ).value[0]
+             ).value
             for layer in self._layer_summary.values()
         ]
         modes = modes[1:]  # exclude the root module
         return {
-            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value[0]), 
-            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value[0]), 
-            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value[0])
+            "train": modes.count(ModelSummaryTrainingMode.TRAIN.value), 
+            "eval": modes.count(ModelSummaryTrainingMode.EVAL.value), 
+            "freeze": modes.count(ModelSummaryTrainingMode.FREEZE.value)
         }
 
     @property
