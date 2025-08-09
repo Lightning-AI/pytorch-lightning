@@ -412,7 +412,7 @@ class ModelSummary:
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
-            ("Mode", [mode.value[1] for mode in self.training_modes]),
+            ("Mode", [mode.value for mode in self.training_modes]),
             ("FLOPs", list(map(get_human_readable_count, (sum(x.values()) for x in self.flop_counts.values())))),
         ]
         if self._model.example_input_array is not None:
