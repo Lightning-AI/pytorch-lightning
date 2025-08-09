@@ -311,7 +311,7 @@ class ModelSummary:
                 if layer.requires_grad
                 else ModelSummaryTrainingMode.FREEZE
              ).value
-            for layer in self._layer_summary.values()
+            for layer in self._module.values()
         ]
         modes = modes[1:]  # exclude the root module
         return {
