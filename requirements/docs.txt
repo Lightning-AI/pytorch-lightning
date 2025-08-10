@@ -3,7 +3,7 @@ myst-parser >=0.18.1, <4.0.0
 nbsphinx >=0.8.5, <=0.9.7
 nbconvert >7.14, <7.17
 pandoc >=1.0, <=2.4
-docutils >=0.16, <0.22
+docutils>=0.18.1,<=0.22
 sphinxcontrib-fulltoc >=1.0, <=1.2.0
 sphinxcontrib-mockautodoc
 sphinx-autobuild
@@ -17,7 +17,7 @@ sphinx-rtd-dark-mode
 sphinxcontrib-video ==0.4.1
 jinja2 <3.2.0
 
-lightning-utilities >=0.11.1, <0.15.0
+lightning-utilities >=0.11.1, <0.16.0
 
 # installed from S3 location and fetched in advance
 lai-sphinx-theme

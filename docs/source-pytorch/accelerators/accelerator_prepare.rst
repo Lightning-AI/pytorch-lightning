@@ -78,7 +78,7 @@ Synchronize validation and test logging
 ***************************************
 
 When running in distributed mode, we have to ensure that the validation and test step logging calls are synchronized across processes.
-This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
+This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step. This will automatically average values across all processes.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
 The ``sync_dist`` option can also be used in logging calls during the step methods, but be aware that this can lead to significant communication overhead and slow down your training.
 
