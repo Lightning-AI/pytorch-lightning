@@ -771,7 +771,8 @@ def test_ckpt_every_n_train_steps(tmp_path):
 
 
 def test_model_checkpoint_on_exception_run_condition(tmp_path):
-    """Test that no checkpoint is saved when an exception is raised during a sanity check or a fast dev run, or when a checkpoint has already been saved at the current training step."""
+    """Test that no checkpoint is saved when an exception is raised during a sanity check or a fast dev run, or when a
+    checkpoint has already been saved at the current training step."""
 
     # Don't save checkpoint if sanity check fails
     class TroubledModelSanityCheck(BoringModel):
