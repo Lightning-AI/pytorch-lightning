@@ -45,6 +45,9 @@ class CSVLogger(Logger):
             overwritten.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+        sub_dir: Sub-directory to group CSV logs. If a ``sub_dir`` argument is passed
+            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
+            logs are saved in ``/root_dir/name/version/``.
 
     Example::
 
@@ -65,6 +68,7 @@ class CSVLogger(Logger):
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
+        sub_dir: Optional[_PATH] = None,
     ):
         super().__init__()
         root_dir = os.fspath(root_dir)
@@ -75,6 +79,7 @@ class CSVLogger(Logger):
         self._fs = get_filesystem(root_dir)
         self._experiment: Optional[_ExperimentWriter] = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
+        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
 
     @property
     @override
@@ -117,7 +122,22 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self._root_dir, self.name, version)
+        log_dir = os.path.join(self.root_dir, self.name, version)
+        if isinstance(self.sub_dir, str):
+            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
+        return log_dir
+    
+    @property
+    def sub_dir(self) -> Optional[str]:
+        """Gets the sub directory where the TensorBoard experiments are saved.
+
+        Returns:
+            The local path to the sub directory where the TensorBoard experiments are saved.
+
+        """
+        return self._sub_dir
 
     @property
     @rank_zero_experiment
