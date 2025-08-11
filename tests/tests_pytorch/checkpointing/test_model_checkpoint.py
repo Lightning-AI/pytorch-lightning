@@ -770,7 +770,7 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
-def test_model_checkpoint_on_exception_run_condition(tmp_path):
+def test_model_checkpoint_on_exception_run_condition_on_validation_start(tmp_path):
     """Test that no checkpoint is saved when an exception is raised during a sanity check or a fast dev run, or when a
     checkpoint has already been saved at the current training step."""
 
@@ -796,6 +796,10 @@ def test_model_checkpoint_on_exception_run_condition(tmp_path):
         trainer.fit(model)
     assert not os.path.isfile(tmp_path / "exception-sanity_check.ckpt")
 
+
+def test_model_checkpoint_on_exception_fast_dev_run_on_train_batch_start(tmp_path):
+    """Test that no checkpoint is saved when an exception is raised during a sanity check or a fast dev run, or when a
+    checkpoint has already been saved at the current training step."""
     # Don't save checkpoint if fast dev run fails
     class TroubledModelFastDevRun(BoringModel):
         def on_train_batch_start(self, batch, batch_idx) -> None:
@@ -817,6 +821,9 @@ def test_model_checkpoint_on_exception_run_condition(tmp_path):
         trainer.fit(model)
     assert not os.path.isfile(tmp_path / "exception-fast_dev_run.ckpt")
 
+def test_model_checkpoint_on_exception_run_condition_on_train_batch_start(tmp_path):
+    """Test that no checkpoint is saved when an exception is raised during a sanity check or a fast dev run, or when a
+    checkpoint has already been saved at the current training step."""
     # Don't save checkpoint if already saved a checkpoint
     class TroubledModelAlreadySavedCheckpoint(BoringModel):
         def on_train_batch_start(self, batch, batch_idx) -> None:
