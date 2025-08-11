@@ -808,7 +808,22 @@ class LightningModule(
             # CASE 2: multiple validation dataloaders
             def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"val_loss_{dataloader_idx}": loss, "val_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -875,7 +890,22 @@ class LightningModule(
             # CASE 2: multiple test dataloaders
             def test_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"test_loss_{dataloader_idx}": loss, "test_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to test you don't need to implement this method.
