@@ -74,7 +74,7 @@ procedure starts.
     `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
 
 .. seealso::
-    The :class:`~lightning.pytorch.callbacks.WeightAveraging` callback and 
+    The :class:`~lightning.pytorch.callbacks.WeightAveraging` callback and
     :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
 
 .. testcode::
