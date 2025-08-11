@@ -167,7 +167,14 @@ def save_hyperparameters(
     if given_hparams is not None:
         init_args = given_hparams
     elif is_dataclass(obj):
-        init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
+        obj_fields = fields(obj)
+        init_args = {f.name: getattr(obj, f.name) for f in obj_fields if f.init}
+        if any(not f.init for f in obj_fields):
+            rank_zero_warn(
+                "Detected a dataclass with fields with `init=False`. This is not supported by `save_hyperparameters`"
+                " and will not save those fields. Consider removing `init=False` and just re-initialize the attributes"
+                " in the `__post_init__` method of the dataclass."
+            )
     else:
         init_args = {}
 
