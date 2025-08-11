@@ -190,7 +190,10 @@ class _LRFinder:
 
         """
         losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
-        losses = losses[torch.isfinite(losses)]
+        lrs = torch.tensor(self.results["lr"][skip_begin:-skip_end])
+        is_finite = torch.isfinite(losses)
+        losses = losses[is_finite]
+        lrs = lrs[is_finite]
 
         if len(losses) < 2:
             # computing torch.gradient requires at least 2 points
@@ -201,12 +204,12 @@ class _LRFinder:
             self._optimal_idx = None
             return None
 
-        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
-        #   incorrectly shifted by an offset
-        gradients = torch.gradient(losses)[0]  # Unpack the tuple
+        gradients = torch.gradient(losses, spacing=[lrs])[0]  # Compute the gradient of losses w.r.t. learning rates
         min_grad = torch.argmin(gradients).item()
-
-        self._optimal_idx = min_grad + skip_begin
+        all_losses_idx = torch.arange(len(self.results["loss"]))
+        idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
+        idx_finite = idx_non_skipped[is_finite]
+        self._optimal_idx = idx_finite[min_grad].item()
         return self.results["lr"][self._optimal_idx]
 
 
