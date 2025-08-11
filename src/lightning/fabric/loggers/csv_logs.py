@@ -131,10 +131,10 @@ class CSVLogger(Logger):
 
     @property
     def sub_dir(self) -> Optional[str]:
-        """Gets the sub directory where the TensorBoard experiments are saved.
+        """Gets the sub directory where the CSV experiments are saved.
 
         Returns:
-            The local path to the sub directory where the TensorBoard experiments are saved.
+            The local path to the sub directory where the CSV experiments are saved.
 
         """
         return self._sub_dir
