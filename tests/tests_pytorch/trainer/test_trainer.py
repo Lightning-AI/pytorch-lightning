@@ -1750,8 +1750,6 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
         gc.collect()
         return torch.cuda.memory_allocated(0)
 
-    initial = current_memory()
-
     model = TestModel()
     trainer_kwargs = {
         "default_root_dir": tmp_path,
@@ -1763,6 +1761,7 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
         "callbacks": Check(),
     }
     trainer = Trainer(**trainer_kwargs)
+    initial = current_memory()
     trainer.fit(model)
 
     assert trainer.strategy.model is model
