@@ -289,6 +289,8 @@ class WeightAveraging(Callback):
         else:
             average_model_state = self._average_model.state_dict()
             checkpoint["current_model_state"] = checkpoint["state_dict"]
+            # Truncate the "module." prefix (the first 7 characters) from the names of the variables in the
+            # AveragedModel state.
             checkpoint["state_dict"] = {
                 name[7:]: value for name, value in average_model_state.items() if name.startswith("module.")
             }
