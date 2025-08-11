@@ -128,7 +128,7 @@ class CSVLogger(Logger):
         log_dir = os.path.expandvars(log_dir)
         log_dir = os.path.expanduser(log_dir)
         return log_dir
-    
+
     @property
     def sub_dir(self) -> Optional[str]:
         """Gets the sub directory where the TensorBoard experiments are saved.
