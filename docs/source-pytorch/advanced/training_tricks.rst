@@ -73,6 +73,10 @@ procedure starts.
     For a more detailed explanation of SWA and how it works, read
     `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
 
+.. seealso::
+    The :class:`~lightning.pytorch.callbacks.WeightAveraging` callback and 
+    :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
+
 .. testcode::
 
     from lightning.pytorch.callbacks import StochasticWeightAveraging, WeightAveraging
