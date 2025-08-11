@@ -220,6 +220,27 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
 
 
 @RunIf(deepspeed=True)
+@pytest.mark.parametrize("exclude_frozen_parameters", [True, False])
+def test_deepspeed_save_checkpoint_exclude_frozen_parameters(exclude_frozen_parameters):
+    """Test that the DeepSpeed strategy can save checkpoints with the `exclude_frozen_parameters` argument."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy(exclude_frozen_parameters=exclude_frozen_parameters)
+    assert strategy.exclude_frozen_parameters is exclude_frozen_parameters
+
+    model = Mock(spec=DeepSpeedEngine, optimizer=None)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path="test_path", state={"model": model, "extra": "data"})
+
+    model.save_checkpoint.assert_called_with(
+        "test_path",
+        client_state={"extra": "data"},
+        tag="checkpoint",
+        exclude_frozen_parameters=exclude_frozen_parameters,
+    )
+
+
+@RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_validate_path(tmp_path):
     """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
     strategy = DeepSpeedStrategy()
