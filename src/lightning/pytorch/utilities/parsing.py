@@ -172,8 +172,8 @@ def save_hyperparameters(
         if any(not f.init for f in obj_fields):
             rank_zero_warn(
                 "Detected a dataclass with fields with `init=False`. This is not supported by `save_hyperparameters`"
-                " and will not save those fields. Consider removing `init=False` and just re-initialize the attributes"
-                " in the `__post_init__` method of the dataclass."
+                " and will not save those fields in `self.hparams`. Consider removing `init=False` and just"
+                " re-initialize the attributes in the `__post_init__` method of the dataclass."
             )
     else:
         init_args = {}
