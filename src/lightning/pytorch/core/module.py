@@ -823,7 +823,7 @@ class LightningModule(
                 acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                 # log the outputs separately for each dataloader
-                self.log_dict({f"val_loss_{dataloader_idx}": loss, "val_acc_{dataloader_idx}": acc})
+                self.log_dict({f"val_loss_{dataloader_idx}": loss, f"val_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -905,7 +905,7 @@ class LightningModule(
                 acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                 # log the outputs separately for each dataloader
-                self.log_dict({f"test_loss_{dataloader_idx}": loss, "test_acc_{dataloader_idx}": acc})
+                self.log_dict({f"test_loss_{dataloader_idx}": loss, f"test_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to test you don't need to implement this method.
