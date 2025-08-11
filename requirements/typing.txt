@@ -1,5 +1,5 @@
 mypy==1.17.1
-torch==2.7.1
+torch==2.7.1 # todo: update typing in separate PR
 
 types-Markdown
 types-PyYAML
