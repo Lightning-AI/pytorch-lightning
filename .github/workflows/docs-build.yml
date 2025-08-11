@@ -130,7 +130,7 @@ jobs:
         run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
         if: ${{ matrix.target == 'html' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
