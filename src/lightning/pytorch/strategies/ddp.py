@@ -421,7 +421,7 @@ class DDPStrategy(ParallelStrategy):
 
 class MultiModelDDPStrategy(DDPStrategy):
     @override
-    def _setup_model(self, model: Module) -> Module:
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
