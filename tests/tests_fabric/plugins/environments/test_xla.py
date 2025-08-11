@@ -102,24 +102,57 @@ def test_detect(monkeypatch):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
 @mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
-def test_attributes_from_xla_greater_21_used(xla_available, monkeypatch):
-    """Test XLA environment attributes when using XLA runtime >= 2.1."""
+def test_world_size_from_xla_runtime_greater_2_1(xla_available):
+    """Test that world_size uses torch_xla.runtime when XLA >= 2.1."""
+    env = XLAEnvironment()
 
+    with mock.patch("torch_xla.runtime.world_size", return_value=4) as mock_world_size:
+        env.world_size.cache_clear()
+        assert env.world_size() == 4
+        mock_world_size.assert_called_once()
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
+def test_global_rank_from_xla_runtime_greater_2_1(xla_available):
+    """Test that global_rank uses torch_xla.runtime when XLA >= 2.1."""
+    env = XLAEnvironment()
+
+    with mock.patch("torch_xla.runtime.global_ordinal", return_value=2) as mock_global_ordinal:
+        env.global_rank.cache_clear()
+        assert env.global_rank() == 2
+        mock_global_ordinal.assert_called_once()
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
+def test_local_rank_from_xla_runtime_greater_2_1(xla_available):
+    """Test that local_rank uses torch_xla.runtime when XLA >= 2.1."""
+    env = XLAEnvironment()
+
+    with mock.patch("torch_xla.runtime.local_ordinal", return_value=1) as mock_local_ordinal:
+        env.local_rank.cache_clear()
+        assert env.local_rank() == 1
+        mock_local_ordinal.assert_called_once()
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
+def test_setters_readonly_when_xla_runtime_greater_2_1(xla_available):
+    """Test that set_world_size and set_global_rank don't affect values when using XLA runtime >= 2.1."""
     env = XLAEnvironment()
 
     with (
         mock.patch("torch_xla.runtime.world_size", return_value=4),
         mock.patch("torch_xla.runtime.global_ordinal", return_value=2),
-        mock.patch("torch_xla.runtime.local_ordinal", return_value=1),
     ):
         env.world_size.cache_clear()
         env.global_rank.cache_clear()
-        env.local_rank.cache_clear()
 
-        assert env.world_size() == 4
-        assert env.global_rank() == 2
-        assert env.local_rank() == 1
-
+        # Values should come from XLA runtime and not be affected by setters
         env.set_world_size(100)
         assert env.world_size() == 4
 
