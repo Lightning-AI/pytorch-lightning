@@ -17,8 +17,9 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.utilities.testing import _runif_reasons as fabric_run_if
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.core.module import _ONNX_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _RICH_AVAILABLE
+from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.core.module import _ONNX_AVAILABLE, _ONNXSCRIPT_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -41,6 +42,7 @@ def _runif_reasons(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
+    onnxscript: bool = False,
 ) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
@@ -63,6 +65,7 @@ def _runif_reasons(
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
+        onnxscript: Require that onnxscript is installed.
 
     """
 
@@ -94,5 +97,8 @@ def _runif_reasons(
 
     if onnx and not _ONNX_AVAILABLE:
         reasons.append("onnx")
+
+    if onnxscript and not _ONNXSCRIPT_AVAILABLE:
+        reasons.append("onnxscript")
 
     return reasons, kwargs
