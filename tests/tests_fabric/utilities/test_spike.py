@@ -4,7 +4,8 @@ import pytest
 import torch
 
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, SpikeDetection, TrainingSpikeException
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
+from lightning.fabric.utilities.spike import SpikeDetection, TrainingSpikeException
 from tests_fabric.helpers.runif import RunIf
 
 

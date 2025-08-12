@@ -3,9 +3,11 @@ import contextlib
 import pytest
 import torch
 
-from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCHMETRICS_GREATER_EQUAL_1_0_0
+from lightning.fabric.utilities.spike import TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_8
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -47,6 +49,10 @@ class MyTrainerSpikeDetection(SpikeDetection):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
 
+# todo: RuntimeError: makeDeviceForHostname(): unsupported gloo device
+_XFAIL_GLOO_WINDOWS = pytest.mark.xfail(RuntimeError, strict=True, condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_8))
+
+
 @pytest.mark.flaky(max_runs=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
@@ -55,12 +61,12 @@ class MyTrainerSpikeDetection(SpikeDetection):
     [
         pytest.param(0, 1, None, True),
         pytest.param(0, 1, None, False),
-        pytest.param(0, 1, float("inf"), True),
-        pytest.param(0, 1, float("inf"), False),
-        pytest.param(0, 1, float("-inf"), True),
-        pytest.param(0, 1, float("-inf"), False),
-        pytest.param(0, 1, float("NaN"), True),
-        pytest.param(0, 1, float("NaN"), False),
+        pytest.param(0, 1, float("inf"), True, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, float("inf"), False, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, float("-inf"), True, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, float("-inf"), False, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, float("NaN"), True, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, float("NaN"), False, marks=_XFAIL_GLOO_WINDOWS),
         pytest.param(0, 2, None, True, marks=RunIf(linux_only=True)),
         pytest.param(0, 2, None, False, marks=RunIf(linux_only=True)),
         pytest.param(1, 2, None, True, marks=RunIf(linux_only=True)),
