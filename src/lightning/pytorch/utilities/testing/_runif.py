@@ -15,7 +15,7 @@ from typing import Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.utilities.testing import _runif_reasons as fabric_run_if
+from lightning.fabric.utilities.testing import _runif_reasons as _fabric_run_if
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
@@ -42,6 +42,7 @@ def _runif_reasons(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
+    linux_only: bool = False,
 ) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
@@ -67,7 +68,7 @@ def _runif_reasons(
 
     """
 
-    reasons, kwargs = fabric_run_if(
+    reasons, kwargs = _fabric_run_if(
         min_cuda_gpus=min_cuda_gpus,
         min_torch=min_torch,
         max_torch=max_torch,
@@ -79,6 +80,7 @@ def _runif_reasons(
         standalone=standalone,
         deepspeed=deepspeed,
         dynamo=dynamo,
+        linux_only=linux_only,
     )
 
     if rich and not _RICH_AVAILABLE:
