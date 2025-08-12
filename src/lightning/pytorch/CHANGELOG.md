@@ -18,6 +18,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Allow `dataloader_idx_` in log names when `add_dataloader_idx=False` ([#20987](https://github.com/Lightning-AI/pytorch-lightning/pull/20987))
 
 
+- Allow returning `ONNXProgram` when calling `to_onnx(dynamo=True)` ([#20811](https://github.com/Lightning-AI/pytorch-lightning/pull/20811))
+
+
+### Removed
+
+-
+
+
 ### Fixed
 
 - Fixed Allowing trainer to accept CUDAAccelerator instance as accelerator with FSDP strategy ([#20964](https://github.com/Lightning-AI/pytorch-lightning/pull/20964))
