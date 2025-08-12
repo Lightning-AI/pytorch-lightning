@@ -588,7 +588,6 @@ def test_lr_finder_with_early_stopping(tmp_path):
     # Verify that both callbacks were active
     lr_finder_callback = None
     early_stopping_callback = None
-    breakpoint()
     for callback in trainer.callbacks:
         if isinstance(callback, LearningRateFinder):
             lr_finder_callback = callback
