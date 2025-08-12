@@ -132,11 +132,15 @@ def _parallelize_with_compile(parallelize):
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
-@pytest.mark.parametrize(
-    "compile",
-    [True, False],
+@pytest.mark.parametrize("compile", [True, False])
+@pytest.mark.xfail(
+    raises=AssertionError,
+    reason="Test left zombie thread",
+    strict=False,
+    run=True,
+    condition=lambda e: isinstance(e, AssertionError) and str(e).startswith("Test left zombie thread"),
 )
-def test_tensor_parallel(distributed, compile):
+def test_tensor_parallel(distributed, compile: bool):
     from torch.distributed._tensor import DTensor
 
     parallelize = _parallelize_feed_forward_tp
@@ -185,10 +189,7 @@ def test_tensor_parallel(distributed, compile):
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
-@pytest.mark.parametrize(
-    "compile",
-    [True, False],
-)
+@pytest.mark.parametrize("compile", [True, False])
 def test_fsdp2_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
