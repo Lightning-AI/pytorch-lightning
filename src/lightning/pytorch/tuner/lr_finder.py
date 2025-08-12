@@ -307,6 +307,7 @@ def _lr_find(
     trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
     trainer.fit_loop._combined_loader = None  # reset data fetcher to avoid issues with the next fit
+    trainer.fit_loop.setup_data()
     return lr_finder
 
 
