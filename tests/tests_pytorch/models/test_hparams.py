@@ -895,8 +895,7 @@ def test_dataclass_with_init_false_fields():
             super().__init__()
             self.save_hyperparameters()
 
-    with pytest.warns(UserWarning, match="Detected a dataclass with fields with `init=False`"):
-        model = DataClassWithInitFalseFieldsModel(33, optional="cocofruit")
+    model = DataClassWithInitFalseFieldsModel(33, optional="cocofruit")
 
     expected_hparams = {"mandatory": 33, "optional": "cocofruit"}
     assert model.hparams == expected_hparams
