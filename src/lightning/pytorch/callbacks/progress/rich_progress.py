@@ -637,10 +637,7 @@ class RichProgressBar(ProgressBar):
     ) -> dict[str, Union[int, str, float, dict[str, float]]]:
         items = super().get_metrics(trainer, pl_module)
         # convert all metrics to float before sending to rich
-        for k, v in items.items():
-            if isinstance(v, torch.Tensor):
-                items[k] = v.item()
-        return items
+        return apply_to_collection(items, torch.Tensor, lambda x: x.item())
 
     def _update_metrics(
         self,
