@@ -18,13 +18,13 @@ from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-from lightning_utilities.core.apply_func import apply_to_collection
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
