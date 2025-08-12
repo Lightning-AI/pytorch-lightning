@@ -89,6 +89,37 @@ def test_no_name(tmp_path, name):
     assert os.listdir(tmp_path / "version_0")
 
 
+def test_csv_log_sub_dir(tmp_path):
+    # no sub_dir specified
+    root_dir = tmp_path / "logs"
+    logger = CSVLogger(root_dir, name="name", version="version")
+    assert logger.log_dir == os.path.join(root_dir, "name", "version")
+
+    # sub_dir specified
+    logger = CSVLogger(root_dir, name="name", version="version", sub_dir="sub_dir")
+    assert logger.log_dir == os.path.join(root_dir, "name", "version", "sub_dir")
+
+
+def test_csv_expand_home():
+    """Test that the home dir (`~`) gets expanded properly."""
+    save_dir = os.path.join("~", "tmp")
+    root_dir = os.path.join(save_dir, "name")
+    explicit_root_dir = os.path.expanduser(save_dir)
+    logger = CSVLogger(save_dir, name="name", version="version", sub_dir="sub_dir")
+    assert logger.root_dir == root_dir
+    assert logger.log_dir == os.path.join(explicit_root_dir, "name", "version", "sub_dir")
+
+
+@mock.patch.dict(os.environ, {"TEST_ENV_DIR": "some_directory"})
+def test_tensorboard_expand_env_vars():
+    """Test that the env vars in path names (`$`) get handled properly."""
+    test_env_dir = os.environ["TEST_ENV_DIR"]
+    root_dir = "$TEST_ENV_DIR/tmp"
+    explicit_root_dir = f"{test_env_dir}/tmp"
+    logger = CSVLogger(root_dir, name="name", version="version", sub_dir="sub_dir")
+    assert logger.log_dir == os.path.join(explicit_root_dir, "name", "version", "sub_dir")
+
+
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_log_metrics(tmp_path, step_idx):
     logger = CSVLogger(tmp_path)

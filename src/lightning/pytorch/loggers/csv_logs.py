@@ -92,6 +92,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
+        sub_dir: Optional[_PATH] = None
     ):
         super().__init__(
             root_dir=save_dir,
@@ -99,6 +100,7 @@ class CSVLogger(Logger, FabricCSVLogger):
             version=version,
             prefix=prefix,
             flush_logs_every_n_steps=flush_logs_every_n_steps,
+            sub_dir=sub_dir
         )
         self._save_dir = os.fspath(save_dir)
 
@@ -124,7 +126,12 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, version)
+        log_dir = os.path.join(self.root_dir, version)
+        if isinstance(self.sub_dir, str):
+            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
+        return log_dir
 
     @property
     @override
