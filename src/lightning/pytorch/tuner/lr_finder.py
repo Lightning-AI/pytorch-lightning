@@ -192,7 +192,7 @@ class _LRFinder:
         all_losses_idx = torch.arange(len(self.results["loss"]))
         idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
         idx_finite = idx_non_skipped[is_finite]
-        self._optimal_idx = idx_finite[min_grad].item()
+        self._optimal_idx = idx_finite[min_grad].item()  # type: ignore
         return self.results["lr"][self._optimal_idx]
 
 
