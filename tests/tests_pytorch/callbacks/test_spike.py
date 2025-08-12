@@ -3,12 +3,11 @@ import contextlib
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCHMETRICS_GREATER_EQUAL_1_0_0
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.spike import TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_8
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import _XFAIL_GLOO_WINDOWS, RunIf
 
 
 class IdentityModule(LightningModule):
@@ -47,10 +46,6 @@ class MyTrainerSpikeDetection(SpikeDetection):
             if batch_idx == 4:
                 print(outputs)
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-
-
-# todo: RuntimeError: makeDeviceForHostname(): unsupported gloo device
-_XFAIL_GLOO_WINDOWS = pytest.mark.xfail(RuntimeError, strict=True, condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_8))
 
 
 @pytest.mark.flaky(max_runs=3)
