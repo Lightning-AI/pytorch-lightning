@@ -1669,9 +1669,9 @@ def test_load_with_inf_data_loader(tmp_path):
 
 
 def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
-    """Test that save_last=True when save_on_train_epoch_end=False."""
+    """Test that save_last=True works correctly when save_on_train_epoch_end=False in a model without validation."""
 
-    # Remove validation methods to reproduce the bug
+    # Remove validation methods to test the edge case
     model = BoringModel()
     model.validation_step = None
     model.val_dataloader = None
