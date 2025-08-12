@@ -58,7 +58,7 @@ repos:
         #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: 06907d0267368b49b9180eed423fae5697c1e909 # todo: fix for docformatter after last 1.7.5
+    rev: v1.7.7
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
@@ -70,7 +70,7 @@ repos:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.4
+    rev: v0.12.2
     hooks:
       # try to fix what is possible
       - id: ruff

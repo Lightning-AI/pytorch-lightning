@@ -759,6 +759,9 @@ overfit_batches
 Uses this much data of the training & validation set.
 If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
+* When set to a value > 0, sequential sampling (no shuffling) is used
+* Consistent batches are used for both training and validation across epochs, but training and validation use different sets of data
+
 Useful for quickly debugging or trying to overfit on purpose.
 
 .. testcode::
@@ -769,11 +772,11 @@ Useful for quickly debugging or trying to overfit on purpose.
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 
-    # overfit on 10 of the same batches
+    # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
 
-plugins
-^^^^^^^
+    # debug using a single consistent train batch and a single consistent val batch
+
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
@@ -895,7 +898,7 @@ DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 
     # if 0 (default)
     train_loader = model.train_dataloader()
-    # or if using data module: datamodule.train_dataloader()
+    # or if using data module: datamodule.train_dataloaders()
     for epoch in epochs:
         for batch in train_loader:
             ...
