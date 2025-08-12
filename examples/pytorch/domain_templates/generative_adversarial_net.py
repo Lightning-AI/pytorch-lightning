@@ -29,6 +29,7 @@ import torch.nn.functional as F
 from lightning.pytorch import cli_lightning_logo
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning.pytorch.strategies.ddp import MultiModelDDPStrategy
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -209,10 +210,18 @@ def main(args: Namespace) -> None:
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    # If use distributed training  PyTorch recommends to use DistributedDataParallel.
-    # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
     dm = MNISTDataModule()
-    trainer = Trainer(accelerator="gpu", devices=1)
+
+    if args.use_ddp:
+        # `MultiModelDDPStrategy` is critical for multi-gpu GAN training
+        # There are two ways to run training codes with existed `DDPStrategy`:
+        # 1) Activate `find_unused_parameters` option
+        # 2) change from self.manual_backward(loss) to loss.backward()
+        # Neither of them is desirable.
+        trainer = Trainer(accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy())
+    else:
+        # If you want to run on a single GPU, you can use the default strategy.
+        trainer = Trainer(accelerator="gpu", devices=1)
 
     # ------------------------
     # 3 START TRAINING
@@ -229,6 +238,8 @@ if __name__ == "__main__":
     parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+    parser.add_argument("--use_ddp", action="store_true", help="distributed strategy to use")
+
     args = parser.parse_args()
 
     main(args)
