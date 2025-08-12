@@ -71,25 +71,9 @@ class _LRFinder:
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
-
         lr_min: lr to start search from
-
         lr_max: lr to stop search
-
         num_training: number of steps to take between lr_min and lr_max
-
-    Example::
-        # Run lr finder
-        lr_finder = trainer.lr_find(model)
-
-        # Results stored in
-        lr_finder.results
-
-        # Plot using
-        lr_finder.plot()
-
-        # Get suggestion
-        lr = lr_finder.suggestion()
 
     """
 
@@ -138,10 +122,9 @@ class _LRFinder:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
-
             show: if True, will show figure
-
             ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
+
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
