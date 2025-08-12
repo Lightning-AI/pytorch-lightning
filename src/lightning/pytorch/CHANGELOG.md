@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix `save_last` behavior in the absence of validation ([#20960](https://github.com/Lightning-AI/pytorch-lightning/pull/20960))
 
 
-- Fixed `save_hyperparameters` crashing with `dataclasses` using `init=False` ([#21051](https://github.com/Lightning-AI/pytorch-lightning/pull/21051))
+- Fixed `save_hyperparameters` crashing with `dataclasses` using `init=False` fields ([#21051](https://github.com/Lightning-AI/pytorch-lightning/pull/21051))
 
 
 ---
