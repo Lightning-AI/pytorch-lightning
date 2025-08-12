@@ -18,7 +18,7 @@ from lightning_utilities.core.imports import RequirementCache
 from lightning.fabric.utilities.testing import _runif_reasons as _fabric_run_if
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.core.module import _ONNX_AVAILABLE
+from lightning.pytorch.core.module import _ONNX_AVAILABLE, _ONNXSCRIPT_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
@@ -43,11 +43,12 @@ def _runif_reasons(
     sklearn: bool = False,
     onnx: bool = False,
     linux_only: bool = False,
+    onnxscript: bool = False,
 ) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:
-        min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
+        min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -65,6 +66,7 @@ def _runif_reasons(
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
+        onnxscript: Require that onnxscript is installed.
 
     """
 
@@ -97,5 +99,8 @@ def _runif_reasons(
 
     if onnx and not _ONNX_AVAILABLE:
         reasons.append("onnx")
+
+    if onnxscript and not _ONNXSCRIPT_AVAILABLE:
+        reasons.append("onnxscript")
 
     return reasons, kwargs
