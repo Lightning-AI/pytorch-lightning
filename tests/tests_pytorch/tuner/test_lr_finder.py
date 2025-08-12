@@ -23,6 +23,7 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 
 from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.tuner.lr_finder import _LRFinder
@@ -538,3 +539,65 @@ def test_lr_finder_training_step_none_output(tmp_path):
     suggested_lr = lr_finder.suggestion()
     assert math.isfinite(suggested_lr)
     assert math.isclose(model.lr, suggested_lr)
+
+
+def test_lr_finder_with_early_stopping(tmp_path):
+    class ModelWithValidation(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.1
+
+        def validation_step(self, batch, batch_idx):
+            output = self.step(batch)
+            # Log validation loss that EarlyStopping will monitor
+            self.log("val_loss", output, on_epoch=True)
+            return output
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+            # Add ReduceLROnPlateau scheduler that monitors val_loss (issue #20355)
+            plateau_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode="min", factor=0.5, patience=2
+            )
+            scheduler_config = {"scheduler": plateau_scheduler, "interval": "epoch", "monitor": "val_loss"}
+
+            return {"optimizer": optimizer, "lr_scheduler": scheduler_config}
+
+    model = ModelWithValidation()
+
+    # Both callbacks that previously caused issues
+    callbacks = [
+        LearningRateFinder(num_training_steps=100, update_attr=False),
+        EarlyStopping(monitor="val_loss", patience=3),
+    ]
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=10,
+        callbacks=callbacks,
+        limit_train_batches=5,
+        limit_val_batches=3,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+    assert trainer.state.finished
+
+    # Verify that both callbacks were active
+    lr_finder_callback = None
+    early_stopping_callback = None
+    breakpoint()
+    for callback in trainer.callbacks:
+        if isinstance(callback, LearningRateFinder):
+            lr_finder_callback = callback
+        elif isinstance(callback, EarlyStopping):
+            early_stopping_callback = callback
+
+    assert lr_finder_callback is not None, "LearningRateFinder callback should be present"
+    assert early_stopping_callback is not None, "EarlyStopping callback should be present"
+
+    # Verify learning rate finder ran and has results
+    assert lr_finder_callback.optimal_lr is not None, "Learning rate finder should have results"
+    assert lr_finder_callback.optimal_lr.suggestion() > 0, "Learning rate suggestion should be positive"
