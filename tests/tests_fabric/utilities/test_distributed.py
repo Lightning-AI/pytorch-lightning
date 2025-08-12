@@ -19,6 +19,7 @@ from lightning.fabric.utilities.distributed import (
     _gather_all_tensors,
     _InfiniteBarrier,
     _init_dist_connection,
+    _get_default_process_group_backend_for_device,
     _is_dtensor,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
@@ -240,6 +241,24 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     atexit_mock.reset_mock()
     _init_dist_connection(LightningEnvironment(), "gloo")
     atexit_mock.register.assert_not_called()
+
+
+def test_get_default_process_group_backend_for_device():
+    # register a custom backend for test
+    torch.utils.rename_privateuse1_backend("pcu")
+    def mock_backend(store, group_rank, group_size, timeout):
+        pass
+    torch.distributed.Backend.register_backend(
+    "pccl",
+    lambda store, group_rank, group_size, timeout: mock_backend(store, group_rank, group_size, timeout
+    ),
+    devices=["pcu"])
+
+    # test that the default backend is correctly set for each device
+    devices = [torch.device("cpu"), torch.device("cuda:0"), torch.device("pcu:0")]
+    backends = ["gloo", "nccl", "pccl"]
+    for device, backend in zip(devices, backends):
+        assert _get_default_process_group_backend_for_device(device) == backend
 
 
 @RunIf(min_torch="2.4")
