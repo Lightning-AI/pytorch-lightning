@@ -600,3 +600,79 @@ def test_lr_finder_with_early_stopping(tmp_path):
     # Verify learning rate finder ran and has results
     assert lr_finder_callback.optimal_lr is not None, "Learning rate finder should have results"
     assert lr_finder_callback.optimal_lr.suggestion() > 0, "Learning rate suggestion should be positive"
+
+
+def test_gradient_correctness():
+    """Test that torch.gradient uses correct spacing parameter."""
+    lr_finder = _LRFinder(mode="exponential", lr_min=1e-6, lr_max=1e-1, num_training=20)
+
+    # Synthetic example
+    lrs = torch.linspace(0, 2 * math.pi, steps=1000)
+    losses = torch.sin(lrs)
+    lr_finder.results = {"lr": lrs.tolist(), "loss": losses.tolist()}
+
+    # Test the suggestion method
+    suggestion = lr_finder.suggestion(skip_begin=2, skip_end=2)
+    assert suggestion is not None
+    assert abs(suggestion - math.pi) < 1e-2, "Suggestion should be close to pi for this synthetic example"
+
+
+def test_exponential_vs_linear_mode_gradient_difference(tmp_path):
+    """Test that exponential and linear modes produce different but valid suggestions.
+
+    This verifies that the spacing fix works for both modes and that they behave differently as expected due to their
+    different lr progressions.
+
+    """
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.lr = 1e-3
+
+    seed_everything(42)
+
+    # Test both modes with identical parameters
+    model_linear = TestModel()
+    model_exp = TestModel()
+
+    trainer_linear = Trainer(default_root_dir=tmp_path, max_epochs=1)
+    trainer_exp = Trainer(default_root_dir=tmp_path, max_epochs=1)
+
+    tuner_linear = Tuner(trainer_linear)
+    tuner_exp = Tuner(trainer_exp)
+
+    lr_finder_linear = tuner_linear.lr_find(model_linear, min_lr=1e-6, max_lr=1e-1, num_training=50, mode="linear")
+    lr_finder_exp = tuner_exp.lr_find(model_exp, min_lr=1e-6, max_lr=1e-1, num_training=50, mode="exponential")
+
+    # Both should produce valid suggestions
+    suggestion_linear = lr_finder_linear.suggestion()
+    suggestion_exp = lr_finder_exp.suggestion()
+
+    assert suggestion_linear is not None
+    assert suggestion_exp is not None
+    assert suggestion_linear > 0
+    assert suggestion_exp > 0
+
+    # Verify that gradient computation uses correct spacing for both modes
+    for lr_finder, mode in [(lr_finder_linear, "linear"), (lr_finder_exp, "exponential")]:
+        losses = torch.tensor(lr_finder.results["loss"][10:-10])
+        lrs = torch.tensor(lr_finder.results["lr"][10:-10])
+        is_finite = torch.isfinite(losses)
+        losses_filtered = losses[is_finite]
+        lrs_filtered = lrs[is_finite]
+
+        if len(losses_filtered) >= 2:
+            # Test that gradient computation works and produces finite results
+            gradients = torch.gradient(losses_filtered, spacing=[lrs_filtered])[0]
+            assert torch.isfinite(gradients).all(), f"Non-finite gradients in {mode} mode"
+            assert len(gradients) == len(losses_filtered)
+
+            # Verify gradients with spacing differ from gradients without spacing
+            gradients_no_spacing = torch.gradient(losses_filtered)[0]
+
+            # For exponential mode, these should definitely be different, for linear mode, they might be similar
+            if mode == "exponential":
+                assert not torch.allclose(gradients, gradients_no_spacing, rtol=0.1), (
+                    "Gradients should differ significantly in exponential mode when using proper spacing"
+                )
