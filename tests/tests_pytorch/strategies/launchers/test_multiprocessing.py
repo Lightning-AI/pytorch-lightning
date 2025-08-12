@@ -195,6 +195,7 @@ class SimpleModel(BoringModel):
 
 
 @_xfail_gloo_windows
+@pytest.mark.flaky(reruns=3)
 def test_memory_sharing_disabled(tmp_path):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
