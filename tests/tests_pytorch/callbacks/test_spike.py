@@ -7,7 +7,7 @@ from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.spike import TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
-from tests_pytorch.helpers.runif import _XFAIL_GLOO_WINDOWS, RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 class IdentityModule(LightningModule):
@@ -54,14 +54,14 @@ class MyTrainerSpikeDetection(SpikeDetection):
     # NOTE FOR ALL FOLLOWING TESTS:
     # adding run on linux only because multiprocessing on other platforms takes forever
     [
-        pytest.param(0, 1, None, True),
-        pytest.param(0, 1, None, False),
-        pytest.param(0, 1, float("inf"), True, marks=_XFAIL_GLOO_WINDOWS),
-        pytest.param(0, 1, float("inf"), False, marks=_XFAIL_GLOO_WINDOWS),
-        pytest.param(0, 1, float("-inf"), True, marks=_XFAIL_GLOO_WINDOWS),
-        pytest.param(0, 1, float("-inf"), False, marks=_XFAIL_GLOO_WINDOWS),
-        pytest.param(0, 1, float("NaN"), True, marks=_XFAIL_GLOO_WINDOWS),
-        pytest.param(0, 1, float("NaN"), False, marks=_XFAIL_GLOO_WINDOWS),
+        pytest.param(0, 1, None, True, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, None, False, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("inf"), True, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("inf"), False, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("-inf"), True, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("-inf"), False, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("NaN"), True, marks=_xfail_gloo_windows),
+        pytest.param(0, 1, float("NaN"), False, marks=_xfail_gloo_windows),
         pytest.param(0, 2, None, True, marks=RunIf(linux_only=True)),
         pytest.param(0, 2, None, False, marks=RunIf(linux_only=True)),
         pytest.param(1, 2, None, True, marks=RunIf(linux_only=True)),
