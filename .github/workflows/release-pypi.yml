@@ -45,7 +45,7 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
       - name: Download 📥 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
@@ -69,7 +69,7 @@ jobs:
         with:
           submodules: recursive
       - name: Download 📥 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
