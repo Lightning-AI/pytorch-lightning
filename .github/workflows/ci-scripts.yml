@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout 🛎
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python 🐍 ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -46,7 +46,7 @@ jobs:
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
       - name: Checkout 🛎
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python 🐍 ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:

@@ -39,10 +39,10 @@ jobs:
       AGE_DAYS: ${{ inputs.age-days }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Pull reusable 🤖 actions️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.scripts-ref }}
           path: .cicd
