@@ -13,6 +13,7 @@
 # limitations under the License.
 import glob
 import logging
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from shutil import copyfile
@@ -35,7 +36,7 @@ def _upgrade(args: Namespace) -> None:
             f"The path {path} does not exist. Please provide a valid path to a checkpoint file or a directory"
             f" containing checkpoints ending in {extension}."
         )
-        exit(1)
+        sys.exit(1)
 
     if path.is_file():
         files = [path]
@@ -46,7 +47,7 @@ def _upgrade(args: Namespace) -> None:
             f"No checkpoint files with extension {extension} were found in {path}."
             f" HINT: Try setting the `--extension` option to specify the right file extension to look for."
         )
-        exit(1)
+        sys.exit(1)
 
     _log.info("Creating a backup of the existing checkpoint files before overwriting in the upgrade process.")
     for file in files:
