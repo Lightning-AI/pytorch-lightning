@@ -423,6 +423,7 @@ class MultiModelDDPStrategy(DDPStrategy):
     """Specific strategy for training on multiple models with multiple optimizers (e.g. GAN training).
 
     This strategy allows to wrap multiple models with DDP, rather than just one which is about just normal DDPStrategy.
+
     """
 
     @override
