@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.5.3] - 2025-08-DD
+
+### Changed
+
+-
+
+
+### Fixed
+
+-
+
+
 ## [2.5.2] - 2025-06-20
 
 ### Changed
