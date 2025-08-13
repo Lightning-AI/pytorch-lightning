@@ -245,6 +245,7 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
 
 
 def test_get_default_process_group_backend_for_device():
+    """Test that each device type maps to its correct default process group backend."""
     # register a custom backend for test
     torch.utils.rename_privateuse1_backend("pcu")
 
