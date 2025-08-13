@@ -139,7 +139,6 @@ jobs:
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
-            -r requirements/_integrations/tensorrt.txt \
             --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Drop LAI from extensions
