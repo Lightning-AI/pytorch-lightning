@@ -27,6 +27,7 @@ _TORCHMETRICS_GREATER_EQUAL_0_8_0 = RequirementCache("torchmetrics>=0.8.0")
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
 _TORCHMETRICS_GREATER_EQUAL_1_0_0 = RequirementCache("torchmetrics>=1.0.0")
+_TORCH_EQUAL_2_8 = RequirementCache("torch>=2.8.0,<2.9.0")
 
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
