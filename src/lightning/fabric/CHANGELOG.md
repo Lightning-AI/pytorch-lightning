@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `sub_dir` argument to `CSVLogger` ([#21045](https://github.com/Lightning-AI/pytorch-lightning/pull/21045))
 
 
 ### Removed
