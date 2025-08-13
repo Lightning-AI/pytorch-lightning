@@ -17,9 +17,9 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.utilities.distributed import (
     _destroy_dist_connection,
     _gather_all_tensors,
+    _get_default_process_group_backend_for_device,
     _InfiniteBarrier,
     _init_dist_connection,
-    _get_default_process_group_backend_for_device,
     _is_dtensor,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
@@ -246,13 +246,15 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
 def test_get_default_process_group_backend_for_device():
     # register a custom backend for test
     torch.utils.rename_privateuse1_backend("pcu")
+
     def mock_backend(store, group_rank, group_size, timeout):
         pass
+
     torch.distributed.Backend.register_backend(
-    "pccl",
-    lambda store, group_rank, group_size, timeout: mock_backend(store, group_rank, group_size, timeout
-    ),
-    devices=["pcu"])
+        "pccl",
+        lambda store, group_rank, group_size, timeout: mock_backend(store, group_rank, group_size, timeout),
+        devices=["pcu"],
+    )
 
     # test that the default backend is correctly set for each device
     devices = [torch.device("cpu"), torch.device("cuda:0"), torch.device("pcu:0")]

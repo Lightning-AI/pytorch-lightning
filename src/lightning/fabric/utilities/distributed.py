@@ -322,8 +322,7 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     device_backend_map = torch.distributed.Backend.default_device_backend_map
     if device.type in device_backend_map:
         return device_backend_map[device.type]
-    else:
-        return "gloo"
+    return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):
