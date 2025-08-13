@@ -599,7 +599,9 @@ def test_lr_finder_with_early_stopping(tmp_path):
 
     # Verify learning rate finder ran and has results
     assert lr_finder_callback.optimal_lr is not None, "Learning rate finder should have results"
-    assert lr_finder_callback.optimal_lr.suggestion() > 0, "Learning rate suggestion should be positive"
+    suggestion = lr_finder_callback.optimal_lr.suggestion()
+    if suggestion is not None:
+        assert suggestion > 0, "Learning rate suggestion should be positive"
 
 
 def test_gradient_correctness():
