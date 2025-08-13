@@ -27,12 +27,12 @@ import torch
 from torch import Tensor
 
 from lightning.pytorch import Trainer, callbacks
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -534,7 +534,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         max_epochs=2,
     )
 
-    # Train the model ⚡
+    # Train the model
     trainer.fit(model)
 
     assert set(trainer.callback_metrics) == {
