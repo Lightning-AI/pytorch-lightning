@@ -1,18 +1,15 @@
 import json
-import operator
 import os
 import warnings
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import compare_version
 
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
-
-_TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 
 
 class SpikeDetection:
