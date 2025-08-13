@@ -18,6 +18,3 @@ fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
 tensorboard >=2.9.1, <2.21.0  # for `TensorBoardLogger`
-
---extra-index-url https://download.pytorch.org/whl/torch-tensorrt
-torch-tensorrt >= 2.3.0; platform_system == "Linux" and python_version >= "3.12"  # Limit the torch-tensorrt version for testing.
