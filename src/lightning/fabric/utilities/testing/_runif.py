@@ -17,7 +17,7 @@ import sys
 from typing import Optional
 
 import torch
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators import XLAAccelerator
@@ -40,11 +40,12 @@ def _runif_reasons(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
+    linux_only: bool = False,
 ) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:
-        min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
+        min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -112,9 +113,7 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not (
-        _DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4 and RequirementCache(module="deepspeed.utils")
-    ):
+    if deepspeed and not (_DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4):
         reasons.append("Deepspeed")
 
     if dynamo:
@@ -122,5 +121,8 @@ def _runif_reasons(
 
         if not is_dynamo_supported():
             reasons.append("torch.dynamo")
+
+    if linux_only and sys.platform != "linux":
+        reasons.append("only linux")
 
     return reasons, kwargs
