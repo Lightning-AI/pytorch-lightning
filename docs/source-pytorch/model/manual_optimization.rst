@@ -204,7 +204,6 @@ Here is an example training a simple GAN with multiple optimizers using manual o
             d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
             return g_opt, d_opt
 
-
 Learning Rate Scheduling
 ========================
 
@@ -230,6 +229,10 @@ Here is an example calling ``lr_scheduler.step()`` every step.
         super().__init__()
         self.automatic_optimization = False
 
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
         # do forward, backward, and optimization
@@ -251,6 +254,11 @@ If you want to call ``lr_scheduler.step()`` every ``N`` steps/epochs, do the fol
     def __init__(self):
         super().__init__()
         self.automatic_optimization = False
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        return [optimizer], [scheduler]
 
 
     def training_step(self, batch, batch_idx):
@@ -275,13 +283,22 @@ If you want to call schedulers that require a metric value after each epoch, con
         super().__init__()
         self.automatic_optimization = False
 
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+        return [optimizer], [scheduler]
 
     def on_train_epoch_end(self):
         sch = self.lr_schedulers()
 
-        # If the selected scheduler is a ReduceLROnPlateau scheduler.
-        if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            sch.step(self.trainer.callback_metrics["loss"])
+        sch.step(self.trainer.callback_metrics["loss"])
+
+.. note::
+    :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` supports 6 different ways to define and return
+    optimizers and learning rate schedulers. Regardless of the way you define them, `self.optimizers()` will always return
+    either a single optimizer if you defined a single optimizer, or a list of optimizers if you defined multiple
+    optimizers. The same applies to the `self.lr_schedulers()` method, which will return a single scheduler
+    if you defined a single scheduler, or a list of schedulers if you defined multiple schedulers
 
 
 Optimizer Steps at Different Frequencies
