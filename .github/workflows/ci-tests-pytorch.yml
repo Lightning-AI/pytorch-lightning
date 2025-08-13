@@ -140,8 +140,7 @@ jobs:
             -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
             -r requirements/_integrations/tensorrt.txt \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}" \
-            --extra-index-url https://download.pytorch.org/whl/torch-tensorrt
+            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
