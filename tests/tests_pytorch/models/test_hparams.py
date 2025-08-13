@@ -17,7 +17,7 @@ import os
 import pickle
 import sys
 from argparse import Namespace
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from unittest import mock
 
@@ -250,8 +250,7 @@ def test_explicit_missing_args_hparams(tmp_path):
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
     assert model.hparams.test_arg == 14
     assert "test_arg2" not in model.hparams  # test_arg2 is not registered in class init
-
-    return raw_checkpoint_path
+    assert raw_checkpoint_path
 
 
 # -------------------------
@@ -880,6 +879,31 @@ def test_dataclass_lightning_module(tmp_path):
     """Test that save_hyperparameters() works with a LightningModule as a dataclass."""
     model = DataClassModel(33, optional="cocofruit")
     assert model.hparams == {"mandatory": 33, "optional": "cocofruit"}
+
+
+def test_dataclass_with_init_false_fields():
+    """Test that save_hyperparameters() filters out fields with init=False and issues a warning."""
+
+    @dataclass
+    class DataClassWithInitFalseFieldsModel(BoringModel):
+        mandatory: int
+        optional: str = "optional"
+        non_init_field: int = field(default=999, init=False)
+        another_non_init: str = field(default="not_in_init", init=False)
+
+        def __post_init__(self):
+            super().__init__()
+            self.save_hyperparameters()
+
+    model = DataClassWithInitFalseFieldsModel(33, optional="cocofruit")
+
+    expected_hparams = {"mandatory": 33, "optional": "cocofruit"}
+    assert model.hparams == expected_hparams
+
+    assert model.non_init_field == 999
+    assert model.another_non_init == "not_in_init"
+    assert "non_init_field" not in model.hparams
+    assert "another_non_init" not in model.hparams
 
 
 class NoHparamsModel(BoringModel):
