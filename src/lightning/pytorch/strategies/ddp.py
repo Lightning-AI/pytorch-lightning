@@ -422,7 +422,8 @@ class DDPStrategy(ParallelStrategy):
 class MultiModelDDPStrategy(DDPStrategy):
     """Specific strategy for training on multiple models with multiple optimizers (e.g. GAN training).
 
-    This strategy allows to wrap multiple models with DDP, rather than just one which is about just normal DDPStrategy.
+    This strategy wraps each individual child module in :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module.
+    Ensures manual backward only updates parameters of the targeted child module, preventing cross-references between modules' parameters.
 
     """
 
