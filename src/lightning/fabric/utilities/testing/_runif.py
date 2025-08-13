@@ -40,6 +40,7 @@ def _runif_reasons(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
+    linux_only: bool = False,
 ) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
@@ -120,5 +121,8 @@ def _runif_reasons(
 
         if not is_dynamo_supported():
             reasons.append("torch.dynamo")
+
+    if linux_only and sys.platform != "linux":
+        reasons.append("only linux")
 
     return reasons, kwargs
