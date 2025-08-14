@@ -467,6 +467,10 @@ class ModelCheckpoint(Checkpoint):
         if self._save_on_train_epoch_end is not None:
             return self._save_on_train_epoch_end
 
+        # time-based validation: always defer saving to validation end
+        if getattr(trainer, "_val_check_time_interval", None) is not None:
+            return False
+        
         # if `check_val_every_n_epoch != 1`, we can't say when the validation dataloader will be loaded
         # so let's not enforce saving at every training epoch end
         if trainer.check_val_every_n_epoch != 1:
