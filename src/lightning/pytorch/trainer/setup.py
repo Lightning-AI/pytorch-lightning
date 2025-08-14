@@ -14,6 +14,7 @@
 """Houses the methods used to set up the Trainer."""
 
 from typing import Optional, Union
+from datetime import timedelta
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -40,7 +41,7 @@ def _init_debugging_flags(
     limit_predict_batches: Optional[Union[int, float]],
     fast_dev_run: Union[int, bool],
     overfit_batches: Union[int, float],
-    val_check_interval: Optional[Union[int, float]],
+    val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
     num_sanity_val_steps: int,
 ) -> None:
     # init debugging flags
@@ -69,6 +70,7 @@ def _init_debugging_flags(
         trainer.num_sanity_val_steps = 0
         trainer.fit_loop.max_epochs = 1
         trainer.val_check_interval = 1.0
+        trainer._val_check_time_interval = None  # time not applicable in fast_dev_run
         trainer.check_val_every_n_epoch = 1
         trainer.loggers = [DummyLogger()] if trainer.loggers else []
         rank_zero_info(
@@ -82,7 +84,16 @@ def _init_debugging_flags(
         trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
         trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         trainer.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
-        trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        # Support time-based validation intervals:
+        # If `val_check_interval` is str/dict/timedelta, parse and store seconds on the trainer
+        # for the loops to consume.
+        trainer._val_check_time_interval = None  # default
+        if isinstance(val_check_interval, (str, dict, timedelta)):
+            trainer._val_check_time_interval = _parse_time_interval_seconds(val_check_interval)
+            # Keep the numeric scheduler neutral; loops should check the time-based attribute.
+            trainer.val_check_interval = 1.0
+        else:
+            trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
 
     if overfit_batches_enabled:
         trainer.limit_train_batches = overfit_batches
@@ -187,3 +198,30 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
 
         if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
+
+def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
+     if isinstance(value, timedelta):
+         return value.total_seconds()
+     if isinstance(value, dict):
+         td = timedelta(**value)
+         return td.total_seconds()
+     if isinstance(value, str):
+         parts = value.split(":")
+         if len(parts) != 4:
+             raise MisconfigurationException(
+                 f"Invalid time format for `val_check_interval`: {value!r}. Expected 'DD:HH:MM:SS'."
+             )
+         d, h, m, s = parts
+         try:
+             days = int(d)
+             hours = int(h)
+             minutes = int(m)
+             seconds = int(s)
+         except ValueError:
+             raise MisconfigurationException(
+                 f"Non-integer component in `val_check_interval` string: {value!r}. Use 'DD:HH:MM:SS'."
+             )
+         td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+         return td.total_seconds()
+     # Should not happen given the caller guards
+     raise MisconfigurationException(f"Unsupported type for `val_check_interval`: {type(value)!r}")

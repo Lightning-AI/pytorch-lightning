@@ -16,6 +16,7 @@ import math
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
+import time
 
 import torch
 from typing_extensions import override
@@ -534,6 +535,13 @@ class _TrainingEpochLoop(loops._Loop):
             # and when the loop allows to stop (min_epochs/steps met)
             return True
 
+        interval = self.trainer._val_check_time_interval
+        if interval is not None:
+            now = time.monotonic()
+            if now - self.trainer._last_val_time >= interval:
+                # time’s up → tell Trainer to validate
+                return True
+            return False
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:

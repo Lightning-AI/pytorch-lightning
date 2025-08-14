@@ -15,6 +15,7 @@ import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
+from datetime import timedelta
 
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -50,7 +51,7 @@ class _DataConnector:
 
     def on_trainer_init(
         self,
-        val_check_interval: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
         reload_dataloaders_every_n_epochs: int,
         check_val_every_n_epoch: Optional[int],
     ) -> None:
@@ -63,8 +64,8 @@ class _DataConnector:
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
             raise MisconfigurationException(
-                "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
-                f" found {val_check_interval!r}."
+                "`val_check_interval` should be an integer or a time-based duration (str 'DD:HH:MM:SS', "
+                "datetime.timedelta, or dict kwargs for timedelta) when `check_val_every_n_epoch=None`."
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
