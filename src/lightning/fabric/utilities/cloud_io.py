@@ -41,6 +41,11 @@ def _load(
     Args:
         path_or_url: Path or URL of the checkpoint.
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+        weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other primitive
+            types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+            ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+            ``weights_only=True``. For more information, please refer to the
+            `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`__.
 
     """
     if not isinstance(path_or_url, (str, Path)):
