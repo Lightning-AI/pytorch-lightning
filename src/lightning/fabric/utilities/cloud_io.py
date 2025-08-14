@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
-    weights_only: bool = False,
+    weights_only: bool = True,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -70,7 +70,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(checkpoint: dict[str, Any], filepath: Union[str, Path]) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
