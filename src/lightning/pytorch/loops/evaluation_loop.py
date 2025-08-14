@@ -15,11 +15,11 @@ import math
 import os
 import shutil
 import sys
+import time
 from collections import ChainMap, OrderedDict, defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-import time
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -314,7 +314,7 @@ class _EvaluationLoop(_Loop):
 
         if self.verbose and self.trainer.is_global_zero:
             self._print_results(logged_outputs, self._stage.value)
-        
+
         now = time.monotonic()
         self.trainer._last_val_time = now
 

@@ -13,8 +13,8 @@
 # limitations under the License.
 """Houses the methods used to set up the Trainer."""
 
-from typing import Optional, Union
 from datetime import timedelta
+from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -199,29 +199,30 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
 
+
 def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
-     if isinstance(value, timedelta):
-         return value.total_seconds()
-     if isinstance(value, dict):
-         td = timedelta(**value)
-         return td.total_seconds()
-     if isinstance(value, str):
-         parts = value.split(":")
-         if len(parts) != 4:
-             raise MisconfigurationException(
-                 f"Invalid time format for `val_check_interval`: {value!r}. Expected 'DD:HH:MM:SS'."
-             )
-         d, h, m, s = parts
-         try:
-             days = int(d)
-             hours = int(h)
-             minutes = int(m)
-             seconds = int(s)
-         except ValueError:
-             raise MisconfigurationException(
-                 f"Non-integer component in `val_check_interval` string: {value!r}. Use 'DD:HH:MM:SS'."
-             )
-         td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-         return td.total_seconds()
-     # Should not happen given the caller guards
-     raise MisconfigurationException(f"Unsupported type for `val_check_interval`: {type(value)!r}")
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+    if isinstance(value, dict):
+        td = timedelta(**value)
+        return td.total_seconds()
+    if isinstance(value, str):
+        parts = value.split(":")
+        if len(parts) != 4:
+            raise MisconfigurationException(
+                f"Invalid time format for `val_check_interval`: {value!r}. Expected 'DD:HH:MM:SS'."
+            )
+        d, h, m, s = parts
+        try:
+            days = int(d)
+            hours = int(h)
+            minutes = int(m)
+            seconds = int(s)
+        except ValueError:
+            raise MisconfigurationException(
+                f"Non-integer component in `val_check_interval` string: {value!r}. Use 'DD:HH:MM:SS'."
+            )
+        td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        return td.total_seconds()
+    # Should not happen given the caller guards
+    raise MisconfigurationException(f"Unsupported type for `val_check_interval`: {type(value)!r}")

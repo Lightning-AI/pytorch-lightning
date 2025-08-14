@@ -13,10 +13,10 @@
 # limitations under the License.
 import contextlib
 import math
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-import time
 
 import torch
 from typing_extensions import override
