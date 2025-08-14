@@ -130,9 +130,8 @@ def test_tensorrt_save_ir_type(ir, export_type):
     "ir",
     ["default", "dynamo", "ts"],
 )
-@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0", max_torch="2.8.0")
+@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_export_reload(output_format, ir, tmp_path):
-    # todo remove max_torch once https://github.com/pytorch/TensorRT/issues/3775 is fixed
     if ir == "ts" and output_format == "exported_program":
         pytest.skip("TorchScript cannot be exported as exported_program")
 

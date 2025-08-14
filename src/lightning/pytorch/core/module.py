@@ -1661,18 +1661,26 @@ class LightningModule(
         self.to(device)
 
         if file_path is not None:
-            if ir == "ts" and output_format != "torchscript":
-                raise ValueError(
-                    "TensorRT with IR mode 'ts' only supports output format 'torchscript'."
-                    f" The current output format is {output_format}."
+            if ir == "ts":
+                if output_format != "torchscript":
+                    raise ValueError(
+                        "TensorRT with IR mode 'ts' only supports output format 'torchscript'."
+                        f" The current output format is {output_format}."
+                    )
+                assert isinstance(trt_obj, (torch.jit.ScriptModule, torch.jit.ScriptFunction)), (
+                    f"Expected TensorRT object to be a ScriptModule, but got {type(trt_obj)}."
                 )
-            torch_tensorrt.save(
-                trt_obj,
-                file_path,
-                inputs=input_sample,
-                output_format=output_format,
-                retrace=retrace,
-            )
+                # Because of https://github.com/pytorch/TensorRT/issues/3775,
+                # we'll need to take special care for the ScriptModule
+                torch.jit.save(trt_obj, file_path)
+            else:
+                torch_tensorrt.save(
+                    trt_obj,
+                    file_path,
+                    inputs=input_sample,
+                    output_format=output_format,
+                    retrace=retrace,
+                )
         return trt_obj
 
     @_restricted_classmethod
