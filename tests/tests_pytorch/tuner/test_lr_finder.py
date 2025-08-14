@@ -621,8 +621,7 @@ def test_gradient_correctness():
 
 def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
     """LearningRateFinder used as a callback should apply its suggested LR to the optimizer used after state
-    restoration.
-    """
+    restoration."""
 
     import torch.nn as nn
     import torch.nn.functional as F
