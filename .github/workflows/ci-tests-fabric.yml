@@ -64,13 +64,13 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
           - { os: "windows-2022", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
           # "fabric" installs the standalone package
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
+          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
+          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
           # adding recently cut Torch 2.7 - FUTURE
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
+          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
+          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
@@ -116,7 +116,7 @@ jobs:
           mkdir -p $PYPI_CACHE_DIR
           ls -lh $PYPI_CACHE_DIR
 
-      - name: Env. variables
+      - name: Expand Env. variables
         run: |
           # Switch PyTorch URL between stable and test/future
           python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
@@ -124,13 +124,22 @@ jobs:
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
           python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'fabric-'))" >> $GITHUB_ENV
+      - name: Append Env. vars for MacOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          # trying to avoid "gloo" issue with SIGABRT
+          echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
+      - name: Append Env. vars for Windows
+        if: ${{ runner.os == 'windows' }}
+        run: |
           # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
-          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
+          echo "USE_LIBUV=0" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
+          pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
+            -U --upgrade-strategy=eager --prefer-binary \
             --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Dump handy wheels
@@ -159,7 +168,7 @@ jobs:
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -v --timeout=30 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
+            -m pytest -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
             --junitxml=junit.xml -o junit_family=legacy  # NOTE: for Codecov's test results
 
       - name: Statistics

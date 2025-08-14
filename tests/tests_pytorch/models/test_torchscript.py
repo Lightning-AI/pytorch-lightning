@@ -105,6 +105,26 @@ def test_torchscript_device(device_str):
     assert script_output.device == device
 
 
+@pytest.mark.parametrize(
+    "device_str",
+    [
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
+    ],
+)
+def test_torchscript_device_with_check_inputs(device_str):
+    """Test that scripted module is on the correct device."""
+    device = torch.device(device_str)
+    model = BoringModel().to(device)
+    model.example_input_array = torch.randn(5, 32)
+
+    check_inputs = torch.rand(5, 32)
+
+    script = model.to_torchscript(method="trace", check_inputs=check_inputs)
+    assert isinstance(script, torch.jit.ScriptModule)
+
+
 def test_torchscript_retain_training_state():
     """Test that torchscript export does not alter the training mode of original model."""
     model = BoringModel()

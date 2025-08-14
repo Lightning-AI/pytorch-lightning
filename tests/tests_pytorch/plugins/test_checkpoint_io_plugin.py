@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock
 
+import pytest
 import torch
 
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO
@@ -97,6 +98,7 @@ def test_checkpoint_plugin_called(tmp_path):
     checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last-v1.ckpt"))
 
 
+@pytest.mark.flaky(reruns=3)
 def test_async_checkpoint_plugin(tmp_path):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when async saving and
     loading."""

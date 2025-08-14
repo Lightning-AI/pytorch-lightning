@@ -97,6 +97,7 @@ class ModelCheckpoint(Checkpoint):
             collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
             ranking of the checkpoint, and we recommend formatting the filename to include the monitored metric to avoid
             collisions.
+        save_on_exception: Whether to save a checkpoint when an exception is raised. Default: ``False``.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
@@ -133,9 +134,15 @@ class ModelCheckpoint(Checkpoint):
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
-            If this is ``False``, then the check runs at the end of the validation.
+            If ``True``, checkpoints are saved at the end of every training epoch.
+            If ``False``, checkpoints are saved at the end of validation.
+            If ``None`` (default), checkpointing behavior is determined based on training configuration.
+            If ``check_val_every_n_epoch != 1``, checkpointing will not be performed at the end of
+            every training epoch. If there are no validation batches of data, checkpointing will occur at the
+            end of the training epoch. If there is a non-default number of validation runs per training epoch
+            (``val_check_interval != 1``), checkpointing is performed after validation.
         enable_version_counter: Whether to append a version to the existing file name.
-            If this is ``False``, then the checkpoint files will be overwritten.
+            If ``False``, then the checkpoint files will be overwritten.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -224,6 +231,7 @@ class ModelCheckpoint(Checkpoint):
         verbose: bool = False,
         save_last: Optional[Union[bool, Literal["link"]]] = None,
         save_top_k: int = 1,
+        save_on_exception: bool = False,
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True,
@@ -238,6 +246,7 @@ class ModelCheckpoint(Checkpoint):
         self.verbose = verbose
         self.save_last = save_last
         self.save_top_k = save_top_k
+        self.save_on_exception = save_on_exception
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
@@ -339,6 +348,26 @@ class ModelCheckpoint(Checkpoint):
             self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+        """Save a checkpoint when an exception is raised."""
+        if not self._should_save_on_exception(trainer):
+            return
+        monitor_candidates = self._monitor_candidates(trainer)
+        filepath = self.format_checkpoint_name(metrics=monitor_candidates)
+        self._save_checkpoint(trainer, filepath)
+        self._save_last_checkpoint(trainer, monitor_candidates)
+        rank_zero_info(
+            f"An {type(exception).__name__} was raised with message: \
+            {str(exception)}, saved checkpoint to {filepath}"
+        )
+
+    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Ensure save_last=True is applied when training ends."""
+        if self.save_last and not self._last_checkpoint_saved:
+            monitor_candidates = self._monitor_candidates(trainer)
+            self._save_last_checkpoint(trainer, monitor_candidates)
+
+    @override
     def state_dict(self) -> dict[str, Any]:
         return {
             "monitor": self.monitor,
@@ -424,6 +453,14 @@ class ModelCheckpoint(Checkpoint):
             or trainer.state.fn != TrainerFn.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
+        )
+
+    def _should_save_on_exception(self, trainer: "pl.Trainer") -> bool:
+        return (
+            self.save_on_exception
+            and not bool(trainer.fast_dev_run)  # disable checkpointing with fast_dev_run
+            and not trainer.sanity_checking  # don't save anything during sanity check
+            and self._last_global_step_saved != trainer.global_step  # already saved at the last step
         )
 
     def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
@@ -538,7 +575,7 @@ class ModelCheckpoint(Checkpoint):
         self,
         filename: Optional[str],
         metrics: dict[str, Tensor],
-        prefix: str = "",
+        prefix: Optional[str] = None,
         auto_insert_metric_name: bool = True,
     ) -> str:
         if not filename:
@@ -565,13 +602,17 @@ class ModelCheckpoint(Checkpoint):
                 metrics[name] = torch.tensor(0)
         filename = filename.format(metrics)
 
-        if prefix:
+        if prefix is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
 
         return filename
 
     def format_checkpoint_name(
-        self, metrics: dict[str, Tensor], filename: Optional[str] = None, ver: Optional[int] = None
+        self,
+        metrics: dict[str, Tensor],
+        filename: Optional[str] = None,
+        ver: Optional[int] = None,
+        prefix: Optional[str] = None,
     ) -> str:
         """Generate a filename according to the defined template.
 
@@ -603,7 +644,9 @@ class ModelCheckpoint(Checkpoint):
 
         """
         filename = filename or self.filename
-        filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
+        filename = self._format_checkpoint_name(
+            filename, metrics, prefix=prefix, auto_insert_metric_name=self.auto_insert_metric_name
+        )
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))

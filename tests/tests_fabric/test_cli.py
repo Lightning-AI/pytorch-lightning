@@ -46,7 +46,7 @@ def test_run_env_vars_defaults(monkeypatch, fake_script):
     assert "LT_PRECISION" not in os.environ
 
 
-@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
+@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", "auto", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
@@ -85,7 +85,7 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
-@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
+@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
@@ -97,7 +97,7 @@ def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 
 
 @RunIf(mps=True)
-@pytest.mark.parametrize("accelerator", ["mps", "gpu"])
+@pytest.mark.parametrize("accelerator", ["mps", "gpu", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
