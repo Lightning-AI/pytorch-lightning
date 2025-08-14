@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-import time
 
 import torch
 from typing_extensions import override
@@ -289,7 +289,7 @@ class _FitLoop(_Loop):
         if getattr(trainer, "_val_check_time_interval", None) is not None:
             trainer.val_check_batch = None
             trainer._train_start_time = time.monotonic()
-            trainer._last_val_time   = trainer._train_start_time
+            trainer._last_val_time = trainer._train_start_time
         elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
             if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:

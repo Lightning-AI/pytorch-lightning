@@ -14,8 +14,8 @@
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
 from datetime import timedelta
+from typing import Any, Optional, Union
 
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler

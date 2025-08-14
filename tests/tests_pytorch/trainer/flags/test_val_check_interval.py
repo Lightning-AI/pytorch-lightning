@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import re
+import time
+from unittest.mock import patch
 
 import pytest
-import time
-import re
-from unittest.mock import patch
 from torch.utils.data import DataLoader
 
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
@@ -132,17 +132,19 @@ def test_val_check_interval_float_with_none_check_val_every_n_epoch():
     with pytest.raises(
         MisconfigurationException,
         match=re.escape(
-        "`val_check_interval` should be an integer or a time-based duration (str 'DD:HH:MM:SS', "
-        "datetime.timedelta, or dict kwargs for timedelta) when `check_val_every_n_epoch=None`."
-    )
+            "`val_check_interval` should be an integer or a time-based duration (str 'DD:HH:MM:SS', "
+            "datetime.timedelta, or dict kwargs for timedelta) when `check_val_every_n_epoch=None`."
+        ),
     ):
         Trainer(
             val_check_interval=0.5,
             check_val_every_n_epoch=None,
         )
 
+
 def test_time_based_val_check_interval(tmp_path):
     call_count = {"count": 0}
+
     def fake_time():
         result = call_count["count"]
         call_count["count"] += 2
@@ -168,17 +170,20 @@ def test_time_based_val_check_interval(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "check_val_every_n_epoch, val_check_interval, epoch_duration, expected_val_batches, description",
+    ("check_val_every_n_epoch", "val_check_interval", "epoch_duration", "expected_val_batches", "description"),
     [
         (None, "00:00:00:04", 2, [0, 1, 0, 1, 0], "val_check_interval timer only, no epoch gating"),
         (1, "00:00:00:06", 8, [1, 1, 2, 1, 1], "val_check_interval timer only, no epoch gating"),
         (2, "00:00:00:06", 9, [0, 2, 0, 2, 0], "epoch gating, timer longer than epoch"),
         (2, "00:00:00:20", 9, [0, 0, 0, 1, 0], "epoch gating, timer much longer"),
         (2, "00:00:00:03", 9, [0, 3, 0, 3, 0], "epoch gating, timer shorter than epoch"),
-    ]
+    ],
 )
-def test_time_and_epoch_gated_val_check(tmp_path, check_val_every_n_epoch, val_check_interval, epoch_duration, expected_val_batches, description):
+def test_time_and_epoch_gated_val_check(
+    tmp_path, check_val_every_n_epoch, val_check_interval, epoch_duration, expected_val_batches, description
+):
     call_count = {"count": 0}
+
     # Simulate time in steps (each batch is 1 second, epoch_duration=seconds per epoch)
     def fake_time():
         result = call_count["count"]
@@ -191,7 +196,11 @@ def test_time_and_epoch_gated_val_check(tmp_path, check_val_every_n_epoch, val_c
         val_epoch_calls = 0
 
         def on_train_batch_end(self, *args, **kwargs):
-            if isinstance(self.trainer.check_val_every_n_epoch,int) and self.trainer.check_val_every_n_epoch > 1 and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+            if (
+                isinstance(self.trainer.check_val_every_n_epoch, int)
+                and self.trainer.check_val_every_n_epoch > 1
+                and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0
+            ):
                 time.monotonic()
 
         def on_train_epoch_end(self, *args, **kwargs):
@@ -205,17 +214,17 @@ def test_time_and_epoch_gated_val_check(tmp_path, check_val_every_n_epoch, val_c
     max_steps = max_epochs * epoch_duration
     limit_train_batches = epoch_duration
 
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        logger=False,
-        enable_checkpointing=False,
-        max_epochs=max_epochs,
-        max_steps=max_steps,
-        limit_val_batches=1,
-        limit_train_batches=limit_train_batches,
-        val_check_interval=val_check_interval,
-        check_val_every_n_epoch=check_val_every_n_epoch
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "logger": False,
+        "enable_checkpointing": False,
+        "max_epochs": max_epochs,
+        "max_steps": max_steps,
+        "limit_val_batches": 1,
+        "limit_train_batches": limit_train_batches,
+        "val_check_interval": val_check_interval,
+        "check_val_every_n_epoch": check_val_every_n_epoch,
+    }
 
     with patch("time.monotonic", side_effect=fake_time):
         model = TestModel()

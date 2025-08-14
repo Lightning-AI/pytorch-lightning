@@ -109,7 +109,7 @@ class Trainer:
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         overfit_batches: Union[int, float] = 0.0,
-        val_check_interval: Optional[Union[int, float, str, timedelta, dict[str,int]]] = None,
+        val_check_interval: Optional[Union[int, float, str, timedelta, dict[str, int]]] = None,
         check_val_every_n_epoch: Optional[int] = 1,
         num_sanity_val_steps: Optional[int] = None,
         log_every_n_steps: Optional[int] = None,
@@ -212,7 +212,7 @@ class Trainer:
 
             check_val_every_n_epoch: Perform a validation loop after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
-                to be an integer value. When used together with a time-based ``val_check_interval`` and 
+                to be an integer value. When used together with a time-based ``val_check_interval`` and
                 ``check_val_every_n_epoch`` > 1, validation is aligned to epoch multiples: if the interval elapses
                 before the next multiple-N epoch, validation runs at the start of that epoch (after the first batch)
                 and the timer resets; if it elapses during a multiple-N epoch, validation runs after the current batch.
