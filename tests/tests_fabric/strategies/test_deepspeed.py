@@ -194,7 +194,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
     # Model and optimizer
     optimizer = Mock()
@@ -202,7 +204,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
 
 @RunIf(deepspeed=True)
