@@ -622,9 +622,6 @@ def test_gradient_correctness():
 def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
     """LearningRateFinder used as a callback should apply its suggested LR to the optimizer used after state
     restoration.
-
-    This currently fails: the LR is set during the search but lost after restore.
-
     """
 
     import torch.nn as nn
@@ -681,7 +678,7 @@ def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
     )
 
     trainer.fit(model, train_loader)
-
+    assert model.hparams.lr is not None
     # Ensure LR Finder produced a suggestion for this setup; if not, the test can't assert application
     assert lr_finder_cb.optimal_lr is not None, "LR Finder should have computed results"
     suggestion = lr_finder_cb.optimal_lr.suggestion()
