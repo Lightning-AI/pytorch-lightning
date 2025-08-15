@@ -47,6 +47,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -60,7 +61,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -72,10 +73,17 @@ from lightning.pytorch.utilities.types import (
     OptimizerLRScheduler,
 )
 
+_ONNX_AVAILABLE = RequirementCache("onnx")
+_ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
+
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
 
-_ONNX_AVAILABLE = RequirementCache("onnx")
+    if _TORCH_GREATER_EQUAL_2_5:
+        if _TORCH_GREATER_EQUAL_2_6:
+            from torch.onnx import ONNXProgram
+        else:
+            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1416,12 +1424,18 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(
+        self,
+        file_path: Union[str, Path, BytesIO, None] = None,
+        input_sample: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Optional["ONNXProgram"]:
         """Saves the model in ONNX format.
 
         Args:
-            file_path: The path of the file the onnx model should be saved to.
+            file_path: The path of the file the onnx model should be saved to. Default: None (no file saved).
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example::
@@ -1442,6 +1456,12 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
+        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
+                "requires `onnxscript` and `torch>=2.5.0` to be installed."
+            )
+
         mode = self.training
 
         if input_sample is None:
@@ -1458,8 +1478,9 @@ class LightningModule(
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
         # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
         #               BytesIO does work, too.
-        torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
+        ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
+        return ret
 
     @torch.no_grad()
     def to_torchscript(

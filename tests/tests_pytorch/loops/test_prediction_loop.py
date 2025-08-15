@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
+from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 
 def test_prediction_loop_stores_predictions(tmp_path):
@@ -51,6 +52,7 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
+@_xfail_gloo_windows
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distributed_sampler):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""
