@@ -33,6 +33,7 @@ from lightning.pytorch.callbacks.spike import SpikeDetection
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.callbacks.timer import Timer
+from lightning.pytorch.callbacks.weight_averaging import WeightAveraging
 
 __all__ = [
     "BackboneFinetuning",
@@ -60,4 +61,5 @@ __all__ = [
     "Timer",
     "TQDMProgressBar",
     "DifferentialPrivacy",
+    "WeightAveraging",
 ]
