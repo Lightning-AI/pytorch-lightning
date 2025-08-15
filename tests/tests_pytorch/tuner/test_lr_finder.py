@@ -619,6 +619,78 @@ def test_gradient_correctness():
     assert abs(suggestion - math.pi) < 1e-2, "Suggestion should be close to pi for this synthetic example"
 
 
+def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
+    """LearningRateFinder used as a callback should apply its suggested LR to the optimizer used after state
+    restoration."""
+
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.utils.data import DataLoader, Dataset
+
+    from lightning.pytorch.callbacks import LearningRateMonitor
+
+    class RandomDataset(Dataset):
+        def __init__(self, n: int = 256, in_dim: int = 28 * 28):
+            self.x = torch.randn(n, in_dim)
+            self.y = torch.randn(n, in_dim)
+
+        def __len__(self) -> int:
+            return len(self.x)
+
+        def __getitem__(self, idx):
+            return self.x[idx], self.y[idx]
+
+    class TinyAE(BoringModel):
+        def __init__(self, lr: float = 1e-5):
+            super().__init__()
+            self.save_hyperparameters()
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
+            self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+
+        def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+            x, y = batch
+            z = self.encoder(x)
+            x_hat = self.decoder(z)
+            loss = F.mse_loss(x_hat, y)
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+
+    seed_everything(123)
+
+    ds = RandomDataset(n=512)
+    train_loader = DataLoader(ds, batch_size=64, shuffle=False)
+
+    model = TinyAE(lr=1e-5)
+
+    lr_finder_cb = LearningRateFinder()  # default update_attr=True should apply suggestion
+    lr_monitor = LearningRateMonitor(logging_interval="step")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        callbacks=[lr_finder_cb, lr_monitor],
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        log_every_n_steps=1,
+    )
+
+    trainer.fit(model, train_loader)
+    assert model.hparams.lr is not None
+    # Ensure LR Finder produced a suggestion for this setup; if not, the test can't assert application
+    assert lr_finder_cb.optimal_lr is not None, "LR Finder should have computed results"
+    suggestion = lr_finder_cb.optimal_lr.suggestion()
+    assert suggestion is not None, "LR Finder should produce a suggestion for this setup"
+
+    # Verify that the optimizer used for subsequent training has the suggested LR applied
+    assert trainer.optimizers, "Trainer should have an optimizer after fit"
+    current_lr = trainer.optimizers[0].param_groups[0]["lr"]
+    assert current_lr == pytest.approx(suggestion), (
+        f"LR Finder suggestion {suggestion} should be applied to optimizer, but got {current_lr}"
+    )
+
+
 def test_exponential_vs_linear_mode_gradient_difference(tmp_path):
     """Test that exponential and linear modes produce different but valid suggestions.
 
