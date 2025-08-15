@@ -68,13 +68,13 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
           - { os: "windows-2022", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
           # "pytorch" installs the standalone package
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
+          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
           # adding recently cut Torch 2.7 - FUTURE
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
+          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
     timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
@@ -139,7 +139,7 @@ jobs:
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
+            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}" --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
