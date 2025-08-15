@@ -341,7 +341,6 @@ def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> N
 
 
 class AssistantCLI:
-
     @staticmethod
     def _replace_min(fname: str) -> None:
         with open(fname, encoding="utf-8") as fopen:
