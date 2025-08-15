@@ -99,7 +99,9 @@ jobs:
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
         run: |
-          python .actions/assistant.py replace_oldest_ver
+          cd requirements/pytorch
+          pip install -U "lightning-utilities[cli]"
+          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt']"
           pip install "cython<3.0" wheel
           pip install "pyyaml==5.4" --no-build-isolation
 
