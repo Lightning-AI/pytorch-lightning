@@ -21,6 +21,7 @@ FROM pytorchlightning/pytorch_lightning:base-cuda${CUDA_VERSION}-py${PYTHON_VERS
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
+ARG PYTORCH_VERSION
 
 COPY ./ /home/pytorch-lightning/
 
