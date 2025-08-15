@@ -179,6 +179,7 @@ markers = [
     "cloud: Run the cloud tests for example",
 ]
 filterwarnings = [
+    # "error::DeprecationWarning",
     "error::FutureWarning",
     "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
 ]
