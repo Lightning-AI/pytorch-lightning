@@ -341,32 +341,6 @@ def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> N
 
 
 class AssistantCLI:
-    @staticmethod
-    def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Remove some packages from given requirement files."""
-        if isinstance(req_files, str):
-            req_files = [req_files]
-        for req in req_files:
-            AssistantCLI._prune_packages(req, packages)
-
-    @staticmethod
-    def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
-        """Remove some packages from given requirement files."""
-        path = Path(req_file)
-        assert path.exists()
-        text = path.read_text()
-        lines = text.splitlines()
-        final = []
-        for line in lines:
-            ln_ = line.strip()
-            if not ln_ or ln_.startswith("#"):
-                final.append(line)
-                continue
-            req = list(_parse_requirements([ln_]))[0]
-            if req.name not in packages:
-                final.append(line)
-        print(final)
-        path.write_text("\n".join(final) + "\n")
 
     @staticmethod
     def _replace_min(fname: str) -> None:
