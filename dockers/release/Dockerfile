@@ -23,6 +23,7 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/pytorch-lightning/
+SHELL ["/bin/bash", "-c"]
 
 # install dependencies
 RUN \
@@ -39,7 +40,7 @@ RUN \
     fi && \
     # otherwise there is collision with folder name and pkg name on Pypi
     cd pytorch-lightning && \
-    pip install setuptools==75.6.0 && \
+    # pip install setuptools==75.6.0 && \
     pip install -U "lightning-utilities[cli]" && \
     # drop deepspeed since it is not supported by our minimal Torch requirements \
     if [[ "$PYTORCH_VERSION" =~ ^(2\.1|2\.2|2\.3|2\.4)$ ]]; then \
