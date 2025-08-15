@@ -32,7 +32,7 @@ _PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
-@RunIf(dynamo=True)
+@RunIf(dynamo=True, deepspeed=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
@@ -74,13 +74,7 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
         mock_cuda_count(monkeypatch, 2)
 
         # TODO: Update deepspeed to avoid deprecation warning for `torch.cuda.amp.custom_fwd` on import
-        warn_context = (
-            pytest.warns(FutureWarning, match="torch.cuda.amp.*is deprecated")
-            if _TORCH_GREATER_EQUAL_2_4
-            else nullcontext()
-        )
-
-        with warn_context:
+        with pytest.warns(FutureWarning, match="torch.cuda.amp.*is deprecated"):
             trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
 
         with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
