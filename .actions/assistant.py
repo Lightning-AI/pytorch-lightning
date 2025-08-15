@@ -369,20 +369,6 @@ class AssistantCLI:
         path.write_text("\n".join(final) + "\n")
 
     @staticmethod
-    def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fopen:
-            req = fopen.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fwrite:
-            fwrite.write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            print(fname)
-            AssistantCLI._replace_min(fname)
-
-    @staticmethod
     def copy_replace_imports(
         source_dir: str,
         source_import: str,
