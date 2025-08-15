@@ -20,15 +20,17 @@ from torch.multiprocessing import ProcessRaisedException
 from lightning.pytorch import Trainer
 from lightning.pytorch.strategies import MultiModelDDPStrategy
 from lightning.pytorch.trainer import seed_everything
-from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.advanced_models import BasicGAN
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
     dm = BasicGAN.train_dataloader()
     model = BasicGAN()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy()
+    )
     trainer.fit(model, datamodule=dm)
 
 
@@ -36,7 +38,9 @@ def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
 def test_multi_gpu_with_multi_model_ddp_predict_only(tmp_path):
     dm = BasicGAN.train_dataloader()
     model = BasicGAN()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy()
+    )
     trainer.predict(model, datamodule=dm)
 
 
@@ -45,7 +49,9 @@ def test_multi_gpu_multi_model_ddp_fit_predict(tmp_path):
     seed_everything(4321)
     dm = BasicGAN.train_dataloader()
     model = BasicGAN()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy()
+    )
     trainer.fit(model, datamodule=dm)
     trainer.predict(model, datamodule=dm)
 
@@ -73,7 +79,9 @@ def test_find_unused_parameters_ddp_spawn_raises():
         max_steps=2,
         logger=False,
     )
-    with pytest.raises(ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"):
+    with pytest.raises(
+        ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"
+    ):
         trainer.fit(UnusedParametersBasicGAN())
 
 
