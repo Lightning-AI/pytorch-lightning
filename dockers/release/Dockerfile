@@ -23,7 +23,6 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/pytorch-lightning/
-SHELL ["/bin/bash", "-c"]
 
 # install dependencies
 RUN \
@@ -43,6 +42,7 @@ RUN \
     # pip install setuptools==75.6.0 && \
     pip install -U "lightning-utilities[cli]" && \
     # drop deepspeed since it is not supported by our minimal Torch requirements \
+    echo "PYTORCH_VERSION is: '$PYTORCH_VERSION'" && \
     if [[ "$PYTORCH_VERSION" =~ ^(2\.1|2\.2|2\.3|2\.4)$ ]]; then \
         python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files requirements/fabric/strategies.txt ; \
         python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files requirements/pytorch/strategies.txt ; \
