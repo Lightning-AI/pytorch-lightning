@@ -16,9 +16,9 @@ printf "PYTHONPATH: $PYTHONPATH"
 rm -rf $ENV_PATH
 
 function create_and_save_checkpoint {
-  # python --version
-  # python -m pip --version
-  # python -m pip list
+  python --version
+  python -m pip --version
+  python -m pip list
 
   python $LEGACY_FOLDER/simple_classif_training.py $pl_ver
 
@@ -52,12 +52,10 @@ done
 if [[ -z "$@" ]]; then
   printf "\n\n processing local version\n"
 
-  # python -m pip install \
-  uv pip install \
+  python -m pip install \
     -r $LEGACY_FOLDER/requirements.txt \
     -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html
   pl_ver="local"
-  # pl_ver=$(python -c "import lightning.pytorch as pl; print(pl.__version__)")
   create_and_save_checkpoint
 fi
