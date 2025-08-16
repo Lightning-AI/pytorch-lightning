@@ -59,7 +59,7 @@ class TorchCheckpointIO(CheckpointIO):
 
     @override
     def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
+        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage, weights_only: bool = True
     ) -> dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
@@ -80,7 +80,7 @@ class TorchCheckpointIO(CheckpointIO):
         if not fs.exists(path):
             raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
-        return pl_load(path, map_location=map_location)
+        return pl_load(path, map_location=map_location, weights_only=weights_only)
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:
