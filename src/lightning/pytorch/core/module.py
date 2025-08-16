@@ -1690,6 +1690,7 @@ class LightningModule(
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
         strict: Optional[bool] = None,
+        weights_only: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1778,6 +1779,7 @@ class LightningModule(
             map_location,
             hparams_file,
             strict,
+            weights_only,
             **kwargs,
         )
         return cast(Self, loaded)
