@@ -109,6 +109,9 @@ def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwr
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=False)
+    # with torch.serialization.safe_globals([Container, DictConfig]):
+    #     raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=True)
+
     assert cls.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
 
@@ -175,8 +178,10 @@ def test_omega_conf_hparams(tmp_path, cls):
     assert isinstance(obj.hparams, Container)
 
     # run standard test suite
+    # with torch.serialization.safe_globals([Container, DictConfig]):
     raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule)
     obj2 = cls.load_from_checkpoint(raw_checkpoint_path)
+
     assert isinstance(obj2.hparams, Container)
 
     # config specific tests
