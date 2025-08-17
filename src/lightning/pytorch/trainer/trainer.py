@@ -547,7 +547,6 @@ class Trainer:
                         - ``'registry:version:v2'``: uses the default model set
                           with ``Trainer(..., model_registry="my-model")`` and version 'v2'
 
-
         Raises:
             TypeError:
                 If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
