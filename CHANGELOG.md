@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [UnReleased] - 2025-MM-DD
+
+### Fixed
+
+- Fixed `compare_version` if runtime error ([#427](https://github.com/Lightning-AI/utilities/pull/427))
+
+
+---
+
 ## [0.15.2] - 2025-08-06
 
 ### Changed

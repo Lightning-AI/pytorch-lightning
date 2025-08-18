@@ -76,7 +76,7 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
     """
     try:
         pkg = importlib.import_module(package)
-    except ImportError:
+    except (ImportError, RuntimeError):
         return False
     try:
         # Use importlib.metadata to infer version
