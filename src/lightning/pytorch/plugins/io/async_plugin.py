@@ -41,9 +41,12 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         self._error: Optional[BaseException] = None
 
     # CheckpointIO doesn't have a setup method so we have to do something like.
-    # We can't do setup in __init__ because if train or validate is called more than once the
-    # teardown method deletes the executor.
     def _ensure_setup(self) -> None:
+        """Ensures that the executor is setup.
+
+        We can't do setup in __init__ because if train or validate is called more than once,
+        the teardown method deletes the executor.
+        """
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=1)
             self._error: Optional[BaseException] = None
@@ -89,5 +92,6 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
 def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
+    """Clones a tensor on the caller thread."""
     # detach to avoid autograd history and clone to take a point-in-time copy
     return t.detach().clone()
