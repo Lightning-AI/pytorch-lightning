@@ -15,6 +15,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 from lightning.fabric.plugins import CheckpointIO
@@ -40,6 +42,17 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
+
+        # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
+        def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
+            # detach to avoid autograd history and clone to take a point-in-time copy
+            return t.detach().clone()
+
+        # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)
+        if "checkpoint" in kwargs:
+            kwargs = {**kwargs, "checkpoint": apply_to_collection(kwargs["checkpoint"], torch.Tensor, _clone_tensor)}
+        elif len(args) >= 1:
+            args = (apply_to_collection(args[0], torch.Tensor, _clone_tensor), *args[1:])
 
         def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
             try:
