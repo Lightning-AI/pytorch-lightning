@@ -42,13 +42,13 @@
    Strategy registry <../advanced/strategy_registry>
    Strategy integrations <../integrations/strategies/index>
    Style guide <../starter/style_guide>
-   SWA <../advanced/training_tricks>
    SLURM <../clouds/cluster_advanced>
    Tensor Parallel <../advanced/model_parallel/tp>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
    TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
+   Weight averaging <../advanced/training_tricks>
 
 
 ########
@@ -327,13 +327,6 @@ Glossary
    :height: 100
 
 .. displayitem::
-   :header: SWA
-   :description: Stochastic Weight Averaging (SWA) can make your models generalize better
-   :col_css: col-md-12
-   :button_link: ../advanced/training_tricks.html#stochastic-weight-averaging
-   :height: 100
-
-.. displayitem::
    :header: SLURM
    :description: Simple Linux Utility for Resource Management, or simply Slurm, is a free and open-source job scheduler for Linux clusters
    :col_css: col-md-12
@@ -373,6 +366,13 @@ Glossary
    :description: Disable false-positive warnings emitted by Lightning
    :col_css: col-md-12
    :button_link: ../advanced/warnings.html
+   :height: 100
+
+.. displayitem::
+   :header: Weight averaging
+   :description: Stochastic Weight Averaging (SWA) or Exponential Moving Average (EMA) can make your models generalize better
+   :col_css: col-md-12
+   :button_link: ../advanced/training_tricks.html#weight-averaging
    :height: 100
 
 .. raw:: html
