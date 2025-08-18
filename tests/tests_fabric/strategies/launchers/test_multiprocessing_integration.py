@@ -45,8 +45,6 @@ def test_memory_sharing_disabled(strategy):
 
 
 def _test_memory_sharing_disabled(fabric, tensor, model):
-    import torch.distributed as dist
-
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
     if is_spawn:
         assert tensor.is_shared()
