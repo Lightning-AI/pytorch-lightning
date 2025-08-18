@@ -3,6 +3,6 @@
 
 requests <2.33.0
 torchvision >=0.16.0, <0.24.0
-ipython[all] <9.0; python_version < "3.10"
-ipython[all] >9.0,<9.5; python_version > "3.9"
+ipython[all] <9.0; python_version < "3.11"
+ipython[all] >9.0,<9.5; python_version > "3.10"
 torchmetrics >=0.10.0, <1.9.0
