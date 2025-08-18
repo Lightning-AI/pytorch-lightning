@@ -80,10 +80,9 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def teardown(self) -> None:
         """This method is called to close the threads."""
-        if self._executor is None:
-            return
-        self._executor.shutdown(wait=True)
-        self._executor = None
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
         # if an error was raised anytime in any of the `executor.submit` calls
         if self._error:
