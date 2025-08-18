@@ -44,8 +44,9 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     def _ensure_setup(self) -> None:
         """Ensures that the executor is setup.
 
-        We can't do setup in __init__ because if train or validate is called more than once,
-        the teardown method deletes the executor.
+        We can't do setup in __init__ because if train or validate is called more than once, the teardown method deletes
+        the executor.
+
         """
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=1)
