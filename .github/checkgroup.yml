@@ -48,6 +48,7 @@ subprojects:
       - "!**/*.md"
     checks:
       - "pytorch-lightning (GPUs) (testing Lightning | latest)"
+      - "pytorch-lightning (GPUs) (testing PyTorch | oldest)"
       - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
 
   - id: "pytorch_lightning: Benchmarks"
@@ -174,6 +175,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
+      - "lightning-fabric (GPUs) (testing Fabric | oldest)"
       - "lightning-fabric (GPUs) (testing Fabric | latest)"
       - "lightning-fabric (GPUs) (testing Lightning | latest)"
 
