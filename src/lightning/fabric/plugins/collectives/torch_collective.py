@@ -24,6 +24,8 @@ class TorchCollective(Collective):
     """
 
     manages_default_group = False
+    addr_key = "MASTER_ADDR"
+    port_key = "MASTER_PORT"
 
     def __init__(self) -> None:
         if not dist.is_available():
@@ -136,26 +138,21 @@ class TorchCollective(Collective):
         if self.is_initialized():
             return self
         # maybe set addr
-        set_addr = False
-        addr_key = "MASTER_ADDR"
-        if main_address is not None and addr_key not in os.environ:
-            os.environ[addr_key] = main_address
-            set_addr = True
+        setting_env = []
+        if main_address is not None and self.addr_key not in os.environ:
+            os.environ[self.addr_key] = main_address
+            setting_env.append(self.addr_key)
         # maybe set port
-        set_port = False
-        port_key = "MASTER_PORT"
-        if main_port is not None and port_key not in os.environ:
-            os.environ[port_key] = str(main_port)
-            set_port = True
+        if main_port is not None and self.port_key not in os.environ:
+            os.environ[self.port_key] = str(main_port)
+            setting_env.append(self.port_key)
         # this will `init_group`
         super().setup(**kwargs)
         # set as a class attribute so any instance can know whether we initialized the default process group
         TorchCollective.manages_default_group = True
         # cleanup
-        if set_addr:
-            os.environ.pop("MASTER_ADDR", None)
-        if set_port:
-            os.environ.pop("MASTER_PORT", None)
+        for kenv in setting_env:
+            os.environ.pop(kenv, None)
         return self
 
     @override
