@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -21,7 +21,7 @@ from typing_extensions import override
 
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 
-if TYPING_CHE:
+if TYPE_CHECKING:
     from lightning.fabric.plugins import CheckpointIO
 
 
@@ -85,6 +85,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         # if an error was raised anytime in any of the `executor.submit` calls
         if self._error:
             raise self._error
+
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
 def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
