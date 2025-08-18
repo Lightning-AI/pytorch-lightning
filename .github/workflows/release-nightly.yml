@@ -23,7 +23,7 @@ jobs:
     env:
       PKG_NAME: "lightning"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: 3.9
@@ -53,7 +53,7 @@ jobs:
     env:
       PKG_NAME: "lightning"
     steps:
-      - uses: actions/checkout@v4 # needed to use local composite action
+      - uses: actions/checkout@v5 # needed to use local composite action
       - uses: actions/download-artifact@v5
         with:
           name: nightly-packages-${{ github.sha }}
