@@ -71,6 +71,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             except BaseException as ex:
                 self._error = ex
 
+        assert self._executor is not None
         self._executor.submit(_save_checkpoint, *args, **kwargs)
 
         # if an error was raised between the previous time `save_checkpoint`` was called and now,
