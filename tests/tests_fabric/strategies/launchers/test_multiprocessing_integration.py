@@ -45,8 +45,11 @@ def test_memory_sharing_disabled(strategy):
 
 
 def _test_memory_sharing_disabled(fabric, tensor, model):
+    import torch.distributed as dist
+
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
-    assert not is_spawn or tensor.is_shared()
+    if is_spawn:
+        assert tensor.is_shared()
     assert not model.layer.weight.is_shared()
     assert not model.tied_layer.weight.is_shared()
     assert not model.buffer.is_shared()
@@ -54,4 +57,10 @@ def _test_memory_sharing_disabled(fabric, tensor, model):
     # weights remain tied
     assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
     assert torch.equal(model.layer.weight.data, model.tied_layer.weight.data)
+
+    # under fork with Torch 2.8+ we never get a PG from Fabric, so make one
+    if not is_spawn and not dist.is_initialized():
+        # Fabric has already set these env-vars for us:
+        #   MASTER_ADDR, MASTER_PORT, RANK, WORLD_SIZE
+        dist.init_process_group(backend="gloo")
     fabric.barrier()
