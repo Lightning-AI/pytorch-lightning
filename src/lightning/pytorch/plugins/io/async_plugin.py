@@ -15,10 +15,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
-from lightning.fabric.plugins import CheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
+
+if TYPING_CHE:
+    from lightning.fabric.plugins import CheckpointIO
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):
@@ -50,6 +54,12 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
         self._ensure_setup()
 
+        # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)
+        if "checkpoint" in kwargs:
+            kwargs = {**kwargs, "checkpoint": apply_to_collection(kwargs["checkpoint"], torch.Tensor, _clone_tensor)}
+        elif len(args) >= 1:
+            args = (apply_to_collection(args[0], torch.Tensor, _clone_tensor), *args[1:])
+
         def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
             try:
                 assert self.checkpoint_io is not None
@@ -67,10 +77,16 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def teardown(self) -> None:
         """This method is called to close the threads."""
-        if self._executor is not None:
-            self._executor.shutdown(wait=True)
-            self._executor = None
+        if self._executor is None:
+            return None
+        self._executor.shutdown(wait=True)
+        self._executor = None
 
-            # if an error was raised anytime in any of the `executor.submit` calls
-            if self._error:
-                raise self._error
+        # if an error was raised anytime in any of the `executor.submit` calls
+        if self._error:
+            raise self._error
+
+# snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
+def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
+    # detach to avoid autograd history and clone to take a point-in-time copy
+    return t.detach().clone()
