@@ -369,13 +369,17 @@ else:
         BoringModelWithMixinAndInit,
     ],
 )
-def test_collect_init_arguments(tmp_path, cls):
+def test_collect_init_arguments(tmp_path, cls: BoringModel):
     """Test that the model automatically saves the arguments passed into the constructor."""
     extra_args = {}
+    weights_only = True
+
     if cls is AggSubClassBoringModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
+        weights_only = False
     elif cls is DictConfSubClassBoringModel:
         extra_args.update(dict_conf=OmegaConf.create({"my_param": "anything"}))
+        weights_only = False
 
     model = cls(**extra_args)
     assert model.hparams.batch_size == 64
@@ -394,12 +398,12 @@ def test_collect_init_arguments(tmp_path, cls):
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
-    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=False)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=weights_only)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["batch_size"] == 179
 
     # verify that model loads correctly
-    model = cls.load_from_checkpoint(raw_checkpoint_path)
+    model = cls.load_from_checkpoint(raw_checkpoint_path, weights_only=weights_only)
     assert model.hparams.batch_size == 179
 
     if isinstance(model, AggSubClassBoringModel):
@@ -410,7 +414,7 @@ def test_collect_init_arguments(tmp_path, cls):
         assert model.hparams.dict_conf["my_param"] == "anything"
 
     # verify that we can overwrite whatever we want
-    model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
+    model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99, weights_only=weights_only)
     assert model.hparams.batch_size == 99
 
 
