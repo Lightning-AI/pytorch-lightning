@@ -57,10 +57,4 @@ def _test_memory_sharing_disabled(fabric, tensor, model):
     # weights remain tied
     assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
     assert torch.equal(model.layer.weight.data, model.tied_layer.weight.data)
-
-    # under fork with Torch 2.8+ we never get a PG from Fabric, so make one
-    if not is_spawn and not dist.is_initialized():
-        # Fabric has already set these env-vars for us:
-        #   MASTER_ADDR, MASTER_PORT, RANK, WORLD_SIZE
-        dist.init_process_group(backend="gloo")
     fabric.barrier()
