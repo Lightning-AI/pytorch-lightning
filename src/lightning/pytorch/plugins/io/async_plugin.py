@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -78,7 +78,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     def teardown(self) -> None:
         """This method is called to close the threads."""
         if self._executor is None:
-            return None
+            return
         self._executor.shutdown(wait=True)
         self._executor = None
 
