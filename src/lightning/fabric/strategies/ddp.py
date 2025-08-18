@@ -154,6 +154,10 @@ class DDPStrategy(ParallelStrategy):
 
     @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
+        # if we’re in a forked worker and have no PG, re‐init it on CPU
+        if self.launcher._start_method == "fork" and not _distributed_is_initialized():
+            # env:// will use MASTER_ADDR, MASTER_PORT, RANK, WORLD_SIZE
+            torch.distributed.init_process_group(backend="gloo")
         if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
