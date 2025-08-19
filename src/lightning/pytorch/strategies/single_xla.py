@@ -19,12 +19,14 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import XLACheckpointIO
+from lightning.fabric.plugins import CheckpointIO, Precision, XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision.xla import XLAPrecision
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
+from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 
 
@@ -54,7 +56,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
         self.debug = debug
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
@@ -65,12 +67,12 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
@@ -81,21 +83,33 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.model, "self.model must be set before find_shared_parameters(self.model)"
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
+        assert self.accelerator is not None
+        self.accelerator.setup(trainer)
+
+        assert self.model is not None
+        self.precision_plugin.convert_module(self.model)
+
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         set_shared_parameters(self.model, shared_params)
-        super().setup(trainer)
 
-        if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @classmethod
     @override

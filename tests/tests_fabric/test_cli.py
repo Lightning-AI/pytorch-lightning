@@ -20,13 +20,12 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from lightning.fabric.cli import _get_supported_strategies, _run_model
-from lightning_utilities.core.imports import ModuleAvailableCache
 
+from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_script(tmp_path):
     script = tmp_path / "script.py"
     script.touch()
@@ -34,10 +33,10 @@ def fake_script(tmp_path):
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_env_vars_defaults(monkeypatch, fake_script):
+def test_run_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script])
+        _run.main([fake_script])
     assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
     assert "LT_ACCELERATOR" not in os.environ
@@ -47,13 +46,13 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
     assert "LT_PRECISION" not in os.environ
 
 
-@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
+@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", "auto", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
+def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", accelerator])
+        _run.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
@@ -61,89 +60,88 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 @pytest.mark.parametrize("strategy", _get_supported_strategies())
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
+def test_run_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--strategy", strategy])
+        _run.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
 
 
-def test_cli_get_supported_strategies():
+def test_run_get_supported_strategies():
     """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in the
     CLI."""
-    assert len(_get_supported_strategies()) == 7
+    assert len(_get_supported_strategies()) == 8
     assert "fsdp" in _get_supported_strategies()
+    assert "ddp_find_unused_parameters_true" in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
-def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
+def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        _run_model.main([fake_script, "--strategy", strategy])
+        _run.main([fake_script, "--strategy", strategy])
     assert e.value.code == 2
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
-@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
+@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
+def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == devices
 
 
 @RunIf(mps=True)
-@pytest.mark.parametrize("accelerator", ["mps", "gpu"])
+@pytest.mark.parametrize("accelerator", ["mps", "gpu", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
+def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", accelerator])
+        _run.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == "1"
 
 
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
+def test_run_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--num-nodes", num_nodes])
+        _run.main([fake_script, "--num-nodes", num_nodes])
     assert e.value.code == 0
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
 @pytest.mark.parametrize("precision", ["64-true", "64", "32-true", "32", "16-mixed", "bf16-mixed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
+def test_run_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--precision", precision])
+        _run.main([fake_script, "--precision", precision])
     assert e.value.code == 0
     assert os.environ["LT_PRECISION"] == precision
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_torchrun_defaults(monkeypatch, fake_script):
+def test_run_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script])
+        _run.main([fake_script])
     assert e.value.code == 0
-    torchrun_mock.main.assert_called_with(
-        [
-            "--nproc_per_node=1",
-            "--nnodes=1",
-            "--node_rank=0",
-            "--master_addr=127.0.0.1",
-            "--master_port=29400",
-            fake_script,
-        ]
-    )
+    torchrun_mock.main.assert_called_with([
+        "--nproc_per_node=1",
+        "--nnodes=1",
+        "--node_rank=0",
+        "--master_addr=127.0.0.1",
+        "--master_port=29400",
+        fake_script,
+    ])
 
 
 @pytest.mark.parametrize(
@@ -158,31 +156,43 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5)
-def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
+def test_run_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
-    torchrun_mock.main.assert_called_with(
-        [
-            f"--nproc_per_node={expected}",
-            "--nnodes=1",
-            "--node_rank=0",
-            "--master_addr=127.0.0.1",
-            "--master_port=29400",
-            fake_script,
-        ]
-    )
+    torchrun_mock.main.assert_called_with([
+        f"--nproc_per_node={expected}",
+        "--nnodes=1",
+        "--node_rank=0",
+        "--master_addr=127.0.0.1",
+        "--master_port=29400",
+        fake_script,
+    ])
 
 
-@pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
-def test_cli_through_lightning_entry_point():
-    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-    if not ModuleAvailableCache("lightning.app"):
-        message = "The `lightning` command requires additional dependencies"
-        assert message in result.stdout or message in result.stderr
-        assert result.returncode != 0
-    else:
-        message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-        assert message in result.stdout or message in result.stderr
+def test_run_through_fabric_entry_point():
+    result = subprocess.run("fabric run --help", capture_output=True, text=True, shell=True)
+
+    message = "Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    assert message in result.stdout or message in result.stderr
+
+
+@mock.patch("lightning.fabric.cli._process_cli_args")
+@mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
+@mock.patch("lightning.fabric.cli.torch.save")
+def test_consolidate(save_mock, _, __, tmp_path):
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _consolidate.main(["not exist"])
+    assert e.value.code == 2
+    assert "Path 'not exist' does not exist" in ioerr.getvalue()
+
+    checkpoint_folder = tmp_path / "checkpoint"
+    checkpoint_folder.mkdir()
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _consolidate.main([str(checkpoint_folder)])
+    assert e.value.code == 0
+    save_mock.assert_called_once()

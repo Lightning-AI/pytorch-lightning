@@ -17,6 +17,7 @@ LearningRateFinder
 
 Finds optimal learning rate
 """
+
 from typing import Optional
 
 from typing_extensions import override
@@ -105,7 +106,7 @@ class LearningRateFinder(Callback):
         self._attr_name = attr_name
 
         self._early_exit = False
-        self.lr_finder: Optional[_LRFinder] = None
+        self.optimal_lr: Optional[_LRFinder] = None
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         with isolate_rng():

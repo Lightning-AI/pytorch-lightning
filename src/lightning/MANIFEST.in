@@ -3,4 +3,3 @@
 include src/lightning/version.info
 include src/lightning/py.typed
 include requirements/base.txt
-recursive-include requirements/data *.txt

@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, ContextManager, Dict, Literal, Optional, cast
+from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -23,7 +24,6 @@ from typing_extensions import get_args, override
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
@@ -74,25 +74,28 @@ class FSDPPrecision(Precision):
         }
         self._desired_input_dtype = precision_to_type[self.precision]
 
+    @override
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_input_dtype)
+        return module
+
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        # With PyTorch < 2.0, FSDP uses the noneness of `param_dtype` as a proxy for the `_uses_param_mixed_precision`
-        # property. In order to avoid FSDP assertion failures, we therefore avoid setting `param_dtype` to
-        # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
@@ -104,15 +107,15 @@ class FSDPPrecision(Precision):
         )
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return self.tensor_init_context()
@@ -128,7 +131,7 @@ class FSDPPrecision(Precision):
     @override
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
-            tensor = cast(Tensor, self.scaler.scale(tensor))
+            tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)
 
     @override
@@ -154,12 +157,12 @@ class FSDPPrecision(Precision):
             scaler.unscale_(optimizer)
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

@@ -32,10 +32,11 @@ To track a metric, add the following:
     fabric = Fabric(loggers=logger)
 
 
-Built-in loggers you can choose from:
+Loggers you can choose from:
 
 - :class:`~lightning.fabric.loggers.TensorBoardLogger`
 - :class:`~lightning.fabric.loggers.CSVLogger`
+- :doc:`WandbLogger <loggers/wandb>`
 
 |
 

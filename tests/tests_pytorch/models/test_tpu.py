@@ -17,6 +17,9 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
@@ -25,9 +28,6 @@ from lightning.pytorch.strategies import XLAStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch.utils.data import DataLoader
-
-import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -41,9 +41,9 @@ class SerialLoaderBoringModel(BoringModel):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_tpu_devices_1(tmpdir):
+def test_model_tpu_devices_1(tmp_path):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -59,9 +59,9 @@ def test_model_tpu_devices_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_tpu_index(tmpdir, tpu_core):
+def test_model_tpu_index(tmp_path, tpu_core):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -79,9 +79,9 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_multiple_tpu_devices(tmpdir):
+def test_model_multiple_tpu_devices(tmp_path):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 1,
         "accelerator": "tpu",
@@ -97,9 +97,9 @@ def test_model_multiple_tpu_devices(tmpdir):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_16bit_tpu_devices_1(tmpdir):
+def test_model_16bit_tpu_devices_1(tmp_path):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
@@ -116,9 +116,9 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 3])
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_16bit_tpu_index(tmpdir, tpu_core):
+def test_model_16bit_tpu_index(tmp_path, tpu_core):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
@@ -137,9 +137,9 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_16bit_multiple_tpu_devices(tmpdir):
+def test_model_16bit_multiple_tpu_devices(tmp_path):
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 1,
@@ -163,11 +163,11 @@ class CustomBoringModel(BoringModel):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_model_tpu_early_stop(tmpdir):
+def test_model_tpu_early_stop(tmp_path):
     model = CustomBoringModel()
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
@@ -181,10 +181,10 @@ def test_model_tpu_early_stop(tmpdir):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_grad_norm(tmpdir):
+def test_tpu_grad_norm(tmp_path):
     """Test if grad_norm works on TPU."""
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 4,
         "accelerator": "tpu",
@@ -200,10 +200,10 @@ def test_tpu_grad_norm(tmpdir):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_clip_grad_by_value(tmpdir):
+def test_tpu_clip_grad_by_value(tmp_path):
     """Test if clip_gradients by value works on TPU."""
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 4,
         "accelerator": "tpu",
@@ -220,11 +220,11 @@ def test_tpu_clip_grad_by_value(tmpdir):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_dataloaders_passed_to_fit(tmpdir):
+def test_dataloaders_passed_to_fit(tmp_path):
     """Test if dataloaders passed to trainer works on TPU."""
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="tpu", devices="auto")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
@@ -252,7 +252,7 @@ def test_accelerator_set_when_using_tpu(devices):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_if_test_works_with_checkpoint_false(tmpdir):
+def test_if_test_works_with_checkpoint_false(tmp_path):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
     # Train a model on TPU
     model = BoringModel()
@@ -260,7 +260,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
         max_epochs=1,
         accelerator="tpu",
         devices="auto",
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         enable_checkpointing=False,
     )
@@ -270,7 +270,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 
@@ -311,10 +311,10 @@ class AssertXLADebugModel(BoringModel):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_debug_mode(tmpdir):
+def test_tpu_debug_mode(tmp_path):
     """Test if debug mode works on TPU."""
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 4,
         "accelerator": "tpu",
@@ -329,7 +329,7 @@ def test_tpu_debug_mode(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_device_type_when_tpu_strategy_passed(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices="auto")
+def test_device_type_when_tpu_strategy_passed(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
     assert isinstance(trainer.accelerator, XLAAccelerator)

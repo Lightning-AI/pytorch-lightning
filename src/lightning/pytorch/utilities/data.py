@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from collections.abc import Generator, Iterable, Mapping, Sized
 from dataclasses import fields
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
@@ -28,6 +29,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -138,7 +140,7 @@ def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-) -> Tuple[Tuple[Any], Dict[str, Any]]:
+) -> tuple[tuple[Any], dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
@@ -167,9 +169,9 @@ def _get_dataloader_init_args_and_kwargs(
         if was_wrapped:
             # if the dataloader was wrapped in a hook, only take arguments with default values
             # and assume user passes their kwargs correctly
-            params.update(
-                {k: v for k, v in inspect.signature(DataLoader.__init__).parameters.items() if v.default is not v.empty}
-            )
+            params.update({
+                k: v for k, v in inspect.signature(DataLoader.__init__).parameters.items() if v.default is not v.empty
+            })
         else:
             params.update(inspect.signature(DataLoader.__init__).parameters)
             params.pop("self", None)
@@ -232,7 +234,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation.
 
@@ -301,6 +303,14 @@ def _dataloader_init_kwargs_resolve_sampler(
                     " or set `Trainer(use_distributed_sampler=False)`. If you choose the latter, you will be"
                     " responsible for handling the distributed sampling within your batch sampler."
                 ) from ex
+        elif is_predicting:
+            rank_zero_warn(
+                f"You are using a custom batch sampler `{batch_sampler_cls.__qualname__}` for prediction."
+                " Lightning would normally set `drop_last=False` to ensure all samples are returned, but for"
+                " custom samplers it can't guarantee this. Make sure your sampler is configured correctly to return"
+                " all indices.",
+                category=PossibleUserWarning,
+            )
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
             # how to adjust the `drop_last` value
@@ -340,7 +350,12 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if not hasattr(dataloader, "sampler"):
         # shuffling is enabled via a sampler. No sampler, no shuffling
         return False
-    sampler = dataloader.sampler
+    batch_sampler = dataloader.batch_sampler
+    if batch_sampler is not None:
+        # custom batch samplers may not have an internal .sampler
+        sampler = batch_sampler.sampler if hasattr(batch_sampler, "sampler") else batch_sampler
+    else:
+        sampler = dataloader.sampler
     if isinstance(sampler, SequentialSampler):
         return False
     return isinstance(sampler, RandomSampler)

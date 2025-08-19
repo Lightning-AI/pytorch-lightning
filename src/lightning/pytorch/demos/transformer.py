@@ -4,20 +4,24 @@ Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
 
 """
+
 import math
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
-import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule
+
+_REQUESTS_AVAILABLE = RequirementCache("requests")
+
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     # See https://github.com/pytorch/pytorch/issues/107909
@@ -50,15 +54,24 @@ class Transformer(nn.Module):
 
         self.ninp = ninp
         self.vocab_size = vocab_size
-        self.src_mask = None
+        self.src_mask: Optional[Tensor] = None
+
+    def generate_square_subsequent_mask(self, size: int) -> Tensor:
+        """Generate a square mask for the sequence to prevent future tokens from being seen."""
+        mask = torch.triu(torch.ones(size, size), diagonal=1)
+        mask = mask.float().masked_fill(mask == 1, float("-inf")).masked_fill(mask == 0, 0.0)
+        return mask
 
     def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
         _, t = inputs.shape
 
-        # we assume target is already shifted w.r.t. inputs
+        # Generate source mask to prevent future token leakage
+        if self.src_mask is None or self.src_mask.size(0) != t:
+            self.src_mask = self.generate_square_subsequent_mask(t).to(inputs.device)
+
+        # Generate target mask if not provided
         if mask is None:
-            mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
-            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
+            mask = self.generate_square_subsequent_mask(t).to(inputs.device)
 
         src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
@@ -80,12 +93,11 @@ class PositionalEncoding(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         if self.pe is None:
             # 1) can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
-            # 2) can't use parameter becauses pe gets sliced and DDP requires all params to participate in forward
-            # 3) can't make it a `requires_grad=False` parameter because FSDP in PyTorch < 2.1 needs all params to
-            # require grad
+            # 2) can't use parameter because pe gets sliced and DDP requires all params to participate in forward
+            # TODO: Could make this a `nn.Parameter` with `requires_grad=False`
             self.pe = self._init_pos_encoding(device=x.device)
 
-        x + self.pe[: x.size(0), :]
+        x = x + self.pe[:, x.size(1)]
         return self.dropout(x)
 
     def _init_pos_encoding(self, device: torch.device) -> Tensor:
@@ -94,7 +106,7 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(torch.arange(0, self.dim, 2, device=device).float() * (-math.log(10000.0) / self.dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         return pe
 
 
@@ -116,7 +128,7 @@ class WikiText2(Dataset):
     def __len__(self) -> int:
         return len(self.data) // self.block_size - 1
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
         inputs = self.data[start:end]
@@ -125,6 +137,11 @@ class WikiText2(Dataset):
 
     @staticmethod
     def download(destination: Path) -> None:
+        if not _REQUESTS_AVAILABLE:
+            raise ModuleNotFoundError(str(_REQUESTS_AVAILABLE))
+
+        import requests
+
         os.makedirs(destination.parent, exist_ok=True)
         url = "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/train.txt"
         if os.path.exists(destination):
@@ -135,8 +152,8 @@ class WikiText2(Dataset):
 
 class Dictionary:
     def __init__(self) -> None:
-        self.word2idx: Dict[str, int] = {}
-        self.idx2word: List[str] = []
+        self.word2idx: dict[str, int] = {}
+        self.idx2word: list[str] = []
 
     def add_word(self, word: str) -> int:
         if word not in self.word2idx:
@@ -148,7 +165,7 @@ class Dictionary:
         return len(self.idx2word)
 
 
-def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
+def tokenize(path: Path) -> tuple[Tensor, Dictionary]:
     dictionary = Dictionary()
 
     assert os.path.exists(path)
@@ -161,10 +178,10 @@ def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
 
     # Tokenize file content
     with open(path, encoding="utf8") as f:
-        idss: List[Tensor] = []
+        idss: list[Tensor] = []
         for line in f:
             words = line.split() + ["<eos>"]
-            ids: List[int] = []
+            ids: list[int] = []
             for word in words:
                 ids.append(dictionary.word2idx[word])
             idss.append(torch.tensor(ids).type(torch.int64))
@@ -180,7 +197,7 @@ class LightningTransformer(LightningModule):
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
         return self.model(inputs, target)
 
-    def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+    def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))

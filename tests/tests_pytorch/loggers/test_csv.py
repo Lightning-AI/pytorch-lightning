@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import fsspec
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.saving import load_hparams_from_yaml
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.csv_logs import ExperimentWriter
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -51,6 +52,21 @@ def test_manual_versioning(tmp_path):
     assert logger.version == 1
 
 
+def test_manual_versioning_file_exists(tmp_path):
+    """Test that a warning is emitted and existing files get overwritten."""
+
+    # Simulate an existing 'version_0' vrom a previous run
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"
+    previous_metrics_file.touch()
+
+    logger = CSVLogger(save_dir=tmp_path, name="exp", version=0)
+    assert previous_metrics_file.exists()
+    with pytest.warns(UserWarning, match="Experiment logs directory .* exists and is not empty"):
+        _ = logger.experiment
+    assert not previous_metrics_file.exists()
+
+
 def test_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
@@ -59,7 +75,6 @@ def test_named_version(tmp_path):
 
     logger = CSVLogger(save_dir=tmp_path, name=exp_name, version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2})
-    logger.save()
     assert logger.version == expected_version
     assert os.listdir(tmp_path / exp_name) == [expected_version]
     assert os.listdir(tmp_path / exp_name / expected_version)
@@ -69,7 +84,7 @@ def test_named_version(tmp_path):
 def test_no_name(tmp_path, name):
     """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmp_path, name=name)
-    logger.save()
+    logger.log_hyperparams()
     assert os.path.normpath(logger.root_dir) == str(tmp_path)  # use os.path.normpath to handle trailing /
     assert os.listdir(tmp_path / "version_0")
 
@@ -100,7 +115,6 @@ def test_log_hyperparams(tmp_path):
         "layer": torch.nn.BatchNorm1d,
     }
     logger.log_hyperparams(hparams)
-    logger.save()
 
     path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
     params = load_hparams_from_yaml(path_yaml)
@@ -148,7 +162,11 @@ def test_metrics_reset_after_save(tmp_path):
     assert not logger.experiment.metrics
 
 
-def test_append_metrics_file(tmp_path):
+@mock.patch(
+    # Mock the existence check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_append_metrics_file(_, tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
 

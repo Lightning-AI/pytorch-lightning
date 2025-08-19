@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.manual import ManualResult
@@ -28,7 +29,7 @@ def test_manual_result():
     assert result.extra == asdict
 
 
-def test_warning_invalid_trainstep_output(tmpdir):
+def test_warning_invalid_trainstep_output(tmp_path):
     class InvalidTrainStepModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -38,7 +39,7 @@ def test_warning_invalid_trainstep_output(tmpdir):
             return 5
 
     model = InvalidTrainStepModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
 
     with pytest.raises(MisconfigurationException, match="return a Tensor or have no return"):
         trainer.fit(model)

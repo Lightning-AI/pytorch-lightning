@@ -12,16 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
+
 import cProfile
 import io
 import logging
+import os
 import pstats
+import tempfile
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 from typing_extensions import override
 
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.profilers.profiler import Profiler
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +45,7 @@ class AdvancedProfiler(Profiler):
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
         line_count_restriction: float = 1.0,
+        dump_stats: bool = False,
     ) -> None:
         """
         Args:
@@ -53,18 +60,22 @@ class AdvancedProfiler(Profiler):
                 reported for each action. either an integer (to select a count of lines),
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
 
+            dump_stats: Whether to save raw profiler results. When ``True`` then ``dirpath`` must be provided.
+
         Raises:
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
-        self.profiled_actions: Dict[str, cProfile.Profile] = {}
+        self.profiled_actions: dict[str, cProfile.Profile] = defaultdict(cProfile.Profile)
         self.line_count_restriction = line_count_restriction
+        self.dump_stats = dump_stats
 
     @override
     def start(self, action_name: str) -> None:
-        if action_name not in self.profiled_actions:
-            self.profiled_actions[action_name] = cProfile.Profile()
+        # Disable all profilers before starting a new one
+        for pr in self.profiled_actions.values():
+            pr.disable()
         self.profiled_actions[action_name].enable()
 
     @override
@@ -74,10 +85,28 @@ class AdvancedProfiler(Profiler):
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         pr.disable()
 
+    def _dump_stats(self, action_name: str, profile: cProfile.Profile) -> None:
+        assert self.dirpath
+        dst_filepath = os.path.join(self.dirpath, self._prepare_filename(action_name=action_name, extension=".prof"))
+        dst_fs = get_filesystem(dst_filepath)
+        dst_fs.mkdirs(self.dirpath, exist_ok=True)
+        # temporarily save to local since pstats can only dump into a local file
+        with (
+            tempfile.TemporaryDirectory(prefix="test", suffix=str(rank_zero_only.rank), dir=os.getcwd()) as tmp_dir,
+            dst_fs.open(dst_filepath, "wb") as dst_file,
+        ):
+            src_filepath = os.path.join(tmp_dir, "tmp.prof")
+            profile.dump_stats(src_filepath)
+            src_fs = get_filesystem(src_filepath)
+            with src_fs.open(src_filepath, "rb") as src_file:
+                dst_file.write(src_file.read())
+
     @override
     def summary(self) -> str:
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
+            if self.dump_stats:
+                self._dump_stats(action_name, pr)
             s = io.StringIO()
             ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats("cumulative")
             ps.print_stats(self.line_count_restriction)
@@ -87,9 +116,9 @@ class AdvancedProfiler(Profiler):
     @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
-        self.profiled_actions = {}
+        self.profiled_actions.clear()
 
-    def __reduce__(self) -> Tuple:
+    def __reduce__(self) -> tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,

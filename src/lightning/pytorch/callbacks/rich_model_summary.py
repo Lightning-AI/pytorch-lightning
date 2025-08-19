@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Tuple
+from typing import Any
 
 from typing_extensions import override
 
 from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
 
@@ -67,10 +67,12 @@ class RichModelSummary(ModelSummary):
     @staticmethod
     @override
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: list[tuple[str, list[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
+        total_training_modes: dict[str, int],
+        total_flops: int,
         **summarize_kwargs: Any,
     ) -> None:
         from rich import get_console
@@ -84,6 +86,8 @@ class RichModelSummary(ModelSummary):
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
         table.add_column("Params", justify="right")
+        table.add_column("Mode")
+        table.add_column("FLOPs", justify="right")
 
         column_names = list(zip(*summary_data))[0]
 
@@ -109,5 +113,8 @@ class RichModelSummary(ModelSummary):
         grid.add_row(f"[bold]Non-trainable params[/]: {parameters[1]}")
         grid.add_row(f"[bold]Total params[/]: {parameters[2]}")
         grid.add_row(f"[bold]Total estimated model params size (MB)[/]: {parameters[3]}")
+        grid.add_row(f"[bold]Modules in train mode[/]: {total_training_modes['train']}")
+        grid.add_row(f"[bold]Modules in eval mode[/]: {total_training_modes['eval']}")
+        grid.add_row(f"[bold]Total FLOPs[/]: {get_human_readable_count(total_flops)}")
 
         console.print(grid)

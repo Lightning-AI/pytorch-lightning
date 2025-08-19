@@ -17,13 +17,13 @@
    ../advanced/model_parallel
    Train on single or multiple GPUs <../accelerators/gpu>
    Train on single or multiple HPUs <../integrations/hpu/index>
-   Train on single or multiple IPUs <../integrations/ipu/index>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
    Use a pretrained model <../advanced/pretrained>
    ../data/data
    ../model/own_your_loop
    ../advanced/model_init
+   ../common/tbptt
 
 
 #############
@@ -113,8 +113,8 @@ How-to Guides
     :height: 180
 
 .. displayitem::
-    :header: Run on an on-prem cluster
-    :description: Learn to run on your own cluster
+    :header: Run on a multi-node cluster
+    :description: Learn to run on multi-node in the cloud or on your cluster
     :button_link: ../clouds/cluster.html
     :col_css: col-md-4
     :height: 180
@@ -143,7 +143,7 @@ How-to Guides
 .. displayitem::
     :header: Train models with billions of parameters
     :description: Scale GPU training for models with billions of parameters
-    :button_link: ../advanced/model_parallel.html
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
     :height: 180
 
@@ -165,13 +165,6 @@ How-to Guides
     :header: Train on single or multiple HPUs
     :description: Train models faster with HPU accelerators
     :button_link: ../integrations/hpu/index.html
-    :col_css: col-md-4
-    :height: 180
-
-.. displayitem::
-    :header: Train on single or multiple IPUs
-    :description: Train models faster with IPU accelerators
-    :button_link: ../integrations/ipu/index.html
     :col_css: col-md-4
     :height: 180
 
@@ -207,6 +200,13 @@ How-to Guides
     :header: Use a pure PyTorch training loop
     :description: Run your pure PyTorch loop with Lightning
     :button_link: ../model/own_your_loop.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Truncated Back-Propagation Through Time
+    :description: Efficiently step through time when training recurrent models
+    :button_link: ../common/tbptt.html
     :col_css: col-md-4
     :height: 180
 

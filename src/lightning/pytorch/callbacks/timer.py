@@ -15,10 +15,12 @@ r"""
 Timer
 ^^^^^
 """
+
 import logging
+import re
 import time
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -50,6 +52,8 @@ class Timer(Callback):
 
     Raises:
         MisconfigurationException:
+            If ``duration`` is not in the expected format.
+        MisconfigurationException:
             If ``interval`` is not one of the supported choices.
 
     Example::
@@ -79,16 +83,25 @@ class Timer(Callback):
 
     def __init__(
         self,
-        duration: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+        duration: Optional[Union[str, timedelta, dict[str, int]]] = None,
         interval: str = Interval.step,
         verbose: bool = True,
     ) -> None:
         super().__init__()
         if isinstance(duration, str):
-            dhms = duration.strip().split(":")
-            dhms = [int(i) for i in dhms]
-            duration = timedelta(days=dhms[0], hours=dhms[1], minutes=dhms[2], seconds=dhms[3])
-        if isinstance(duration, dict):
+            duration_match = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", duration.strip())
+            if not duration_match:
+                raise MisconfigurationException(
+                    f"`Timer(duration={duration!r})` is not a valid duration. "
+                    "Expected a string in the format DD:HH:MM:SS."
+                )
+            duration = timedelta(
+                days=int(duration_match.group(1)),
+                hours=int(duration_match.group(2)),
+                minutes=int(duration_match.group(3)),
+                seconds=int(duration_match.group(4)),
+            )
+        elif isinstance(duration, dict):
             duration = timedelta(**duration)
         if interval not in set(Interval):
             raise MisconfigurationException(
@@ -98,8 +111,8 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
-        self._end_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
+        self._start_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
+        self._end_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
         self._offset = 0
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
@@ -174,11 +187,11 @@ class Timer(Callback):
         self._check_time_remaining(trainer)
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in RunningStage}}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         time_elapsed = state_dict.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 

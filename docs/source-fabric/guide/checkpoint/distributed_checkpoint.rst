@@ -187,7 +187,7 @@ It is possible to convert a distributed checkpoint to a regular, single-file che
 
 .. code-block:: bash
 
-    python -m lightning.fabric.utilities.consolidate_checkpoint path/to/my/checkpoint
+    fabric consolidate path/to/my/checkpoint
 
 You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
 
@@ -202,7 +202,7 @@ You will need to do this for example if you want to load the checkpoint into a s
 
     .. code-block:: bash
 
-        python -m lightning.fabric.utilities.consolidate_checkpoint my-checkpoint.ckpt
+        fabric consolidate my-checkpoint.ckpt
 
     This saves a new file ``my-checkpoint.ckpt.consolidated`` next to the sharded checkpoint which you can load normally in PyTorch:
 

@@ -3,6 +3,7 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.throughput import (
@@ -12,12 +13,9 @@ from lightning.fabric.utilities.throughput import (
     get_available_flops,
     measure_flops,
 )
-
-from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 
-@RunIf(min_torch="2.1")
 def test_measure_flops():
     with torch.device("meta"):
         model = BoringModel()
@@ -41,8 +39,9 @@ def test_get_available_flops(xla_available):
     with pytest.warns(match="not found for 'CocoNut"), mock.patch("torch.cuda.get_device_name", return_value="CocoNut"):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
-    with pytest.warns(match="t4' does not support torch.bfloat"), mock.patch(
-        "torch.cuda.get_device_name", return_value="t4"
+    with (
+        pytest.warns(match="t4' does not support torch.bfloat"),
+        mock.patch("torch.cuda.get_device_name", return_value="t4"),
     ):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 

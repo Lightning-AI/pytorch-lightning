@@ -16,10 +16,9 @@ TensorBoard Logger
 ------------------
 """
 
-import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -35,8 +34,6 @@ from lightning.pytorch.core.saving import save_hparams_to_yaml
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
-
-log = logging.getLogger(__name__)
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
@@ -82,6 +79,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
     """
+
     NAME_HPARAMS_FILE = "hparams.yaml"
 
     def __init__(
@@ -110,7 +108,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
                 f"{str(_TENSORBOARD_AVAILABLE)}"
             )
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
-        self.hparams: Union[Dict[str, Any], Namespace] = {}
+        self.hparams: Union[dict[str, Any], Namespace] = {}
 
     @property
     @override
@@ -154,16 +152,20 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(  # type: ignore[override]
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+    def log_hyperparams(
+        self,
+        params: Union[dict[str, Any], Namespace],
+        metrics: Optional[dict[str, Any]] = None,
+        step: Optional[int] = None,
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:
-            params: a dictionary-like container with the hyperparameters
+            params: A dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Optional global step number for the logged metrics
 
         """
         if _OMEGACONF_AVAILABLE:
@@ -177,7 +179,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         else:
             self.hparams.update(params)
 
-        return super().log_hyperparams(params=params, metrics=metrics)
+        return super().log_hyperparams(params=params, metrics=metrics, step=step)
 
     @override
     @rank_zero_only
@@ -244,7 +246,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         try:
             listdir_info = self._fs.listdir(root_dir)
         except OSError:
-            log.warning("Missing logger folder: %s", root_dir)
             return 0
 
         existing_versions = []

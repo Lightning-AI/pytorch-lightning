@@ -14,13 +14,13 @@ This script shows you how to scale the pure PyTorch code to enable GPU and multi
 
 ```bash
 # CPU
-lightning run model train_fabric.py
+fabric run train_fabric.py
 
 # GPU (CUDA or M1 Mac)
-lightning run model train_fabric.py --accelerator=gpu
+fabric run train_fabric.py --accelerator=gpu
 
 # Multiple GPUs
-lightning run model train_fabric.py --accelerator=gpu --devices=4
+fabric run train_fabric.py --accelerator=gpu --devices=4
 ```
 
 ### References

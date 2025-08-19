@@ -1,18 +1,15 @@
 import json
-import operator
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import compare_version
 
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
-
-_TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 
 
 class SpikeDetection:
@@ -52,7 +49,7 @@ class SpikeDetection:
             from torchmetrics.aggregation import MeanMetric
             from torchmetrics.wrappers import Running
         else:
-            raise RuntimeError("SpikeDetection requires torchmetrics>=1.0.0! Please upgrade your version!")
+            raise RuntimeError("SpikeDetection requires `torchmetrics>=1.0.0` Please upgrade your version.")
         super().__init__()
 
         self.last_val: Union[torch.Tensor, float] = 0.0
@@ -66,7 +63,7 @@ class SpikeDetection:
         self.warmup = warmup
         self.atol = atol
         self.rtol = rtol
-        self.bad_batches: List[int] = []
+        self.bad_batches: list[int] = []
         self.exclude_batches_path = exclude_batches_path
         self.finite_only = finite_only
 
@@ -147,7 +144,7 @@ class SpikeDetection:
         self.running_mean.update(val)
         self.last_val = val
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "last_val": self.last_val.item() if isinstance(self.last_val, torch.Tensor) else self.last_val,
             "mode": self.mode,
@@ -160,7 +157,7 @@ class SpikeDetection:
             "mean": self.running_mean.base_metric.state_dict(),
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.last_val = state_dict.pop("last_val")
         self.mode = state_dict.pop("mode")
         self.warmup = state_dict.pop("warmup")

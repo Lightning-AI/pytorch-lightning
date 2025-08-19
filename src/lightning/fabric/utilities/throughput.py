@@ -13,19 +13,18 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
 import torch
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from lightning.fabric import Fabric
     from lightning.fabric.plugins import Precision
 
-_THROUGHPUT_METRICS = Dict[str, Union[int, float]]
+_THROUGHPUT_METRICS = dict[str, Union[int, float]]
 
 
 # The API design of this class follows `torchmetrics.Metric` but it doesn't need to be an actual Metric because there's
@@ -109,7 +108,7 @@ class Throughput:
         self._batches: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._lengths: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
-        self._flops: Deque[int] = deque(maxlen=window_size)
+        self._flops: deque[int] = deque(maxlen=window_size)
 
     def update(
         self,
@@ -172,17 +171,16 @@ class Throughput:
             # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
-            metrics.update(
-                {
-                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
-                    f"device{self.separator}samples_per_sec": dev_samples_per_sec,
-                }
-            )
+            metrics.update({
+                f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
+                f"device{self.separator}samples_per_sec": dev_samples_per_sec,
+            })
             if add_global_metrics:
                 samples_per_sec = dev_batches_per_sec * self.world_size
-                metrics.update(
-                    {"batches_per_sec": samples_per_sec, "samples_per_sec": dev_samples_per_sec * self.world_size}
-                )
+                metrics.update({
+                    "batches_per_sec": samples_per_sec,
+                    "samples_per_sec": dev_samples_per_sec * self.world_size,
+                })
 
             if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = self._lengths[-1] - self._lengths[0]
@@ -223,7 +221,7 @@ class ThroughputMonitor(Throughput):
 
         logger = ...
         fabric = Fabric(logger=logger)
-        throughput = ThroughputMonitor()
+        throughput = ThroughputMonitor(fabric)
         t0 = time()
         for i in range(1, 100):
             do_work()
@@ -293,11 +291,9 @@ def measure_flops(
             FLOPs will be included in the result.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise ImportError("`measure_flops` requires PyTorch >= 2.1.")
     from torch.utils.flop_counter import FlopCounterMode
 
-    flop_counter = FlopCounterMode(model, display=False)
+    flop_counter = FlopCounterMode(display=False)
     with flop_counter:
         if loss_fn is None:
             forward_fn()
@@ -306,7 +302,7 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
+_CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
     # Hopper
     # source: https://resources.nvidia.com/en-us-tensor-core
     "h100 nvl": {
@@ -350,6 +346,14 @@ _CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
         torch.float16: 48.7e12,
         torch.int8: 389.9e12,
         "int4": 779.8e12,
+    },
+    "rtx 4080 super": {
+        torch.float32: 52.2e12,
+        "tfloat32": 52.2e12,
+        torch.bfloat16: 52.2e12,
+        torch.float16: 52.2e12,
+        torch.int8: 417.6e12,
+        "int4": 835.2e12,
     },
     "l4": {
         torch.float32: 30.3e12,
@@ -644,7 +648,7 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
 T = TypeVar("T", bound=float)
 
 
-class _MonotonicWindow(List[T]):
+class _MonotonicWindow(list[T]):
     """Custom fixed size list that only supports right-append and ensures that all values increase monotonically."""
 
     def __init__(self, maxlen: int) -> None:

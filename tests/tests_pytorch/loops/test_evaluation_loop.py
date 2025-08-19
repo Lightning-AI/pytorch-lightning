@@ -16,23 +16,23 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.sampler import BatchSampler, RandomSampler
+
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.sampler import BatchSampler, RandomSampler
-
 from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch("lightning.pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
-def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
+def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmp_path):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end` hooks."""
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
+        default_root_dir=tmp_path, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
     )
 
     trainer.fit(model)
@@ -89,7 +89,7 @@ def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
 @mock.patch(
     "lightning.pytorch.trainer.connectors.logger_connector.logger_connector._LoggerConnector.log_eval_end_metrics"
 )
-def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
+def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmp_path):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
     order = []
     update_eval_epoch_metrics_mock.side_effect = lambda _: order.append("log_epoch_metrics")
@@ -99,14 +99,14 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
             order.append("on_validation_end")
             super().on_validation_end()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0)
     trainer.fit(LessBoringModel())
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
 
 
 @RunIf(min_cuda_gpus=1)
-def test_memory_consumption_validation(tmpdir):
+def test_memory_consumption_validation(tmp_path):
     """Test that the training batch is no longer in GPU memory when running validation.
 
     Cannot run with MPS, since there we can only measure shared memory and not dedicated, which device has how much
@@ -155,7 +155,7 @@ def test_memory_consumption_validation(tmpdir):
     trainer = Trainer(
         accelerator="gpu",
         devices=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=2,
         enable_model_summary=False,
     )
@@ -200,11 +200,9 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            ...
+        def validation_step(self, batch, batch_idx, dataloader_idx): ...
 
-        def test_step(self, batch, batch_idx, dataloader_idx):
-            ...
+        def test_step(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.validation_step"):
@@ -213,22 +211,18 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.validate(model)
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def validation_step(self, batch, batch_idx, dl_idx):
-            ...
+        def validation_step(self, batch, batch_idx, dl_idx): ...
 
-        def test_step(self, batch, batch_idx, dl_idx):
-            ...
+        def test_step(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -251,22 +245,18 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
-        def validation_step(self, batch, batch_idx, *_):
-            ...
+        def validation_step(self, batch, batch_idx, *_): ...
 
-        def test_step(self, batch, batch_idx, *_):
-            ...
+        def test_step(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.validate(model)
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def validation_step(self, batch, batch_idx, **_):
-            ...
+        def validation_step(self, batch, batch_idx, **_): ...
 
-        def test_step(self, batch, batch_idx, **_):
-            ...
+        def test_step(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.validation_step"):
@@ -279,11 +269,9 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
-        def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
-            ...
+        def on_test_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(
@@ -294,22 +282,18 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
-        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.validate(model)
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def on_validation_batch_start(self, batch, batch_idx, dl_idx):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx, dl_idx): ...
 
-        def on_test_batch_start(self, batch, batch_idx, dl_idx):
-            ...
+        def on_test_batch_start(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -319,17 +303,13 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class MultipleDataloader(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def on_validation_batch_start(self, batch, batch_idx):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx): ...
 
-        def on_test_batch_start(self, batch, batch_idx):
-            ...
+        def on_test_batch_start(self, batch, batch_idx): ...
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
@@ -346,22 +326,18 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
-        def on_validation_batch_start(self, batch, batch_idx, *_):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx, *_): ...
 
-        def on_test_batch_start(self, batch, batch_idx, *_):
-            ...
+        def on_test_batch_start(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.validate(model)
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def on_validation_batch_start(self, batch, batch_idx, **_):
-            ...
+        def on_validation_batch_start(self, batch, batch_idx, **_): ...
 
-        def on_test_batch_start(self, batch, batch_idx, **_):
-            ...
+        def on_test_batch_start(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_validation_batch_start"):
@@ -374,11 +350,9 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(
@@ -389,22 +363,18 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
-        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.validate(model)
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def on_validation_batch_end(self, outputs, batch, batch_idx, dl_idx):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, dl_idx):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -414,17 +384,13 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class MultipleDataloader(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
-        def on_validation_batch_end(self, outputs, batch, batch_idx):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx): ...
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
@@ -441,22 +407,18 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
-        def on_validation_batch_end(self, outputs, batch, batch_idx, *_):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx, *_): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, *_):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.validate(model)
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def on_validation_batch_end(self, outputs, batch, batch_idx, **_):
-            ...
+        def on_validation_batch_end(self, outputs, batch, batch_idx, **_): ...
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, **_):
-            ...
+        def on_test_batch_end(self, outputs, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_validation_batch_end"):
@@ -498,7 +460,7 @@ def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn
     assert seen == expected
 
 
-def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
+def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmp_path):
     class TestModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
@@ -514,7 +476,7 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
             return {"y": self.step(batch)}
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=1,
         logger=False,
         enable_checkpointing=False,

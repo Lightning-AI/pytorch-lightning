@@ -40,6 +40,7 @@ Moves the model and optimizer to the correct device automatically.
 
     model = nn.Linear(32, 64)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.3, total_iters=10)
 
     # Set up model and optimizer for accelerated training
     model, optimizer = fabric.setup(model, optimizer)
@@ -47,9 +48,12 @@ Moves the model and optimizer to the correct device automatically.
     # If you don't want Fabric to set the device
     model, optimizer = fabric.setup(model, optimizer, move_to_device=False)
 
+    # If you want to additionally register a learning rate scheduler with compatible strategies such as DeepSpeed
+    model, optimizer, scheduler = fabric.setup(model, optimizer, scheduler)
+
 
 The setup method also prepares the model for the selected precision choice so that operations during ``forward()`` get
-cast automatically.
+cast automatically. Advanced users should read :doc:`the notes on models wrapped by Fabric <../api/wrappers>`.
 
 setup_dataloaders
 =================
@@ -108,6 +112,7 @@ This is useful if your model experiences *exploding gradients* during training.
     fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type="inf")
 
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
+If you pass `max_norm` as the argument, ``clip_gradients`` will return the total norm of the gradients (before clipping was applied) as a scalar tensor.
 
 
 to_device

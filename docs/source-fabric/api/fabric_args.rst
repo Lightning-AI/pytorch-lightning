@@ -36,12 +36,15 @@ See also: :doc:`../fundamentals/accelerators`
 strategy
 ========
 
-Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"xla"``, ``"deepspeed"``, ``"fsdp"````.
+Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"ddp_find_unused_parameters_true"``, ``"xla"``, ``"deepspeed"``, ``"fsdp"``.
 
 .. code-block:: python
 
     # Running with the DistributedDataParallel strategy on 4 GPUs
     fabric = Fabric(strategy="ddp", accelerator="gpu", devices=4)
+
+    # Running with the DDP strategy with find unused parameters enabled on 4 GPUs
+    fabric = Fabric(strategy="ddp_find_unused_parameters_true", accelerator="gpu", devices=4)
 
     # Running with the DDP Spawn strategy using 4 CPU processes
     fabric = Fabric(strategy="ddp_spawn", accelerator="cpu", devices=4)

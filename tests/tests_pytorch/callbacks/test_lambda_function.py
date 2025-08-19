@@ -13,20 +13,24 @@
 # limitations under the License.
 from functools import partial
 
+import pytest
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback, LambdaCallback
 from lightning.pytorch.demos.boring_classes import BoringModel
-
 from tests_pytorch.models.test_hooks import get_members
 
 
-def test_lambda_call(tmpdir):
+def test_lambda_call(tmp_path):
     seed_everything(42)
+
+    class CustomException(Exception):
+        pass
 
     class CustomModel(BoringModel):
         def on_train_epoch_start(self):
             if self.current_epoch > 1:
-                raise KeyboardInterrupt
+                raise CustomException("Custom exception to trigger `on_exception` hooks")
 
     checker = set()
 
@@ -40,7 +44,7 @@ def test_lambda_call(tmpdir):
 
     # successful run
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -51,7 +55,7 @@ def test_lambda_call(tmpdir):
 
     # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=3,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -59,7 +63,8 @@ def test_lambda_call(tmpdir):
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    trainer.fit(model, ckpt_path=ckpt_path)
+    with pytest.raises(CustomException):
+        trainer.fit(model, ckpt_path=ckpt_path)
     trainer.test(model)
     trainer.predict(model)
 

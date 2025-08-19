@@ -16,11 +16,11 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -28,14 +28,14 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
-def test_overfit_basic(tmpdir, overfit_batches):
+def test_overfit_basic(tmp_path, overfit_batches):
     """Tests that only training_step can be used when overfitting."""
     model = BoringModel()
     model.validation_step = None
     total_train_samples = len(BoringModel().train_dataloader())
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, overfit_batches=overfit_batches, enable_model_summary=False
+        default_root_dir=tmp_path, max_epochs=1, overfit_batches=overfit_batches, enable_model_summary=False
     )
     trainer.fit(model)
 
@@ -45,7 +45,7 @@ def test_overfit_basic(tmpdir, overfit_batches):
     )
 
 
-def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
+def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
     class NonSequentialSampler(Sampler):
         def __init__(self, data_source):
             self.data_source = data_source
@@ -68,7 +68,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
             return torch.utils.data.DataLoader(dataset, sampler=sampler)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, overfit_batches=2)
 
     with pytest.warns(UserWarning, match="requested to overfit but enabled train dataloader shuffling"):
         trainer.fit(model)
@@ -170,3 +170,44 @@ def test_distributed_sampler_with_overfit_batches():
     train_sampler = trainer.train_dataloader.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False
+
+
+def test_overfit_batches_same_batch_for_train_and_val(tmp_path):
+    """Test that when overfit_batches=1, the same batch is used for both training and validation."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.train_batches = []
+            self.val_batches = []
+
+        def training_step(self, batch, batch_idx):
+            self.train_batches.append(batch)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            self.val_batches.append(batch)
+            return super().validation_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        overfit_batches=1,
+        check_val_every_n_epoch=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    # Verify that the same batch was used for both training and validation
+    assert len(model.train_batches) > 0
+    assert len(model.val_batches) > 0
+
+    # Compare the actual batch contents
+    train_batch = model.train_batches[0]
+    val_batch = model.val_batches[0]
+
+    # Check if the batches are identical
+    assert torch.equal(train_batch, val_batch), (
+        "Training and validation batches should be identical when overfit_batches=1"
+    )

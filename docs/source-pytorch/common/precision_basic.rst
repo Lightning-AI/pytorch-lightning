@@ -103,31 +103,26 @@ Precision support by accelerator
 ********************************
 
 .. list-table:: Precision with Accelerators
-   :widths: 20 20 20 20 20
+   :widths: 20 20 20 20
    :header-rows: 1
 
    * - Precision
      - CPU
      - GPU
      - TPU
-     - IPU
    * - 16 Mixed
      - No
      - Yes
      - No
-     - Yes
    * - BFloat16 Mixed
      - Yes
      - Yes
      - Yes
-     - No
    * - 32 True
-     - Yes
      - Yes
      - Yes
      - Yes
    * - 64 True
      - Yes
      - Yes
-     - No
      - No

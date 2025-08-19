@@ -16,9 +16,9 @@ defaults:
 
 jobs:
   docs-update:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -48,14 +48,13 @@ jobs:
 
       - name: Create Pull Request
         if: ${{ github.event_name != 'pull_request' && env.SHA_ACTUAL != env.SHA_LATEST }}
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: "docs: update ref to latest tutorials"
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           token: ${{ secrets.PAT_GHOST }}
           add-paths: _notebooks
-          commit-message: "update tutorials to `${{ env.SHA_LATEST }}`"
           branch: "docs/update-tutorials"
           # Delete the branch when closing pull requests, and when undeleted after merging.
           delete-branch: true
@@ -72,4 +71,3 @@ jobs:
             docs
             examples
           assignees: borda
-          reviewers: borda

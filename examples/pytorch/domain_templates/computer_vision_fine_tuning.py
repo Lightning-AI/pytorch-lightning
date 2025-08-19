@@ -46,11 +46,6 @@ from typing import Union
 
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
-from lightning.pytorch.callbacks.finetuning import BaseFinetuning
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.utilities import rank_zero_info
-from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
@@ -59,6 +54,12 @@ from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
+
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
+from lightning.pytorch.callbacks.finetuning import BaseFinetuning
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.utilities import rank_zero_info
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
@@ -119,14 +120,12 @@ class CatDogImageDataModule(LightningDataModule):
 
     @property
     def train_transform(self):
-        return transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                self.normalize_transform,
-            ]
-        )
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            self.normalize_transform,
+        ])
 
     @property
     def valid_transform(self):
@@ -269,13 +268,11 @@ class MyLightningCLI(LightningCLI):
         parser.link_arguments("data.batch_size", "model.batch_size")
         parser.link_arguments("finetuning.milestones", "model.milestones")
         parser.link_arguments("finetuning.train_bn", "model.train_bn")
-        parser.set_defaults(
-            {
-                "trainer.max_epochs": 15,
-                "trainer.enable_model_summary": False,
-                "trainer.num_sanity_val_steps": 0,
-            }
-        )
+        parser.set_defaults({
+            "trainer.max_epochs": 15,
+            "trainer.enable_model_summary": False,
+            "trainer.num_sanity_val_steps": 0,
+        })
 
 
 def cli_main():

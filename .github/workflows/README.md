@@ -8,18 +8,15 @@ Brief description of all our automation tools used for boosting development perf
 
 | workflow file                          | action                                                                                    | accelerator |
 | -------------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
-| .github/workflows/ci-tests-app.yml     | Run all tests (may need internet connectivity).                                           | CPU         |
 | .github/workflows/ci-tests-fabric.yml  | Run all tests except for accelerator-specific and standalone.                             | CPU         |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific and standalone.                             | CPU         |
 | .github/workflows/ci-tests-data.yml    | Run unit and integration tests with data pipelining.                                      | CPU         |
-| .github/workflows/ci-tests-store.yml   | Run integration tests on uploading models to cloud.                                       | CPU         |
 | .azure-pipelines/gpu-tests-fabric.yml  | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
 | .azure-pipelines/gpu-benchmarks.yml    | Run speed/memory benchmarks for parity with vanila PyTorch.                               | GPU         |
-| .github/workflows/ci-examples-app.yml  | Run integration tests with App examples.                                                  | CPU         |
 | .github/workflows/ci-flagship-apps.yml | Run end-2-end tests with full applications, including deployment to the production cloud. | CPU         |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                 | CPU         |
-| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                | TPU         |
+| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '[TPU]'                  | TPU         |
 
 \* Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases.
 
@@ -27,7 +24,6 @@ Brief description of all our automation tools used for boosting development perf
 
   - GPU: 2 x NVIDIA RTX 3090
   - TPU: [Google TPU v4-8](https://cloud.google.com/tpu/docs)
-  - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
 
 - To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup config file at [`.github/checkgroup.yml`](../checkgroup.yml).
 

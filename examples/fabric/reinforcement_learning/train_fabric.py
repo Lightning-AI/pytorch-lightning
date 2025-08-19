@@ -14,31 +14,31 @@ Requirements:
 
 
 Run it with:
-    lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
+    fabric run --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
 """
 
 import argparse
 import os
 import time
 from datetime import datetime
-from typing import Dict
 
 import gymnasium as gym
 import torch
 import torchmetrics
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
+
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
 
 
 def train(
     fabric: Fabric,
     agent: PPOLightningAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, Tensor],
+    data: dict[str, Tensor],
     global_step: int,
     args: argparse.Namespace,
 ):
@@ -80,18 +80,14 @@ def main(args: argparse.Namespace):
     # Log hyperparameters
     fabric.logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(
-                args.env_id, args.seed + rank * args.num_envs + i, rank, args.capture_video, logger.log_dir, "train"
-            )
-            for i in range(args.num_envs)
-        ]
-    )
+    envs = gym.vector.SyncVectorEnv([
+        make_env(args.env_id, args.seed + rank * args.num_envs + i, rank, args.capture_video, logger.log_dir, "train")
+        for i in range(args.num_envs)
+    ])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent and the optimizer and setup them with Fabric
@@ -150,7 +146,7 @@ def main(args: argparse.Namespace):
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
-            rewards[step] = torch.tensor(reward, device=device).view(-1)
+            rewards[step] = torch.tensor(reward, device=device, dtype=torch.float32).view(-1)
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:

@@ -15,7 +15,7 @@ ______________________________________________________________________
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="https://lightning.ai/">Lightning AI</a> •
-  <a href="https://github.com/Lightning-AI/lightning/blob/master/LICENSE">License</a>
+  <a href="https://github.com/Lightning-AI/pytorch-lightning/blob/master/LICENSE">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -28,7 +28,7 @@ ______________________________________________________________________
 [![codecov](https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/pytorch-lightning)
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://lightning.ai/docs/pytorch/stable/)[![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/pytorch-lightning/blob/master/LICENSE)
 
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/lightning)
@@ -62,7 +62,7 @@ Lightning forces the following structure to your code which makes it reusable an
 - Non-essential research code (logging, etc... this goes in Callbacks).
 - Data (use PyTorch DataLoaders or organize them into a LightningDataModule).
 
-Once you do this, you can train on multiple-GPUs, TPUs, CPUs, IPUs, HPUs and even in 16-bit precision without changing your code!
+Once you do this, you can train on multiple-GPUs, TPUs, CPUs, HPUs and even in 16-bit precision without changing your code!
 
 [Get started in just 15 minutes](https://lightning.ai/docs/pytorch/latest/starter/introduction.html)
 
@@ -79,8 +79,7 @@ Lightning is rigorously tested across multiple CPUs, GPUs and TPUs and against m
 
 |       System / PyTorch ver.        |                                                    1.12                                                     | 1.13                                                                                                        | 2.0                                                                                                         | 2.1                                                                                                               |
 | :--------------------------------: | :---------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-|        Linux py3.9 \[GPUs\]        |                                                                                                             |                                                                                                             |                                                                                                             | ![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Fpytorch-lightning%20%28GPUs%29) |
-|        Linux py3.9 \[TPUs\]        |                                                                                                             |                                                                                                             | ![Test PyTorch - TPU](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml/badge.svg)  |                                                                                                                   |
+|         Linux py3.9 [GPUs]         |                                                                                                             |                                                                                                             |                                                                                                             | ![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Fpytorch-lightning%20%28GPUs%29) |
 |  Linux (multiple Python versions)  | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)       |
 |   OSX (multiple Python versions)   | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)       |
 | Windows (multiple Python versions) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg) | ![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)       |
@@ -174,7 +173,7 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop. It is independent of forward
-        x, y = batch
+        x, _ = batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)
@@ -371,7 +370,7 @@ The PyTorch Lightning community is maintained by
 - [10+ core contributors](https://lightning.ai/docs/pytorch/stable/community/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 680+ active community contributors.
 
-Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
+Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a)
 
 PyTorch Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 

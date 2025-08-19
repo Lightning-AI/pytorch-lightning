@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from contextlib import contextmanager
-from typing import Any, Callable, ContextManager, Generator, Optional, Tuple, Type
+from collections.abc import Generator
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Callable, Optional
 
 import torch
 import torch.distributed as dist
@@ -21,7 +22,6 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.callbacks.timer import Timer
@@ -53,7 +53,7 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: Optional[int],
     trainer: "pl.Trainer",
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the values
     the user has selected.
 
@@ -160,19 +160,16 @@ def _no_grad_context(loop_run: Callable) -> Callable:
             raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
-        context_manager: Type[ContextManager]
-        if _distributed_is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
+        context_manager: type[AbstractContextManager]
+        if _distributed_is_initialized() and dist.get_backend() == "gloo":
             # gloo backend does not work properly.
-            # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
+            # https://github.com/Lightning-AI/pytorch-lightning/pull/12715/files#r854569110
             # TODO: explore why and possibly open an issue in PyTorch repository
             context_manager = torch.no_grad
-        elif isinstance(self.trainer.accelerator, XLAAccelerator):  # noqa: SIM114
+        elif isinstance(self.trainer.accelerator, XLAAccelerator):
             context_manager = torch.no_grad
-        elif isinstance(self.trainer.strategy, FSDPStrategy):  # noqa: SIM114
+        elif isinstance(self.trainer.strategy, FSDPStrategy):
             # https://github.com/pytorch/pytorch/issues/95957
-            context_manager = torch.no_grad
-        elif _TORCH_EQUAL_2_0 and self.trainer.lightning_module._compiler_ctx is not None:
-            # avoid: `RuntimeError: Inference tensors do not track version counter` fixed in v2.1
             context_manager = torch.no_grad
         elif self.inference_mode:
             context_manager = torch.inference_mode
@@ -185,7 +182,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
 
 
 def _verify_dataloader_idx_requirement(
-    hooks: Tuple[str, ...], is_expected: bool, stage: RunningStage, pl_module: "pl.LightningModule"
+    hooks: tuple[str, ...], is_expected: bool, stage: RunningStage, pl_module: "pl.LightningModule"
 ) -> None:
     for hook in hooks:
         fx = getattr(pl_module, hook)

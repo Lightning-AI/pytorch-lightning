@@ -175,7 +175,7 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
+Supports passing different accelerator types (``"cpu", "gpu", "tpu", "hpu", "auto"``)
 as well as custom accelerator instances.
 
 .. code-block:: python
@@ -392,9 +392,6 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 
     # Training with TPU Accelerator using 8 tpu cores
     trainer = Trainer(devices="auto", accelerator="tpu")
-
-    # Training with IPU Accelerator using 4 ipus
-    trainer = Trainer(devices="auto", accelerator="ipu")
 
 .. note::
 
@@ -762,6 +759,9 @@ overfit_batches
 Uses this much data of the training & validation set.
 If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
+* When set to a value > 0, sequential sampling (no shuffling) is used
+* Consistent batches are used for both training and validation across epochs, but training and validation use different sets of data
+
 Useful for quickly debugging or trying to overfit on purpose.
 
 .. testcode::
@@ -772,11 +772,11 @@ Useful for quickly debugging or trying to overfit on purpose.
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 
-    # overfit on 10 of the same batches
+    # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
 
-plugins
-^^^^^^^
+    # debug using a single consistent train batch and a single consistent val batch
+
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
@@ -898,7 +898,7 @@ DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 
     # if 0 (default)
     train_loader = model.train_dataloader()
-    # or if using data module: datamodule.train_dataloader()
+    # or if using data module: datamodule.train_dataloaders()
     for epoch in epochs:
         for batch in train_loader:
             ...
@@ -1080,6 +1080,32 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
     trainer = Trainer(inference_mode=False)
     trainer.validate(model)
 
+enable_autolog_hparams
+^^^^^^^^^^^^^^^^^^^^^^
+
+Whether to log hyperparameters at the start of a run. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_autolog_hparams=True)
+
+    # disable logging hyperparams
+    trainer = Trainer(enable_autolog_hparams=False)
+
+With the parameter set to false, you can add custom code to log hyperparameters.
+
+.. code-block:: python
+
+    model = LitModel()
+    trainer = Trainer(enable_autolog_hparams=False)
+    for logger in trainer.loggers:
+        if isinstance(logger, lightning.pytorch.loggers.CSVLogger):
+            logger.log_hyperparams(hparams_dict_1)
+        else:
+            logger.log_hyperparams(hparams_dict_2)
+
+You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log.
 
 -----
 
@@ -1232,7 +1258,10 @@ dataloader if hadn't been set up already.
         optimizer = ...
         stepping_batches = self.trainer.estimated_stepping_batches
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
-        return [optimizer], [scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
+        }
 
 state
 *****

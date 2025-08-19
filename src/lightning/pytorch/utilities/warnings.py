@@ -12,5 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Warning-related utilities."""
+
 # backwards compatibility
 from lightning.fabric.utilities.warnings import PossibleUserWarning  # noqa: F401

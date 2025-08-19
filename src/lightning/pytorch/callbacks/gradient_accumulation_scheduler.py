@@ -20,14 +20,13 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -65,7 +64,7 @@ class GradientAccumulationScheduler(Callback):
 
     """
 
-    def __init__(self, scheduling: Dict[int, int]):
+    def __init__(self, scheduling: dict[int, int]):
         super().__init__()
 
         if not scheduling:  # empty dict error
@@ -125,13 +124,7 @@ class GradientAccumulationScheduler(Callback):
         # local import to avoid circular import
         from lightning.pytorch.strategies import DeepSpeedStrategy
 
-        unsupported_strategies = [DeepSpeedStrategy]
-        if _LIGHTNING_COLOSSALAI_AVAILABLE:
-            from lightning_colossalai import ColossalAIStrategy
-
-            unsupported_strategies.append(ColossalAIStrategy)
-
-        if isinstance(trainer.strategy, tuple(unsupported_strategies)):
+        if isinstance(trainer.strategy, DeepSpeedStrategy):
             raise RuntimeError(
                 f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches` changing"
                 " between epochs."
