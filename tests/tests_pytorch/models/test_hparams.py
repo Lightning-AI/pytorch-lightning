@@ -94,7 +94,7 @@ class SaveHparamsDecoratedDataModule(BoringDataModule):
 # -------------------------
 # STANDARD TESTS
 # -------------------------
-def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwrite=False, weights_only=True):
+def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwrite=False):
     """Tests for the existence of an arg 'test_arg=14'."""
     obj = datamodule if issubclass(cls, LightningDataModule) else model
 
@@ -108,20 +108,20 @@ def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwr
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=weights_only)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
 
     assert cls.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
 
     # verify that model loads correctly
-    obj2 = cls.load_from_checkpoint(raw_checkpoint_path, weights_only=weights_only)
+    obj2 = cls.load_from_checkpoint(raw_checkpoint_path)
     assert obj2.hparams.test_arg == 14
 
     assert isinstance(obj2.hparams, hparam_type)
 
     if try_overwrite:
         # verify that we can overwrite the property
-        obj3 = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78, weights_only=weights_only)
+        obj3 = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
         assert obj3.hparams.test_arg == 78
 
     return raw_checkpoint_path
@@ -176,7 +176,7 @@ def test_omega_conf_hparams(tmp_path, cls):
     assert isinstance(obj.hparams, Container)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule, weights_only=False)
+    raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule)
     obj2 = cls.load_from_checkpoint(raw_checkpoint_path, weights_only=False)
 
     assert isinstance(obj2.hparams, Container)

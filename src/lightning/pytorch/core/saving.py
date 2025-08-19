@@ -61,10 +61,6 @@ def _load_from_checkpoint(
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     map_location = map_location or _default_map_location
 
-    if weights_only is None:
-        log.debug("`weights_only` not specified, defaulting to `True`.")
-        weights_only = True
-
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location, weights_only=weights_only)
 

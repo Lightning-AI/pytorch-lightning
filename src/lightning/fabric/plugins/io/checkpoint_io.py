@@ -48,7 +48,7 @@ class CheckpointIO(ABC):
 
     @abstractmethod
     def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Any] = None, weights_only: bool = True
+        self, path: _PATH, map_location: Optional[Any] = None, weights_only: Optional[bool] = None
     ) -> dict[str, Any]:
         """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
@@ -56,10 +56,10 @@ class CheckpointIO(ABC):
             path: Path to checkpoint
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
                 locations.
-            weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other
-            primitive types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
-                ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
-                ``weights_only=True``. For more information, please refer to the
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Returns: The loaded checkpoint.
