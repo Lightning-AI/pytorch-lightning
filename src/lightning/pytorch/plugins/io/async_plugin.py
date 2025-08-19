@@ -35,10 +35,13 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     """
 
+    _executor: Optional[ThreadPoolExecutor]
+    _error: Optional[BaseException]
+
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
         super().__init__(checkpoint_io)
-        self._executor: Optional[ThreadPoolExecutor] = None
-        self._error: Optional[BaseException] = None
+        self._executor = None
+        self._error = None
 
     # CheckpointIO doesn't have a setup method so we have to do something like.
     def _ensure_setup(self) -> None:
@@ -50,7 +53,6 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         """
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=1)
-            self._error: Optional[BaseException] = None
 
     @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
