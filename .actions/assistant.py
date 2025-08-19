@@ -341,19 +341,6 @@ def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> N
 
 
 class AssistantCLI:
-    @staticmethod
-    def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fopen:
-            req = fopen.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fwrite:
-            fwrite.write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            print(fname)
-            AssistantCLI._replace_min(fname)
 
     @staticmethod
     def copy_replace_imports(
