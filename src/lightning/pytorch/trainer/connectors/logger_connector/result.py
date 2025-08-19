@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Generator
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -24,17 +25,16 @@ from typing_extensions import TypedDict, override
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 _VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
-_OUT_DICT = Dict[str, Tensor]
-_PBAR_DICT = Dict[str, float]
+_OUT_DICT = dict[str, Tensor]
+_PBAR_DICT = dict[str, float]
 
 
 class _METRICS(TypedDict):
@@ -92,7 +92,7 @@ class _Sync:
         fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
         # save the function as `_fn` as the meta are being re-created and the object references need to match.
         # ignore typing, bad support for `partial`: mypy/issues/1484
-        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore [arg-type]
+        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore[unused-ignore]
 
     @property
     def __call__(self) -> Any:
@@ -112,7 +112,7 @@ class _Metadata:
     on_step: bool = False
     on_epoch: bool = True
     # https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -157,7 +157,7 @@ class _Metadata:
 
     def forked_name(self, on_step: bool) -> str:
         if self.forked:
-            return f'{self.name}_{"step" if on_step else "epoch"}'
+            return f"{self.name}_{'step' if on_step else 'epoch'}"
         return self.name
 
     @property
@@ -334,7 +334,7 @@ class _ResultCollection(dict):
         self.dataloader_idx: Optional[int] = None
 
     @property
-    def result_metrics(self) -> List[_ResultMetric]:
+    def result_metrics(self) -> list[_ResultMetric]:
         return list(self.values())
 
     def _extract_batch_size(self, value: _ResultMetric, batch_size: Optional[int], meta: _Metadata) -> int:
@@ -352,6 +352,7 @@ class _ResultCollection(dict):
 
         return batch_size
 
+    @torch.compiler.disable
     def log(
         self,
         fx: str,
@@ -362,7 +363,7 @@ class _ResultCollection(dict):
         on_step: bool = False,
         on_epoch: bool = True,
         # https://github.com/pytorch/pytorch/issues/96197
-        reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
+        reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
@@ -401,26 +402,20 @@ class _ResultCollection(dict):
 
         # register logged value if it doesn't exist
         if key not in self:
-            self.register_key(key, meta, value)
+            metric = _ResultMetric(meta, isinstance(value, Tensor))
+            self[key] = metric
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
             raise MisconfigurationException(
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
+        self[key].to(value.device)
 
         batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
-    def register_key(self, key: str, meta: _Metadata, value: _VALUE) -> None:
-        """Create one _ResultMetric object per value.
-
-        Value can be provided as a nested collection
-
-        """
-        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
-        self[key] = metric
-
+    @torch.compiler.disable
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
@@ -462,7 +457,7 @@ class _ResultCollection(dict):
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items() if not v.has_reset and self.dataloader_idx == v.meta.dataloader_idx)
 
-    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> Tuple[str, str]:
+    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_dataloader_idx = result_metric.meta.add_dataloader_idx

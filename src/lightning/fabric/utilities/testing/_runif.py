@@ -14,7 +14,7 @@
 import operator
 import os
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import torch
 from lightning_utilities.core.imports import compare_version
@@ -24,7 +24,7 @@ from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 
 def _runif_reasons(
@@ -40,11 +40,12 @@ def _runif_reasons(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
-) -> Tuple[List[str], Dict[str, bool]]:
+    linux_only: bool = False,
+) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:
-        min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
+        min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -112,17 +113,16 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not _DEEPSPEED_AVAILABLE:
+    if deepspeed and not (_DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4):
         reasons.append("Deepspeed")
 
     if dynamo:
-        if _TORCH_GREATER_EQUAL_2_1:
-            from torch._dynamo.eval_frame import is_dynamo_supported
+        from torch._dynamo.eval_frame import is_dynamo_supported
 
-            cond = not is_dynamo_supported()
-        else:
-            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-        if cond:
+        if not is_dynamo_supported():
             reasons.append("torch.dynamo")
+
+    if linux_only and sys.platform != "linux":
+        reasons.append("only linux")
 
     return reasons, kwargs

@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Mapping, Optional, OrderedDict
+from typing import Any, Callable, Optional
 
 import torch
 from torch import Tensor
@@ -46,7 +48,7 @@ class ClosureResult(OutputResult):
 
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor] = field(init=False, default=None)
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._clone_loss()
@@ -83,7 +85,7 @@ class ClosureResult(OutputResult):
         return cls(closure_loss, extra=extra)
 
     @override
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return {"loss": self.loss, **self.extra}
 
 
@@ -145,7 +147,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = Dict[str, Any]
+_OUTPUTS_TYPE = dict[str, Any]
 
 
 class _AutomaticOptimization(_Loop):
@@ -314,8 +316,14 @@ class _AutomaticOptimization(_Loop):
         """
         trainer = self.trainer
 
-        # manually capture logged metrics
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
+
+        if training_step_output is None and trainer.world_size > 1:
+            raise RuntimeError(
+                "Skipping the `training_step` by returning None in distributed training is not supported."
+                " It is recommended that you rewrite your training logic to avoid having to skip the step in the first"
+                " place."
+            )
 
         return self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)

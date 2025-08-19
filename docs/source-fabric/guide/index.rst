@@ -167,8 +167,8 @@ Advanced Topics
 
 .. displayitem::
     :header: Train models with billions of parameters
-    :description: Train the largest models with FSDP across multiple GPUs and machines
-    :button_link: ../advanced/model_parallel/fsdp.html
+    :description: Train the largest models with FSDP/TP across multiple GPUs and machines
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
     :height: 160
     :tag: advanced

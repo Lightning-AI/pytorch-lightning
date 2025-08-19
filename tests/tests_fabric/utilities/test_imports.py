@@ -23,6 +23,13 @@ def test_import_fabric_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
+        try:
+           # PyTorch 2.5 relies on torch,distributed._composable.fsdp not
+           # existing with USE_DISTRIBUTED=0
+           import torch._dynamo.variables.functions
+           torch._dynamo.variables.functions._fsdp_param_group = None
+        except ImportError:
+           pass
 
         # pretend torch.distributed not available
         for name in list(torch.distributed.__dict__.keys()):
@@ -30,6 +37,11 @@ def test_import_fabric_with_torch_dist_unavailable():
                 delattr(torch.distributed, name)
 
         torch.distributed.is_available = lambda: False
+
+        # needed for Dynamo in PT 2.5+ compare the torch.distributed source
+        class _ProcessGroupStub:
+            pass
+        torch.distributed.ProcessGroup = _ProcessGroupStub
 
         import lightning.fabric
         """

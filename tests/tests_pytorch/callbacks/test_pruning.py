@@ -19,13 +19,13 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
+from torch import nn
+from torch.nn import Sequential
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.nn import Sequential
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -273,7 +273,7 @@ def test_multiple_pruning_callbacks(tmp_path, caplog, make_pruning_permanent: bo
     filepath = str(tmp_path / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_state_dict(torch.load(filepath), strict=False)
+    model.load_state_dict(torch.load(filepath, weights_only=True), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 
@@ -338,3 +338,70 @@ def test_permanent_when_model_is_saved_multiple_times(
     assert not hasattr(model.layer.mlp_3, "weight_orig")
     model = TestModel.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
     assert not hasattr(model.layer.mlp_3, "weight_orig")
+
+
+def test_sanitize_parameters_explicit_check():
+    """Test the sanitize_parameters_to_prune method with various attribute types."""
+
+    class TestModule(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = nn.Parameter(torch.randn(5, 5))
+            self.bias = nn.Parameter(torch.randn(5))
+            self.some_bool = True
+            self.some_tensor = torch.randn(3, 3)  # Regular tensor, not parameter
+            self.some_string = "test"
+            self.some_none = None
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.test_module = TestModule()
+
+    model = TestModel()
+
+    parameters_to_prune = ModelPruning.sanitize_parameters_to_prune(
+        model,
+        parameters_to_prune=(),
+        parameter_names=["weight", "bias", "some_bool", "some_tensor", "some_string", "some_none"],
+    )
+
+    param_names_found = set()
+    for module, param_name in parameters_to_prune:
+        param = getattr(module, param_name)
+        assert isinstance(param, nn.Parameter), f"Expected Parameter, got {type(param)}"
+        param_names_found.add(param_name)
+
+    assert "weight" in param_names_found
+    assert "bias" in param_names_found
+    assert "some_bool" not in param_names_found
+    assert "some_tensor" not in param_names_found
+    assert "some_string" not in param_names_found
+    assert "some_none" not in param_names_found
+
+
+def test_original_issue_reproduction():
+    """Issue: https://github.com/Lightning-AI/pytorch-lightning/issues/10835."""
+
+    class ProblematicModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = Sequential(
+                OrderedDict([
+                    ("mlp_1", nn.Linear(32, 32)),
+                    ("mlp_2", nn.Linear(32, 2)),
+                ])
+            )
+            # Add boolean attributes that would cause the original error
+            self.layer.mlp_1.training = True
+            self.layer.mlp_2.requires_grad = True
+
+    model = ProblematicModel()
+
+    parameters_to_prune = ModelPruning.sanitize_parameters_to_prune(
+        model, parameters_to_prune=(), parameter_names=["weight", "bias", "training", "requires_grad"]
+    )
+
+    for module, param_name in parameters_to_prune:
+        param = getattr(module, param_name)
+        assert isinstance(param, nn.Parameter), f"Non-parameter found: {type(param)}"

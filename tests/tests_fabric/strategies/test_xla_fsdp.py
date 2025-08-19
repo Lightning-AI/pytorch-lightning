@@ -18,12 +18,12 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch.nn
 import torch.nn as nn
+from torch.optim import Adam
+
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_auto_wrapper, _XLAFSDPBackwardSyncControl
-from torch.optim import Adam
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -48,9 +48,12 @@ def test_xla_fsdp_no_backward_sync():
     strategy = XLAFSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _XLAFSDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(object(), True):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(object(), True),
+    ):
         pass
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)

@@ -48,6 +48,7 @@ callbacks
     ThroughputMonitor
     Timer
     TQDMProgressBar
+    WeightAveraging
 
 cli
 -----
@@ -214,6 +215,7 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
+    ModelParallelStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleDeviceXLAStrategy

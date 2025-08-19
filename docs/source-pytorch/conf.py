@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -69,11 +70,9 @@ if _COPY_NOTEBOOKS:
         _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
-        # TODO(@aniketmaurya): Complete converting the missing items and add them back
-        ignore=[
-            # "course_UvA-DL/13-contrastive-learning",
-            "lightning_examples/warp-drive",
-        ],
+        # ignore=[
+        #     "lightning_examples/warp-drive",
+        # ],
     )
 
 
@@ -91,8 +90,15 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.4.0",
+    # checkout="refs/tags/1.6.0",
+    checkout="5549fa927d5501d31aac0c9b2ed479be62a02cbc",
 )
+# the HPU also need some images
+URL_RAW_DOCS_HABANA = "https://raw.githubusercontent.com/Lightning-AI/lightning-Habana/1.5.0/docs/source"
+for img in ["_images/HPUProfiler.png", "_images/IGP.png"]:
+    img_ = os.path.join(_PATH_HERE, "integrations", "hpu", img)
+    os.makedirs(os.path.dirname(img_), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_HABANA}/{img}", img_)
 
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
@@ -356,8 +362,6 @@ intersphinx_mapping = {
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
-    # needed for referencing App from lightning scope
-    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
@@ -373,6 +377,7 @@ nitpick_ignore = [
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
+    ('py:class', 'tensorboardX.SummaryWriter'),
     ("py:class", "AveragedModel"),
     ("py:class", "CometExperiment"),
     ("py:meth", "DataModule.__init__"),
@@ -459,8 +464,11 @@ nitpick_ignore = [
     ("py:obj", "lightning.pytorch.utilities.memory.is_out_of_cpu_memory"),
     ("py:func", "lightning.pytorch.utilities.rank_zero.rank_zero_only"),
     ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfig"),
+    ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfigType"),
+    ("py:class", "lightning.pytorch.utilities.types.OptimizerConfig"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
     ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
+    ("py:class", "lightning_habana.pytorch.strategies.HPUDDPStrategy"),
     ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
     ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
     ("py:obj", "logger.experiment"),
@@ -479,11 +487,13 @@ nitpick_ignore = [
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
+    ("py:meth", "toggled_optimizer"),
     ("py:class", "torch.ScriptModule"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.CPUOffload"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.ShardingStrategy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:func", "torch.inference_mode"),
     ("py:meth", "torch.mean"),
@@ -625,8 +635,10 @@ linkcheck_anchors = False
 # A timeout value, in seconds, for the linkcheck builder.
 linkcheck_timeout = 60
 
-# ignore all links in any CHANGELOG file
-linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+linkcheck_exclude_documents = [
+    r"^(.*\/)*CHANGELOG.*$",  # ignore all links in any CHANGELOG file
+    r"notebooks/.*",  # ignore notebooks, it's a submodule
+]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
@@ -634,7 +646,11 @@ linkcheck_ignore = [
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
+    "https://developer.habana.ai", # returns 403 error but redirects to intel.com documentation
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
+    "https://openai.com/blog/.*",
+    "https://openai.com/index/*",
+    "https://tinyurl.com/.*",  # has a human verification check on redirect
 ]

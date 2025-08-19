@@ -14,14 +14,17 @@
 import inspect
 import os
 import sys
-from typing import Any, Dict
+from contextlib import nullcontext
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.test.warning import no_warning_call
+
+import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -53,6 +56,7 @@ from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAFSDPStrategy,
@@ -61,8 +65,6 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning_utilities.test.warning import no_warning_call
-
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
@@ -163,7 +165,7 @@ def test_custom_accelerator(*_):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:
@@ -192,23 +194,23 @@ def test_custom_accelerator(*_):
     class Prec(Precision):
         pass
 
-    class Strat(SingleDeviceStrategy):
+    class TestStrategy(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
-    class Strat(DDPStrategy):
+    class TestStrategy(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
@@ -401,6 +403,13 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         connector = _Connector(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
+
+
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_mps_enabled_with_float16_or_bfloat16_precision(precision):
+    connector = _Connector(accelerator="mps", precision=precision)
+    assert connector.precision.device == "mps"
 
 
 def test_invalid_accelerator_choice():
@@ -866,6 +875,18 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
+@RunIf(min_torch="2.4")
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_precision_selection_model_parallel(_, precision, raises):
+    error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
+    with error_context:
+        _Connector(precision=precision, strategy=ModelParallelStrategy(lambda x, _: x))
+
+
 def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
@@ -946,28 +967,33 @@ def test_arguments_from_environment_collision():
     with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
         _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu", "LT_CLI_USED": "1"}), pytest.raises(
-        ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"
+    with (
+        mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu", "LT_CLI_USED": "1"}),
+        pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"),
     ):
         _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp", "LT_CLI_USED": "1"}), pytest.raises(
-        ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"
+    with (
+        mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp", "LT_CLI_USED": "1"}),
+        pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"),
     ):
         _Connector(strategy="ddp_spawn")
 
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_CLI_USED": "1"}), pytest.raises(
-        ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"
+    with (
+        mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_CLI_USED": "1"}),
+        pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"),
     ):
         _Connector(devices=3)
 
-    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3", "LT_CLI_USED": "1"}), pytest.raises(
-        ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"
+    with (
+        mock.patch.dict(os.environ, {"LT_NUM_NODES": "3", "LT_CLI_USED": "1"}),
+        pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"),
     ):
         _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed", "LT_CLI_USED": "1"}), pytest.raises(
-        ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
+    with (
+        mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed", "LT_CLI_USED": "1"}),
+        pytest.raises(ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"),
     ):
         _Connector(precision="64-true")
 
@@ -977,6 +1003,16 @@ def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
         _Connector(accelerator="cpu", strategy="fsdp")
+
+    class FSDPStrategySubclass(FSDPStrategy):
+        pass
+
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
+    # we allow subclasses of FSDPStrategy to be used with other accelerators
+    _Connector(accelerator="cpu", strategy=FSDPStrategySubclass())
+    _Connector(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
 def test_connector_defaults_match_fabric_defaults():

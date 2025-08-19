@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import warnings
 from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
+import lightning.fabric
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -37,10 +42,6 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -289,7 +290,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 def test_setup_optimizer_on_meta_device():
     """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
@@ -735,6 +736,22 @@ def test_autocast():
     fabric._precision.forward_context().__exit__.assert_called()
 
 
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_autocast_does_not_use_cuda_on_mps(precision):
+    """Ensure Fabric.autocast on MPS does not fall back to CUDA when using (bf)16-mixed precision."""
+    fabric = Fabric(accelerator="mps", precision=precision)
+    fabric.launch()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with fabric.autocast():
+            pass
+
+    for warning in w:
+        assert "device_type of 'cuda'" not in str(warning.message)
+
+
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
@@ -746,9 +763,10 @@ def test_no_backward_sync():
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(
-        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
-    ), fabric.no_backward_sync(model):
+    with (
+        pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"),
+        fabric.no_backward_sync(model),
+    ):
         pass
 
     # for single-device strategies, it becomes a no-op without warning
@@ -867,8 +885,6 @@ def test_init_module_context(monkeypatch):
 
 
 def test_init_tensor_context(monkeypatch):
-    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)

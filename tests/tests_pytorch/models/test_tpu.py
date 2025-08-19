@@ -17,6 +17,9 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
@@ -25,9 +28,6 @@ from lightning.pytorch.strategies import XLAStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch.utils.data import DataLoader
-
-import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -270,7 +270,7 @@ def test_if_test_works_with_checkpoint_false(tmp_path):
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 

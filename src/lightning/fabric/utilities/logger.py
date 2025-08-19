@@ -11,16 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import inspect
 import json
 from argparse import Namespace
+from collections.abc import Mapping, MutableMapping
 from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
+from typing import Any, Optional, Union
 
-import numpy as np
 from torch import Tensor
 
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
-def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[str, Any]:
+
+def _convert_params(params: Optional[Union[dict[str, Any], Namespace]]) -> dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
 
     Args:
@@ -40,7 +44,7 @@ def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[
     return params
 
 
-def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_callable_params(params: dict[str, Any]) -> dict[str, Any]:
     """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
 
     Args:
@@ -52,8 +56,11 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def _sanitize_callable(val: Any) -> Any:
-        # Give them one chance to return a value. Don't go rabbit hole of recursive call
+        if inspect.isclass(val):
+            # If it's a class, don't try to instantiate it, just return the name
+            return val.__name__
         if callable(val):
+            # Callables get a chance to return a name
             try:
                 _val = val()
                 if callable(_val):
@@ -67,7 +74,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return {key: _sanitize_callable(val) for key, val in params.items()}
 
 
-def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:
+def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> dict[str, Any]:
     """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
     Args:
@@ -84,24 +91,30 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'a/b': 123}
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
+        >>> _flatten_dict({"dl": [{"a": 1, "c": 3}, {"b": 2, "d": 5}], "l": [1, 2, 3, 4]})
+        {'dl/0/a': 1, 'dl/0/c': 3, 'dl/1/b': 2, 'dl/1/d': 5, 'l': [1, 2, 3, 4]}
 
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
-        if is_dataclass(v):
+        if is_dataclass(v) and not isinstance(v, type):
             v = asdict(v)
         elif isinstance(v, Namespace):
             v = vars(v)
 
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
+        # Also handle the case where v is a list of dictionaries
+        elif isinstance(v, list) and all(isinstance(item, MutableMapping) for item in v):
+            for i, item in enumerate(v):
+                result = {**result, **_flatten_dict(item, parent_key=f"{new_key}/{i}", delimiter=delimiter)}
         else:
             result[new_key] = v
     return result
 
 
-def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Returns params with non-primitvies converted to strings for logging.
 
     >>> import torch
@@ -124,15 +137,17 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
     """
     for k in params:
-        # convert relevant np scalars to python types first (instead of str)
-        if isinstance(params[k], (np.bool_, np.integer, np.floating)):
-            params[k] = params[k].item()
-        elif type(params[k]) not in [bool, int, float, str, Tensor]:
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+        if type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
 
 
-def _convert_json_serializable(params: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_json_serializable(params: dict[str, Any]) -> dict[str, Any]:
     """Convert non-serializable objects in params to string."""
     return {k: str(v) if not _is_json_serializable(v) else v for k, v in params.items()}
 

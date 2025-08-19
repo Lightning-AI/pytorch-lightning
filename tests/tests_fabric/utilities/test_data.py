@@ -4,10 +4,14 @@ import random
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+
+import lightning.fabric
 from lightning.fabric.utilities.data import (
     AttributeDict,
     _get_dataloader_init_args_and_kwargs,
@@ -21,10 +25,6 @@ from lightning.fabric.utilities.data import (
     suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler
-
 from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 
 
@@ -53,8 +53,9 @@ def test_has_len():
 def test_replace_dunder_methods_multiple_loaders_without_init():
     """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
     method (the one we are wrapping), it can happen, that `hasattr(cls, "__old__init__")` is True because of parent
-    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error occured
-    only sometimes because it depends on the order in which we are iterating over a set of classes we are patching.
+    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
+    occurred only sometimes because it depends on the order in which we are iterating over a set of classes we are
+    patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
     and are children of `DataLoader`. We are testing that a) context manager `_replace_dunder_method` exits cleanly, and

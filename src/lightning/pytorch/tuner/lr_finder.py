@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -71,25 +71,9 @@ class _LRFinder:
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
-
         lr_min: lr to start search from
-
         lr_max: lr to stop search
-
         num_training: number of steps to take between lr_min and lr_max
-
-    Example::
-        # Run lr finder
-        lr_finder = trainer.lr_find(model)
-
-        # Results stored in
-        lr_finder.results
-
-        # Plot using
-        lr_finder.plot()
-
-        # Get suggestion
-        lr = lr_finder.suggestion()
 
     """
 
@@ -101,7 +85,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
@@ -132,14 +116,15 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
+    def plot(
+        self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None
+    ) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
-
             show: if True, will show figure
-
             ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
+
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
@@ -151,10 +136,11 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
+        fig: Optional[Union[plt.Figure, plt.SubFigure]]
         if ax is None:
             fig, ax = plt.subplots()
         else:
-            fig = ax.figure  # type: ignore[assignment]
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -187,10 +173,13 @@ class _LRFinder:
 
         """
         losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
-        losses = losses[torch.isfinite(losses)]
+        lrs = torch.tensor(self.results["lr"][skip_begin:-skip_end])
+        is_finite = torch.isfinite(losses)
+        losses = losses[is_finite]
+        lrs = lrs[is_finite]
 
         if len(losses) < 2:
-            # computing np.gradient requires at least 2 points
+            # computing torch.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
                 " iteration limits or the size of your dataset/dataloader."
@@ -198,12 +187,12 @@ class _LRFinder:
             self._optimal_idx = None
             return None
 
-        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
-        #   incorrectly shifted by an offset
-        gradients = torch.gradient(losses)[0]  # Unpack the tuple
+        gradients = torch.gradient(losses, spacing=[lrs])[0]  # Compute the gradient of losses w.r.t. learning rates
         min_grad = torch.argmin(gradients).item()
-
-        self._optimal_idx = min_grad + skip_begin
+        all_losses_idx = torch.arange(len(self.results["loss"]))
+        idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
+        idx_finite = idx_non_skipped[is_finite]
+        self._optimal_idx = idx_finite[min_grad].item()  # type: ignore
         return self.results["lr"][self._optimal_idx]
 
 
@@ -287,26 +276,34 @@ def _lr_find(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
 
-    # Update lr attr if required
+    # Update results across ranks
     lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
-    if update_attr:
-        lr = lr_finder.suggestion()
 
-        # TODO: log lr.results to self.logger
-        if lr is not None:
-            lightning_setattr(model, attr_name, lr)
-            log.info(f"Learning rate set to {lr}")
-
-    # Restore initial state of model
+    # Restore initial state of model (this will also restore the original optimizer state)
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
+    trainer.fit_loop._combined_loader = None  # reset data fetcher to avoid issues with the next fit
+    trainer.fit_loop.setup_data()
 
+    # Apply LR suggestion after restoring so it persists for the real training run
+    # When used as a callback, the suggestion would otherwise be lost due to checkpoint restore
+    if update_attr:
+        lr = lr_finder.suggestion()
+        if lr is not None:
+            # update the attribute on the LightningModule (e.g., lr or learning_rate)
+            lightning_setattr(model, attr_name, lr)
+            # also update the currently active optimizer(s) so training continues with the suggested LR
+            for opt in trainer.optimizers or []:
+                for pg in opt.param_groups:
+                    pg["lr"] = lr
+            log.info(f"Learning rate set to {lr}")
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
@@ -331,7 +328,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.limit_val_batches = num_training
 
 
-def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
@@ -372,8 +369,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses: List[float] = []
-        self.lrs: List[float] = []
+        self.losses: list[float] = []
+        self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -459,7 +456,7 @@ class _LinearLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -471,7 +468,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
@@ -496,7 +493,7 @@ class _ExponentialLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -508,11 +505,11 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False

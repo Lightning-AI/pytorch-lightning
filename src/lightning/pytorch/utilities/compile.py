@@ -17,7 +17,6 @@ import torch
 from torch._dynamo import OptimizedModule
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
 from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
@@ -56,11 +55,7 @@ def from_compiled(model: OptimizedModule) -> "pl.LightningModule":
     }
 
     orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[method-assign]
-    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
-        orig_module.forward._torchdynamo_inline = orig_module.forward
     orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[method-assign]
-    if not _TORCH_GREATER_EQUAL_2_1:  # https://github.com/pytorch/pytorch/issues/95630
-        orig_module.training_step._torchdynamo_inline = orig_module.training_step
     orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[method-assign]
     orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[method-assign]
     orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[method-assign]

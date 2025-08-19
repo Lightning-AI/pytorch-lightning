@@ -3,6 +3,7 @@
    :maxdepth: 1
    :hidden:
 
+   2D Parallelism <../advanced/model_parallel/tp_fsdp>
    Accelerators <../extensions/accelerator>
    Callback <../extensions/callbacks>
    Checkpointing <../common/checkpointing>
@@ -28,7 +29,7 @@
    TPU <../accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <../model/build_model.rst>
-   Model Parallel <../advanced/model_parallel>
+   Model Parallel <../advanced/model_parallel/index>
    Plugins <../extensions/plugins>
    Progress bar <../common/progress_bar>
    Production <../deploy/production_advanced>
@@ -41,12 +42,13 @@
    Strategy registry <../advanced/strategy_registry>
    Strategy integrations <../integrations/strategies/index>
    Style guide <../starter/style_guide>
-   SWA <../advanced/training_tricks>
    SLURM <../clouds/cluster_advanced>
+   Tensor Parallel <../advanced/model_parallel/tp>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
    TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
+   Weight averaging <../advanced/training_tricks>
 
 
 ########
@@ -57,6 +59,13 @@ Glossary
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+   :header: 2D Parallelism
+   :description: Combine Tensor Parallelism with FSDP (2D Parallel) to train efficiently on 100s of GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/tp_fsdp.html
+   :height: 100
 
 .. displayitem::
    :header: Accelerators
@@ -200,7 +209,7 @@ Glossary
 
 .. displayitem::
    :header: LightningModule
-   :description: A base class organizug your neural network module
+   :description: A base class organizing your neural network module
    :col_css: col-md-12
    :button_link: ../common/lightning_module.html
    :height: 100
@@ -230,7 +239,7 @@ Glossary
    :header: Model Parallelism
    :description: A way to scale training that splits a model between multiple devices.
    :col_css: col-md-12
-   :button_link: ../advanced/model_parallel.html
+   :button_link: ../advanced/model_parallel/index.html
    :height: 100
 
 .. displayitem::
@@ -318,17 +327,17 @@ Glossary
    :height: 100
 
 .. displayitem::
-   :header: SWA
-   :description: Stochastic Weight Averaging (SWA) can make your models generalize better
-   :col_css: col-md-12
-   :button_link: ../advanced/training_tricks.html#stochastic-weight-averaging
-   :height: 100
-
-.. displayitem::
    :header: SLURM
    :description: Simple Linux Utility for Resource Management, or simply Slurm, is a free and open-source job scheduler for Linux clusters
    :col_css: col-md-12
    :button_link: ../clouds/cluster_advanced.html
+   :height: 100
+
+.. displayitem::
+   :header: Tensor Parallelism
+   :description: Parallelize the computation of model layers across multiple GPUs, reducing memory usage and communication overhead
+   :col_css: col-md-12
+   :button_link: ../advanced/tp.html
    :height: 100
 
 .. displayitem::
@@ -357,6 +366,13 @@ Glossary
    :description: Disable false-positive warnings emitted by Lightning
    :col_css: col-md-12
    :button_link: ../advanced/warnings.html
+   :height: 100
+
+.. displayitem::
+   :header: Weight averaging
+   :description: Stochastic Weight Averaging (SWA) or Exponential Moving Average (EMA) can make your models generalize better
+   :col_css: col-md-12
+   :button_link: ../advanced/training_tricks.html#weight-averaging
    :height: 100
 
 .. raw:: html

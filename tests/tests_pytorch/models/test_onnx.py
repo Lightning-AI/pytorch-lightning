@@ -13,6 +13,8 @@
 # limitations under the License.
 import operator
 import os
+import re
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -20,11 +22,13 @@ import numpy as np
 import onnxruntime
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import _ONNXSCRIPT_AVAILABLE
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
@@ -44,6 +48,10 @@ def test_model_saves_with_input_sample(tmp_path):
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 4e2
+
+    file_path = BytesIO()
+    model.to_onnx(file_path=file_path, input_sample=input_sample)
+    assert len(file_path.getvalue()) > 4e2
 
 
 @pytest.mark.parametrize(
@@ -106,17 +114,17 @@ def test_model_saves_on_multi_gpu(tmp_path):
     assert os.path.exists(file_path) is True
 
 
-@RunIf(onnx=True)
+# todo: investigate where the logging happening in torch.onnx for PT 2.6+
+@RunIf(onnx=True, max_torch="2.6.0")
 def test_verbose_param(tmp_path, capsys):
     """Test that output is present when verbose parameter is set."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
     file_path = os.path.join(tmp_path, "model.onnx")
 
-    with patch("torch.onnx.log", autospec=True) as test:
+    with patch("torch.onnx.log", autospec=True) as mocked:
         model.to_onnx(file_path, verbose=True)
-    args, _ = test.call_args
-    prefix, _ = args
+    (prefix, _), _ = mocked.call_args
     assert prefix == "Exported graph: "
 
 
@@ -134,8 +142,16 @@ def test_error_if_no_input(tmp_path):
         model.to_onnx(file_path)
 
 
+@pytest.mark.parametrize(
+    "dynamo",
+    [
+        None,
+        pytest.param(False, marks=RunIf(min_torch="2.5.0", dynamo=True, onnxscript=True)),
+        pytest.param(True, marks=RunIf(min_torch="2.5.0", dynamo=True, onnxscript=True)),
+    ],
+)
 @RunIf(onnx=True)
-def test_if_inference_output_is_valid(tmp_path):
+def test_if_inference_output_is_valid(tmp_path, dynamo):
     """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
@@ -148,7 +164,12 @@ def test_if_inference_output_is_valid(tmp_path):
         torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmp_path, "model.onnx")
-    model.to_onnx(file_path, model.example_input_array, export_params=True)
+    kwargs = {
+        "export_params": True,
+    }
+    if dynamo is not None:
+        kwargs["dynamo"] = dynamo
+    model.to_onnx(file_path, model.example_input_array, **kwargs)
 
     ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "1.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
@@ -162,3 +183,53 @@ def test_if_inference_output_is_valid(tmp_path):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(min_torch="2.5.0", dynamo=True)
+@pytest.mark.skipif(_ONNXSCRIPT_AVAILABLE, reason="Run this test only if onnxscript is not available.")
+def test_model_onnx_export_missing_onnxscript():
+    """Test that an error is raised if onnxscript is not available."""
+    model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
+    with pytest.raises(
+        ModuleNotFoundError,
+        match=re.escape(
+            f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` and `torch>=2.5.0` to be installed.",
+        ),
+    ):
+        model.to_onnx(dynamo=True)
+
+
+@RunIf(onnx=True, min_torch="2.5.0", dynamo=True, onnxscript=True)
+def test_model_return_type():
+    if _TORCH_GREATER_EQUAL_2_6:
+        from torch.onnx import ONNXProgram
+    else:
+        from torch.onnx._internal.exporter import ONNXProgram
+
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    model.eval()
+
+    onnx_pg = model.to_onnx(dynamo=True)
+    assert isinstance(onnx_pg, ONNXProgram)
+
+    model_ret = model(model.example_input_array)
+    inf_ret = onnx_pg(model.example_input_array)
+    assert torch.allclose(model_ret, inf_ret[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(max_torch="2.5.0")
+def test_model_onnx_export_wrong_torch_version():
+    """Test that an error is raised if onnxscript is not available."""
+    model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
+    with pytest.raises(
+        ModuleNotFoundError,
+        match=re.escape(
+            f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` and `torch>=2.5.0` to be installed.",
+        ),
+    ):
+        model.to_onnx(dynamo=True)

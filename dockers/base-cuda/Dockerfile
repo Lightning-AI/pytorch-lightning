@@ -19,8 +19,9 @@ ARG CUDA_VERSION=11.7.1
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
-ARG PYTORCH_VERSION=2.1
-ARG MAX_ALLOWED_NCCL=2.17.1
+ARG PYTORCH_VERSION=2.8
+ARG MAX_ALLOWED_NCCL=2.22.3
+ARG MAKE_FLAGS="-j$(nproc)"
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -30,15 +31,15 @@ ENV \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER="GNU" \
-    # MAKEFLAGS="-j$(nproc)"
-    MAKEFLAGS="-j2"
+    MAKEFLAGS=${MAKE_FLAGS}
 
 RUN \
-    apt-get update && apt-get install -y wget && \
-    apt-get update -qq --fix-missing && \
-    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
+    apt-get update -qq --fix-missing && apt-get install -y wget && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    echo "NCCL version found: $NCCL_VER" && \
     TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
+    echo "NCCL version to install: $TO_INSTALL_NCCL" && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
@@ -59,7 +60,6 @@ RUN \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
         python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
@@ -79,6 +79,8 @@ RUN \
     curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION} && \
     # Disable cache \
     pip config set global.cache-dir false && \
+    # Install recent setuptools to obtain pkg_resources \
+    pip install setuptools==75.6.0 && \
     # set particular PyTorch version \
     pip install -q wget packaging && \
     python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py  && \
@@ -91,11 +93,11 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
-      --find-links="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/torch_test.html"
+      --extra-index-url="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/" \
+      --extra-index-url="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/"
 
 RUN \
-    # Show what we have
+    # Show what we have \
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \

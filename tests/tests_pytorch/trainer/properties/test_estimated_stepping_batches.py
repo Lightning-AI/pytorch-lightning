@@ -18,11 +18,11 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies import SingleDeviceXLAStrategy
-from torch.utils.data import DataLoader
-
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -152,6 +152,6 @@ class MultiprocessModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_multi():
     """Test stepping batches with the TPU strategy across multiple devices."""
-    trainer = Trainer(accelerator="tpu", devices="auto", max_epochs=1)
+    trainer = Trainer(accelerator="tpu", devices="auto", max_epochs=1, logger=False, enable_checkpointing=False)
     model = MultiprocessModel()
     trainer.fit(model)

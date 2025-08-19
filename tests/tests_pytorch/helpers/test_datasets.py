@@ -43,8 +43,6 @@ def test_pickling_dataset_mnist(dataset_cls, args):
 
     mnist_pickled = pickle.dumps(mnist)
     pickle.loads(mnist_pickled)
-    # assert vars(mnist) == vars(mnist_loaded)
 
     mnist_pickled = cloudpickle.dumps(mnist)
     cloudpickle.loads(mnist_pickled)
-    # assert vars(mnist) == vars(mnist_loaded)

@@ -15,7 +15,8 @@
 import logging
 import os
 from collections import Counter
-from typing import Dict, List, Literal, Optional, Union
+from collections.abc import Iterable
+from typing import Literal, Optional, Union
 
 import torch
 
@@ -28,7 +29,7 @@ from lightning.fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
+from lightning.fabric.utilities.device_parser import _determine_root_gpu_device, _select_auto_accelerator
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -53,6 +54,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
@@ -73,11 +75,11 @@ _LITERAL_WARN = Literal["warn"]
 class _AcceleratorConnector:
     def __init__(
         self,
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
         precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -122,7 +124,7 @@ class _AcceleratorConnector:
         self._precision_flag: _PRECISION_INPUT_STR = "32-true"
         self._precision_plugin_flag: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: List[Union[int, torch.device, str]] = []
+        self._parallel_devices: list[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
 
@@ -165,7 +167,7 @@ class _AcceleratorConnector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
@@ -181,7 +183,7 @@ class _AcceleratorConnector:
 
         """
         if plugins is not None:
-            plugins = [plugins] if not isinstance(plugins, list) else plugins
+            plugins = [plugins] if not isinstance(plugins, Iterable) else plugins
 
         if isinstance(strategy, str):
             strategy = strategy.lower()
@@ -224,7 +226,7 @@ class _AcceleratorConnector:
         precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
-            plugins_flags_types: Dict[str, int] = Counter()
+            plugins_flags_types: dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Precision):
                     self._precision_plugin_flag = plugin
@@ -246,7 +248,7 @@ class _AcceleratorConnector:
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
-                        "CheckpointIO, ClusterEnviroment, or LayerSync."
+                        "CheckpointIO, ClusterEnvironment, or LayerSync."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
@@ -309,7 +311,7 @@ class _AcceleratorConnector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
         if not isinstance(num_nodes, int) or num_nodes < 1:
             raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
 
@@ -327,20 +329,15 @@ class _AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability."""
-        if XLAAccelerator.is_available():
-            return "tpu"
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if HPUAccelerator.is_available():
                 return "hpu"
-        if MPSAccelerator.is_available():
-            return "mps"
-        if CUDAAccelerator.is_available():
-            return "cuda"
-        return "cpu"
+        return _select_auto_accelerator()
 
     @staticmethod
     def _choose_gpu_accelerator_backend() -> str:
@@ -456,15 +453,16 @@ class _AcceleratorConnector:
 
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
             raise ValueError(
-                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but got:"
-                f" {self._accelerator_flag}"
+                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
+                f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
+                " or pass a `CUDAAccelerator()` instance to use FSDP."
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
-                f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
+                f" platform. We recommend `Trainer(strategy='ddp_spawn')` instead."
             )
         if strategy_flag:
             self._strategy_flag = strategy_flag
@@ -528,6 +526,16 @@ class _AcceleratorConnector:
             self.accelerator, CUDAAccelerator
         ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if (
+            isinstance(self._strategy_flag, ModelParallelStrategy)
+            and self._precision_flag not in mp_precision_supported
+        ):
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_flag!r})`."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
+            )
+
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
@@ -600,6 +608,7 @@ class _AcceleratorConnector:
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
+            ModelParallelStrategy,
             XLAStrategy,
         ]
         if _habana_available_and_importable():

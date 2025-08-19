@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -243,15 +244,23 @@ def _get_distributed_sampler(
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
+    """Resolve overfit batches by disabling shuffling.
+
+    When overfit_batches > 0, this function ensures that sequential sampling is used without shuffling for consistent
+    batches across epochs. Training and validation use different sets of data.
+
+    """
     all_have_sequential_sampler = all(
         isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
     )
     if all_have_sequential_sampler:
         return
+
     rank_zero_warn(
         f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
+
     updated = [
         _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) if hasattr(dl, "dataset") else dl
         for dl in combined_loader.flattened
@@ -342,7 +351,7 @@ class _DataHookSelector:
 
     model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str, ...] = field(
+    _valid_hooks: tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 

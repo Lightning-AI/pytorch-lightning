@@ -5,7 +5,7 @@ if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ];
 then
     export FAST_DOCS_DEV=1 ;
     root=$(pwd) ;
-    for pkg in 'app' 'fabric' 'pytorch' ;
+    for pkg in 'fabric' 'pytorch' ;
     do
       cd $root/docs/source-$pkg ;
       make html --jobs $(nproc) ;

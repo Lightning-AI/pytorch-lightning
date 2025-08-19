@@ -18,14 +18,14 @@ from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 @mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
@@ -194,6 +194,8 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
+@_xfail_gloo_windows
+@pytest.mark.flaky(reruns=3)
 def test_memory_sharing_disabled(tmp_path):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
@@ -209,13 +211,17 @@ def test_memory_sharing_disabled(tmp_path):
 
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
-    with mock.patch(
-        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
-        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
-    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+    with (
+        mock.patch(
+            "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+            return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+        ),
+        pytest.raises(RuntimeError, match="requires that your script guards the main"),
+    ):
         launcher.launch(function=Mock())
 
 
+@_xfail_gloo_windows
 def test_fit_twice_raises(mps_count_0):
     model = BoringModel()
     trainer = Trainer(
@@ -227,7 +233,7 @@ def test_fit_twice_raises(mps_count_0):
         barebones=True,
     )
     trainer.fit(model)
-    trainer.test(model)  # make sure testing in between doesnt impact the result
+    trainer.test(model)  # make sure testing in between doesn't impact the result
     trainer.fit_loop.max_epochs += 1
     with pytest.raises(NotImplementedError, match=r"twice.*is not supported"):
         trainer.fit(model)
