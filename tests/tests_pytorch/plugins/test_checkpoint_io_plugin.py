@@ -129,6 +129,10 @@ def test_async_checkpoint_plugin(tmp_path):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
+
+    # We add a validate step to test that async works when fit or validate is called multiple times.
+    trainer.validate(model)
+
     trainer.fit(model)
 
     assert checkpoint_plugin.save_checkpoint.call_count == 3
