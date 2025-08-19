@@ -71,25 +71,9 @@ class _LRFinder:
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
-
         lr_min: lr to start search from
-
         lr_max: lr to stop search
-
         num_training: number of steps to take between lr_min and lr_max
-
-    Example::
-        # Run lr finder
-        lr_finder = trainer.lr_find(model)
-
-        # Results stored in
-        lr_finder.results
-
-        # Plot using
-        lr_finder.plot()
-
-        # Get suggestion
-        lr = lr_finder.suggestion()
 
     """
 
@@ -138,10 +122,9 @@ class _LRFinder:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
-
             show: if True, will show figure
-
             ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
+
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
@@ -190,7 +173,10 @@ class _LRFinder:
 
         """
         losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
-        losses = losses[torch.isfinite(losses)]
+        lrs = torch.tensor(self.results["lr"][skip_begin:-skip_end])
+        is_finite = torch.isfinite(losses)
+        losses = losses[is_finite]
+        lrs = lrs[is_finite]
 
         if len(losses) < 2:
             # computing torch.gradient requires at least 2 points
@@ -201,12 +187,12 @@ class _LRFinder:
             self._optimal_idx = None
             return None
 
-        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
-        #   incorrectly shifted by an offset
-        gradients = torch.gradient(losses)[0]  # Unpack the tuple
+        gradients = torch.gradient(losses, spacing=[lrs])[0]  # Compute the gradient of losses w.r.t. learning rates
         min_grad = torch.argmin(gradients).item()
-
-        self._optimal_idx = min_grad + skip_begin
+        all_losses_idx = torch.arange(len(self.results["loss"]))
+        idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
+        idx_finite = idx_non_skipped[is_finite]
+        self._optimal_idx = idx_finite[min_grad].item()  # type: ignore
         return self.results["lr"][self._optimal_idx]
 
 
@@ -290,23 +276,30 @@ def _lr_find(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
 
-    # Update lr attr if required
+    # Update results across ranks
     lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
-    if update_attr:
-        lr = lr_finder.suggestion()
 
-        # TODO: log lr.results to self.logger
-        if lr is not None:
-            lightning_setattr(model, attr_name, lr)
-            log.info(f"Learning rate set to {lr}")
-
-    # Restore initial state of model
+    # Restore initial state of model (this will also restore the original optimizer state)
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
+    trainer.fit_loop._combined_loader = None  # reset data fetcher to avoid issues with the next fit
+    trainer.fit_loop.setup_data()
 
+    # Apply LR suggestion after restoring so it persists for the real training run
+    # When used as a callback, the suggestion would otherwise be lost due to checkpoint restore
+    if update_attr:
+        lr = lr_finder.suggestion()
+        if lr is not None:
+            # update the attribute on the LightningModule (e.g., lr or learning_rate)
+            lightning_setattr(model, attr_name, lr)
+            # also update the currently active optimizer(s) so training continues with the suggested LR
+            for opt in trainer.optimizers or []:
+                for pg in opt.param_groups:
+                    pg["lr"] = lr
+            log.info(f"Learning rate set to {lr}")
     return lr_finder
 
 

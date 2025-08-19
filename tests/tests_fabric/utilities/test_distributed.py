@@ -30,7 +30,7 @@ from tests_fabric.helpers.runif import RunIf
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 
@@ -105,8 +105,8 @@ def _test_all_reduce(strategy):
         assert result is tensor  # inplace
 
 
-# flaky with "process 0 terminated with signal SIGABRT" (GLOO)
-@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
+# flaky with "torch.multiprocessing.spawn.ProcessExitedException: process 0 terminated with signal SIGABRT" (GLOO)
+@pytest.mark.flaky(reruns=3)
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
@@ -128,9 +128,10 @@ def test_collective_operations(devices, process):
 
 
 @pytest.mark.skipif(
-    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    RequirementCache("numpy>=2.0"),
     reason="torch.distributed not compatible with numpy>=2.0",
 )
+@RunIf(min_torch="2.4", skip_windows=True)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'

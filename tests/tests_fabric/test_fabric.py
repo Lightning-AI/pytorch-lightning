@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import warnings
 from contextlib import nullcontext
 from re import escape
 from unittest import mock
@@ -733,6 +734,22 @@ def test_autocast():
     with fabric.autocast():
         fabric._precision.forward_context().__enter__.assert_called()
     fabric._precision.forward_context().__exit__.assert_called()
+
+
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_autocast_does_not_use_cuda_on_mps(precision):
+    """Ensure Fabric.autocast on MPS does not fall back to CUDA when using (bf)16-mixed precision."""
+    fabric = Fabric(accelerator="mps", precision=precision)
+    fabric.launch()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with fabric.autocast():
+            pass
+
+    for warning in w:
+        assert "device_type of 'cuda'" not in str(warning.message)
 
 
 def test_no_backward_sync():

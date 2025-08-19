@@ -167,7 +167,8 @@ def save_hyperparameters(
     if given_hparams is not None:
         init_args = given_hparams
     elif is_dataclass(obj):
-        init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
+        obj_fields = fields(obj)
+        init_args = {f.name: getattr(obj, f.name) for f in obj_fields if f.init}
     else:
         init_args = {}
 
