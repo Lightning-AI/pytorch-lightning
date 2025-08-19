@@ -341,7 +341,6 @@ def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> N
 
 
 class AssistantCLI:
-
     @staticmethod
     def copy_replace_imports(
         source_dir: str,
