@@ -13,7 +13,7 @@ on:
       - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
       - ".github/actions/pkg-publish/*"
-      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_legacy-checkpoints.yml"
       - ".github/workflows/_build-packages.yml"
       - ".github/workflows/release-pypi.yml"
 
@@ -37,8 +37,8 @@ jobs:
     needs: build-packages
     if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -54,7 +54,7 @@ jobs:
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VER }}
@@ -74,7 +74,7 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
       BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
@@ -139,8 +139,8 @@ jobs:
       matrix:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5 # needed for local action below
+      - uses: actions/download-artifact@v5
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -164,8 +164,8 @@ jobs:
       matrix:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5 # needed for local action below
+      - uses: actions/download-artifact@v5
         with:
           name: dist-packages-${{ github.sha }}
           path: dist

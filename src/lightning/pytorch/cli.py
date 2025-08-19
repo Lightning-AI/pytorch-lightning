@@ -45,11 +45,18 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         Namespace,
         class_from_function,
         register_unresolvable_import_paths,
-        set_config_read_mode,
     )
 
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
-    set_config_read_mode(fsspec_enabled=True)
+
+    try:
+        from jsonargparse import set_parsing_settings
+
+        set_parsing_settings(config_read_mode_fsspec_enabled=True)
+    except ImportError:
+        from jsonargparse import set_config_read_mode
+
+        set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
@@ -320,6 +327,7 @@ class LightningCLI:
         args: ArgsType = None,
         run: bool = True,
         auto_configure_optimizers: bool = True,
+        load_from_checkpoint_support: bool = True,
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
         called / instantiated using a parsed configuration file and / or command line args.
@@ -360,6 +368,11 @@ class LightningCLI:
                 ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~lightning.pytorch.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
+            auto_configure_optimizers: Whether to automatically add default optimizer and lr_scheduler arguments.
+            load_from_checkpoint_support: Whether ``save_hyperparameters`` should save the original parsed
+                hyperparameters (instead of what ``__init__`` receives), such that it is possible for
+                ``load_from_checkpoint`` to correctly instantiate classes even when using complex nesting and
+                dependency injection.
 
         """
         self.save_config_callback = save_config_callback
@@ -389,7 +402,8 @@ class LightningCLI:
 
         self._set_seed()
 
-        self._add_instantiators()
+        if load_from_checkpoint_support:
+            self._add_instantiators()
         self.before_instantiate_classes()
         self.instantiate_classes()
         self.after_instantiate_classes()
@@ -537,11 +551,16 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
-    def _add_instantiators(self) -> None:
-        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False, skip_none=False))
+    def _dump_config(self) -> None:
+        if hasattr(self, "config_dump"):
+            return
+        self.config_dump = yaml.safe_load(
+            self.parser.dump(self.config, skip_link_targets=False, skip_none=False, format="yaml")
+        )
         if "subcommand" in self.config:
             self.config_dump = self.config_dump[self.config.subcommand]
 
+    def _add_instantiators(self) -> None:
         self.parser.add_instantiator(
             _InstantiatorFn(cli=self, key="model"),
             _get_module_type(self._model_class),
@@ -792,12 +811,27 @@ def _get_module_type(value: Union[Callable, type]) -> type:
     return value
 
 
+def _set_dict_nested(data: dict, key: str, value: Any) -> None:
+    keys = key.split(".")
+    for k in keys[:-1]:
+        assert k in data, f"Expected key {key} to be in data"
+        data = data[k]
+    data[keys[-1]] = value
+
+
 class _InstantiatorFn:
     def __init__(self, cli: LightningCLI, key: str) -> None:
         self.cli = cli
         self.key = key
 
-    def __call__(self, class_type: type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+    def __call__(
+        self,
+        class_type: type[ModuleType],
+        *args: Any,
+        applied_instantiation_links: dict,
+        **kwargs: Any,
+    ) -> ModuleType:
+        self.cli._dump_config()
         hparams = self.cli.config_dump.get(self.key, {})
         if "class_path" in hparams:
             # To make hparams backwards compatible, and so that it is the same irrespective of subclass_mode, the
@@ -808,6 +842,15 @@ class _InstantiatorFn:
                 **hparams.get("init_args", {}),
                 **hparams.get("dict_kwargs", {}),
             }
+        # get instantiation link target values from kwargs
+        for key, value in applied_instantiation_links.items():
+            if not key.startswith(f"{self.key}."):
+                continue
+            key = key[len(f"{self.key}.") :]
+            if key.startswith("init_args."):
+                key = key[len("init_args.") :]
+            _set_dict_nested(hparams, key, value)
+
         with _given_hyperparameters_context(
             hparams=hparams,
             instantiator="lightning.pytorch.cli.instantiate_module",
