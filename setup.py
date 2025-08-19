@@ -27,7 +27,7 @@ There are considered three main scenarios for installing this project:
      - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
      - for `lightning-fabric` use `export PACKAGE_NAME=fabric ; pip install .`
 
-3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
+3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwards you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
    In case you want to build just a particular package you want to set an environment variable:
    `PACKAGE_NAME=lightning|pytorch|fabric python setup.py sdist|bdist_wheel`
@@ -110,7 +110,8 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
         assert os.path.exists(manifest_path)
     # avoid error: setup script specifies an absolute path
     manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
-    logging.info("Set manifest path to", manifest_path)
+    # Use lazy logging formatting
+    logging.info("Set manifest path to %s", manifest_path)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
     yield
     # cleanup

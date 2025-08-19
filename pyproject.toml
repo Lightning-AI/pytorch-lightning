@@ -33,7 +33,7 @@ blank = true
 
 [tool.codespell]
 # Todo: enable also python files in a next step
-skip = '*.py'
+#skip = '*.py'
 quiet-level = 3
 # comma separated list of words; waiting for:
 #  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
@@ -180,6 +180,7 @@ markers = [
 ]
 filterwarnings = [
     "error::FutureWarning",
+    "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
 ]
 xfail_strict = true
 junit_duration_report = "call"

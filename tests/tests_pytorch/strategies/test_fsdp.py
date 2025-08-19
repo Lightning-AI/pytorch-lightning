@@ -111,7 +111,7 @@ class TestBoringModel(BoringModel):
         self.should_be_wrapped = [wrap_min_params < (32 * 32 + 32), None, wrap_min_params < (32 * 2 + 2)]
 
     def configure_optimizers(self):
-        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
+        # SGD's FSDP optimizer, state is fixed in https://github.com/pytorch/pytorch/pull/99214
         return torch.optim.AdamW(self.parameters(), lr=0.1)
 
 
@@ -809,7 +809,7 @@ class TestFSDPCheckpointModel(BoringModel):
         self.params_to_compare = params_to_compare
 
     def configure_optimizers(self):
-        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
+        # SGD's FSDP optimizer, state is fixed in https://github.com/pytorch/pytorch/pull/99214
         return torch.optim.AdamW(self.parameters(), lr=0.1)
 
     def on_train_start(self):

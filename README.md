@@ -31,7 +31,7 @@ ______________________________________________________________________
 
 [![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/lightning-ai/lightning)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/pytorch-lightning/blob/master/LICENSE)
 
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/lightning)
@@ -54,6 +54,12 @@ ______________________________________________________________________
 </div>
 
 &nbsp;
+
+# Why PyTorch Lightning?   
+
+Training models in plain PyTorch is tedious and error-prone - you have to manually handle things like backprop, mixed precision, multi-GPU, and distributed training, often rewriting code for every new project. PyTorch Lightning organizes PyTorch code to automate those complexities so you can focus on your model and data, while keeping full control and scaling from CPU to multi-node without changing your core code. But if you want control of those things, you can still opt into more DIY.   
+
+Fun analogy: If PyTorch is Javascript, PyTorch Lightning is ReactJS or NextJS.
 
 # Lightning has 2 core packages
 

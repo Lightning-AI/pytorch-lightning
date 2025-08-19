@@ -37,6 +37,7 @@ from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
@@ -106,8 +107,9 @@ class _CallbackConnector:
                 model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
             else:
                 rank_zero_info(
-                    "Using default `ModelCheckpoint`. Consider installing `litmodels` package to enable"
-                    " `LitModelCheckpoint` for automatic upload to the Lightning model registry."
+                    "💡 Tip: For seamless cloud uploads and versioning,"
+                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+                    " which syncs automatically with the Lightning model registry."
                 )
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
@@ -124,14 +126,8 @@ class _CallbackConnector:
             )
             return
 
-        progress_bar_callback = self.trainer.progress_bar_callback
-        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
-
         model_summary: ModelSummary
-        if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary = RichModelSummary()
-        else:
-            model_summary = ModelSummary()
+        model_summary = RichModelSummary() if _RICH_AVAILABLE else ModelSummary()
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
@@ -156,7 +152,7 @@ class _CallbackConnector:
             )
 
         if enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar()
+            progress_bar_callback = RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, dict[str, int]]] = None) -> None:
