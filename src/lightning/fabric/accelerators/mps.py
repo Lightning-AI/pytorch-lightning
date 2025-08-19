@@ -72,7 +72,7 @@ class MPSAccelerator(Accelerator):
     def is_available() -> bool:
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         mps_disabled = os.getenv("DISABLE_MPS", "0") == "1"
-        return not mps_disabled and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+        return not mps_disabled and torch.backends.mps.is_available()
 
     @classmethod
     @override
