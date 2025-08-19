@@ -72,7 +72,7 @@ Log in to the **first node** and run this command:
 .. code-block:: bash
     :emphasize-lines: 2,3
 
-    lightning run model \
+    fabric run \
         --node-rank=0  \
         --main-address=10.10.10.16 \
         --accelerator=cuda \
@@ -85,7 +85,7 @@ Log in to the **second node** and run this command:
 .. code-block:: bash
     :emphasize-lines: 2,3
 
-    lightning run model \
+    fabric run \
         --node-rank=1  \
         --main-address=10.10.10.16 \
         --accelerator=cuda \
@@ -129,7 +129,7 @@ The most likely reasons and how to fix it:
 
     export GLOO_SOCKET_IFNAME=eno1
     export NCCL_SOCKET_IFNAME=eno1
-    lightning run model ...
+    fabric run ...
 
   You can find the interface name by parsing the output of the ``ifconfig`` command.
   The name of this interface **may differ on each node**.
@@ -152,7 +152,7 @@ Launch your command by prepending ``NCCL_DEBUG=INFO`` to get more info.
 
 .. code-block:: bash
 
-    NCCL_DEBUG=INFO lightning run model ...
+    NCCL_DEBUG=INFO fabric run ...
 
 
 ----

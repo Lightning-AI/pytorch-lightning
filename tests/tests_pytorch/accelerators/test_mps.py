@@ -16,11 +16,11 @@ from collections import namedtuple
 
 import pytest
 import torch
+
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import MPSAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
-
-import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -54,10 +54,10 @@ def test_trainer_mps_accelerator(accelerator_value):
 
 @RunIf(mps=True)
 @pytest.mark.parametrize("devices", [1, [0], "-1"])
-def test_single_gpu_model(tmpdir, devices):
+def test_single_gpu_model(tmp_path, devices):
     """Make sure single GPU works."""
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_progress_bar": False,
         "max_epochs": 1,
         "limit_train_batches": 0.1,

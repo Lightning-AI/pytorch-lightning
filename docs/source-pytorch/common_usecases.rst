@@ -85,8 +85,8 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
-   :header: Run on an on-prem cluster
-   :description: Learn to run on your own cluster
+   :header: Run on a multi-node cluster
+   :description: Learn to run multi-node in the cloud or on your cluster
    :col_css: col-md-12
    :button_link: clouds/cluster.html
    :height: 100
@@ -109,7 +109,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train models with billions of parameters
    :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-12
-   :button_link: advanced/model_parallel.html
+   :button_link: advanced/model_parallel/index.html
    :height: 100
 
 .. displayitem::

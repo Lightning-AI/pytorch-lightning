@@ -4,7 +4,7 @@
 Level 12: Optimize training speed
 #################################
 
-In this level you'll use advanced profilers and mixed precision techniques to train bigger models faster.
+In this level you'll use compilers, advanced profilers and mixed precision techniques to train bigger models faster.
 
 ----
 
@@ -13,7 +13,13 @@ In this level you'll use advanced profilers and mixed precision techniques to tr
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
+.. displayitem::
+   :header: Speed up models by compiling them
+   :description:  Use torch.compile to speed up models on modern hardware
+   :col_css: col-md-4
+   :button_link: ../advanced/compile.html
+   :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Explore advanced mixed precision settings

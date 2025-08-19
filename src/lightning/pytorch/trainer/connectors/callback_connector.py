@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 import logging
 import os
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Union
+
+from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -34,6 +37,7 @@ from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
@@ -46,12 +50,12 @@ class _CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks: Optional[Union[List[Callback], Callback]],
+        callbacks: Optional[Union[list[Callback], Callback]],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
         enable_model_summary: bool,
-        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+        max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
@@ -90,7 +94,25 @@ class _CallbackConnector:
                     " but found `ModelCheckpoint` in callbacks list."
                 )
         elif enable_checkpointing:
-            self.trainer.callbacks.append(ModelCheckpoint())
+            if RequirementCache("litmodels >=0.1.7") and self.trainer._model_registry:
+                trainer_source = inspect.getmodule(self.trainer)
+                if trainer_source is None or not isinstance(trainer_source.__package__, str):
+                    raise RuntimeError("Unable to determine the source of the trainer.")
+                # this need to imported based on the actual package lightning/pytorch_lightning
+                if "pytorch_lightning" in trainer_source.__package__:
+                    from litmodels.integrations.checkpoints import PytorchLightningModelCheckpoint as LitModelCheckpoint
+                else:
+                    from litmodels.integrations.checkpoints import LightningModelCheckpoint as LitModelCheckpoint
+
+                model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
+            else:
+                rank_zero_info(
+                    "💡 Tip: For seamless cloud uploads and versioning,"
+                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+                    " which syncs automatically with the Lightning model registry."
+                )
+                model_checkpoint = ModelCheckpoint()
+            self.trainer.callbacks.append(model_checkpoint)
 
     def _configure_model_summary_callback(self, enable_model_summary: bool) -> None:
         if not enable_model_summary:
@@ -104,14 +126,8 @@ class _CallbackConnector:
             )
             return
 
-        progress_bar_callback = self.trainer.progress_bar_callback
-        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
-
         model_summary: ModelSummary
-        if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary = RichModelSummary()
-        else:
-            model_summary = ModelSummary()
+        model_summary = RichModelSummary() if _RICH_AVAILABLE else ModelSummary()
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
@@ -136,10 +152,10 @@ class _CallbackConnector:
             )
 
         if enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar()
+            progress_bar_callback = RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
-    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
+    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, dict[str, int]]] = None) -> None:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
@@ -195,7 +211,7 @@ class _CallbackConnector:
         trainer.callbacks = all_callbacks
 
     @staticmethod
-    def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
+    def _reorder_callbacks(callbacks: list[Callback]) -> list[Callback]:
         """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint` callbacks
         to the end of the list. The sequential order within the group of checkpoint callbacks is preserved, as well as
         the order of all other callbacks.
@@ -208,9 +224,9 @@ class _CallbackConnector:
             if there were any present in the input.
 
         """
-        tuner_callbacks: List[Callback] = []
-        other_callbacks: List[Callback] = []
-        checkpoint_callbacks: List[Callback] = []
+        tuner_callbacks: list[Callback] = []
+        other_callbacks: list[Callback] = []
+        checkpoint_callbacks: list[Callback] = []
 
         for cb in callbacks:
             if isinstance(cb, (BatchSizeFinder, LearningRateFinder)):
@@ -223,7 +239,7 @@ class _CallbackConnector:
         return tuner_callbacks + other_callbacks + checkpoint_callbacks
 
 
-def _validate_callbacks_list(callbacks: List[Callback]) -> None:
+def _validate_callbacks_list(callbacks: list[Callback]) -> None:
     stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb)]
     seen_callbacks = set()
     for callback in stateful_callbacks:

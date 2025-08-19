@@ -19,13 +19,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
+
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from torch.nn.parallel import DistributedDataParallel
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -59,15 +58,20 @@ def test_ddp_no_backward_sync():
     strategy = DDPStrategy()
     assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(Mock(), True),
+    ):
         pass
 
     module = MagicMock(spec=DistributedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module, False):
         pass
-
+    module.no_sync.assert_not_called()
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
@@ -126,7 +130,7 @@ def test_ddp_module_state_dict():
 def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
-    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    expected_device = parallel_devices[1]
 
     strategy = DDPStrategy(
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()

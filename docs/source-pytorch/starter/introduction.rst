@@ -129,7 +129,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
         def training_step(self, batch, batch_idx):
             # training_step defines the train loop.
             # it is independent of forward
-            x, y = batch
+            x, _ = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
@@ -252,7 +252,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
     )
 
    # access the latest state of the art techniques
-   trainer = L.Trainer(callbacks=[StochasticWeightAveraging(...)])
+   trainer = L.Trainer(callbacks=[WeightAveraging(...)])
 
 ----
 

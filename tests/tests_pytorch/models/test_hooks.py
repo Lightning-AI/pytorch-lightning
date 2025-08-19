@@ -18,13 +18,12 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.utilities.model_helpers import is_overridden
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -53,7 +52,7 @@ class HookedDataModule(BoringDataModule):
 
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
-def test_on_before_zero_grad_called(tmpdir, max_steps):
+def test_on_before_zero_grad_called(tmp_path, max_steps):
     class CurrentTestModel(BoringModel):
         on_before_zero_grad_called = 0
 
@@ -62,7 +61,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
 
     model = CurrentTestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=2)
+    trainer = Trainer(devices=1, default_root_dir=tmp_path, max_steps=max_steps, max_epochs=2)
     assert model.on_before_zero_grad_called == 0
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
@@ -72,7 +71,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     assert model.on_before_zero_grad_called == 0
 
 
-def test_on_train_epoch_end_metrics_collection(tmpdir):
+def test_on_train_epoch_end_metrics_collection(tmp_path):
     """Test that progress bar metrics also get collected at the end of an epoch."""
     num_epochs = 3
 
@@ -90,7 +89,7 @@ def test_on_train_epoch_end_metrics_collection(tmpdir):
             )
 
     model = CurrentModel()
-    trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2)
+    trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmp_path, overfit_batches=2)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     metrics = trainer.progress_bar_callback.get_metrics(trainer, model)
@@ -161,7 +160,7 @@ def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_d
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_transfer_batch_hook_ddp(tmpdir):
+def test_transfer_batch_hook_ddp(tmp_path):
     """Test custom data are properly moved to the right device using ddp."""
 
     class CustomBatch:
@@ -179,6 +178,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
         def training_step(self, batch, batch_idx):
             assert batch.samples.device == self.device
             assert isinstance(batch_idx, int)
+            # the actual training step is not needed for the assertions
+            return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
@@ -186,7 +187,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
     model = TestModel()
     model.validation_step = None
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=1,
@@ -401,7 +402,7 @@ class HookedModel(BoringModel):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {},
+        {"devices": 1},
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
@@ -412,7 +413,7 @@ class HookedModel(BoringModel):
 )
 @pytest.mark.parametrize("automatic_optimization", [True, False])
 @pytest.mark.parametrize("override_on_validation_model_train", [True, False])
-def test_trainer_model_hook_system_fit(override_on_validation_model_train, automatic_optimization, kwargs, tmpdir):
+def test_trainer_model_hook_system_fit(override_on_validation_model_train, automatic_optimization, kwargs, tmp_path):
     called = []
 
     class TestModel(HookedModel):
@@ -440,7 +441,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
     train_batches = 2
     val_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
@@ -475,7 +476,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "Callback.on_sanity_check_start", "args": (trainer, model)},
         {"name": "val_dataloader"},
         {"name": "train", "args": (False,)},
@@ -493,7 +494,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
@@ -519,11 +520,12 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmp_path):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,
@@ -538,7 +540,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     callback = HookedCallback(called)
     # already performed 1 step, resume and do 2 more
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=0,
@@ -573,7 +576,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
@@ -596,11 +599,12 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_steps=1,
         limit_val_batches=0,
         enable_progress_bar=False,
@@ -619,7 +623,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     train_batches = 2
     steps_after_reload = 1 + train_batches
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_steps=steps_after_reload,
         limit_val_batches=0,
         enable_progress_bar=False,
@@ -651,12 +656,10 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
-        {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
-        {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, steps_after_reload, trainer.strategy.root_device, current_batch=1),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
@@ -679,7 +682,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
 @pytest.mark.parametrize("override_on_x_model_train", [True, False])
-def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batches, verb, noun, dataloader, key):
+def test_trainer_model_hook_system_eval(tmp_path, override_on_x_model_train, batches, verb, noun, dataloader, key):
     called = []
     model = HookedModel(called)
     if not override_on_x_model_train:
@@ -687,7 +690,8 @@ def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batch
     assert is_overridden(f"on_{noun}_model_train", model) == override_on_x_model_train
     callback = HookedCallback(called)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=batches,
         limit_test_batches=batches,
@@ -714,7 +718,7 @@ def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batch
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "setup", "kwargs": {"stage": verb}},
         {"name": "configure_model"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         *(hooks if batches else []),
         {"name": "Callback.teardown", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "teardown", "kwargs": {"stage": verb}},
@@ -722,13 +726,17 @@ def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batch
     assert called == expected
 
 
-def test_trainer_model_hook_system_predict(tmpdir):
+def test_trainer_model_hook_system_predict(tmp_path):
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
+        devices=1,
+        default_root_dir=tmp_path,
+        limit_predict_batches=batches,
+        enable_progress_bar=False,
+        callbacks=[callback],
     )
     trainer.predict(model)
     expected = [
@@ -737,7 +745,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "predict"}},
         {"name": "setup", "kwargs": {"stage": "predict"}},
         {"name": "configure_model"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_predict_model_eval"},
@@ -757,7 +765,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
     assert called == expected
 
 
-def test_hooks_with_different_argument_names(tmpdir):
+def test_hooks_with_different_argument_names(tmp_path):
     """Test that argument names can be anything in the hooks."""
 
     class CustomBoringModel(BoringModel):
@@ -794,7 +802,7 @@ def test_hooks_with_different_argument_names(tmpdir):
 
     model = CustomBoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=5)
+    trainer = Trainer(devices=1, default_root_dir=tmp_path, fast_dev_run=5)
 
     trainer.fit(model)
     trainer.test(model)
@@ -804,12 +812,13 @@ def test_hooks_with_different_argument_names(tmpdir):
     assert all(len(x) == 5 for x in preds)
 
 
-def test_trainer_datamodule_hook_system(tmpdir):
+def test_trainer_datamodule_hook_system(tmp_path):
     """Test the LightningDataModule hook system."""
     model = BoringModel()
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        devices=1,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=batches,
         limit_val_batches=batches,
@@ -868,7 +877,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
 
 @pytest.mark.parametrize("override_configure_model", [True, False])
-def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
+def test_load_from_checkpoint_hook_calls(override_configure_model, tmp_path):
     class CustomHookedDataModule(HookedDataModule):
         def state_dict(self):
             return {"foo": "bar"}
@@ -884,10 +893,10 @@ def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
     assert is_overridden("configure_model", model) == override_configure_model
 
     datamodule = CustomHookedDataModule(ldm_called)
-    trainer = Trainer()
+    trainer = Trainer(devices=1)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, datamodule=datamodule)
-    ckpt_path = str(tmpdir / "file.ckpt")
+    ckpt_path = str(tmp_path / "file.ckpt")
     trainer.save_checkpoint(ckpt_path)
 
     datamodule_state_dict_key = datamodule.__class__.__qualname__
@@ -957,6 +966,7 @@ def test_train_eval_mode_restored(tmp_path):
 
     model = MixedTrainModeModule()
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=1,
         val_check_interval=1,

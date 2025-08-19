@@ -15,16 +15,15 @@ on:
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
-      - "!*.md"
-      - "!**/*.md"
+      - "!*.md" # exclude all markdown files
+      - "!**/*.md" # exclude all markdown files
+      - "src/version.info" # once you try to make release try to compile complete docs
   workflow_dispatch:
     inputs:
       checkout:
@@ -47,31 +46,41 @@ defaults:
 
 env:
   FREEZE_REQUIREMENTS: "1"
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYPI_CACHE_DIR: "_pip-wheels"
   PYPI_LOCAL_DIR: "pypi_pkgs/"
 
 jobs:
   docs-make:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
+          lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
+
+      - name: List notebooks
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        working-directory: _notebooks/
+        run: |
+          pip install -q py-tree
+          py-tree .notebooks/
+          ls -lhR .notebooks/
 
       - name: Pull sphinx template
         run: |
@@ -80,7 +89,7 @@ jobs:
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -90,14 +99,14 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y pandoc
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
+            -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} --extra-index-url="${TORCH_URL}"
           pip list
       - name: Install req. for Notebooks/tutorials
         if: matrix.pkg-name == 'pytorch'
@@ -107,44 +116,50 @@ jobs:
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+      - name: Build without warnings
+        if: github.event_name != 'workflow_dispatch'
+        run: echo "BUILD_SPHINX_OPTS=-W --keep-going" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        # allow failing link check and doctest if you run with dispatch
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck') && github.event_name == 'workflow_dispatch' }}
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
 
       - name: Keep artifact
         if: github.event_name == 'pull_request'
         run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
         if: ${{ matrix.target == 'html' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
           retention-days: ${{ env.ARTIFACT_DAYS }}
+          include-hidden-files: true
 
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
+      #- name: Dump handy wheels
+      #  if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      #  continue-on-error: true
+      #  uses: ./.github/actions/pip-wheels
+      #  with:
+      #    wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+      #    torch-url: ${{ env.TORCH_URL }}
+      #    cache-key: "pypi_wheels"
 
   deploy-docs:
     needs: docs-make
     if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
@@ -158,6 +173,21 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
+
+      # Uploading docs as archive to GCS, so they can be as backup
+      - name: Upload docs as archive to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        working-directory: docs/build
+        run: |
+          zip ${{ env.VERSION }}.zip -r html/
+          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}
+
+      - name: Inject version selector
+        working-directory: docs/build
+        run: |
+          pip install -q wget
+          python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/inject-selector-script.py
+          python inject-selector-script.py html ${{ matrix.pkg-name }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
@@ -173,11 +203,3 @@ jobs:
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ env.VERSION }}
-
-      # Uploading docs as archive to GCS, so they can be as backup
-      - name: Upload docs as archive to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-        working-directory: docs/build
-        run: |
-          zip ${{ env.VERSION }}.zip -r html/
-          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}

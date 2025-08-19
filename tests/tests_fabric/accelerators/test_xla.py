@@ -13,8 +13,8 @@
 # limitations under the License
 
 import pytest
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -44,3 +44,8 @@ def test_get_parallel_devices_raises(tpu_available):
         XLAAccelerator.get_parallel_devices(5)
     with pytest.raises(ValueError, match="Could not parse.*anything-else'"):
         XLAAccelerator.get_parallel_devices("anything-else")
+
+
+@pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
+def test_instantiate_xla_accelerator():
+    _ = XLAAccelerator()

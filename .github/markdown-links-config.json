@@ -1,10 +1,13 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^https://github.com/Lightning-AI/lightning/pull/.*"
+      "pattern": "^https://github.com/Lightning-AI/pytorch-lightning/pull/"
     },
     {
-      "pattern": "^https://dev.azure.com/Lightning-AI/lightning/_apis/build/status.*"
+      "pattern": "^https://dev.azure.com/Lightning-AI/lightning/_apis/build/status"
+    },
+    {
+      "pattern": "^https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg"
     }
   ],
   "httpHeaders": [
@@ -19,5 +22,9 @@
         "Accept-Encoding": "zstd, br, gzip, deflate"
       }
     }
-  ]
+  ],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 5,
+  "fallbackRetryDelay": "20s"
 }

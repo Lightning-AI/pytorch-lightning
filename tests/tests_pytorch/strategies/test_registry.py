@@ -14,10 +14,10 @@
 from unittest import mock
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -40,8 +40,8 @@ def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params)
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
-def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision="16-mixed")
+def test_deepspeed_strategy_registry_with_trainer(tmp_path, strategy, mps_count_0):
+    trainer = Trainer(default_root_dir=tmp_path, strategy=strategy, precision="16-mixed")
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
@@ -118,9 +118,9 @@ def test_fsdp_strategy_registry(cuda_count_1):
     ],
 )
 def test_ddp_find_unused_parameters_strategy_registry(
-    tmpdir, strategy_name, strategy, expected_init_params, mps_count_0
+    tmp_path, strategy_name, strategy, expected_init_params, mps_count_0
 ):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
+    trainer = Trainer(default_root_dir=tmp_path, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["init_params"] == expected_init_params

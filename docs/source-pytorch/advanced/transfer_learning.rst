@@ -32,7 +32,7 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
     class CIFAR10Classifier(LightningModule):
         def __init__(self):
             # init the pretrained LightningModule
-            self.feature_extractor = AutoEncoder.load_from_checkpoint(PATH)
+            self.feature_extractor = AutoEncoder.load_from_checkpoint(PATH).encoder
             self.feature_extractor.freeze()
 
             # the autoencoder outputs a 100-dim representation and CIFAR-10 has 10 classes
@@ -116,6 +116,7 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             super().__init__()
 
             self.bert = BertModel.from_pretrained("bert-base-cased", output_attentions=True)
+            self.bert.train()
             self.W = nn.Linear(bert.config.hidden_size, 3)
             self.num_classes = 3
 

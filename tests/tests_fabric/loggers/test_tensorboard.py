@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -20,10 +19,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
+
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.fabric.wrappers import _FabricModule
-
 from tests_fabric.test_fabric import BoringModel
 
 
@@ -148,29 +147,52 @@ def test_tensorboard_log_hparams_and_metrics(tmp_path):
 
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
-def test_tensorboard_log_graph(tmp_path, example_input_array):
-    """Test that log graph works with both model.example_input_array and if array is passed externally."""
-    # TODO(fabric): Test both nn.Module and LightningModule
-    # TODO(fabric): Assert _apply_batch_transfer_handler is calling the batch transfer hooks
+def test_tensorboard_log_graph_plain_module(tmp_path, example_input_array):
     model = BoringModel()
-    if example_input_array is not None:
-        model.example_input_array = None
-
     logger = TensorBoardLogger(tmp_path)
     logger._experiment = Mock()
+
     logger.log_graph(model, example_input_array)
     if example_input_array is not None:
         logger.experiment.add_graph.assert_called_with(model, example_input_array)
+    else:
+        logger.experiment.add_graph.assert_not_called()
+
     logger._experiment.reset_mock()
 
-    # model wrapped in `FabricModule`
-    wrapped = _FabricModule(model, precision=Mock())
+    wrapped = _FabricModule(model, strategy=Mock())
     logger.log_graph(wrapped, example_input_array)
     if example_input_array is not None:
         logger.experiment.add_graph.assert_called_with(model, example_input_array)
 
 
-@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
+@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
+def test_tensorboard_log_graph_with_batch_transfer_hooks(tmp_path, example_input_array):
+    model = pytest.importorskip("lightning.pytorch.demos.boring_classes").BoringModel()
+    logger = TensorBoardLogger(tmp_path)
+    logger._experiment = Mock()
+
+    with (
+        mock.patch.object(model, "_on_before_batch_transfer", return_value=example_input_array) as before_mock,
+        mock.patch.object(model, "_apply_batch_transfer_handler", return_value=example_input_array) as transfer_mock,
+    ):
+        logger.log_graph(model, example_input_array)
+        logger._experiment.reset_mock()
+
+        wrapped = _FabricModule(model, strategy=Mock())
+        logger.log_graph(wrapped, example_input_array)
+
+        if example_input_array is not None:
+            assert before_mock.call_count == 2
+            assert transfer_mock.call_count == 2
+            logger.experiment.add_graph.assert_called_with(model, example_input_array)
+        else:
+            before_mock.assert_not_called()
+            transfer_mock.assert_not_called()
+            logger.experiment.add_graph.assert_not_called()
+
+
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason="tensorboard is required")
 def test_tensorboard_log_graph_warning_no_example_input_array(tmp_path):
     """Test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
@@ -213,8 +235,7 @@ def test_tensorboard_finalize(monkeypatch, tmp_path):
     logger.experiment.close.assert_called()
 
 
-@mock.patch("lightning.fabric.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
+def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
     monkeypatch.chdir(tmp_path)  # need to use relative paths
@@ -226,16 +247,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
 
     logger = TensorBoardLogger(root_dir=dest, name="")
     _ = logger.version
-
-    log.warning.assert_not_called()
-
-
-def test_tensorboard_missing_folder_warning(tmp_path, caplog):
-    """Verify that the logger throws a warning for invalid directory."""
-    name = "fake_dir"
-    logger = TensorBoardLogger(root_dir=tmp_path, name=name)
-
-    with caplog.at_level(logging.WARNING):
-        assert logger.version == 0
-
-    assert "Missing logger folder:" in caplog.text

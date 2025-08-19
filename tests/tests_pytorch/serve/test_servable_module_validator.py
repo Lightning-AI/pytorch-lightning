@@ -1,13 +1,11 @@
-import sys
-from typing import Dict
-
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
+from torch import Tensor
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
-from torch import Tensor
+from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 
 class ServableBoringModel(BoringModel, ServableModule):
@@ -23,7 +21,7 @@ class ServableBoringModel(BoringModel, ServableModule):
 
         return {"x": deserialize}, {"output": serialize}
 
-    def serve_step(self, x: Tensor) -> Dict[str, Tensor]:
+    def serve_step(self, x: Tensor) -> dict[str, Tensor]:
         assert torch.equal(x, torch.arange(32, dtype=torch.float))
         return {"output": torch.tensor([0, 1])}
 
@@ -31,23 +29,19 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"output": [0, 1]}
 
 
-@pytest.mark.xfail(strict=False, reason="test is too flaky in CI")  # todo
+@pytest.mark.flaky(reruns=3)
 def test_servable_module_validator():
     model = ServableBoringModel()
     callback = ServableModuleValidator()
     callback.on_train_start(Trainer(accelerator="cpu"), model)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
+@_xfail_gloo_windows
 @pytest.mark.flaky(reruns=3)
-def test_servable_module_validator_with_trainer(tmpdir):
+def test_servable_module_validator_with_trainer(tmp_path, mps_count_0):
     callback = ServableModuleValidator()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,

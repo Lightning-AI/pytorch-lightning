@@ -13,13 +13,12 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities import move_data_to_device
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
@@ -84,6 +83,10 @@ class ModelHooks:
             outputs: The outputs of training_step(x)
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
+
+        Note:
+            The value ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the
+            loss returned from ``training_step``.
 
         """
 
@@ -154,8 +157,7 @@ class ModelHooks:
 
     def on_validation_model_zero_grad(self) -> None:
         """Called by the training loop to release gradients before entering the validation loop."""
-        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
-        self.zero_grad(**zero_grad_kwargs)
+        self.zero_grad()
 
     def on_validation_model_eval(self) -> None:
         """Called when the validation loop starts.
@@ -668,7 +670,7 @@ class DataHooks:
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this is
         your chance to restore this.
 
@@ -687,7 +689,7 @@ class CheckpointHooks:
 
         """
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want to
         save.
 

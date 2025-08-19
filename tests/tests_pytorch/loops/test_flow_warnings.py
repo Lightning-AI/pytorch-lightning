@@ -22,12 +22,12 @@ class TestModel(BoringModel):
         return self.step(batch[0])
 
 
-def test_no_depre_without_epoch_end(tmpdir):
+def test_no_depre_without_epoch_end(tmp_path):
     """Tests that only training_step can be used."""
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,

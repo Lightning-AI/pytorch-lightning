@@ -14,18 +14,15 @@
 import pytest
 import torch
 import torch.nn as nn
+
 from lightning.fabric.utilities.load import (
     _lazy_load,
     _materialize_tensors,
     _move_state_into,
     _NotYetLoadedTensor,
-    _unflatten_dict,
 )
 
-from tests_fabric.helpers.runif import RunIf
 
-
-@RunIf(min_torch="2.0.0")
 def test_lazy_load_module(tmp_path):
     model0 = nn.Linear(2, 2)
     torch.save(model0.state_dict(), tmp_path / "model.pt")
@@ -35,6 +32,8 @@ def test_lazy_load_module(tmp_path):
     model1.load_state_dict(checkpoint)
 
     assert isinstance(checkpoint["weight"], _NotYetLoadedTensor)
+    assert checkpoint["weight"].device == torch.device("cpu")
+    assert type(checkpoint["weight"].to("cpu")) is torch.Tensor
     assert type(model0.weight.data) is torch.Tensor
     assert torch.equal(model0.weight, model1.weight)
     assert torch.equal(model0.bias, model1.bias)
@@ -44,7 +43,6 @@ class ATensor(torch.Tensor):
     pass
 
 
-@RunIf(min_torch="2.0.0")
 def test_lazy_load_tensor(tmp_path):
     """Test that lazy load can handle different classes of tensors."""
     expected = {
@@ -58,11 +56,10 @@ def test_lazy_load_tensor(tmp_path):
     for t0, t1 in zip(expected.values(), loaded.values()):
         assert isinstance(t1, _NotYetLoadedTensor)
         t1_materialized = _materialize_tensors(t1)
-        assert type(t0) == type(t1_materialized)
+        assert type(t0) == type(t1_materialized)  # noqa: E721
         assert torch.equal(t0, t1_materialized)
 
 
-@RunIf(min_torch="2.0.0")
 def test_lazy_load_mixed_state(tmp_path):
     model0 = nn.Linear(2, 2)
     optim0 = torch.optim.Adam(model0.parameters())
@@ -83,13 +80,11 @@ def test_lazy_load_mixed_state(tmp_path):
     optim1.load_state_dict(loaded_checkpoint["optimizer"])
 
 
-@RunIf(min_torch="2.0.0")
 def test_lazy_load_raises():
     with pytest.raises(FileNotFoundError, match="foo' does not exist"):
         _lazy_load("foo")
 
 
-@RunIf(min_torch="2.0.0")
 def test_materialize_tensors(tmp_path):
     # Single tensor
     tensor = torch.tensor([1, 2])
@@ -97,7 +92,7 @@ def test_materialize_tensors(tmp_path):
     loaded = _lazy_load(tmp_path / "tensor.pt")
     materialized = _materialize_tensors(loaded)
     assert torch.equal(materialized, tensor)
-    assert type(tensor) == type(materialized)
+    assert type(tensor) == type(materialized)  # noqa: E721
 
     # Collection of tensors
     collection = {
@@ -145,24 +140,3 @@ def test_move_state_into():
     assert source == {}
     assert destination["cocofruit"] == 2
     assert destination["banana"].count == 100
-
-
-def test_unflatten_dict():
-    assert _unflatten_dict({}, {}) == {}
-
-    tensor0 = torch.rand(2, 2)
-    tensor1 = torch.tensor(3.0)
-    data = {
-        "model.layer.weight": tensor0,
-        "optimizer.state.layer.weight.exp_avg": {"test": tensor1},
-        "optimizer.param_groups": "param_groups",
-    }
-    key_map = {
-        "model.layer.weight": ("model", "layer.weight"),
-        "optimizer.state.layer.weight.exp_avg": ("optimizer", "state", "layer.weight", "exp_avg"),
-        "optimizer.param_groups": ("optimizer", "param_groups"),
-    }
-    assert _unflatten_dict(data, key_map) == {
-        "model": {"layer.weight": tensor0},
-        "optimizer": {"state": {"layer.weight": {"exp_avg": {"test": tensor1}}}, "param_groups": "param_groups"},
-    }

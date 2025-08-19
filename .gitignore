@@ -9,10 +9,6 @@ lightning_logs/
 # Documentations
 docs/venv*/
 docs/build*/
-docs/source-app/*/api
-docs/source-app/generated
-docs/source-app/*/generated
-docs/source-app/_static/fetched-s3-assets
 docs/source-fabric/_static/fetched-s3-assets
 docs/source-pytorch/api
 docs/source-pytorch/*.md
@@ -23,6 +19,7 @@ docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
 docs/source-pytorch/_static/fetched-s3-assets
 docs/source-pytorch/integrations/hpu
+docs/source-pytorch/integrations/strategies/Hivemind.rst
 
 docs/source-fabric/*/generated
 
@@ -58,7 +55,6 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning_app/*
 src/lightning_fabric/*
 src/pytorch_lightning/*
 !src/*/__about__.py
@@ -181,8 +177,6 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
-src/lightning_app/ui/*
-src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
@@ -193,7 +187,6 @@ our_model.tar
 test.png
 saved_models
 data/
-!src/lightning/data/
 !examples/data/
 !tests/tests_pytorch/utilities/data/
 !requirements/data/
@@ -205,7 +198,7 @@ node_modules/
 **/events.out.tfevents.*
 examples/**/*.png
 
-# instalation artifacts
+# installation artifacts
 requirements/base.txt
 
 # CI

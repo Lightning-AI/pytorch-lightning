@@ -17,15 +17,15 @@ Stochastic Weight Averaging Callback
 """
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, Literal, Optional, Union, cast
 
 import torch
 from torch import Tensor, nn
+from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.swa_utils import SWALR
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import LRScheduler
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
@@ -39,10 +39,10 @@ _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]
 class StochasticWeightAveraging(Callback):
     def __init__(
         self,
-        swa_lrs: Union[float, List[float]],
+        swa_lrs: Union[float, list[float]],
         swa_epoch_start: Union[int, float] = 0.8,
         annealing_epochs: int = 10,
-        annealing_strategy: str = "cos",
+        annealing_strategy: Literal["cos", "linear"] = "cos",
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
@@ -65,7 +65,7 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
-        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Stochastic Weight Averaging>`
+        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Weight Averaging>`.
 
         Arguments:
 
@@ -123,13 +123,13 @@ class StochasticWeightAveraging(Callback):
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: Optional["pl.LightningModule"] = None
+        self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[LRScheduler] = None
-        self._scheduler_state: Optional[Dict] = None
+        self._scheduler_state: Optional[dict] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
-        self.momenta: Dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
+        self.momenta: dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
         self._max_epochs: int
 
     @property
@@ -303,14 +303,14 @@ class StochasticWeightAveraging(Callback):
                 dtype=module.running_var.dtype,
             )
             self.momenta[module] = module.momentum
-            module.momentum = None  # type: ignore[assignment]
+            module.momentum = None
             assert module.num_batches_tracked is not None
             module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
         for bn_module in self.momenta:
-            bn_module.momentum = self.momenta[bn_module]  # type: ignore[assignment]
+            bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod
     def update_parameters(
@@ -331,7 +331,7 @@ class StochasticWeightAveraging(Callback):
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "latest_update_epoch": self._latest_update_epoch,
@@ -340,7 +340,7 @@ class StochasticWeightAveraging(Callback):
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self._init_n_averaged = state_dict["n_averaged"]
         self._latest_update_epoch = state_dict["latest_update_epoch"]
         self._scheduler_state = state_dict["scheduler_state"]
@@ -354,7 +354,7 @@ class StochasticWeightAveraging(Callback):
         # Note that this relies on the callback state being restored before the scheduler state is
         # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
         # writing that is only True for deepspeed which is already not supported by SWA.
-        # See https://github.com/Lightning-AI/lightning/issues/11665 for background.
+        # See https://github.com/Lightning-AI/pytorch-lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()

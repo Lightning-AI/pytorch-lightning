@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import warnings
 from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
+import lightning.fabric
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -34,14 +39,9 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -290,7 +290,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 def test_setup_optimizer_on_meta_device():
     """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
@@ -624,7 +624,7 @@ def test_backward():
         ("auto", "32-true", False),
         ("auto", "bf16-true", False),
         ("auto", "bf16-mixed", True),
-        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
@@ -646,25 +646,27 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # One model
     model1 = nn.Linear(2, 2)
-    assert not (model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks)
     model1 = getattr(fabric, setup_method)(model1)
-    assert model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks
-    loss = model1(batch).sum()
+    output = model1(batch)
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model1(batch).sum()
+    assert not lightning.fabric.wrappers._in_fabric_backward
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
+    assert not lightning.fabric.wrappers._in_fabric_backward
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
     model2 = getattr(fabric, setup_method)(model2)
-    loss = model2(model1(batch)).sum()
+    output = model2(model1(batch))
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model2(model1(batch)).sum()
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
 
     # Two independent models
     loss1 = model1(batch).sum()
@@ -676,9 +678,28 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     loss1 = model1(batch).sum()
     loss2 = model2(batch).sum()
     fabric.backward(loss1)  # no error
-    assert not fabric._backward_called
     fabric.backward(loss2)  # no error
-    assert not fabric._backward_called
+
+    # Model that returns a datastructure of tensors
+    class DictReturnModel(nn.Linear):
+        def forward(self, x):
+            return {
+                "loss": super().forward(x).sum(),
+                "other": torch.rand(2, 2),  # does not require grad
+            }
+
+    model3 = DictReturnModel(2, 2)
+    model3 = getattr(fabric, setup_method)(model3)
+    output = model3(batch)
+    loss = output["loss"]
+    other = output["other"]
+    assert loss._backward_hooks is not None
+    assert other._backward_hooks is None
+
+    with error_context:
+        (loss * 2).backward()
+    loss = model3(batch)["loss"]
+    fabric.backward(loss * 2)  # no error
 
 
 @RunIf(deepspeed=True, mps=False)
@@ -715,6 +736,22 @@ def test_autocast():
     fabric._precision.forward_context().__exit__.assert_called()
 
 
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_autocast_does_not_use_cuda_on_mps(precision):
+    """Ensure Fabric.autocast on MPS does not fall back to CUDA when using (bf)16-mixed precision."""
+    fabric = Fabric(accelerator="mps", precision=precision)
+    fabric.launch()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with fabric.autocast():
+            pass
+
+    for warning in w:
+        assert "device_type of 'cuda'" not in str(warning.message)
+
+
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
@@ -726,9 +763,10 @@ def test_no_backward_sync():
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(
-        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
-    ), fabric.no_backward_sync(model):
+    with (
+        pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"),
+        fabric.no_backward_sync(model),
+    ):
         pass
 
     # for single-device strategies, it becomes a no-op without warning
@@ -747,11 +785,11 @@ def test_no_backward_sync():
     # disabling the context manager makes it a no-op
     with fabric.no_backward_sync(model, enabled=False):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabled, the wrapped module gets passed down
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, False)
+    fabric._strategy._backward_sync_control.reset_mock()
     with fabric.no_backward_sync(model):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, True)
 
 
 def test_launch_without_function():
@@ -835,7 +873,6 @@ def test_module_sharding_context():
 
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
-    import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
@@ -846,18 +883,8 @@ def test_init_module_context(monkeypatch):
     strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
-        with fabric.init_module():
-            pass
-    strategy.module_init_context.assert_called_once()
-
 
 def test_init_tensor_context(monkeypatch):
-    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-    import lightning.fabric
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
@@ -866,13 +893,6 @@ def test_init_tensor_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once()
     strategy.tensor_init_context.reset_mock()
-
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
-        with fabric.init_tensor():
-            pass
-    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():

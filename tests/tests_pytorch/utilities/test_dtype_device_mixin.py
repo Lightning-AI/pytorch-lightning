@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch.nn as nn
+
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -45,10 +45,10 @@ class DeviceAssertCallback(Callback):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_submodules_multi_gpu_ddp_spawn(tmpdir):
+def test_submodules_multi_gpu_ddp_spawn(tmp_path):
     model = TopModule()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,

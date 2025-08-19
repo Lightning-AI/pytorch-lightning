@@ -23,6 +23,7 @@
    ../data/data
    ../model/own_your_loop
    ../advanced/model_init
+   ../common/tbptt
 
 
 #############
@@ -112,8 +113,8 @@ How-to Guides
     :height: 180
 
 .. displayitem::
-    :header: Run on an on-prem cluster
-    :description: Learn to run on your own cluster
+    :header: Run on a multi-node cluster
+    :description: Learn to run on multi-node in the cloud or on your cluster
     :button_link: ../clouds/cluster.html
     :col_css: col-md-4
     :height: 180
@@ -142,7 +143,7 @@ How-to Guides
 .. displayitem::
     :header: Train models with billions of parameters
     :description: Scale GPU training for models with billions of parameters
-    :button_link: ../advanced/model_parallel.html
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
     :height: 180
 
@@ -199,6 +200,13 @@ How-to Guides
     :header: Use a pure PyTorch training loop
     :description: Run your pure PyTorch loop with Lightning
     :button_link: ../model/own_your_loop.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Truncated Back-Propagation Through Time
+    :description: Efficiently step through time when training recurrent models
+    :button_link: ../common/tbptt.html
     :col_css: col-md-4
     :height: 180
 

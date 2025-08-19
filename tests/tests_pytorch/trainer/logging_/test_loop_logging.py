@@ -18,6 +18,7 @@ from unittest import mock
 from unittest.mock import ANY
 
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator

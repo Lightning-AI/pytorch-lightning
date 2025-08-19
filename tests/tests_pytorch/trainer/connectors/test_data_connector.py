@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
+from collections.abc import Sized
 from re import escape
-from typing import Sized
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
+
+import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
@@ -35,11 +37,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
-
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 @RunIf(skip_windows=True)
@@ -125,11 +123,7 @@ class TestSpawnBoringModel(BoringModel):
             self.ctx.__exit__(None, None, None)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
+@_xfail_gloo_windows
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path):
     """Test that when the multiprocessing start-method is 'spawn', we recommend setting `persistent_workers=True`."""
@@ -504,7 +498,7 @@ def test_dataloader_source_request_from_module():
 
 
 @pytest.mark.parametrize(
-    "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    "hook_name", ["on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer"]
 )
 class TestDataHookSelector:
     def overridden_func(self, batch, *args, **kwargs):

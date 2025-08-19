@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-import sys
 
 import pytest
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
+from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
+from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 
 def test_prediction_loop_stores_predictions(tmp_path):
@@ -52,11 +52,7 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
+@_xfail_gloo_windows
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distributed_sampler):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""
@@ -290,7 +286,7 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
 
-def test_prediction_loop_when_batch_idx_argument_is_not_given(tmpdir):
+def test_prediction_loop_when_batch_idx_argument_is_not_given(tmp_path):
     class TestModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
@@ -301,7 +297,7 @@ def test_prediction_loop_when_batch_idx_argument_is_not_given(tmpdir):
             return self.step(batch)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=1,
         logger=False,
         enable_checkpointing=False,

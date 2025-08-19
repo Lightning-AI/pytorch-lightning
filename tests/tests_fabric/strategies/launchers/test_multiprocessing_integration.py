@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
+from lightning.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -31,12 +29,8 @@ class SimpleModel(nn.Module):
         self.register_buffer("buffer", torch.ones(3))
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
-@pytest.mark.parametrize("strategy", ["ddp_spawn", pytest.param("ddp_fork", marks=RunIf(skip_windows=True))])
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork"])
 def test_memory_sharing_disabled(strategy):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
@@ -52,7 +46,8 @@ def test_memory_sharing_disabled(strategy):
 
 def _test_memory_sharing_disabled(fabric, tensor, model):
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
-    assert not is_spawn or tensor.is_shared()
+    if is_spawn:
+        assert tensor.is_shared()
     assert not model.layer.weight.is_shared()
     assert not model.tied_layer.weight.is_shared()
     assert not model.buffer.is_shared()

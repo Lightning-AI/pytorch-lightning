@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import logging
 from unittest.mock import Mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
 
 
-def test_outputs_format(tmpdir):
+def test_outputs_format(tmp_path):
     """Tests that outputs objects passed to model hooks and methods are consistent and in the correct format."""
 
     class HookedModel(BoringModel):
@@ -44,7 +47,7 @@ def test_outputs_format(tmpdir):
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=1,
         limit_train_batches=2,
@@ -56,7 +59,7 @@ def test_outputs_format(tmpdir):
 
 
 @pytest.mark.parametrize("seed_once", [True, False])
-def test_training_starts_with_seed(tmpdir, seed_once):
+def test_training_starts_with_seed(tmp_path, seed_once):
     """Test the behavior of seed_everything on subsequent Trainer runs in combination with different settings of
     num_sanity_val_steps (which must not affect the random state)."""
 
@@ -77,19 +80,19 @@ def test_training_starts_with_seed(tmpdir, seed_once):
 
     if seed_once:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence0 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=0)
+        sequence1 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=2)
         assert not torch.allclose(sequence0, sequence1)
     else:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
+        sequence0 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=0)
         seed_everything(123)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence1 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=2)
         assert torch.allclose(sequence0, sequence1)
 
 
 @pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8), (4, 12)])
-def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path):
     class CurrentModel(BoringModel):
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
@@ -97,7 +100,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
             return None
 
     model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
@@ -107,7 +110,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
-def test_should_stop_mid_epoch(tmpdir):
+def test_should_stop_mid_epoch(tmp_path):
     """Test that training correctly stops mid epoch and that validation is still called at the right time."""
 
     class TestModel(BoringModel):
@@ -125,7 +128,7 @@ def test_should_stop_mid_epoch(tmpdir):
             return super().validation_step(*args)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
     trainer.fit(model)
 
     # even though we stopped mid epoch, the fit loop finished normally and the current epoch was increased
@@ -205,3 +208,72 @@ def test_should_stop_early_stopping_conditions_met(
 
     assert (message in caplog.text) is raise_debug_msg
     assert trainer.fit_loop._can_stop_early is early_stop
+
+
+@pytest.mark.parametrize("max_steps", [7, 20])
+def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
+    """Test trainer with infinite iterator (no __len__)"""
+
+    batch_size = 4
+    model = BoringModel()
+
+    # Infinite generator (no __len__)
+    # NOTE: 32 for BoringModel
+    infinite_iter = (torch.randn(batch_size, 32, dtype=torch.float32) for _ in itertools.count(0))
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=max_steps,
+        max_epochs=-1,
+        limit_val_batches=0,
+        enable_progress_bar=True,
+        enable_model_summary=False,
+        accelerator="cpu",
+    )
+
+    # Override train_dataloader with infinite iterator
+    model.train_dataloader = lambda: infinite_iter
+    pbar = trainer.progress_bar_callback
+    trainer.fit(model)
+
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
+
+
+@pytest.mark.parametrize("max_steps", [10, 15])
+def test_progress_bar_steps(tmp_path, max_steps):
+    batch_size = 4
+
+    model = BoringModel()
+    # Create dataloader here, outside the model
+    # NOTE: 32 for boring model
+    x = torch.randn(100, 32)
+
+    class SingleTensorDataset(torch.utils.data.IterableDataset):
+        def __init__(self, data):
+            super().__init__()
+            self.data = data
+
+        def __iter__(self):
+            yield from self.data  # yield just a tensor, not a tuple
+
+    dataset = SingleTensorDataset(x)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+
+    # Patch model's train_dataloader method to return this dataloader
+    model.train_dataloader = lambda: dataloader
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=max_steps,
+        max_epochs=-1,
+        limit_val_batches=0,
+        enable_progress_bar=True,
+        enable_model_summary=False,
+        accelerator="cpu",
+    )
+    pbar = trainer.progress_bar_callback
+    trainer.fit(model)
+
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
