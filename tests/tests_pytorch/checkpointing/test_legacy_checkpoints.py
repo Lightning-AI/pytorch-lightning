@@ -105,9 +105,14 @@ def test_legacy_ckpt_threading(pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @RunIf(sklearn=True)
-def test_resume_legacy_checkpoints(tmp_path, pl_version: str):
+def test_resume_legacy_checkpoints(monkeypatch, tmp_path, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
+        if pl_version == "local":
+            pl_version = pl.__version__
+        if Version(pl_version) < Version("1.5.0"):
+            monkeypatch.setenv("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+
         path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
         assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]

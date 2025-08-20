@@ -26,7 +26,6 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
@@ -49,11 +48,6 @@ def _load(
             `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
     """
-    # default to `weights_only=True` for torch>=2.6
-    if weights_only is None and _TORCH_GREATER_EQUAL_2_6:
-        log.debug("Defaulting to `weights_only=True` for torch>=2.6.")
-        weights_only = True
-
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similar
         return torch.load(
