@@ -23,6 +23,7 @@ from lightning.pytorch.accelerators import MPSAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
+# trigger pytorch test
 
 @RunIf(mps=True)
 def test_get_mps_stats():
