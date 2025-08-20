@@ -57,7 +57,7 @@ def test_deepspeed_summary(tmp_path):
     trainer.fit(model)
 
 
-@RunIf(deepspeed=True, rich=True)
+@RunIf(min_cuda_gpus=1, deepspeed=True, rich=True)
 @mock.patch("rich.table.Table.add_row", autospec=True)
 def test_deepspeed_summary_with_rich_model_summary(mock_table_add_row, tmp_path):
     from lightning.pytorch.callbacks import RichModelSummary
