@@ -81,7 +81,7 @@ jobs:
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -94,7 +94,9 @@ jobs:
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
         run: |
-          python .actions/assistant.py replace_oldest_ver
+          cd requirements/fabric
+          pip install -U "lightning-utilities[cli]"
+          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
           pip install "cython<3.0" wheel
           pip install "pyyaml==5.4" --no-build-isolation
 
