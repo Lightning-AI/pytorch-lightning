@@ -46,7 +46,12 @@ def test_load_legacy_checkpoints(tmp_path, pl_version: str):
         assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
-        model = ClassificationModel.load_from_checkpoint(path_ckpt, num_features=24)
+        if pl_version == "local":
+            pl_version = pl.__version__
+
+        weights_only = Version(pl_version) >= Version("1.5.0")
+
+        model = ClassificationModel.load_from_checkpoint(path_ckpt, num_features=24, weights_only=weights_only)
         trainer = Trainer(default_root_dir=tmp_path)
         dm = ClassifDataModule(num_features=24, length=6000, batch_size=128, n_clusters_per_class=2, n_informative=8)
         res = trainer.test(model, datamodule=dm)
