@@ -96,7 +96,7 @@ jobs:
         run: |
           cd requirements/fabric
           pip install -U "lightning-utilities[cli]"
-          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
+          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt', 'test.txt']"
           pip install "cython<3.0" wheel
           pip install "pyyaml==5.4" --no-build-isolation
 
@@ -142,7 +142,8 @@ jobs:
         run: |
           pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             -U --upgrade-strategy=eager --prefer-binary \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
+            --extra-index-url="${TORCH_URL}" \
+            --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
