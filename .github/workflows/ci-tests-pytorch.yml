@@ -99,7 +99,9 @@ jobs:
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
         run: |
-          python .actions/assistant.py replace_oldest_ver
+          cd requirements/pytorch
+          pip install -U "lightning-utilities[cli]"
+          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt', 'test.txt']"
           pip install "cython<3.0" wheel
           pip install "pyyaml==5.4" --no-build-isolation
 
@@ -139,7 +141,9 @@ jobs:
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}" --find-links="https://download.pytorch.org/whl/torch-tensorrt"
+            --extra-index-url="${TORCH_URL}" \
+            --find-links="${PYPI_CACHE_DIR}" \
+            --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
