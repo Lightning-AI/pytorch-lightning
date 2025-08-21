@@ -91,6 +91,7 @@ def test_model_checkpoint_every_n_train_steps_with_val_metric_saves_after_val(tm
         limit_val_batches=1,
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
     )
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)

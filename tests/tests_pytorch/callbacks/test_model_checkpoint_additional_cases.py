@@ -84,6 +84,7 @@ def test_model_checkpoint_every_n_train_steps_with_train_metric_saves_at_step(tm
         limit_val_batches=0,  # no validation needed for this test
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
     )
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
@@ -128,6 +129,7 @@ def test_model_checkpoint_time_interval_with_val_metric_defers_until_validation(
         limit_val_batches=1,
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
     )
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
@@ -194,6 +196,7 @@ def test_model_checkpoint_defer_until_next_validation_when_val_every_2_epochs(tm
         limit_val_batches=1,
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
         check_val_every_n_epoch=2,  # only validate every 2 epochs
     )
 
