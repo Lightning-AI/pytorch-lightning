@@ -78,6 +78,7 @@ class RichModelSummary(ModelSummary):
         from rich.table import Table
 
         console = get_console()
+        column_names = list(zip(*summary_data))[0]
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")
         table = Table(header_style=header_style)
@@ -85,9 +86,11 @@ class RichModelSummary(ModelSummary):
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
         table.add_column("Params", justify="right")
-        table.add_column("Mode")
 
-        column_names = list(zip(*summary_data))[0]
+        if "Params per Device" in column_names:
+            table.add_column("Params per Device", justify="right")
+
+        table.add_column("Mode")
 
         for column_name in ["In sizes", "Out sizes"]:
             if column_name in column_names:
