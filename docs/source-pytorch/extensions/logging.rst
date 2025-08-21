@@ -120,6 +120,10 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
 .. note::
     Everything explained below applies to both :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` methods.
 
+.. note::
+
+    When using TorchMetrics with Lightning, we recommend referring to the `TorchMetrics Lightning integration documentation <https://lightning.ai/docs/torchmetrics/stable/pages/lightning.html>`_ for logging best practices, common pitfalls, and proper usage patterns.
+
 Depending on where the :meth:`~lightning.pytorch.core.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
 :meth:`~lightning.pytorch.core.LightningModule.log` parameters.
