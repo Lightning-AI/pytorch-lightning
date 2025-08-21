@@ -273,8 +273,10 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     @override
     @rank_zero_only
     def experiment(self) -> "SummaryWriter":
-        """Returns the underlying TensorBoard summary writer object. To use TensorBoard features anywhere in your code,
-        do the following.
+        """Returns the underlying TensorBoard summary writer object. Allows you to use TensorBoard logging features
+        directly in your :class:`~lightning.pytorch.core.LightningModule` or anywhere else in your code with:
+
+        `logger.experiment.some_tensorboard_function()`
 
         Example::
 
@@ -283,7 +285,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
                     # log a image
                     self.logger.experiment.add_image('my_image', batch['image'], self.global_step)
                     # log a histogram
-                    self.logger.experiment.add_histogram('my_histogram', batch['data'], self.global
+                    self.logger.experiment.add_histogram('my_histogram', batch['data'], self.global_step)
 
         """
         return super().experiment
