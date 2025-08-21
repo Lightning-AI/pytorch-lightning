@@ -17,7 +17,7 @@ pandas >2.0, <2.4.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
-tensorboard >=2.9.1, <2.21.0  # for `TensorBoardLogger`
+tensorboard >=2.11, <2.21.0  # for `TensorBoardLogger`
 
 --find-links https://download.pytorch.org/whl/torch-tensorrt
 torch-tensorrt; platform_system == "Linux" and python_version >= "3.12"
