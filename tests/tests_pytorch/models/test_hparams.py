@@ -791,7 +791,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmp_path):
             logger=False,
         )
         trainer.fit(model)
-        _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
+        _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path, weights_only=False)
 
 
 @pytest.mark.parametrize("ignore", ["arg2", ("arg2", "arg3")])
