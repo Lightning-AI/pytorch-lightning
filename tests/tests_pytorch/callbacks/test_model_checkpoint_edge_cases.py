@@ -117,6 +117,7 @@ def test_checkpoint_defers_with_mid_epoch_validation(tmp_path, val_scores):
         limit_val_batches=1,
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
         val_check_interval=0.5,
     )
 
@@ -161,6 +162,7 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
         limit_val_batches=1,
         enable_checkpointing=True,
         enable_model_summary=False,
+        logger=False,
         check_val_every_n_epoch=2,  # first validation only after 2nd epoch
     )
 
