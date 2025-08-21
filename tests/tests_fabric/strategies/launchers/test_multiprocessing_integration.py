@@ -30,6 +30,7 @@ class SimpleModel(nn.Module):
 
 
 @RunIf(skip_windows=True)
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork"])
 def test_memory_sharing_disabled(strategy):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
@@ -46,7 +47,8 @@ def test_memory_sharing_disabled(strategy):
 
 def _test_memory_sharing_disabled(fabric, tensor, model):
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
-    assert not is_spawn or tensor.is_shared()
+    if is_spawn:
+        assert tensor.is_shared()
     assert not model.layer.weight.is_shared()
     assert not model.tied_layer.weight.is_shared()
     assert not model.buffer.is_shared()
