@@ -127,7 +127,7 @@ if _PIN_RELEASE_VERSIONS:
         "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
     )
     adjust_linked_external_docs(
-        "https://lightning.ai/docs/torchmetrics/", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
+        "https://lightning.ai/docs/torchmetrics/stable/", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
     )
     adjust_linked_external_docs(
         "https://lightning.ai/docs/fabric/stable/", "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/", _PATH_ROOT, version_digits=3
