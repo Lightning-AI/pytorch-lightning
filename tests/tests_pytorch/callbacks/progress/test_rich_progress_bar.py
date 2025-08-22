@@ -577,3 +577,31 @@ def test_rich_progress_bar_metrics_theme_update(*_):
     theme = RichProgressBar(theme=RichProgressBarTheme(metrics_format=".3e", metrics_text_delimiter="\n")).theme
     assert theme.metrics_format == ".3e"
     assert theme.metrics_text_delimiter == "\n"
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_empty_val_dataloader_model(tmp_path):
+    """Test that RichProgressBar doesn't crash with empty val_dataloader list from model."""
+
+    class EmptyListModel(BoringModel):
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+        def val_dataloader(self):
+            return []
+
+    model = EmptyListModel()
+    progress_bar = RichProgressBar()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        num_sanity_val_steps=1,
+        callbacks=[progress_bar],
+        limit_train_batches=2,
+        enable_checkpointing=False,
+        logger=False,
+    )
+
+    # This should not raise an AssertionError
+    trainer.fit(model)

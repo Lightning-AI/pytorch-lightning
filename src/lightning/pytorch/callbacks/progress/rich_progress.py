@@ -390,8 +390,7 @@ class RichProgressBar(ProgressBar):
 
     @override
     def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.progress is not None:
-            assert self.val_sanity_progress_bar_id is not None
+        if self.progress is not None and self.val_sanity_progress_bar_id is not None:
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
