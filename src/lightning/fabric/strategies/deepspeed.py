@@ -282,10 +282,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 sub_group_size=sub_group_size,
             )
 
-        import deepspeed
-
         self._config_initialized = False
-        deepspeed.utils.logging.logger.setLevel(logging_level)
+        # Defer importing and configuring DeepSpeed logging until it is actually needed.
+        # Store the desired logging level to be applied on first use.
+        self._logging_level = logging_level
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
@@ -373,6 +373,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
 
         import deepspeed
+
+        deepspeed.utils.logging.logger.setLevel(self._logging_level)
 
         assert self._config_initialized
         return deepspeed.zero.Init(
@@ -601,6 +603,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         import deepspeed
 
+        deepspeed.utils.logging.logger.setLevel(self._logging_level)
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -628,13 +632,19 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self._set_world_ranks()
-        self._init_deepspeed_distributed()
+        # Avoid initializing DeepSpeed distributed for single-process runs. This also avoids importing
+        # DeepSpeed in environments where it may not be fully functional (e.g., missing nvcc),
+        # while still allowing configuration and dataloader setup logic to run.
+        if self.world_size > 1:
+            self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
 
     def _init_deepspeed_distributed(self) -> None:
         import deepspeed
+
+        deepspeed.utils.logging.logger.setLevel(self._logging_level)
 
         assert self.cluster_environment is not None
         if platform.system() != "Windows":
@@ -660,6 +670,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
         import deepspeed
+
+        deepspeed.utils.logging.logger.setLevel(self._logging_level)
 
         assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
