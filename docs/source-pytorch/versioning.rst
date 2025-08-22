@@ -53,12 +53,8 @@ API Evolution
 
 Lightning's development is driven by research and best practices in a rapidly developing field of AI and machine learning. Change is inevitable and when it happens, the Lightning team is committed to minimizing user friction and maximizing ease of transition from one version to the next. We take backwards compatibility and reproducibility very seriously.
 
-For API removal, renaming or other forms of backwards-incompatible changes, the procedure is:
-
-#. A deprecation process is initiated at a minor version ``MAJOR.MINOR.PATCH`` (e.g. ``1.5.0``), producing a deprecation warning at runtime and removing it from the documentation.
-#. The deprecated API remains unchanged during the deprecation phase for two minor versions or the next major update, whichever comes first.
-#. The breaking change is done in version ``MAJOR.(MINOR+2).0`` (e.g. ``1.7.0``), or ``(MAJOR+1).0.0`` (e.g. ``2.0.0``), whichever comes first.
-#. From that version onward, the deprecation warning gets converted into a helpful error, which will remain until next major release.
+Excepting extenuating circumstances (e.g. a critical bug), API removal, renaming or other forms of backwards-incompatible changes are limited to major version upgrades — that is ``(MAJOR+1).0.0``.
+Concretely, a breaking change for an API introduced in ``2.x.x`` can be introduced with Lightning ``3.0.0``.
 
 This policy is not strict. Shorter or longer deprecation cycles may apply to some cases.
 For example, in the past DDP2 was removed without a deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/pytorch-lightning/issues/12584>`_.
@@ -69,6 +65,7 @@ Compatibility matrix
 
 PyTorch Lightning follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_ which PyTorch also follows (`#74203 <https://github.com/pytorch/pytorch/issues/74203>`_).
 The table below indicates the coverage of tested versions in our CI. Versions outside the ranges may unofficially work in some cases.
+Since the release of PyTorch `2.0`, Lightning strives to officially support the latest 5 PyTorch minor releases with no intra-major version breaking changes [1]_.
 
 .. list-table::
    :header-rows: 1
@@ -82,7 +79,7 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
    * - 2.5
      - 2.5
      - 2.5
-     - ≥2.1, ≤2.7
+     - ≥2.1, ≤2.8
      - ≥0.7.0
      - ≥3.9, ≤3.12
    * - 2.4
@@ -181,3 +178,5 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
 \*\* The joint ``lightning`` package was first published in version 1.8
 
 \*\*\* Fabric is the evolution of ``LightningLite`` which was released inside ``pytorch_lightning`` 1.5 and was decoupled to a separate package in v1.9
+
+.. [1] See `this community discussion <https://github.com/Lightning-AI/pytorch-lightning/issues/21073#issuecomment-3201706857>`_.
