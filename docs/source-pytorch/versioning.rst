@@ -65,7 +65,7 @@ Compatibility matrix
 
 PyTorch Lightning follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_ which PyTorch also follows (`#74203 <https://github.com/pytorch/pytorch/issues/74203>`_).
 The table below indicates the coverage of tested versions in our CI. Versions outside the ranges may unofficially work in some cases.
-Since the release of PyTorch `2.0`, Lightning strives to officially support the latest 5 PyTorch minor releases with no intra-major version breaking changes [1]_.
+Since the release of PyTorch `2.0`, Lightning strives to officially support the latest 5 PyTorch minor releases with no breaking changes within major versions [1]_.
 
 .. list-table::
    :header-rows: 1
