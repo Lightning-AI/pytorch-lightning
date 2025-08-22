@@ -10,13 +10,13 @@ parametrize:
   matrix: {}
   include:
     # note that this is setting also all oldest requirements which is linked to Torch == 2.0
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.10-torch2.1-cuda12.1.1"
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
       PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
       PACKAGE_NAME: "fabric"
-    # - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+    # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
     #   PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
       PACKAGE_NAME: "lightning"
   exclude: []
 
@@ -43,7 +43,10 @@ run: |
 
   if [ "${TORCH_VER}" == "2.1" ]; then
     echo "Set oldest versions"
-    python .actions/assistant.py replace_oldest_ver
+    cd requirements/fabric
+    pip install -U "lightning-utilities[cli]"
+    python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
+    cd ../..
     pip install "cython<3.0" wheel  # for compatibility
   fi
 
