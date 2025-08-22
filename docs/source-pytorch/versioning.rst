@@ -79,7 +79,7 @@ Since the release of PyTorch `2.0`, Lightning strives to officially support the 
    * - 2.5
      - 2.5
      - 2.5
-     - ≥2.1, ≤2.8
+     - ≥2.1, (last tested 2.8)
      - ≥0.7.0
      - ≥3.9, ≤3.12
    * - 2.4
