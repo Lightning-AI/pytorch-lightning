@@ -5,31 +5,71 @@
 GPU training (FAQ)
 ==================
 
+***************************************************************
+How should I adjust the batch size when using multiple devices?
+***************************************************************
+
+Lightning automatically shards your data across multiple GPUs, meaning that each device only sees a unique subset of your
+data, but the `batch_size` in your DataLoader remains the same. This means that the effective batch size e.g. the
+total number of samples processed in one forward/backward pass is
+
+.. math::
+
+    \text{Effective Batch Size} = \text{DataLoader Batch Size} \times \text{Number of Devices} \times \text{Number of Nodes}
+
+A couple of examples to illustrate this:
+
+.. testcode::
+
+    dataloader = DataLoader(..., batch_size=7)
+
+    # Single GPU: effective batch size = 7
+    Trainer(accelerator="gpu", devices=1)
+
+    # Multi-GPU: effective batch size = 7 * 8 = 56
+    Trainer(accelerator="gpu", devices=8, strategy=...)
+
+    # Multi-node: effective batch size = 7 * 8 * 10 = 560
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy=...)
+
+In general you should be able to use the same `batch_size` in your DataLoader regardless of the number of devices you are
+using.
+
+.. note::
+
+    If you want distributed training to work exactly the same as single GPU training, you need to set the `batch_size`
+    in your DataLoader to `original_batch_size / num_devices` to maintain the same effective batch size. However, this
+    can lead to poor GPU utilization.
+
+----
+
 ******************************************************************
 How should I adjust the learning rate when using multiple devices?
 ******************************************************************
 
-When using distributed training make sure to modify your learning rate according to your effective
-batch size.
+Because the effective batch size is larger when using multiple devices, you need to adjust your learning rate
+accordingly. Because the learning rate is a hyperparameter that controls how much to change the model in response to
+the estimated error each time the model weights are updated, it is important to scale it with the effective batch size.
 
-Let's say you have a batch size of 7 in your dataloader.
+In general, there are two common scaling rules:
 
-.. testcode::
+1. **Linear scaling**: Increase the learning rate linearly with the number of devices.
 
-    class LitModel(LightningModule):
-        def train_dataloader(self):
-            return Dataset(..., batch_size=7)
+    .. testcode::
 
-Whenever you use multiple devices and/or nodes, your effective batch size will be 7 * devices * num_nodes.
+        # Example: Linear scaling
+        base_lr = 1e-3
+        num_devices = 8
+        scaled_lr = base_lr * num_devices  # 8e-3
 
-.. code-block:: python
+2. **Square root scaling**: Increase the learning rate by the square root of the number of devices.
 
-    # effective batch size = 7 * 8
-    Trainer(accelerator="gpu", devices=8, strategy=...)
+    .. testcode::
 
-    # effective batch size = 7 * 8 * 10
-    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy=...)
-
+        # Example: Square root scaling
+        base_lr = 1e-3
+        num_devices = 8
+        scaled_lr = base_lr * (num_devices ** 0.5)  # 2.83e-3
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
