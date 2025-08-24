@@ -87,6 +87,13 @@ class MPSAccelerator(Accelerator):
             description=cls.__name__,
         )
 
+    @classmethod
+    def device_name(cls, device: Optional = None) -> str:
+        # todo: implement a better way to get the device name
+        available = cls.is_available()
+        gpu_type = " (mps)" if available else ""
+        return f"{available}{gpu_type}"
+
 
 # device metrics
 _VM_PERCENT = "M1_vm_percent"

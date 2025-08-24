@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from typing import Any
+from typing import Any, Optional
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.accelerator import Accelerator as _Accelerator
@@ -45,3 +45,8 @@ class Accelerator(_Accelerator, ABC):
 
         """
         raise NotImplementedError
+
+    @classmethod
+    def device_name(cls, device: Optional = None) -> str:
+        """Get the device name for a given device."""
+        return str(cls.is_available())

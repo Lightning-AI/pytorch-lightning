@@ -1187,16 +1187,21 @@ class Trainer:
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
-    def device_ids(self) -> list[int]:
-        """List of device indexes per node."""
+    def devices(self) -> list[torch.device]:
+        """The devices the trainer uses per node."""
         devices = (
             self.strategy.parallel_devices
             if isinstance(self.strategy, ParallelStrategy)
             else [self.strategy.root_device]
         )
         assert devices is not None
+        return devices
+
+    @property
+    def device_ids(self) -> list[int]:
+        """List of device indexes per node."""
         device_ids = []
-        for idx, device in enumerate(devices):
+        for idx, device in enumerate(self.devices):
             if isinstance(device, torch.device):
                 device_ids.append(device.index or idx)
             elif isinstance(device, int):
