@@ -839,9 +839,10 @@ class LightningModule(
             If you don't need to validate you don't need to implement this method.
 
         Note:
-            When the :meth:`validation_step` is called, the model has been put in eval mode
-            and PyTorch gradients have been disabled. At the end of validation,
-            the model goes back to training mode and gradients are enabled.
+            When the :meth:`validation_step` is called, the model has been put
+            in eval mode and PyTorch gradients have been disabled. At the end
+            of the validation epoch, the ``.training`` mode of every submodule
+            is restored to what it was before and gradients are enabled.
 
         """
 
@@ -921,9 +922,10 @@ class LightningModule(
             If you don't need to test you don't need to implement this method.
 
         Note:
-            When the :meth:`test_step` is called, the model has been put in eval mode and
-            PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
-            to training mode and gradients are enabled.
+            When the :meth:`test_step` is called, the model has been put in
+            eval mode and PyTorch gradients have been disabled. At the end of
+            the test epoch, the ``.training`` mode of every submodule is
+            restored to what it was before and gradients are enabled.
 
         """
 
@@ -961,6 +963,12 @@ class LightningModule(
             model = MyModel()
             trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
+
+        Note:
+            When the :meth:`predict_step` is called, the model has been put in
+            eval mode and PyTorch gradients have been disabled. At the end of
+            the predict epoch, the ``.training`` mode of every submodule is
+            restored to what it was before and gradients are enabled.
 
         """
         # For backwards compatibility
