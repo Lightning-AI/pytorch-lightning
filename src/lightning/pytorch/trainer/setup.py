@@ -142,13 +142,18 @@ def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str
 
 
 def _log_device_info(trainer: "pl.Trainer") -> None:
-    if isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator)):
-        gpu_used = trainer.num_devices
-        device_names = list({trainer.accelerator.device_name(d) for d in trainer.devices})
+    if CUDAAccelerator.is_available():
+        if isinstance(trainer.accelerator, CUDAAccelerator):
+            device_name = list({CUDAAccelerator.device_name(d) for d in trainer.device_ids})
+        else:
+            device_name = CUDAAccelerator.device_name()
+    elif MPSAccelerator.is_available():
+        device_name = MPSAccelerator.device_name()
     else:
-        gpu_used = 0
-        device_names = "False"
-    rank_zero_info(f"GPU available: {device_names}, using: {gpu_used} {'devices' if gpu_used else 'device'}.")
+        device_name = str(False)
+
+    gpu_used = trainer.num_devices if isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator)) else 0
+    rank_zero_info(f"GPU available: {device_name}, using: {gpu_used} devices.")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
     rank_zero_info(f"TPU available: {XLAAccelerator.device_name()}, using: {num_tpu_cores} TPU cores")
