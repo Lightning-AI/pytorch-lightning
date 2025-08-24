@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any
 
 from typing_extensions import override
 
@@ -56,7 +56,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
         accelerator_registry.register("tpu", cls, description=cls.__name__)
 
     @classmethod
-    def device_name(cls, device: Optional = None) -> str:
+    def device_name(cls, device: _DEVICE = None) -> str:
         is_available = cls.is_available()
         if not is_available:
             return str(is_available)

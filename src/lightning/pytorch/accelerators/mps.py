@@ -88,7 +88,7 @@ class MPSAccelerator(Accelerator):
         )
 
     @classmethod
-    def device_name(cls, device: Optional = None) -> str:
+    def device_name(cls, device: _DEVICE = None) -> str:
         # todo: implement a better way to get the device name
         available = cls.is_available()
         gpu_type = " (mps)" if available else ""

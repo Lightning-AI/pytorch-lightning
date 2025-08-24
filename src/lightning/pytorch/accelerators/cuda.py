@@ -114,7 +114,7 @@ class CUDAAccelerator(Accelerator):
         )
 
     @classmethod
-    def device_name(cls, device: Optional[torch.types.Device] = None) -> str:
+    def device_name(cls, device: _DEVICE = None) -> str:
         if not cls.is_available():
             return "False"
         return torch.cuda.get_device_name(device)
