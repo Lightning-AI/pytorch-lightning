@@ -36,7 +36,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
@@ -200,11 +200,13 @@ class DDPStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
+        kwargs = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
         _init_dist_connection(
             self.cluster_environment,
             self._process_group_backend,
-            timeout=self._timeout,
-            device_id=self.root_device if self.root_device.type != "cpu" else None,
+            **kwargs,
         )
 
     def _get_process_group_backend(self) -> str:
