@@ -16,7 +16,7 @@ from typing import Any
 from typing_extensions import override
 
 from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
 
@@ -79,6 +79,7 @@ class RichModelSummary(ModelSummary):
         from rich.table import Table
 
         console = get_console()
+        column_names = list(zip(*summary_data))[0]
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")
         table = Table(header_style=header_style)
@@ -86,10 +87,12 @@ class RichModelSummary(ModelSummary):
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
         table.add_column("Params", justify="right")
+
+        if "Params per Device" in column_names:
+            table.add_column("Params per Device", justify="right")
+
         table.add_column("Mode")
         table.add_column("FLOPs", justify="right")
-
-        column_names = list(zip(*summary_data))[0]
 
         for column_name in ["In sizes", "Out sizes"]:
             if column_name in column_names:

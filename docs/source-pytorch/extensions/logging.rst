@@ -120,6 +120,10 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
 .. note::
     Everything explained below applies to both :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` methods.
 
+.. note::
+
+    When using TorchMetrics with Lightning, we recommend referring to the `TorchMetrics Lightning integration documentation <https://lightning.ai/docs/torchmetrics/stable/pages/lightning.html>`_ for logging best practices, common pitfalls, and proper usage patterns.
+
 Depending on where the :meth:`~lightning.pytorch.core.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
 :meth:`~lightning.pytorch.core.LightningModule.log` parameters.
@@ -137,7 +141,7 @@ The :meth:`~lightning.pytorch.core.LightningModule.log` method has a few options
 * ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~lightning.pytorch.trainer.trainer.Trainer` (Default: ``True``).
 * ``reduce_fx``: Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 * ``enable_graph``: If True, will not auto detach the graph.
-* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
+* ``sync_dist``: If True, averages the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 * ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.

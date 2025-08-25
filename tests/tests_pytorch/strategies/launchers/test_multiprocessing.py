@@ -25,7 +25,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 @mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
@@ -194,6 +194,8 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
+@_xfail_gloo_windows
+@pytest.mark.flaky(reruns=3)
 def test_memory_sharing_disabled(tmp_path):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
@@ -219,6 +221,7 @@ def test_check_for_missing_main_guard():
         launcher.launch(function=Mock())
 
 
+@_xfail_gloo_windows
 def test_fit_twice_raises(mps_count_0):
     model = BoringModel()
     trainer = Trainer(

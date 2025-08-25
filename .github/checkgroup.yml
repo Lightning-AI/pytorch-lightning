@@ -48,6 +48,7 @@ subprojects:
       - "!**/*.md"
     checks:
       - "pytorch-lightning (GPUs) (testing Lightning | latest)"
+      - "pytorch-lightning (GPUs) (testing PyTorch | oldest)"
       - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
 
   - id: "pytorch_lightning: Benchmarks"
@@ -135,7 +136,8 @@ subprojects:
       - "build-pl (3.11, 2.4, 12.1.1)"
       - "build-pl (3.12, 2.5, 12.1.1)"
       - "build-pl (3.12, 2.6, 12.4.1)"
-      - "build-pl (3.12, 2.7, 12.6.3, true)"
+      - "build-pl (3.12, 2.7, 12.6.3)"
+      - "build-pl (3.12, 2.8, 12.6.3, true)"
 
   # SECTION: lightning_fabric
 
@@ -173,6 +175,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
+      - "lightning-fabric (GPUs) (testing Fabric | oldest)"
       - "lightning-fabric (GPUs) (testing Fabric | latest)"
       - "lightning-fabric (GPUs) (testing Lightning | latest)"
 

@@ -13,11 +13,12 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
+import copy
 import logging
 import numbers
 import weakref
 from collections.abc import Generator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -47,6 +48,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -60,7 +62,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -72,10 +74,18 @@ from lightning.pytorch.utilities.types import (
     OptimizerLRScheduler,
 )
 
+_ONNX_AVAILABLE = RequirementCache("onnx")
+_ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
+_TORCH_TRT_AVAILABLE = RequirementCache("torch_tensorrt")
+
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
 
-_ONNX_AVAILABLE = RequirementCache("onnx")
+    if _TORCH_GREATER_EQUAL_2_5:
+        if _TORCH_GREATER_EQUAL_2_6:
+            from torch.onnx import ONNXProgram
+        else:
+            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -466,10 +476,10 @@ class LightningModule(
         )
 
         # make sure user doesn't introduce logic for multi-dataloaders
-        if "/dataloader_idx_" in name:
+        if add_dataloader_idx and "/dataloader_idx_" in name:
             raise MisconfigurationException(
                 f"You called `self.log` with the key `{name}`"
-                " but it should not contain information about `dataloader_idx`"
+                " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
@@ -808,7 +818,22 @@ class LightningModule(
             # CASE 2: multiple validation dataloaders
             def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"val_loss_{dataloader_idx}": loss, f"val_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -875,7 +900,22 @@ class LightningModule(
             # CASE 2: multiple test dataloaders
             def test_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"test_loss_{dataloader_idx}": loss, f"test_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to test you don't need to implement this method.
@@ -1386,12 +1426,18 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(
+        self,
+        file_path: Union[str, Path, BytesIO, None] = None,
+        input_sample: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Optional["ONNXProgram"]:
         """Saves the model in ONNX format.
 
         Args:
-            file_path: The path of the file the onnx model should be saved to.
+            file_path: The path of the file the onnx model should be saved to. Default: None (no file saved).
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example::
@@ -1412,6 +1458,12 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
+        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
+                "requires `onnxscript` and `torch>=2.5.0` to be installed."
+            )
+
         mode = self.training
 
         if input_sample is None:
@@ -1428,8 +1480,9 @@ class LightningModule(
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
         # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
         #               BytesIO does work, too.
-        torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
+        ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
+        return ret
 
     @torch.no_grad()
     def to_torchscript(
@@ -1518,6 +1571,117 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
+
+    @torch.no_grad()
+    def to_tensorrt(
+        self,
+        file_path: Optional[Union[str, Path, BytesIO]] = None,
+        input_sample: Optional[Any] = None,
+        ir: Literal["default", "dynamo", "ts"] = "default",
+        output_format: Literal["exported_program", "torchscript"] = "exported_program",
+        retrace: bool = False,
+        default_device: Union[str, torch.device] = "cuda",
+        **compile_kwargs: Any,
+    ) -> Union[ScriptModule, torch.fx.GraphModule]:
+        """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
+
+        Args:
+            file_path: Path where to save the tensorrt model. Default: None (no file saved).
+            input_sample: inputs to be used during `torch_tensorrt.compile`.
+                Default: None (Use :attr:`example_input_array`).
+            ir: The IR mode to use for TensorRT compilation. Default: "default".
+            output_format: The format of the output model. Default: "exported_program".
+            retrace: Whether to retrace the model. Default: False.
+            default_device: The device to use for the model when the current model is not in CUDA. Default: "cuda".
+            **compile_kwargs: Additional arguments that will be passed to the TensorRT compile function.
+
+        Example::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            exported_program = model.to_tensorrt(
+                file_path="export.ep",
+                inputs=input_sample,
+            )
+
+        """
+        if not _TORCH_GREATER_EQUAL_2_2:
+            raise MisconfigurationException(
+                f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."
+            )
+
+        if not _TORCH_TRT_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "
+            )
+
+        mode = self.training
+        device = self.device
+        if self.device.type != "cuda":
+            default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
+
+            if not torch.cuda.is_available() or default_device.type != "cuda":
+                raise MisconfigurationException(
+                    f"TensorRT only supports CUDA devices. The current device is {self.device}."
+                    f" Please set the `default_device` argument to a CUDA device."
+                )
+
+            self.to(default_device)
+
+        if input_sample is None:
+            if self.example_input_array is None:
+                raise ValueError(
+                    "Could not export to TensorRT since neither `input_sample` nor"
+                    " `model.example_input_array` attribute is set."
+                )
+            input_sample = self.example_input_array
+
+        import torch_tensorrt
+
+        input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
+        input_sample = self._on_before_batch_transfer(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
+
+        with _jit_is_scripting() if ir == "ts" else nullcontext():
+            trt_obj = torch_tensorrt.compile(
+                module=self.eval(),
+                ir=ir,
+                inputs=input_sample,
+                **compile_kwargs,
+            )
+        self.train(mode)
+        self.to(device)
+
+        if file_path is not None:
+            if ir == "ts":
+                if output_format != "torchscript":
+                    raise ValueError(
+                        "TensorRT with IR mode 'ts' only supports output format 'torchscript'."
+                        f" The current output format is {output_format}."
+                    )
+                assert isinstance(trt_obj, (torch.jit.ScriptModule, torch.jit.ScriptFunction)), (
+                    f"Expected TensorRT object to be a ScriptModule, but got {type(trt_obj)}."
+                )
+                # Because of https://github.com/pytorch/TensorRT/issues/3775,
+                # we'll need to take special care for the ScriptModule
+                torch.jit.save(trt_obj, file_path)
+            else:
+                torch_tensorrt.save(
+                    trt_obj,
+                    file_path,
+                    inputs=input_sample,
+                    output_format=output_format,
+                    retrace=retrace,
+                )
+        return trt_obj
 
     @_restricted_classmethod
     def load_from_checkpoint(
