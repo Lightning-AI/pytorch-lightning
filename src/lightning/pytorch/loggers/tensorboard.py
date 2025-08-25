@@ -274,10 +274,16 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     @override
     @rank_zero_experiment
     def experiment(self) -> "SummaryWriter":
-        """Returns the underlying TensorBoard summary writer object. Allows you to use TensorBoard logging features
-        directly in your :class:`~lightning.pytorch.core.LightningModule` or anywhere else in your code with:
+        """Returns the underlying TensorBoard summary writer object.
+
+        Allows you to use TensorBoard logging features directly in your
+        :class:`~lightning.pytorch.core.LightningModule` or anywhere else in your code with:
 
         `logger.experiment.some_tensorboard_function()`
+
+        Returns:
+            The :class:`torch.utils.tensorboard.SummaryWriter` or :class:`tensorboardX.SummaryWriter`
+            depending on which is available.
 
         Example::
 
