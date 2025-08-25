@@ -487,6 +487,40 @@ def test_lightning_cli_print_config():
     assert outval["ckpt_path"] is None
 
 
+class BoringCkptPathModel(BoringModel):
+    def __init__(self, out_dim: int = 2, hidden_dim: int = 2) -> None:
+        super().__init__()
+        self.save_hyperparameters()
+        self.layer = torch.nn.Linear(32, out_dim)
+
+
+def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
+    class CkptPathCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
+
+    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.fit.model.out_dim == 3
+    assert cli.config.fit.model.hidden_dim == 6
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    assert hparams["out_dim"] == 3
+    assert hparams["hidden_dim"] == 6
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+    cli_args = ["predict", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.predict.model.out_dim == 3
+    assert cli.config.predict.model.hidden_dim == 6
+    assert cli.config_init.predict.model.layer.out_features == 3
+
+
 def test_lightning_cli_submodules(cleandir):
     class MainModule(BoringModel):
         def __init__(self, submodule1: LightningModule, submodule2: LightningModule, main_param: int = 1):
