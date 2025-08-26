@@ -68,3 +68,17 @@ def test_gpu_availability():
 def test_warning_if_gpus_not_used(cuda_count_1):
     with pytest.warns(UserWarning, match="GPU available but not used"):
         Trainer(accelerator="cpu")
+
+
+@RunIf(min_cuda_gpus=1)
+def test_gpu_device_name():
+    for i in range(torch.cuda.device_count()):
+        assert torch.cuda.get_device_name(i) == CUDAAccelerator.device_name(i)
+
+    with torch.device("cuda:0"):
+        assert torch.cuda.get_device_name(0) == CUDAAccelerator.device_name()
+
+
+def test_gpu_device_name_no_gpu():
+    with mock.patch("torch.cuda.is_available", return_value=False):
+        assert str(False) == CUDAAccelerator.device_name()

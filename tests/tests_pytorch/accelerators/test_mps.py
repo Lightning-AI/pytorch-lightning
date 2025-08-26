@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from collections import namedtuple
+from unittest import mock
 
 import pytest
 import torch
@@ -37,6 +38,16 @@ def test_get_mps_stats():
 @RunIf(mps=True)
 def test_mps_availability():
     assert MPSAccelerator.is_available()
+
+
+@RunIf(mps=True)
+def test_mps_device_name():
+    assert MPSAccelerator.device_name() == "True (mps)"
+
+
+def test_mps_device_name_not_available():
+    with mock.patch("torch.backends.mps.is_available", return_value=False):
+        assert MPSAccelerator.device_name() == "False"
 
 
 def test_warning_if_mps_not_used(mps_count_1):

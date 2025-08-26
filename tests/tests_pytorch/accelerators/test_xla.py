@@ -302,6 +302,11 @@ def test_warning_if_tpus_not_used(tpu_available):
         Trainer(accelerator="cpu")
 
 
+@RunIf(tpu=True)
+def test_tpu_device_name():
+    assert XLAAccelerator.device_name() == "TPU"
+
+
 @pytest.mark.parametrize(
     ("devices", "expected_device_ids"),
     [
