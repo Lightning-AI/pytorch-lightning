@@ -144,7 +144,7 @@ def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str
 def _log_device_info(trainer: "pl.Trainer") -> None:
     if CUDAAccelerator.is_available():
         if isinstance(trainer.accelerator, CUDAAccelerator):
-            device_name = list({CUDAAccelerator.device_name(d) for d in trainer.device_ids})
+            device_name = ", ".join(list({CUDAAccelerator.device_name(d) for d in trainer.device_ids}))
         else:
             device_name = CUDAAccelerator.device_name()
     elif MPSAccelerator.is_available():
