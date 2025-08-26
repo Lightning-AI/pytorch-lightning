@@ -56,6 +56,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
         accelerator_registry.register("tpu", cls, description=cls.__name__)
 
     @classmethod
+    @override
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
         is_available = cls.is_available()
         if not is_available:
