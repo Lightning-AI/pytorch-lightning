@@ -245,7 +245,11 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
-    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "device_name", lambda _: "TPU")
+    monkeypatch.setattr(
+        lightning.pytorch.accelerators.xla.XLAAccelerator,
+        "device_name",
+        lambda *_: "Mocked TPU Device",
+    )
 
 
 @pytest.fixture
