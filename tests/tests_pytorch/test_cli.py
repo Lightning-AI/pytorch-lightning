@@ -17,7 +17,7 @@ import json
 import operator
 import os
 import sys
-from contextlib import ExitStack, contextmanager, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -519,6 +519,11 @@ def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
     assert cli.config.predict.model.out_dim == 3
     assert cli.config.predict.model.hidden_dim == 6
     assert cli.config_init.predict.model.layer.out_features == 3
+
+    err = StringIO()
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
+        cli = LightningCLI(BoringModel)
+    assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
 
 
 def test_lightning_cli_submodules(cleandir):

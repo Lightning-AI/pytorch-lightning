@@ -564,7 +564,11 @@ class LightningCLI:
             hparams.pop("_instantiator", None)
             if hparams:
                 hparams = {self.config.subcommand: {"model": hparams}}
-                self.config = self.parser.parse_object(hparams, self.config)
+                try:
+                    self.config = self.parser.parse_object(hparams, self.config)
+                except SystemExit:
+                    sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
+                    raise
 
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):
