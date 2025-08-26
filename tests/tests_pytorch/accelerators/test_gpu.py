@@ -79,6 +79,5 @@ def test_gpu_device_name():
         assert torch.cuda.get_device_name(0) == CUDAAccelerator.device_name()
 
 
-def test_gpu_device_name_no_gpu():
-    with mock.patch("torch.cuda.is_available", return_value=False):
-        assert str(False) == CUDAAccelerator.device_name()
+def test_gpu_device_name_no_gpu(cuda_count_0):
+    assert str(False) == CUDAAccelerator.device_name()
