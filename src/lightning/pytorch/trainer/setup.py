@@ -90,8 +90,6 @@ def _init_debugging_flags(
         trainer._val_check_time_interval = None  # default
         if isinstance(val_check_interval, (str, dict, timedelta)):
             trainer._val_check_time_interval = _parse_time_interval_seconds(val_check_interval)
-            # Keep the numeric scheduler neutral; loops should check the time-based attribute.
-            trainer.val_check_interval = 1.0
         else:
             trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
 

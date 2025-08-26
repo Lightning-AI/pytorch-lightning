@@ -498,7 +498,7 @@ class Trainer:
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
-        self.val_check_batch: Union[int, float]
+        self.val_check_batch: Optional[Union[int, float]] = None
         self.val_check_interval: Union[int, float]
         self.num_sanity_val_steps: Union[int, float]
         self.limit_train_batches: Union[int, float]
