@@ -67,11 +67,12 @@ PyTorch Lightning follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_p
 The table below indicates the coverage of tested versions in our CI. Versions outside the ranges may unofficially work in some cases.
 Since the release of PyTorch `2.0`, Lightning strives to officially support the latest 5 PyTorch minor releases with no breaking changes within major versions [1]_.
 
-.. note::
-   In the table below:
 
-   - "≥X.Y" means the minimum supported version.
-   - "tested up to X.Y" indicates the highest version we routinely verify in CI. This value is informational and not a hard upper bound; newer versions may work but are not yet part of our automated test coverage.
+.. note::
+   Legend used in the table below:
+
+   - "≥X.Y" minimum supported version.
+   - "◇X.Y" last CI-tested version (informational, not a hard upper bound).
 
 .. list-table::
    :header-rows: 1
