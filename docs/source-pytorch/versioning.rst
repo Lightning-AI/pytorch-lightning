@@ -67,6 +67,18 @@ PyTorch Lightning follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_p
 The table below indicates the coverage of tested versions in our CI. Versions outside the ranges may unofficially work in some cases.
 Since the release of PyTorch `2.0`, Lightning strives to officially support the latest 5 PyTorch minor releases with no breaking changes within major versions [1]_.
 
+.. note::
+   In the table below:
+
+   - "≥X.Y" means the minimum supported version.
+   - "tested up to X.Y" indicates the highest version we routinely verify in CI. This value is informational and not a hard upper bound; newer versions may work but are not yet part of our automated test coverage.
+
+.. note::
+   Legend used in the table below:
+
+   - "≥X.Y" minimum supported version.
+   - "◇X.Y" last CI-tested version (informational, not a hard upper bound).
+
 .. list-table::
    :header-rows: 1
 
@@ -79,99 +91,99 @@ Since the release of PyTorch `2.0`, Lightning strives to officially support the 
    * - 2.5
      - 2.5
      - 2.5
-     - ≥2.1, (last tested 2.8)
+     - ≥2.1, ◇2.8
      - ≥0.7.0
-     - ≥3.9, (last tested 3.12)
+     - ≥3.9, ◇3.12
    * - 2.4
      - 2.4
      - 2.4
-     - ≥2.1, (last tested 2.6)
+     - ≥2.1, ◇2.6
      - ≥0.7.0
-     - ≥3.9, (last tested 3.12)
+     - ≥3.9, ◇3.12
    * - 2.3
      - 2.3
      - 2.3
-     - ≥2.0, (last tested 2.3)
+     - ≥2.0, ◇2.3
      - ≥0.7.0
-     - ≥3.8, (last tested 3.11)
+     - ≥3.8, ◇3.11
    * - 2.2
      - 2.2
      - 2.2
-     - ≥1.13, (last tested 2.2)
+     - ≥1.13, ◇2.2
      - ≥0.7.0
-     - ≥3.8, (last tested 3.11)
+     - ≥3.8, ◇3.11
    * - 2.1
      - 2.1
      - 2.1
-     - ≥1.12, (last tested 2.1)
+     - ≥1.12, ◇2.1
      - ≥0.7.0
-     - ≥3.8, (last tested 3.11)
+     - ≥3.8, ◇3.11
    * - 2.0
      - 2.0
      - 2.0 (GA)
-     - ≥1.11, (last tested 2.0)
+     - ≥1.11, ◇2.0
      - ≥0.7.0
-     - ≥3.8, (last tested 3.10)
+     - ≥3.8, ◇3.10
    * - 1.9
      - 1.9
      - 1.9 (experimental)
-     - ≥1.10, (last tested 1.13)
+     - ≥1.10, ◇1.13
      - ≥0.7.0
-     - ≥3.7, (last tested 3.10)
+     - ≥3.7, ◇3.10
    * - 1.8**
      - 1.8
      - n/a***
-     - ≥1.10, (last tested 1.13)
+     - ≥1.10, ◇1.13
      - ≥0.7.0
-     - ≥3.7, (last tested 3.10)
+     - ≥3.7, ◇3.10
    * - n/a
      - 1.7
      - n/a***
-     - ≥1.9, (last tested 1.12)
+     - ≥1.9, ◇1.12
      - ≥0.7.0
-     - ≥3.7, (last tested 3.10)
+     - ≥3.7, ◇3.10
    * - n/a
      - 1.6
      - n/a***
-     - ≥1.8, (last tested 1.11)
+     - ≥1.8, ◇1.11
      - ≥0.4.1
-     - ≥3.7, (last tested 3.9)
+     - ≥3.7, ◇3.9
    * - n/a
      - 1.5
      - n/a***
-     - ≥1.7, (last tested 1.10)
+     - ≥1.7, ◇1.10
      - ≥0.4.1
-     - ≥3.6, (last tested 3.9)
+     - ≥3.6, ◇3.9
    * - n/a
      - 1.4
      - n/a
-     - ≥1.6, (last tested 1.9)
+     - ≥1.6, ◇1.9
      - ≥0.4.0
-     - ≥3.6, (last tested 3.9)
+     - ≥3.6, ◇3.9
    * - n/a
      - 1.3
      - n/a
-     - ≥1.4, (last tested 1.8)
+     - ≥1.4, ◇1.8
      - ≥0.2.0
-     - ≥3.6, (last tested 3.9)
+     - ≥3.6, ◇3.9
    * - n/a
      - 1.2
      - n/a
-     - ≥1.4, (last tested 1.8)
+     - ≥1.4, ◇1.8
      - n/a*
-     - ≥3.6, (last tested 3.8)
+     - ≥3.6, ◇3.8
    * - n/a
      - 1.1
      - n/a
-     - ≥1.3, (last tested 1.8)
+     - ≥1.3, ◇1.8
      - n/a*
-     - ≥3.6, (last tested 3.8)
+     - ≥3.6, ◇3.8
    * - n/a
      - 1.0
      - n/a
-     - ≥1.3, (last tested 1.7)
+     - ≥1.3, ◇1.7
      - n/a*
-     - ≥3.6, (last tested 3.8)
+     - ≥3.6, ◇3.8
 
 \* ``torchmetrics`` was part of ``pytorch_lightning`` at the time and was decoupled to a separate package in v1.3.
 
