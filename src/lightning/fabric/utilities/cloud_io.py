@@ -56,7 +56,7 @@ def _load(
             weights_only=weights_only,
         )
     if str(path_or_url).startswith("http"):
-        if weights_only is None:
+        if weights_only is None and _TORCH_GREATER_EQUAL_2_6:
             weights_only = True
             log.debug(f"Default to `weights_only=True` for remote checkpoint: {path_or_url}")
         return torch.hub.load_state_dict_from_url(
