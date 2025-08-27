@@ -28,7 +28,7 @@ important to understand. The following order is always used:
 2. ``LightningModule``
 3. Strategy
 
-.. testcase::
+.. testcode::
 
     from lightning.pytorch import LightningModule, Trainer
     from lightning.pytorch.callbacks import Callback
