@@ -304,7 +304,15 @@ def test_warning_if_tpus_not_used(tpu_available):
 
 @RunIf(tpu=True)
 def test_tpu_device_name():
-    assert XLAAccelerator.device_name() == "TPU"
+    from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
+
+    if _XLA_GREATER_EQUAL_2_1:
+        from torch_xla._internal import tpu
+    else:
+        from torch_xla.experimental import tpu
+    import torch_xla.core.xla_env_vars as xenv
+
+    assert XLAAccelerator.device_name() == tpu.get_tpu_env()[xenv.ACCELERATOR_TYPE]
 
 
 @pytest.mark.parametrize(

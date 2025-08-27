@@ -47,7 +47,7 @@ def test_mps_device_name():
 
 def test_mps_device_name_not_available():
     with mock.patch("torch.backends.mps.is_available", return_value=False):
-        assert MPSAccelerator.device_name() == "False"
+        assert MPSAccelerator.device_name() == ""
 
 
 def test_warning_if_mps_not_used(mps_count_1):

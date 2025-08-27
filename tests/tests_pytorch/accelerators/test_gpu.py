@@ -80,4 +80,4 @@ def test_gpu_device_name():
 
 
 def test_gpu_device_name_no_gpu(cuda_count_0):
-    assert str(False) == CUDAAccelerator.device_name()
+    assert CUDAAccelerator.device_name() == ""
