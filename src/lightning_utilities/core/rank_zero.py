@@ -26,9 +26,10 @@ def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]: ...
 
 
 def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:
-    """Wrap a function to call internal function only in rank zero.
+    """Decorator to run the wrapped function only on global rank 0.
 
-    Function that can be used as a decorator to enable a function/method being called only on global rank 0.
+    Set ``rank_zero_only.rank`` before use. On non-zero ranks, the function is skipped and the provided
+    ``default`` is returned (or ``None`` if not given).
 
     """
 
@@ -86,7 +87,7 @@ def rank_zero_deprecation(message: Union[str, Warning], stacklevel: int = 5, **k
 
 
 def rank_prefixed_message(message: str, rank: Optional[int]) -> str:
-    """Add a prefix with the rank to a message."""
+    """Add a ``[rank: X]`` prefix to the message if ``rank`` is provided; otherwise return the message unchanged."""
     if rank is not None:
         # specify the rank of the process being logged
         return f"[rank: {rank}] {message}"
@@ -94,22 +95,22 @@ def rank_prefixed_message(message: str, rank: Optional[int]) -> str:
 
 
 class WarningCache(set):
-    """Cache for warnings."""
+    """A simple de-duplication cache for messages to avoid emitting the same warning/info multiple times."""
 
     def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
-        """Trigger warning message."""
+        """Emit a warning once on global rank 0; subsequent identical messages are suppressed."""
         if message not in self:
             self.add(message)
             rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
 
     def deprecation(self, message: str, stacklevel: int = 6, **kwargs: Any) -> None:
-        """Trigger deprecation message."""
+        """Emit a deprecation warning once on global rank 0; subsequent identical messages are suppressed."""
         if message not in self:
             self.add(message)
             rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
 
     def info(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
-        """Trigger info message."""
+        """Emit an info-level log once on global rank 0; subsequent identical messages are suppressed."""
         if message not in self:
             self.add(message)
             rank_zero_info(message, stacklevel=stacklevel, **kwargs)

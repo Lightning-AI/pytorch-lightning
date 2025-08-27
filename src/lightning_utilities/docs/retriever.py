@@ -10,7 +10,13 @@ import requests
 
 
 def _download_file(file_url: str, folder: str) -> str:
-    """Download a file from URL to a particular folder."""
+    """Download a file from a URL into the given folder.
+
+    If a file with the same name already exists, it will be overwritten.
+    Returns the basename of the downloaded file. Network-related exceptions from
+    ``requests.get`` (e.g., timeouts or connection errors) may propagate to the caller.
+
+    """
     fname = os.path.basename(file_url)
     file_path = os.path.join(folder, fname)
     if os.path.isfile(file_path):
@@ -23,11 +29,14 @@ def _download_file(file_url: str, folder: str) -> str:
 
 
 def _search_all_occurrences(list_files: list[str], pattern: str) -> list[str]:
-    """Search for all occurrences of specific pattern in a collection of files.
+    """Search for all occurrences of a regular-expression pattern across files.
 
     Args:
-        list_files: list of files to be scanned
-        pattern: pattern for search, reg. expression
+        list_files: The list of file paths to scan.
+        pattern: A regular-expression pattern to search for in each file.
+
+    Returns:
+        A list with all matches found across the provided files (order preserved per file).
 
     """
     collected = []
@@ -40,12 +49,12 @@ def _search_all_occurrences(list_files: list[str], pattern: str) -> list[str]:
 
 
 def _replace_remote_with_local(file_path: str, docs_folder: str, pairs_url_path: list[tuple[str, str]]) -> None:
-    """Replace all URL with local files in a given file.
+    """Replace all matching remote URLs with local file paths in a given file.
 
     Args:
-        file_path: file for replacement
-        docs_folder: the location of docs related to the project root
-        pairs_url_path: pairs of URL and local file path to be swapped
+        file_path: The file in which replacements should be performed.
+        docs_folder: The documentation root folder (used to compute relative paths).
+        pairs_url_path: Pairs of (remote_url, local_relative_path) to replace.
 
     """
     # drop the default/global path to the docs
@@ -69,13 +78,13 @@ def fetch_external_assets(
     file_pattern: str = "*.rst",
     retrieve_pattern: str = r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
 ) -> None:
-    """Search all URL in docs, download these files locally and replace online with local version.
+    """Find S3 (or HTTP) asset URLs in docs, download them locally, and rewrite references to local paths.
 
     Args:
-        docs_folder: the location of docs related to the project root
-        assets_folder: a folder inside ``docs_folder`` to be created and saving online assets
-        file_pattern: what kind of files shall be scanned
-        retrieve_pattern: pattern for reg. expression to search URL/S3 resources
+        docs_folder: The documentation root relative to the project.
+        assets_folder: Subfolder inside ``docs_folder`` used to store downloaded assets (created if missing).
+        file_pattern: Glob pattern of files to scan.
+        retrieve_pattern: Regular-expression pattern used to find remote asset URLs.
 
     """
     list_files = glob.glob(os.path.join(docs_folder, "**", file_pattern), recursive=True)

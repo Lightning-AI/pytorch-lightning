@@ -57,7 +57,7 @@ class StrEnum(str, Enum):
 
     @classmethod
     def try_from_str(cls, value: str, source: Literal["key", "value", "any"] = "key") -> Optional["StrEnum"]:
-        """Try to create emun and if it does not match any, return `None`."""
+        """Try to create the enum; if no match is found, emit a warning and return ``None``."""
         try:
             return cls.from_str(value, source)
         except ValueError:

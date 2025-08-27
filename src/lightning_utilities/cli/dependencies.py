@@ -21,7 +21,13 @@ if os.path.isfile(REQUIREMENT_ROOT):
 def prune_packages_in_requirements(
     packages: Union[str, Sequence[str]], req_files: Union[str, Sequence[str]] = REQUIREMENT_FILES_ALL
 ) -> None:
-    """Remove some packages from given requirement files."""
+    """Remove one or more packages from the specified requirement files.
+
+    Args:
+        packages: A package name or list of package names to remove.
+        req_files: A path or list of paths to requirement files to process.
+
+    """
     if isinstance(packages, str):
         packages = [packages]
     if isinstance(req_files, str):
@@ -31,7 +37,13 @@ def prune_packages_in_requirements(
 
 
 def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
-    """Remove some packages from given requirement files."""
+    """Remove all occurrences of the given packages (by line prefix) from a requirements file.
+
+    Args:
+        req_file: Path to a requirements file.
+        packages: Package names to remove. Lines starting with any of these names will be dropped.
+
+    """
     with open(req_file) as fp:
         lines = fp.readlines()
 
@@ -46,6 +58,12 @@ def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
 
 
 def _replace_min_req_in_txt(req_file: str) -> None:
+    """Replace all occurrences of '>=' with '==' in a plain text requirements file.
+
+    Args:
+        req_file: Path to the requirements.txt-like file to update.
+
+    """
     with open(req_file) as fopen:
         req = fopen.read().replace(">=", "==")
     with open(req_file, "w") as fw:
@@ -53,7 +71,14 @@ def _replace_min_req_in_txt(req_file: str) -> None:
 
 
 def _replace_min_req_in_pyproject_toml(proj_file: str = "pyproject.toml") -> None:
-    """Replace all `>=` with `==` in the standard pyproject.toml file in [project.dependencies]."""
+    """Replace all '>=' with '==' in the [project.dependencies] section of a standard pyproject.toml.
+
+    Preserves formatting and comments using tomlkit.
+
+    Args:
+        proj_file: Path to the pyproject.toml file.
+
+    """
     import tomlkit
 
     # Load and parse the existing pyproject.toml
@@ -77,7 +102,14 @@ def _replace_min_req_in_pyproject_toml(proj_file: str = "pyproject.toml") -> Non
 
 
 def replace_oldest_version(req_files: Union[str, Sequence[str]] = REQUIREMENT_FILES_ALL) -> None:
-    """Replace the min package version by fixed one."""
+    """Convert minimal version specifiers (>=) to pinned ones (==) in the given requirement files.
+
+    Supports plain *.txt requirements and pyproject.toml files. Unsupported file types trigger a warning.
+
+    Args:
+        req_files: A path or list of paths to requirement files to process.
+
+    """
     if isinstance(req_files, str):
         req_files = [req_files]
     for fname in req_files:
@@ -95,7 +127,14 @@ def replace_oldest_version(req_files: Union[str, Sequence[str]] = REQUIREMENT_FI
 
 
 def _replace_package_name_in_txt(req_file: str, old_package: str, new_package: str) -> None:
-    """Replace one package by another with the same version in a given requirement file."""
+    """Rename a package in a plain text requirements file, preserving version specifiers and markers.
+
+    Args:
+        req_file: Path to the requirements.txt-like file to update.
+        old_package: The original package name to replace.
+        new_package: The new package name to use.
+
+    """
     # load file
     with open(req_file) as fopen:
         requirements = fopen.readlines()
@@ -108,7 +147,14 @@ def _replace_package_name_in_txt(req_file: str, old_package: str, new_package: s
 
 
 def _replace_package_name_in_pyproject_toml(proj_file: str, old_package: str, new_package: str) -> None:
-    """Replace one package by another with the same version in the standard pyproject.toml file."""
+    """Rename a package in the [project.dependencies] section of a standard pyproject.toml, preserving constraints.
+
+    Args:
+        proj_file: Path to the pyproject.toml file.
+        old_package: The original package name to replace.
+        new_package: The new package name to use.
+
+    """
     import tomlkit
 
     # Load and parse the existing pyproject.toml
@@ -134,7 +180,16 @@ def _replace_package_name_in_pyproject_toml(proj_file: str, old_package: str, ne
 def replace_package_in_requirements(
     old_package: str, new_package: str, req_files: Union[str, Sequence[str]] = REQUIREMENT_FILES_ALL
 ) -> None:
-    """Replace one package by another with same version in given requirement files."""
+    """Rename a package across multiple requirement files while keeping version constraints intact.
+
+    Supports plain *.txt requirements and pyproject.toml files. Unsupported file types trigger a warning.
+
+    Args:
+        old_package: The original package name to replace.
+        new_package: The new package name to use.
+        req_files: A path or list of paths to requirement files to process.
+
+    """
     if isinstance(req_files, str):
         req_files = [req_files]
     for fname in req_files:

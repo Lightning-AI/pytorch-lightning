@@ -10,7 +10,16 @@ from typing import Optional
 
 @contextmanager
 def no_warning_call(expected_warning: type[Warning] = Warning, match: Optional[str] = None) -> Generator:
-    """Check that no warning was raised/emitted under this context manager."""
+    """Assert that no matching warning is emitted within the context.
+
+    Args:
+        expected_warning: The warning class (or subclass) to check for.
+        match: Optional regular expression to match against the warning message.
+
+    Raises:
+        AssertionError: If a warning of the given type (and matching the regex, if provided) is captured.
+
+    """
     with warnings.catch_warnings(record=True) as record:
         yield
 

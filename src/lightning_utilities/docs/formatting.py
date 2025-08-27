@@ -13,11 +13,11 @@ from typing import Optional, Union
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
-    """Adjust changelog titles so not to be duplicated.
+    """Adjust changelog headers to avoid duplication of short subtitles.
 
     Args:
-        path_in: input MD file
-        path_out: output also MD file
+        path_in: Input Markdown file path.
+        path_out: Output Markdown file path.
 
     """
     with open(path_in) as fp:
@@ -99,12 +99,15 @@ def _load_pypi_versions(package_name: str) -> list[str]:
 
 
 def _update_link_based_imported_package(link: str, pkg_ver: str, version_digits: Optional[int]) -> str:
-    """Adjust the linked external docs to be local.
+    """Resolve a ``{package.version}`` placeholder in a link using the latest available version.
 
     Args:
-        link: the source link to be replaced
-        pkg_ver: the target link to be replaced, if ``{package.version}`` is included it will be replaced accordingly
-        version_digits: for semantic versioning, how many digits to be considered
+        link: The link template containing a ``{...}`` placeholder to replace.
+        pkg_ver: A dotted path to resolve the version (e.g., ``"numpy.__version__"``).
+        version_digits: Number of version components to keep (e.g., ``2`` -> ``"1.26"``). If ``None``, keep all.
+
+    Returns:
+        The link with the ``{...}`` placeholder replaced by a version string.
 
     """
     pkg_att = pkg_ver.split(".")

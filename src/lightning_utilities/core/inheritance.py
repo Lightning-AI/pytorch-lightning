@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 
 def get_all_subclasses_iterator(cls: type) -> Iterator[type]:
-    """Iterate over all subclasses."""
+    """Depth-first iterator over all subclasses of ``cls`` (recursively)."""
 
     def recurse(cl: type) -> Iterator[type]:
         for subclass in cl.__subclasses__():
@@ -17,5 +17,5 @@ def get_all_subclasses_iterator(cls: type) -> Iterator[type]:
 
 
 def get_all_subclasses(cls: type) -> set[type]:
-    """List all subclasses of a class."""
+    """Return a set containing all subclasses of ``cls`` discovered recursively."""
     return set(get_all_subclasses_iterator(cls))

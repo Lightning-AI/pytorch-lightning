@@ -7,7 +7,21 @@ from unittest.mock import Mock
 
 
 def is_overridden(method_name: str, instance: object, parent: type[object]) -> bool:
-    """Check if a method of a given object was overwritten."""
+    """Return True if ``instance`` overrides ``parent.method_name``.
+
+    Supports functions wrapped with ``functools.wraps``, context managers (``__wrapped__``),
+    ``unittest.mock.Mock(wraps=...)``, and ``functools.partial``. If the parent does not define
+    ``method_name``, a ``ValueError`` is raised.
+
+    Args:
+        method_name: The name of the method to check.
+        instance: The object instance to inspect.
+        parent: The parent class that declares the original method.
+
+    Returns:
+        True if the method implementation on the instance differs from the parent's; otherwise False.
+
+    """
     instance_attr = getattr(instance, method_name, None)
     if instance_attr is None:
         return False

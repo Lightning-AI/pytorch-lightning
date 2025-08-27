@@ -268,14 +268,14 @@ class LazyModule(ModuleType):
         self._callback = callback
 
     def __getattr__(self, item: str) -> Any:
-        """Overwrite attribute access to attribute."""
+        """Lazily import the underlying module and delegate attribute access to it."""
         if self._module is None:
             self._import_module()
 
         return getattr(self._module, item)
 
     def __dir__(self) -> list[str]:
-        """Overwrite attribute access for dictionary."""
+        """Lazily import the underlying module and return its attributes for introspection (dir())."""
         if self._module is None:
             self._import_module()
 
@@ -317,11 +317,13 @@ def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyMo
 
 
 def requires(*module_path_version: str, raise_exception: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """Wrap early import failure with some nice exception message.
+    """Decorator to check optional dependencies at call time with a clear error/warning message.
 
     Args:
-        module_path_version: python package path (e.g. `torch.cuda`) or pip like requiremsnt (e.g. `torch>=2.0.0`)
-        raise_exception: how strict the check shall be if exit the code or just warn user
+        module_path_version: Python module paths (e.g., ``"torch.cuda"``) and/or pip-style requirements
+            (e.g., ``"torch>=2.0.0"``) to verify.
+        raise_exception: If ``True``, raise ``ModuleNotFoundError`` when requirements are not satisfied;
+            otherwise emit a warning and proceed to call the function.
 
     Example:
         >>> @requires("libpath", raise_exception=bool(int(os.getenv("LIGHTING_TESTING", "0"))))

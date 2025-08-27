@@ -11,13 +11,17 @@ from typing import Any, Callable, Optional, Union
 
 
 def is_namedtuple(obj: object) -> bool:
-    """Check if object is type nametuple."""
+    """Return True if the given object is a namedtuple instance.
+
+    This checks for a tuple with the namedtuple-specific attributes `_asdict` and `_fields`.
+
+    """
     # https://github.com/pytorch/pytorch/blob/v1.8.1/torch/nn/parallel/scatter_gather.py#L4-L8
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
 
 def is_dataclass_instance(obj: object) -> bool:
-    """Check if object is dataclass."""
+    """Return True if the given object is a dataclass instance (not a dataclass type)."""
     # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
@@ -195,24 +199,24 @@ def apply_to_collections(
     wrong_dtype: Optional[Union[type, tuple[type]]] = None,
     **kwargs: Any,
 ) -> Any:
-    """Zips two collections and applies a function to their items of a certain dtype.
+    """Zip two collections and apply a function to items of a certain dtype.
 
     Args:
-        data1: The first collection
-        data2: The second collection
-        dtype: the given function will be applied to all elements of this dtype
-        function: the function to apply
-        *args: positional arguments (will be forwarded to calls of ``function``)
-        wrong_dtype: the given function won't be applied if this type is specified and the given collections
-            is of the ``wrong_dtype`` even if it is of type ``dtype``
-        **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+        data1: The first collection. If ``None`` and ``data2`` is not ``None``, the arguments are swapped.
+        data2: The second collection. May be ``None`` to apply ``function`` only to ``data1``.
+        dtype: The type(s) for which the given ``function`` will be applied to matching elements.
+        function: The function to apply to matching elements.
+        *args: Positional arguments forwarded to calls of ``function``.
+        wrong_dtype: If specified, ``function`` won't be applied to elements of this type even if they match ``dtype``.
+        **kwargs: Keyword arguments forwarded to calls of ``function``.
 
     Returns:
-        The resulting collection
+        A collection with the same structure as the input where matching elements are transformed.
 
     Raises:
-        AssertionError:
-            If sequence collections have different data sizes.
+        ValueError: If sequence collections have different sizes.
+        TypeError: If dataclass inputs are mismatched (different types or fields), or if ``data1`` is a
+            dataclass instance but ``data2`` is not.
 
     """
     if data1 is None:
