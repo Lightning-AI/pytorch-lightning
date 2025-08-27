@@ -60,7 +60,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
         is_available = cls.is_available()
         if not is_available:
-            return str(is_available)
+            return ""
 
         if _XLA_GREATER_EQUAL_2_1:
             from torch_xla._internal import tpu

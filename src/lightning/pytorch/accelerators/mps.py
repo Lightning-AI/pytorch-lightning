@@ -91,9 +91,9 @@ class MPSAccelerator(Accelerator):
     @override
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
         # todo: implement a better way to get the device name
-        available = cls.is_available()
-        gpu_type = " (mps)" if available else ""
-        return f"{available}{gpu_type}"
+        if not cls.is_available():
+            return ""
+        return "True (mps)"
 
 
 # device metrics
