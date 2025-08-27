@@ -88,6 +88,7 @@ class MPSAccelerator(Accelerator):
         )
 
     @classmethod
+    @override
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
         # todo: implement a better way to get the device name
         available = cls.is_available()
