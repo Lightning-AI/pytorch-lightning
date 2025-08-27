@@ -73,12 +73,6 @@ Since the release of PyTorch `2.0`, Lightning strives to officially support the 
    - "≥X.Y" means the minimum supported version.
    - "tested up to X.Y" indicates the highest version we routinely verify in CI. This value is informational and not a hard upper bound; newer versions may work but are not yet part of our automated test coverage.
 
-.. note::
-   Legend used in the table below:
-
-   - "≥X.Y" minimum supported version.
-   - "◇X.Y" last CI-tested version (informational, not a hard upper bound).
-
 .. list-table::
    :header-rows: 1
 
