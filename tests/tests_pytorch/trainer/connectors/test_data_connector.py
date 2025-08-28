@@ -37,7 +37,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 @RunIf(skip_windows=True)
@@ -123,6 +123,7 @@ class TestSpawnBoringModel(BoringModel):
             self.ctx.__exit__(None, None, None)
 
 
+@_xfail_gloo_windows
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path):
     """Test that when the multiprocessing start-method is 'spawn', we recommend setting `persistent_workers=True`."""

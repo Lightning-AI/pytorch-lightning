@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Optional, Union
 
-from lightning_utilities import module_available
+from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -37,6 +37,7 @@ from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
@@ -93,7 +94,7 @@ class _CallbackConnector:
                     " but found `ModelCheckpoint` in callbacks list."
                 )
         elif enable_checkpointing:
-            if module_available("litmodels") and self.trainer._model_registry:
+            if RequirementCache("litmodels >=0.1.7") and self.trainer._model_registry:
                 trainer_source = inspect.getmodule(self.trainer)
                 if trainer_source is None or not isinstance(trainer_source.__package__, str):
                     raise RuntimeError("Unable to determine the source of the trainer.")
@@ -103,12 +104,12 @@ class _CallbackConnector:
                 else:
                     from litmodels.integrations.checkpoints import LightningModelCheckpoint as LitModelCheckpoint
 
-                model_checkpoint = LitModelCheckpoint(model_name=self.trainer._model_registry)
+                model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
             else:
                 rank_zero_info(
-                    "You are using the default ModelCheckpoint callback."
-                    " Install `litmodels` package to use the `LitModelCheckpoint` instead"
-                    " for seamless uploading to the Lightning model registry."
+                    "💡 Tip: For seamless cloud uploads and versioning,"
+                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+                    " which syncs automatically with the Lightning model registry."
                 )
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
@@ -125,14 +126,8 @@ class _CallbackConnector:
             )
             return
 
-        progress_bar_callback = self.trainer.progress_bar_callback
-        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
-
         model_summary: ModelSummary
-        if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary = RichModelSummary()
-        else:
-            model_summary = ModelSummary()
+        model_summary = RichModelSummary() if _RICH_AVAILABLE else ModelSummary()
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
@@ -157,7 +152,7 @@ class _CallbackConnector:
             )
 
         if enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar()
+            progress_bar_callback = RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, dict[str, int]]] = None) -> None:

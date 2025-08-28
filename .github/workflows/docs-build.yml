@@ -53,7 +53,7 @@ env:
 jobs:
   docs-make:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +64,7 @@ jobs:
       PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
@@ -72,7 +72,7 @@ jobs:
           lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
 
       - name: List notebooks
         if: ${{ matrix.pkg-name == 'pytorch' }}
@@ -149,7 +149,7 @@ jobs:
   deploy-docs:
     needs: docs-make
     if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -159,7 +159,7 @@ jobs:
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
