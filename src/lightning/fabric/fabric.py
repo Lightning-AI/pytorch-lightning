@@ -86,7 +86,7 @@ def _do_nothing(*_: Any) -> None:
 class Fabric:
     r"""Fabric accelerates your PyTorch training or inference code with minimal changes required.
 
-    Features:
+    Key Features:
         - Automatic placement of models and data onto the device.
         - Automatic support for mixed and double precision (smaller memory footprint).
         - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
