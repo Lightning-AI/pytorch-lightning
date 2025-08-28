@@ -304,6 +304,23 @@ def measure_flops(
 
 _CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
     # Hopper
+    # source: https://nvdam.widen.net/s/nb5zzzsjdf/hpc-datasheet-sc23-h200-datasheet-3002446
+    "h200 sxm1": {
+        torch.float64: 3.4e13,
+        torch.float32: 6.7e13,
+        "tfloat32": 9.9e14,
+        torch.bfloat16: 2.0e15,
+        torch.float16: 2.0e15,
+        torch.int8: 4.0e15,
+    },
+    "h200 nvl1": {
+        torch.float64: 3.0e13,
+        torch.float32: 6.0e13,
+        "tfloat32": 8.4e14,
+        torch.bfloat16: 1.7e15,
+        torch.float16: 1.7e15,
+        torch.int8: 3.3e15,
+    },
     # source: https://resources.nvidia.com/en-us-tensor-core
     "h100 nvl": {
         torch.float64: 67e12,
@@ -536,7 +553,12 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
     if device.type == "cuda":
         device_name = torch.cuda.get_device_name(device)
         chip = device_name.lower()
-        if "h100" in chip:
+        if "h200" in chip:
+            if "sxm1" in chip:
+                chip = "h200 sxm1"
+            elif "nvl1" in chip:
+                chip = "h200 nvl1"
+        elif "h100" in chip:
             if "hbm3" in chip:
                 chip = "h100 sxm"
             elif "nvl" in chip:
