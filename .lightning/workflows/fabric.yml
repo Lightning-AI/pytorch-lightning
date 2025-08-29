@@ -4,8 +4,8 @@ trigger:
   pull_request:
     branches: ["master"]
 
-timeout: "75" # minutes
-machine: "L4_X_2"
+timeout: "55" # minutes
+machine: "T4_X_4"
 parametrize:
   matrix: {}
   include:
@@ -96,6 +96,7 @@ run: |
   export PL_RUN_STANDALONE_TESTS=1
   wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
+  export PL_RUN_STANDALONE_TESTS=0
 
   #  echo "Reporting coverage" # todo
   #  python -m coverage report
