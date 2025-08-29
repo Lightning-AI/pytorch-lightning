@@ -133,7 +133,34 @@ def test_set_timeout(mock_init_process_group):
     global_rank = trainer.strategy.cluster_environment.global_rank()
     world_size = trainer.strategy.cluster_environment.world_size()
     mock_init_process_group.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
+    )
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_device_id_passed_for_cuda_devices_pytorch(mock_init_process_group):
+    """Test that device_id is passed to init_process_group for CUDA devices but not for CPU."""
+    # Test with CPU device - device_id should be None
+    model = BoringModel()
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="cpu",
+        strategy=ddp_strategy,
+    )
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+
+    process_group_backend = trainer.strategy._get_process_group_backend()
+    global_rank = trainer.strategy.cluster_environment.global_rank()
+    world_size = trainer.strategy.cluster_environment.world_size()
+    mock_init_process_group.assert_called_with(
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=trainer.strategy._timeout,
+        device_id=None,
     )
 
 

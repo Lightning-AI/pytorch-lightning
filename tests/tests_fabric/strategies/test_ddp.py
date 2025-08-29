@@ -169,5 +169,44 @@ def test_set_timeout(init_process_group_mock):
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
+    )
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_device_id_passed_for_cuda_devices(init_process_group_mock):
+    """Test that device_id is passed to init_process_group for CUDA devices but not for CPU."""
+    # Test with CPU device - device_id should be None
+    cpu_strategy = DDPStrategy(parallel_devices=[torch.device("cpu")])
+    cpu_strategy.cluster_environment = LightningEnvironment()
+    cpu_strategy.accelerator = Mock()
+    cpu_strategy.setup_environment()
+
+    process_group_backend = cpu_strategy._get_process_group_backend()
+    global_rank = cpu_strategy.cluster_environment.global_rank()
+    world_size = cpu_strategy.cluster_environment.world_size()
+
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=cpu_strategy._timeout, device_id=None
+    )
+
+    init_process_group_mock.reset_mock()
+
+    # Test with CUDA device - device_id should be the device
+    cuda_device = torch.device("cuda", 0)
+    cuda_strategy = DDPStrategy(parallel_devices=[cuda_device])
+    cuda_strategy.cluster_environment = LightningEnvironment()
+    cuda_strategy.accelerator = Mock()
+    cuda_strategy.setup_environment()
+
+    process_group_backend = cuda_strategy._get_process_group_backend()
+    global_rank = cuda_strategy.cluster_environment.global_rank()
+    world_size = cuda_strategy.cluster_environment.world_size()
+
+    init_process_group_mock.assert_called_with(
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=cuda_strategy._timeout,
+        device_id=cuda_device,
     )
