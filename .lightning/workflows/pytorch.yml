@@ -45,7 +45,7 @@ run: |
   TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
   if [ "${TORCH_VER}" == "2.1" ]; then
-    recho "Set oldest versions"
+    echo "Set oldest versions"
     pip uninstall -y deepspeed
     pip install -U "lightning-utilities[cli]"
     cd requirements/pytorch
