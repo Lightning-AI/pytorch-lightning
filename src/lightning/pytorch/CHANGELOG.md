@@ -6,40 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [unreleased] - YYYY-MM-DD
-
-### Added
-
--
-
-
-### Changed
-
--
-
-
-### Removed
-
--
-
+## [2.5.4] - 2025-08-29
 
 ### Fixed
 
 - Fixed `AsyncCheckpointIO` snapshots tensors to avoid race with parameter mutation ([#21079](https://github.com/Lightning-AI/pytorch-lightning/pull/21079))
-
-
 - Fixed `AsyncCheckpointIO` threadpool exception if calling fit or validate more than one ([#20952](https://github.com/Lightning-AI/pytorch-lightning/pull/20952))
-
-
 - Fixed learning rate not being correctly set after using `LearningRateFinder` callback ([#21068](https://github.com/Lightning-AI/pytorch-lightning/pull/21068))
-
-
 - Fixed misalignment column while using rich model summary in `DeepSpeedstrategy` ([#21100](https://github.com/Lightning-AI/pytorch-lightning/pull/21100))
-
-
 - Fixed `RichProgressBar` crashing when sanity checking using val dataloader with 0 len ([#21108](https://github.com/Lightning-AI/pytorch-lightning/pull/21108))
 
----
 
 ## [2.5.3] - 2025-08-13
 
@@ -97,8 +73,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed CSVLogger logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
-- Fixed OverflowError when resuming from checkpoint with an iterable dataset ([#20565](https://github.com/Lightning-AI/pytorch-lightning/issues/20565))
+- Fixed `CSVLogger` logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
+- Fixed `OverflowError` when resuming from checkpoint with an iterable dataset ([#20565](https://github.com/Lightning-AI/pytorch-lightning/issues/20565))
 - Fixed swapped _R_co and _P to prevent type error ([#20508](https://github.com/Lightning-AI/pytorch-lightning/issues/20508))
 - Always call `WandbLogger.experiment` first in `_call_setup_hook` to ensure `tensorboard` logs can sync to `wandb` ([#20610](https://github.com/Lightning-AI/pytorch-lightning/pull/20610))
 - Fixed TBPTT example ([#20528](https://github.com/Lightning-AI/pytorch-lightning/pull/20528))
