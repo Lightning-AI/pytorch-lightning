@@ -46,9 +46,10 @@ run: |
 
   if [ "${TORCH_VER}" == "2.1" ]; then
     echo "Set oldest versions"
-    cd requirements/fabric
     pip install -U "lightning-utilities[cli]"
+    cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
+    python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
     pip install "cython<3.0" wheel  # for compatibility
   fi
