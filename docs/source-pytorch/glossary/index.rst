@@ -20,6 +20,7 @@
    FSDP <../advanced/model_parallel/fsdp>
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
+   Hooks <../common/hooks>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
    Lightning CLI <../cli/lightning_cli>
@@ -177,6 +178,13 @@ Glossary
    :description: Using different numerical formats to save memory and run faster
    :col_css: col-md-12
    :button_link: ../common/precision.html
+   :height: 100
+
+.. displayitem::
+   :header: Hooks
+   :description: How to customize the training, validation, and testing logic
+   :col_css: col-md-12
+   :button_link: ../common/hooks.html
    :height: 100
 
 .. displayitem::
