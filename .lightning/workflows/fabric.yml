@@ -41,6 +41,7 @@ run: |
   echo "Torch URL: ${TORCH_URL}"
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
+  TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
   if [ "${TORCH_VER}" == "2.1" ]; then
     echo "Set oldest versions"
