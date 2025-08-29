@@ -30,6 +30,7 @@ run: |
   python --version
   pip --version
   pip install -q fire wget packaging
+  pip list
   set -ex
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
@@ -43,6 +44,7 @@ run: |
 
   if [ "${TORCH_VER}" == "2.1" ]; then
     echo "Set oldest versions"
+    pip uninstall -y deepspeed
     pip install -U "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
