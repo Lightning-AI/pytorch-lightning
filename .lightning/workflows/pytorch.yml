@@ -27,9 +27,6 @@ env:
 run: |
   whereis nvidia
   nvidia-smi
-  ls -l /usr/local/cuda/bin/nvcc
-  which nvcc
-  nvcc --version
   python --version
   pip --version
   pip install -q fire wget packaging
