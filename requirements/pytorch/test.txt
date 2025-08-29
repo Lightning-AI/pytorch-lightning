@@ -19,5 +19,4 @@ uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in
 
 tensorboard >=2.11, <2.21.0  # for `TensorBoardLogger`
 
---find-links https://download.pytorch.org/whl/torch-tensorrt
 torch-tensorrt; platform_system == "Linux" and python_version >= "3.12"
