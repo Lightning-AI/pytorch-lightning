@@ -9,7 +9,7 @@ machine: "L4_X_2"
 parametrize:
   matrix: {}
   include:
-    # note that this is setting also all oldest requirements which is linked to Torch == 2.0
+    # note that this is setting also all oldest requirements which is linked to Torch == 2.1
     - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
       PACKAGE_NAME: "fabric"
     - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
