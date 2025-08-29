@@ -5,7 +5,6 @@ trigger:
     branches: ["master"]
 
 timeout: "55" # minutes
-machine: "L4_X_2"
 parametrize:
   matrix: {}
   include:
@@ -15,10 +14,12 @@ parametrize:
       machine: "A100_X_2"
     - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
       PACKAGE_NAME: "fabric"
+      machine: "L4_X_2"
     # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
     #   PACKAGE_NAME: "fabric"
     - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
       PACKAGE_NAME: "lightning"
+      machine: "L4_X_2"
   exclude: []
 
 env:
