@@ -42,39 +42,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [macOS-14, ubuntu-22.04, windows-2022]
         include:
           # only run PyTorch latest
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+
           # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-14", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "windows-2022", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
+          - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
+
           # "pytorch" installs the standalone package
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+
           # adding recently cut Torch 2.7 - FUTURE
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+
+          # "oldest" versions tests, only on minimum Python
+          - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
