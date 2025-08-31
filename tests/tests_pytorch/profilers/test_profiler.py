@@ -73,9 +73,9 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-def test_simple_profiler_overhead(simple_profiler, n_iter=5):
+def test_simple_profiler_overhead(simple_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
-    for _ in range(n_iter):
+    for _ in range(5):
         with simple_profiler.profile("no-op"):
             pass
 
@@ -284,8 +284,9 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 
 @pytest.mark.flaky(reruns=3)
-def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
+def test_advanced_profiler_overhead(advanced_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
+    n_iter = 5
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -334,6 +335,12 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 def test_advanced_profiler_deepcopy(advanced_profiler):
     advanced_profiler.describe()
     assert deepcopy(advanced_profiler)
+
+
+def test_advanced_profiler_nested(advanced_profiler):
+    """Ensure AdvancedProfiler does not raise ValueError for nested profiling actions (Python 3.12+ compatibility)."""
+    with advanced_profiler.profile("outer"), advanced_profiler.profile("inner"):
+        pass  # Should not raise ValueError
 
 
 @pytest.fixture
@@ -614,8 +621,8 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmp_path, trainer_con
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)
-        assert trainer.profiler._schedule is None
-        warning_cache.clear()
+    assert trainer.profiler._schedule is None
+    warning_cache.clear()
 
 
 def test_profile_callbacks(tmp_path):

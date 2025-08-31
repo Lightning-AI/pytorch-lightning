@@ -174,7 +174,7 @@ def test_validate_user_settings():
     with pytest.raises(ValueError, match="the number of nodes configured in SLURM .* does not match"):
         env.validate_settings(num_devices=4, num_nodes=1)
 
-    # in interactive mode, validation is skipped becauses processes get launched by Fabric/Trainer, not SLURM
+    # in interactive mode, validation is skipped because processes get launched by Fabric/Trainer, not SLURM
     with mock.patch(
         "lightning.fabric.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
     ):

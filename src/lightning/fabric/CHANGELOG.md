@@ -17,17 +17,59 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
+### Changed
+
+-
+
+
+### Fixed
+
+-
+
+
 ---
+
+## [2.5.4] - 2025-08-29
+
+### Changed
+
+- Added support for NVIDIA H200 GPUs in `get_available_flops` ([#20913](https://github.com/Lightning-AI/pytorch-lightning/pull/21119))
+
+
+
+## [2.5.3] - 2025-08-13
+
+### Changed
+
+- Enable "auto" for `devices` and `accelerator` as CLI arguments ([#20913](https://github.com/Lightning-AI/pytorch-lightning/pull/20913))
+- Raise ValueError when seed is `out-of-bounds` or `cannot be cast to int` ([#21029](https://github.com/Lightning-AI/pytorch-lightning/pull/21029))
+
+### Fixed
+
+- Fixed XLA strategy to add support for `global_ordinal`, `local_ordinal`, `world_size` which came instead of deprecated methods ([#20852](https://github.com/Lightning-AI/pytorch-lightning/issues/20852))
+- Fixed remove extra `name` parameter in accelerator registry decorator ([#20975](https://github.com/Lightning-AI/pytorch-lightning/pull/20975))
+
+
+## [2.5.2] - 2025-3-20
+
+### Changed
+
+- Ensure correct device is used for autocast when mps is selected as Fabric accelerator ([#20876](https://github.com/Lightning-AI/pytorch-lightning/pull/20876))
+
+### Fixed
+
+- Fix: `TransformerEnginePrecision` conversion for layers with `bias=False` ([#20805](https://github.com/Lightning-AI/pytorch-lightning/pull/20805))
+
 
 ## [2.5.1] - 2025-03-18
 
 ### Changed
 
-- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/issues/19957))
+- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/pull/19957))
 
 ### Removed
 
-- Removed legacy support for `lightning run model`. Use `fabric run` instead. ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
+- Removed legacy support for `lightning run model`; use `fabric run` instead ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
 
 
 ## [2.5.0] - 2024-12-19

@@ -127,7 +127,7 @@ if _PIN_RELEASE_VERSIONS:
         "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
     )
     adjust_linked_external_docs(
-        "https://lightning.ai/docs/torchmetrics", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
+        "https://lightning.ai/docs/torchmetrics/stable/", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
     )
     adjust_linked_external_docs(
         "https://lightning.ai/docs/fabric/stable/", "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/", _PATH_ROOT, version_digits=3
@@ -487,6 +487,7 @@ nitpick_ignore = [
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
+    ("py:meth", "toggled_optimizer"),
     ("py:class", "torch.ScriptModule"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.CPUOffload"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),

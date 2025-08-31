@@ -1,0 +1,141 @@
+trigger:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+timeout: "55" # minutes
+parametrize:
+  matrix: {}
+  include:
+    # note that this is setting also all oldest requirements which is linked to Torch == 2.1
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
+      PACKAGE_NAME: "pytorch"
+      machine: "A100_X_2"
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
+      PACKAGE_NAME: "pytorch"
+      machine: "L4_X_2"
+    # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
+    #   PACKAGE_NAME: "pytorch"
+    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
+      PACKAGE_NAME: "lightning"
+      machine: "L4_X_2"
+  exclude: []
+
+env:
+  FREEZE_REQUIREMENTS: "1"
+  RUN_ONLY_CUDA_TESTS: "1"
+
+run: |
+  whereis nvidia
+  nvidia-smi
+  python --version
+  pip --version
+  pip install -q fire wget packaging
+  pip list
+  set -ex
+
+  CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
+  echo "Using CUDA version: ${CUDA_VERSION}"
+  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
+  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
+  echo "Torch URL: ${TORCH_URL}"
+  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="pytorch_lightning").get(n, n))')
+  echo "collecting coverage for: ${COVERAGE_SOURCE}"
+  TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
+
+  if [ "${TORCH_VER}" == "2.1" ]; then
+    echo "Set oldest versions"
+    pip uninstall -y deepspeed
+    pip install -U "lightning-utilities[cli]"
+    cd requirements/pytorch
+    python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt']"
+    python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
+    cd ../..
+    pip install "cython<3.0" wheel  # for compatibility
+  fi
+
+  echo "Adjust torch versions in requirements files"
+  PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
+  pip install -q wget packaging
+  python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
+  for fpath in `ls requirements/**/*.txt`; do \
+    python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
+  done
+
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
+    echo "Adjust PL imports"
+    pip install -U -q -r .actions/requirements.txt
+    python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_pytorch" \
+      --source_import="lightning.fabric,lightning.pytorch" \
+      --target_import="lightning_fabric,pytorch_lightning"
+    python .actions/assistant.py copy_replace_imports --source_dir="./examples/pytorch/basics" \
+      --source_import="lightning.fabric,lightning.pytorch" \
+      --target_import="lightning_fabric,pytorch_lightning"
+  fi
+
+  extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
+  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
+    echo "uninstall lightning to have just single package"
+    pip uninstall -y lightning
+  elif [ "${PACKAGE_NAME}" == "lightning" ]; then
+    echo "uninstall PL to have just single package"
+    pip uninstall -y pytorch-lightning
+  fi
+
+  python requirements/collect_env_details.py
+  python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
+  python requirements/pytorch/check-avail-extras.py
+  python -c "import bitsandbytes"
+
+  echo "Testing: Pytorch doctests"
+  if [ "${PACKAGE_NAME}" == "pytorch" ]; then
+    cd src/
+    python -m pytest pytorch_lightning
+    cd ..
+  fi
+
+  echo "Get legacy checkpoints"
+  bash .actions/pull_legacy_checkpoints.sh
+  cd tests/legacy
+  # bash generate_checkpoints.sh
+  ls -lh checkpoints/
+  cd ../..
+
+  cd tests/
+  echo "Testing: fabric standard"
+  python -m coverage run --source ${COVERAGE_SOURCE} -m pytest tests_pytorch/ -v --durations=50
+
+  echo "Testing: fabric standalone"
+  export PL_USE_MOCKED_MNIST=1
+  export PL_RUN_STANDALONE_TESTS=1
+  wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+  bash ./run_standalone_tests.sh "tests_pytorch"
+  export PL_RUN_STANDALONE_TESTS=0
+
+  echo "Testing: PyTorch standalone tasks"
+  cd tests_pytorch/
+  bash run_standalone_tasks.sh
+
+  # echo "Reporting coverage" # todo
+  #  python -m coverage report
+  #  python -m coverage xml
+  #  python -m coverage html
+
+  # TODO: enable coverage
+  #  # https://docs.codecov.com/docs/codecov-uploader
+  #  curl -Os https://uploader.codecov.io/latest/linux/codecov
+  #  chmod +x codecov
+  #  ./codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) \
+  #    --flags=gpu,pytest,${COVERAGE_SOURCE} --name="GPU-coverage" --env=linux,azure
+  #  ls -l
+  cd ../..
+
+  echo "Testing: PyTorch examples"
+  cd examples/
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=1
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
+  bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
