@@ -2,7 +2,7 @@ coverage ==7.10.5
 pytest ==8.4.1
 pytest-cov ==6.2.1
 pytest-timeout ==2.4.0
-pytest-rerunfailures ==15.1
+pytest-rerunfailures ==16.0
 pytest-random-order ==1.2.0
 
 # needed in tests
