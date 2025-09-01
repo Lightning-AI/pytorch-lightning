@@ -305,11 +305,7 @@ class ModelParallelStrategy(ParallelStrategy):
         kwargs: dict[str, Any] = {"timeout": self._timeout}
         if _TORCH_GREATER_EQUAL_2_3:
             kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(
-            self.cluster_environment,
-            self._process_group_backend,
-            **kwargs
-        )
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
