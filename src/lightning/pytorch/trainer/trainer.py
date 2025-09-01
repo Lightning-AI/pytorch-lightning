@@ -216,7 +216,7 @@ class Trainer:
                 ``check_val_every_n_epoch`` > 1, validation is aligned to epoch multiples: if the interval elapses
                 before the next multiple-N epoch, validation runs at the start of that epoch (after the first batch)
                 and the timer resets; if it elapses during a multiple-N epoch, validation runs after the current batch.
-                For ``None`` or ``1`` cases, the time-based behavior of ``val_check_interval`` applies without 
+                For ``None`` or ``1`` cases, the time-based behavior of ``val_check_interval`` applies without
                 additional alignment.
                 Default: ``1``.
 
