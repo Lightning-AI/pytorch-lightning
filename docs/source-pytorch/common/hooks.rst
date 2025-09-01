@@ -44,7 +44,7 @@ important to understand. The following order is always used:
 
     model = MyModel()
     callback = MyCallback()
-    trainer = Trainer(callbacks=[callback])
+    trainer = Trainer(callbacks=[callback], logger=False, max_epochs=1)
     trainer.fit(model)
     # Output:
     # Callback: Training is starting!
