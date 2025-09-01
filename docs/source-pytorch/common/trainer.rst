@@ -1033,6 +1033,7 @@ Can specify as float, int, or a time-based duration.
     trainer = Trainer(val_check_interval={"hours": 1})
 
     # check validation every 1 hour of wall-clock time using a datetime.timedelta object
+    from datetime import timedelta
     trainer = Trainer(val_check_interval=timedelta(hours=1))
 
 
