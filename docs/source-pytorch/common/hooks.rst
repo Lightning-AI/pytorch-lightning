@@ -212,13 +212,13 @@ with the source of each hook indicated:
     │   ├── [LightningModule]
     │   └── [Strategy]
     │
-    ├── on_fit_end()
-    │   ├── [Callbacks]
-    │   ├── [LightningModule]
-    │   └── [Strategy]
-    │
     └── teardown(stage="fit")
-        └── [Callbacks only]
+        ├── [Strategy]
+        ├── on_fit_end()
+        │   ├── [Callbacks]
+        │   └── [LightningModule]
+        ├── [Callbacks]
+        └── [LightningModule]
 
 ***********************
 Testing Loop Hook Order
