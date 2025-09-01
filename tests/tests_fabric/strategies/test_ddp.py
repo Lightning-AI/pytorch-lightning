@@ -206,11 +206,13 @@ def test_device_id_passed_for_cuda_devices(init_process_group_mock):
     process_group_backend = cuda_strategy._get_process_group_backend()
     global_rank = cuda_strategy.cluster_environment.global_rank()
     world_size = cuda_strategy.cluster_environment.world_size()
-
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = None
     init_process_group_mock.assert_called_with(
         process_group_backend,
         rank=global_rank,
         world_size=world_size,
         timeout=cuda_strategy._timeout,
-        device_id=cuda_device,
+        **kwargs,
     )

@@ -133,8 +133,11 @@ def test_set_timeout(mock_init_process_group):
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
     world_size = trainer.strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = None
     mock_init_process_group.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
     )
 
 
