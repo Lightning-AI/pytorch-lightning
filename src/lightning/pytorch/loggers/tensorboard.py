@@ -281,10 +281,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         `logger.experiment.some_tensorboard_function()`
 
-        Returns:
-            The :class:`torch.utils.tensorboard.SummaryWriter` or :class:`tensorboardX.SummaryWriter`
-            depending on which is available.
-
         Example::
 
             class LitModel(LightningModule):
