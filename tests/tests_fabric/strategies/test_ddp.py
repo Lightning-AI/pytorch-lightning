@@ -25,6 +25,7 @@ from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -168,8 +169,11 @@ def test_set_timeout(init_process_group_mock):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
     )
 
 

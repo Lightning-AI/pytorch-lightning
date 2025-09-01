@@ -533,7 +533,7 @@ def test_set_timeout(init_process_group_mock):
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
     )
 
 

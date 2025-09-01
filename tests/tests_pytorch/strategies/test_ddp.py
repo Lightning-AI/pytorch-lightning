@@ -20,6 +20,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
@@ -155,12 +156,15 @@ def test_device_id_passed_for_cuda_devices_pytorch(mock_init_process_group):
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
     world_size = trainer.strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = None
     mock_init_process_group.assert_called_with(
         process_group_backend,
         rank=global_rank,
         world_size=world_size,
         timeout=trainer.strategy._timeout,
-        device_id=None,
+        **kwargs,
     )
 
 
