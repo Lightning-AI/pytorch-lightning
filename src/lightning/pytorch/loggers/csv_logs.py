@@ -80,7 +80,9 @@ class CSVLogger(Logger, FabricCSVLogger):
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
-
+        sub_dir: Sub-directory to group CSV logs. If a ``sub_dir`` argument is passed
+            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
+            logs are saved in ``/root_dir/name/version/``.
     """
 
     LOGGER_JOIN_CHAR = "-"
