@@ -388,7 +388,6 @@ class Fabric:
 
         Raises:
             RuntimeError: If using DeepSpeed or XLA strategies, which require joint model-optimizer setup.
-            ValueError: If no optimizers are provided.
 
         Note:
             This method cannot be used with DeepSpeed or XLA strategies. Use :meth:`setup` instead for those strategies.
@@ -418,7 +417,6 @@ class Fabric:
 
         Args:
             *dataloaders: One or more PyTorch :class:`~torch.utils.data.DataLoader` instances to set up.
-                Must provide at least one dataloader.
             use_distributed_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the
                 dataloader(s) for distributed training. If you have a custom sampler defined, set this argument
                 to ``False``.
