@@ -663,7 +663,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs = {"timeout": self._timeout}
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
         if _TORCH_GREATER_EQUAL_2_3:
             kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
         _init_dist_connection(
