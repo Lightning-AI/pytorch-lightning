@@ -266,7 +266,7 @@ class FSDPStrategy(ParallelStrategy):
         _init_dist_connection(
             self.cluster_environment,
             self._process_group_backend,
-            **kwargs,
+            **kwargs
         )
 
         # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here

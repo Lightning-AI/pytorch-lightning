@@ -308,7 +308,7 @@ class ModelParallelStrategy(ParallelStrategy):
         _init_dist_connection(
             self.cluster_environment,
             self._process_group_backend,
-            **kwargs,
+            **kwargs
         )
 
     def _get_process_group_backend(self) -> str:
