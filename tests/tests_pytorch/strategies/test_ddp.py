@@ -135,7 +135,7 @@ def test_set_timeout(mock_init_process_group):
     world_size = trainer.strategy.cluster_environment.world_size()
     kwargs = {}
     if _TORCH_GREATER_EQUAL_2_3:
-        kwargs["device_id"] = None
+        kwargs["device_id"] = trainer.strategy.root_device if trainer.strategy.root_device.type != "cpu" else None
     mock_init_process_group.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
     )
@@ -161,7 +161,7 @@ def test_device_id_passed_for_cuda_devices_pytorch(mock_init_process_group):
     world_size = trainer.strategy.cluster_environment.world_size()
     kwargs = {}
     if _TORCH_GREATER_EQUAL_2_3:
-        kwargs["device_id"] = None
+        kwargs["device_id"] = trainer.strategy.root_device if trainer.strategy.root_device.type != "cpu" else None
     mock_init_process_group.assert_called_with(
         process_group_backend,
         rank=global_rank,
