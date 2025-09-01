@@ -52,10 +52,8 @@ important to understand. The following order is always used:
 .. note::
    There are a few exceptions to this pattern:
 
-   - **on_train_epoch_end**: Non-monitoring callbacks are called first, then ``LightningModule``, then monitoring
-    callbacks
-   - **Optimizer hooks** (on_before_backward, on_after_backward, on_before_optimizer_step): Only callbacks and
-    ``LightningModule`` are called
+   - **on_train_epoch_end**: Non-monitoring callbacks are called first, then ``LightningModule``, then monitoring callbacks
+   - **Optimizer hooks** (on_before_backward, on_after_backward, on_before_optimizer_step): Only callbacks and ``LightningModule`` are called
    - Some internal hooks may only call ``LightningModule`` or Strategy
 
 ************************
