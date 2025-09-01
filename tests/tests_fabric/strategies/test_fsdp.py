@@ -31,7 +31,7 @@ from lightning.fabric.strategies.fsdp import (
     _get_full_state_dict_context,
     _is_sharded_checkpoint,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 
 
 def test_custom_mixed_precision():
@@ -381,8 +381,11 @@ def test_set_timeout(init_process_group_mock):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, device_id=None
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
     )
 
 
