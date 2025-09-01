@@ -50,6 +50,7 @@ important to understand. The following order is always used:
 .. testoutput::
    :hide:
    :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
+
     ┏━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
     ┃   ┃ Name  ┃ Type   ┃ Params ┃ Mode  ┃ FLOPs ┃
     ┡━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
