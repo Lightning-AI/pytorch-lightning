@@ -83,6 +83,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         sub_dir: Sub-directory to group CSV logs. If a ``sub_dir`` argument is passed
             then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
             logs are saved in ``/root_dir/name/version/``.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
