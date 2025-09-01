@@ -49,12 +49,17 @@ important to understand. The following order is always used:
 
 .. testoutput::
    :hide:
-   :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
+   :options: +ELLIPSIS, +NORMALIZE_WHITESPACE
 
+    ┏━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+    ┃   ┃ Name  ┃ Type   ┃ Params ┃ Mode  ┃ FLOPs ┃
+    ┡━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+    │ 0 │ layer │ Linear │     66 │ train │     0 │
+    └───┴───────┴────────┴────────┴───────┴───────┘
     ...
     Callback: Training is starting!
     Model: Training is starting!
-    Epoch 0/0 ... • ...
+    Epoch 0/0  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64/64 ...
 
 
 .. note::
