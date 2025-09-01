@@ -51,21 +51,10 @@ important to understand. The following order is always used:
    :hide:
    :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
 
-    ┏━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
-    ┃   ┃ Name  ┃ Type   ┃ Params ┃ Mode  ┃ FLOPs ┃
-    ┡━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
-    │ 0 │ layer │ Linear │     66 │ train │     0 │
-    └───┴───────┴────────┴────────┴───────┴───────┘
-    Trainable params: 66
-    Non-trainable params: 0
-    Total params: 66
-    Total estimated model params size (MB): 0
-    Modules in train mode: 1
-    Modules in eval mode: 0
-    Total FLOPs: 0
+    ...
     Callback: Training is starting!
     Model: Training is starting!
-    Epoch 0/0  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64/64 ...
+    Epoch 0/0 ... • ...
 
 
 .. note::
