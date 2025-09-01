@@ -4,5 +4,5 @@
 torch >=2.1.0, <2.9.0
 fsspec[http] >=2022.5.0, <2025.8.0
 packaging >=20.0, <=25.0
-typing-extensions >4.5.0, <4.15.0
+typing-extensions >4.5.0, <4.16.0
 lightning-utilities >=0.10.0, <0.16.0
