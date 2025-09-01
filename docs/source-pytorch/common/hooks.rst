@@ -32,7 +32,7 @@ important to understand. The following order is always used:
 
     from lightning.pytorch import Trainer
     from lightning.pytorch.callbacks import Callback
-    from lightning.pytorch.demos BoringModel
+    from lightning.pytorch.demos import BoringModel
 
     class MyModel(BoringModel):
         def on_train_start(self):
