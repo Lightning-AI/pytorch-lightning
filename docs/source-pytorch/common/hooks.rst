@@ -30,10 +30,11 @@ important to understand. The following order is always used:
 
 .. testcode::
 
-    from lightning.pytorch import LightningModule, Trainer
+    from lightning.pytorch import Trainer
     from lightning.pytorch.callbacks import Callback
+    from lightning.pytorch.demos BoringModel
 
-    class MyModel(LightningModule):
+    class MyModel(BoringModel):
         def on_train_start(self):
             print("Model: Training is starting!")
 
