@@ -111,15 +111,6 @@ jobs:
           done
           cat requirements/pytorch/base.txt
 
-      - name: pip wheels cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PYPI_CACHE_DIR }}
-          key: pypi_wheels
-      - run: |
-          mkdir -p $PYPI_CACHE_DIR
-          ls -lh $PYPI_CACHE_DIR
-
       - name: Env. variables
         run: |
           # Switch PyTorch URL between stable and test/future
@@ -140,7 +131,8 @@ jobs:
             --extra-index-url="${TORCH_URL}" \
             --find-links="${PYPI_CACHE_DIR}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
-          pip list
+          uv pip list
+
       - name: Drop LAI from extensions
         if: ${{ matrix.config.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
