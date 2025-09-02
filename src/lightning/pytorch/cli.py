@@ -16,6 +16,7 @@ import os
 import sys
 from collections.abc import Iterable
 from functools import partial, update_wrapper
+from pathlib import Path
 from types import MethodType
 from typing import Any, Callable, Optional, TypeVar, Union
 
@@ -397,6 +398,7 @@ class LightningCLI:
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser, args)
+        self._parse_ckpt_path()
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -550,6 +552,24 @@ class LightningCLI:
             self.config = parser.parse_object(args)
         else:
             self.config = parser.parse_args(args)
+
+    def _parse_ckpt_path(self) -> None:
+        """If a checkpoint path is given, parse the hyperparameters from the checkpoint and update the config."""
+        if not self.config.get("subcommand"):
+            return
+        ckpt_path = self.config[self.config.subcommand].get("ckpt_path")
+        if ckpt_path and Path(ckpt_path).is_file():
+            ckpt = torch.load(ckpt_path, weights_only=True, map_location="cpu")
+            hparams = ckpt.get("hyper_parameters", {})
+            hparams.pop("_instantiator", None)
+            if not hparams:
+                return
+            hparams = {self.config.subcommand: {"model": hparams}}
+            try:
+                self.config = self.parser.parse_object(hparams, self.config)
+            except SystemExit:
+                sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
+                raise
 
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):

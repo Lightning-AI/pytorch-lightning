@@ -42,42 +42,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        os: [macOS-14, ubuntu-22.04, windows-2022]
+        config:
           # only run PyTorch latest
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+
           # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-14", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "windows-2022", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
+          - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
+
           # "pytorch" installs the standalone package
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
+
           # adding recently cut Torch 2.7 - FUTURE
-          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+
+          # "oldest" versions tests, only on minimum Python
+          - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 50
     env:
-      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
@@ -88,30 +75,30 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.config.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.9' }}
 
       - name: basic setup
         run: pip install -q -r .actions/requirements.txt
 
       - name: Set min. dependencies
-        if: ${{ matrix.requires == 'oldest' }}
+        if: ${{ matrix.config.requires == 'oldest' }}
         run: |
           cd requirements/pytorch
           pip install -U "lightning-utilities[cli]"
-          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt']"
+          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt', 'test.txt']"
           pip install "cython<3.0" wheel
           pip install "pyyaml==5.4" --no-build-isolation
 
       - name: Adjust PyTorch versions in requirements files
-        if: ${{ matrix.requires != 'oldest' }}
+        if: ${{ matrix.config.requires != 'oldest' }}
         run: |
           pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
           for fpath in `ls requirements/**/*.txt`; do \
-            python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
+            python ./adjust-torch-versions.py $fpath ${{ matrix.config.pytorch-version }}; \
           done
           cat requirements/pytorch/base.txt
 
@@ -127,13 +114,13 @@ jobs:
       - name: Env. variables
         run: |
           # Switch PyTorch URL between stable and test/future
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.config.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
           # Switch coverage scope
-          python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
+          python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.config.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
-          python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'pytorch-'))" >> $GITHUB_ENV
+          python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.config.pkg-name}}' != 'lightning' else 'pytorch-'))" >> $GITHUB_ENV
           # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
-          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
+          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.config.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         timeout-minutes: 20
@@ -141,14 +128,16 @@ jobs:
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             -U --upgrade-strategy=eager --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}" --find-links="https://download.pytorch.org/whl/torch-tensorrt"
+            --extra-index-url="${TORCH_URL}" \
+            --find-links="${PYPI_CACHE_DIR}" \
+            --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           pip list
       - name: Drop LAI from extensions
-        if: ${{ matrix.pkg-name != 'lightning' }}
+        if: ${{ matrix.config.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
         run: pip uninstall -y lightning
       - name: Drop PL for LAI
-        if: ${{ matrix.pkg-name == 'lightning' }}
+        if: ${{ matrix.config.pkg-name == 'lightning' }}
         run: pip uninstall -y pytorch-lightning
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -169,10 +158,10 @@ jobs:
         run: |
           set -e
           python requirements/pytorch/check-avail-extras.py
-          python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
+          python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.config.pytorch-version }}'), ver"
 
       - name: Adjust tests / env. -> PL
-        if: ${{ matrix.pkg-name != 'lightning' }}
+        if: ${{ matrix.config.pkg-name != 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning.fabric,lightning.pytorch" \
@@ -222,7 +211,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/tests_pytorch/coverage.xml
-          flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
+          flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.config.python-version }},pytorch${{ matrix.config.pytorch-version }}
           name: CPU-coverage
           fail_ci_if_error: false
 
