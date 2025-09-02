@@ -217,6 +217,7 @@ with the source of each hook indicated:
         ├── on_fit_end()
         │   ├── [Callbacks]
         │   └── [LightningModule]
+        ├── [LightningDataModule]
         ├── [Callbacks]
         └── [LightningModule]
 
