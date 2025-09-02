@@ -184,16 +184,16 @@ class Trainer:
                 :class:`datetime.timedelta`.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
                 Default: ``0.0``.
