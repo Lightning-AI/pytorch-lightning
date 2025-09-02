@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Include `exclude_frozen_parameters` to `DeepSpeedStrategy` ([#21060](https://github.com/Lightning-AI/pytorch-lightning/pull/21060))
 
 
 ### Fixed
@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed legacy support for `lightning run model`. Use `fabric run` instead ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
+- Removed legacy support for `lightning run model`; use `fabric run` instead ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
 
 
 ## [2.5.0] - 2024-12-19
