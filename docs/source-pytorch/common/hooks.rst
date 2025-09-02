@@ -83,12 +83,29 @@ with the source of each hook indicated:
     trainer.fit()
     │
     ├── setup(stage="fit")
-    │   └── [Callbacks only]
+    │   ├── [LightningDataModule]
+    │   ├── [Callbacks]
+    │   ├── [LightningModule]
+    │   ├── [LightningModule.configure_shared_model()]
+    │   ├── [LightningModule.configure_model()]
+    │   ├── Strategy.restore_checkpoint_before_setup
+    │   │   ├── [LightningModule.on_load_checkpoint()]
+    │   │   ├── [LightningModule.load_state_dict()]
+    │   │   ├── [LightningDataModule.load_state_dict()]
+    │   │   ├── [Callbacks.on_load_checkpoint()]
+    │   │   └── [Callbacks.load_state_dict()]
+    │   └── [Strategy]
     │
     ├── on_fit_start()
     │   ├── [Callbacks]
-    │   ├── [LightningModule]
-    │   └── [Strategy]
+    │   └── [LightningModule]
+    │
+    ├── Strategy.restore_checkpoint_after_setup
+    │   ├── [LightningModule.on_load_checkpoint()]
+    │   ├── [LightningModule.load_state_dict()]
+    │   ├── [LightningDataModule.load_state_dict()]
+    │   ├── [Callbacks.on_load_checkpoint()]
+    │   └── [Callbacks.load_state_dict()]
     │
     ├── on_sanity_check_start()
     │   ├── [Callbacks]
