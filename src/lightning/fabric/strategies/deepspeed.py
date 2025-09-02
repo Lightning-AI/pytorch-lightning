@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from torch.optim.lr_scheduler import _LRScheduler
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-_DEEPSPEED_GREATER_EQUAL_0_14_1 = RequirementCache("deepspeed>=0.14.1")
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
@@ -101,6 +100,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -230,6 +230,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
 
+            exclude_frozen_parameters: Exclude frozen parameters when saving checkpoints.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise ImportError(
@@ -290,6 +292,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.exclude_frozen_parameters = exclude_frozen_parameters
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -445,7 +448,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state, filter={})
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
-        engine.save_checkpoint(path, client_state=state, tag="checkpoint")
+        engine.save_checkpoint(
+            path, client_state=state, tag="checkpoint", exclude_frozen_parameters=self.exclude_frozen_parameters
+        )
 
     @override
     def load_checkpoint(
@@ -503,10 +508,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         engine = engines[0]
 
-        if _DEEPSPEED_GREATER_EQUAL_0_14_1:
-            from deepspeed.runtime.base_optimizer import DeepSpeedOptimizer
-        else:
-            from deepspeed.runtime import DeepSpeedOptimizer
+        from deepspeed.runtime.base_optimizer import DeepSpeedOptimizer
 
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
