@@ -72,7 +72,6 @@ jobs:
       PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
-      GLOO_SOCKET_IFNAME: "eth0"
     steps:
       - uses: actions/checkout@v5
 
@@ -83,6 +82,10 @@ jobs:
 
       - name: basic setup
         run: pip install -q -r .actions/requirements.txt
+
+      - name: Append Env. vars for Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
 
       - name: Set min. dependencies
         if: ${{ matrix.config.requires == 'oldest' }}
