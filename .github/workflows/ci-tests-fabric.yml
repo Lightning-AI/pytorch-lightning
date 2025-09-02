@@ -79,7 +79,7 @@ jobs:
         run: pip install -q -r .actions/requirements.txt
 
       - name: Set min. dependencies
-        if: ${{ matrix.requires == 'oldest' }}
+        if: ${{ matrix.config.requires == 'oldest' }}
         run: |
           cd requirements/fabric
           pip install -U "lightning-utilities[cli]"
@@ -88,7 +88,7 @@ jobs:
           pip install "pyyaml==5.4" --no-build-isolation
 
       - name: Adjust PyTorch versions in requirements files
-        if: ${{ matrix.requires != 'oldest' }}
+        if: ${{ matrix.config.requires != 'oldest' }}
         run: |
           pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
