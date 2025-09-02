@@ -801,3 +801,50 @@ def test_tqdm_leave(leave, tmp_path):
     )
     trainer.fit(model)
     assert pbar.init_train_tqdm.call_count == (4 if leave else 1)
+
+
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
+def test_tqdm_progress_bar_reset_behavior(tmp_path):
+    """Test that progress bars call reset() without parameters and set total separately."""
+    model = BoringModel()
+
+    class ResetTrackingTqdm(MockTqdm):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.reset_calls_with_params = []
+
+        def reset(self, total=None):
+            self.reset_calls_with_params.append(total)
+            super().reset(total)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        logger=False,
+        enable_checkpointing=False,
+    )
+
+    pbar = trainer.progress_bar_callback
+
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", ResetTrackingTqdm):
+        trainer.fit(model)
+
+    train_bar = pbar.train_progress_bar
+    assert None in train_bar.reset_calls_with_params, (
+        f"train reset() should be called without parameters, got calls: {train_bar.reset_calls_with_params}"
+    )
+    # Verify that total was set separately to the expected value
+    assert 2 in train_bar.total_values, (
+        f"train total should be set to 2 after reset(), got total_values: {train_bar.total_values}"
+    )
+    # Verify that validation progress bar reset() was called without parameters
+    val_bar = pbar.val_progress_bar
+    assert None in val_bar.reset_calls_with_params, (
+        f"validation reset() should be called without parameters, got calls: {val_bar.reset_calls_with_params}"
+    )
+    # Verify that total was set separately to the expected value
+    assert 2 in val_bar.total_values, (
+        f"validation total should be set to 2 after reset(), got total_values: {val_bar.total_values}"
+    )
