@@ -72,6 +72,7 @@ jobs:
       PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
+      GLOO_SOCKET_IFNAME: "eth0"
     steps:
       - uses: actions/checkout@v5
 
