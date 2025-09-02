@@ -13,14 +13,15 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.10
-ARG PYTORCH_VERSION=2.0
-ARG CUDA_VERSION=11.8.0
+ARG PYTORCH_VERSION=2.8
+ARG CUDA_VERSION=12.6.3
 
-FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}-cuda${CUDA_VERSION}
+FROM pytorchlightning/pytorch_lightning:base-cuda${CUDA_VERSION}-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
+ARG PYTORCH_VERSION
 
 COPY ./ /home/pytorch-lightning/
 
@@ -39,7 +40,14 @@ RUN \
     fi && \
     # otherwise there is collision with folder name and pkg name on Pypi
     cd pytorch-lightning && \
-    pip install setuptools==75.6.0 && \
+    # pip install setuptools==75.6.0 && \
+    pip install -U "lightning-utilities[cli]" && \
+    # drop deepspeed since it is not supported by our minimal Torch requirements \
+    echo "PYTORCH_VERSION is: '$PYTORCH_VERSION'" && \
+    if [[ "$PYTORCH_VERSION" =~ ^(2\.1|2\.2|2\.3|2\.4)$ ]]; then \
+        python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files requirements/fabric/strategies.txt ; \
+        python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files requirements/pytorch/strategies.txt ; \
+    fi && \
     PACKAGE_NAME=lightning pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \

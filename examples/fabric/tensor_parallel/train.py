@@ -67,7 +67,7 @@ def train():
     # See `fabric consolidate --help` if you need to convert the checkpoint to a single file
     fabric.print("Saving a (distributed) checkpoint ...")
     state = {"model": model, "optimizer": optimizer, "iteration": i}
-    fabric.save("checkpoint.pt", state)
+    fabric.save(path="checkpoint.pt", state=state)
 
     fabric.print("Training successfully completed!")
     fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")

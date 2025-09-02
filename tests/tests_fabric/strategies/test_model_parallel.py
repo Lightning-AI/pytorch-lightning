@@ -25,6 +25,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import ModelParallelStrategy
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.strategies.model_parallel import _ParallelBackwardSyncControl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -102,7 +103,7 @@ def test_parallelize_fn_call():
     strategy = ModelParallelStrategy(parallelize_fn=parallelize_fn)
     strategy._device_mesh = Mock()
     strategy.parallel_devices = [torch.device("cpu")]
-    model_setup, [optimizer_setup] = strategy.setup_module_and_optimizers(model, [optimizer])
+    model_setup, [optimizer_setup], _ = strategy.setup_module_and_optimizers(model, [optimizer])
     assert model_setup is parallel_model_mock
     assert optimizer_setup is optimizer
     parallelize_fn.assert_called_with(model, strategy.device_mesh)
@@ -316,8 +317,11 @@ def test_set_timeout(init_process_group_mock, _):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = strategy.root_device if strategy.root_device.type != "cpu" else None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
     )
 
 

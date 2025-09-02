@@ -25,7 +25,7 @@ jobs:
       matrix:
         pkg-name: ${{ fromJSON(inputs.pkg-names) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -51,7 +51,7 @@ jobs:
     needs: build-packages
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with: # download all build artifacts
           pattern: ${{ inputs.artifact-name }}-*
           merge-multiple: true

@@ -414,6 +414,9 @@ class _FitLoop(_Loop):
             self.epoch_loop.val_loop.setup_data()
             trainer.training = True
 
+        # Check for modules in eval mode at training start
+        self._warn_if_modules_in_eval_mode()
+
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")
         call._call_strategy_hook(trainer, "on_train_start")
@@ -514,6 +517,19 @@ class _FitLoop(_Loop):
     def on_load_checkpoint(self, state_dict: dict) -> None:
         self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
         super().on_load_checkpoint(state_dict)
+
+    def _warn_if_modules_in_eval_mode(self) -> None:
+        """Warn if any modules are in eval mode at the start of training."""
+        model = self.trainer.lightning_module
+        eval_modules = [name for name, module in model.named_modules() if not module.training]
+
+        if eval_modules:
+            rank_zero_warn(
+                f"Found {len(eval_modules)} module(s) in eval mode at the start of training."
+                " This may lead to unexpected behavior during training. If this is intentional,"
+                " you can ignore this warning.",
+                category=PossibleUserWarning,
+            )
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""

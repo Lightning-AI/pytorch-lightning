@@ -194,23 +194,23 @@ def test_custom_accelerator(*_):
     class Prec(Precision):
         pass
 
-    class Strat(SingleDeviceStrategy):
+    class TestStrategy(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
-    class Strat(DDPStrategy):
+    class TestStrategy(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision=Prec())
+    strategy = TestStrategy(accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
-    assert isinstance(connector.strategy, Strat)
+    assert isinstance(connector.strategy, TestStrategy)
     assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
@@ -403,6 +403,13 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         connector = _Connector(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
+
+
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_mps_enabled_with_float16_or_bfloat16_precision(precision):
+    connector = _Connector(accelerator="mps", precision=precision)
+    assert connector.precision.device == "mps"
 
 
 def test_invalid_accelerator_choice():
