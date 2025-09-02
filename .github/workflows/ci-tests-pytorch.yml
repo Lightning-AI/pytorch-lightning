@@ -83,6 +83,10 @@ jobs:
       - name: basic setup
         run: pip install -q -r .actions/requirements.txt
 
+      - name: Append Env. vars for Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
+
       - name: Set min. dependencies
         if: ${{ matrix.config.requires == 'oldest' }}
         run: |

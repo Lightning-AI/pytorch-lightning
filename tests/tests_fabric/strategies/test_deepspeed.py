@@ -193,7 +193,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
     # Model and optimizer
     optimizer = Mock()
@@ -201,7 +203,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
 
 @RunIf(deepspeed=True)
@@ -216,6 +220,27 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
     # `mp_world_size` is an internal key
     with pytest.warns(UserWarning, match="Your state has keys that collide with DeepSpeed's internal"):
         strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "mp_world_size": 2})
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("exclude_frozen_parameters", [True, False])
+def test_deepspeed_save_checkpoint_exclude_frozen_parameters(exclude_frozen_parameters):
+    """Test that the DeepSpeed strategy can save checkpoints with the `exclude_frozen_parameters` argument."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy(exclude_frozen_parameters=exclude_frozen_parameters)
+    assert strategy.exclude_frozen_parameters is exclude_frozen_parameters
+
+    model = Mock(spec=DeepSpeedEngine, optimizer=None)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path="test_path", state={"model": model, "extra": "data"})
+
+    model.save_checkpoint.assert_called_with(
+        "test_path",
+        client_state={"extra": "data"},
+        tag="checkpoint",
+        exclude_frozen_parameters=exclude_frozen_parameters,
+    )
 
 
 @RunIf(deepspeed=True)
