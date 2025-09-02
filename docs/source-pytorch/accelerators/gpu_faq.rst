@@ -19,7 +19,7 @@ total number of samples processed in one forward/backward pass is
 
 A couple of examples to illustrate this:
 
-.. testcode::
+.. code-block:: python
 
     dataloader = DataLoader(..., batch_size=7)
 
