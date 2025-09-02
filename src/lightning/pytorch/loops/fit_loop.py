@@ -526,7 +526,7 @@ class _FitLoop(_Loop):
         if eval_modules:
             rank_zero_warn(
                 f"Found {len(eval_modules)} module(s) in eval mode at the start of training."
-                f" This may lead to unexpected behavior during training. If this is intentional,"
+                " This may lead to unexpected behavior during training. If this is intentional,"
                 " you can ignore this warning.",
                 category=PossibleUserWarning,
             )
