@@ -55,7 +55,7 @@ In general, there are two common scaling rules:
 
 1. **Linear scaling**: Increase the learning rate linearly with the number of devices.
 
-    .. testcode::
+    .. code-block:: python
 
         # Example: Linear scaling
         base_lr = 1e-3
@@ -64,7 +64,7 @@ In general, there are two common scaling rules:
 
 2. **Square root scaling**: Increase the learning rate by the square root of the number of devices.
 
-    .. testcode::
+    .. code-block:: python
 
         # Example: Square root scaling
         base_lr = 1e-3
