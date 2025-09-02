@@ -558,19 +558,18 @@ class LightningCLI:
         if not self.config.get("subcommand"):
             return
         ckpt_path = self.config[self.config.subcommand].get("ckpt_path")
-        if not ckpt_path or not Path(ckpt_path).is_file():
-            return
-        ckpt = torch.load(ckpt_path, weights_only=True, map_location="cpu")
-        hparams = ckpt.get("hyper_parameters", {})
-        hparams.pop("_instantiator", None)
-        if not hparams:
-            return
-        hparams = {self.config.subcommand: {"model": hparams}}
-        try:
-            self.config = self.parser.parse_object(hparams, self.config)
-        except SystemExit:
-            sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
-            raise
+        if ckpt_path and Path(ckpt_path).is_file():
+            ckpt = torch.load(ckpt_path, weights_only=True, map_location="cpu")
+            hparams = ckpt.get("hyper_parameters", {})
+            hparams.pop("_instantiator", None)
+            if not hparams:
+                return
+            hparams = {self.config.subcommand: {"model": hparams}}
+            try:
+                self.config = self.parser.parse_object(hparams, self.config)
+            except SystemExit:
+                sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
+                raise
 
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):
