@@ -264,14 +264,6 @@ class Trainer:
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
 
-                .. note::
-                    Do **not** use a manual ``torch.profiler.profile`` context manager around
-                    ``Trainer.fit()``, ``Trainer.validate()``, etc.
-                    This will lead to internal errors and cryptic crashes due to incompatibility between
-                    PyTorch Profiler and Lightning's training loop.
-                    Always use this ``profiler`` argument to enable profiling in Lightning.
-
-
             detect_anomaly: Enable anomaly detection for the autograd engine.
                 Default: ``False``.
 
