@@ -9,18 +9,17 @@ set -e
 LEGACY_FOLDER=$(cd $(dirname $0); pwd -P)
 printf "LEGACY_FOLDER: $LEGACY_FOLDER"
 TESTS_FOLDER=$(dirname $LEGACY_FOLDER)
-ENV_PATH=$LEGACY_FOLDER/vEnv
+ENV_PATH=$LEGACY_FOLDER/.venv
 printf "ENV_PATH: $ENV_PATH"
 export PYTHONPATH=$TESTS_FOLDER  # for `import tests_pytorch`
 printf "PYTHONPATH: $PYTHONPATH"
 rm -rf $ENV_PATH
 
 function create_and_save_checkpoint {
-  python --version
-  python -m pip --version
-  python -m pip list
+  uv --version
+  uv pip list
 
-  python $LEGACY_FOLDER/simple_classif_training.py $pl_ver
+  uv run $LEGACY_FOLDER/simple_classif_training.py $pl_ver
 
   cp $LEGACY_FOLDER/simple_classif_training.py $LEGACY_FOLDER/checkpoints/$pl_ver
   mv $LEGACY_FOLDER/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_FOLDER/checkpoints/$pl_ver/
@@ -33,10 +32,10 @@ do
   printf "\n\n processing version: $pl_ver\n"
 
   # Don't install/update anything before activating venv to avoid breaking any existing environment.
-  python -m venv $ENV_PATH
+  uv venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
-  python -m pip install "pytorch_lightning==$pl_ver" \
+  uv pip install "pytorch_lightning==$pl_ver" \
     -r $LEGACY_FOLDER/requirements.txt \
     -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html
@@ -52,7 +51,7 @@ done
 if [[ -z "$@" ]]; then
   printf "\n\n processing local version\n"
 
-  python -m pip install \
+  uv pip install \
     -r $LEGACY_FOLDER/requirements.txt \
     -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html
