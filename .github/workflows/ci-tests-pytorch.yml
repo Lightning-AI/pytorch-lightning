@@ -120,10 +120,10 @@ jobs:
         timeout-minutes: 20
         run: |
           uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
-            -U --upgrade-strategy=eager --prefer-binary \
+            --upgrade \
             -r requirements/_integrations/accelerators.txt \
             --extra-index-url="${TORCH_URL}" \
-            --find-links="${PYPI_CACHE_DIR}" \
+            --find-links="${UV_CACHE_DIR}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           uv pip list
 
