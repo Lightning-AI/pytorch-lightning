@@ -231,6 +231,7 @@ def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
         >>> from datetime import timedelta
         >>> _parse_time_interval_seconds(timedelta(days=1, seconds=30))
         86430.0
+
     """
     if isinstance(value, timedelta):
         return value.total_seconds()
