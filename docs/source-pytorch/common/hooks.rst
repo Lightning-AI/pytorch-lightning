@@ -83,12 +83,29 @@ with the source of each hook indicated:
     trainer.fit()
     │
     ├── setup(stage="fit")
-    │   └── [Callbacks only]
+    │   ├── [LightningDataModule]
+    │   ├── [Callbacks]
+    │   ├── [LightningModule]
+    │   ├── [LightningModule.configure_shared_model()]
+    │   ├── [LightningModule.configure_model()]
+    │   ├── Strategy.restore_checkpoint_before_setup
+    │   │   ├── [LightningModule.on_load_checkpoint()]
+    │   │   ├── [LightningModule.load_state_dict()]
+    │   │   ├── [LightningDataModule.load_state_dict()]
+    │   │   ├── [Callbacks.on_load_checkpoint()]
+    │   │   └── [Callbacks.load_state_dict()]
+    │   └── [Strategy]
     │
     ├── on_fit_start()
     │   ├── [Callbacks]
-    │   ├── [LightningModule]
-    │   └── [Strategy]
+    │   └── [LightningModule]
+    │
+    ├── Strategy.restore_checkpoint_after_setup
+    │   ├── [LightningModule.on_load_checkpoint()]
+    │   ├── [LightningModule.load_state_dict()]
+    │   ├── [LightningDataModule.load_state_dict()]
+    │   ├── [Callbacks.on_load_checkpoint()]
+    │   └── [Callbacks.load_state_dict()]
     │
     ├── on_sanity_check_start()
     │   ├── [Callbacks]
@@ -143,23 +160,24 @@ with the source of each hook indicated:
     │   │   │   ├── [LightningModule]
     │   │   │   └── [Strategy]
     │   │   │
+    │   │   ├── [Forward Pass - training_step()]
+    │   │   │   └── [Strategy only]
+    │   │   │
     │   │   ├── on_before_zero_grad()
     │   │   │   ├── [Callbacks]
     │   │   │   └── [LightningModule]
     │   │   │
-    │   │   ├── [Forward Pass - training_step()]
-    │   │   │   └── [Strategy only]
+    │   │   ├── optimizer_zero_grad()
+    │   │   │   └── [LightningModule only - optimizer_zero_grad()]
     │   │   │
-    │   │   ├── on_before_backward()
-    │   │   │   ├── [Callbacks]
-    │   │   │   └── [LightningModule]
-    │   │   │
-    │   │   ├── [Backward Pass]
-    │   │   │   └── [Strategy only]
-    │   │   │
-    │   │   ├── on_after_backward()
-    │   │   │   ├── [Callbacks]
-    │   │   │   └── [LightningModule]
+    │   │   ├── [Backward Pass - Strategy.backward()]
+    │   │   │   ├── on_before_backward()
+    │   │   │   │   ├── [Callbacks]
+    │   │   │   │   └── [LightningModule]
+    │   │   │   ├── LightningModule.backward()
+    │   │   │   └── on_after_backward()
+    │   │   │       ├── [Callbacks]
+    │   │   │       └── [LightningModule]
     │   │   │
     │   │   ├── on_before_optimizer_step()
     │   │   │   ├── [Callbacks]
@@ -212,13 +230,14 @@ with the source of each hook indicated:
     │   ├── [LightningModule]
     │   └── [Strategy]
     │
-    ├── on_fit_end()
-    │   ├── [Callbacks]
-    │   ├── [LightningModule]
-    │   └── [Strategy]
-    │
     └── teardown(stage="fit")
-        └── [Callbacks only]
+        ├── [Strategy]
+        ├── on_fit_end()
+        │   ├── [Callbacks]
+        │   └── [LightningModule]
+        ├── [LightningDataModule]
+        ├── [Callbacks]
+        └── [LightningModule]
 
 ***********************
 Testing Loop Hook Order
