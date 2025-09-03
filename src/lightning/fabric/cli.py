@@ -59,6 +59,8 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         from jsonargparse import set_config_read_mode
 
         set_config_read_mode(fsspec_enabled=True)
+else:
+    locals()["ArgumentParser"] = object
 
 
 class FabricCLI:
