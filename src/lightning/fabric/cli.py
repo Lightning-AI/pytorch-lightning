@@ -182,8 +182,8 @@ class FabricCLI:
     def _run_script(self) -> None:
         """Runs the script with the given arguments."""
         config = self.config.run
-        if not os.path.exists(config.script):
-            raise SystemExit(f"Script not found: {config.script}")
+        if not (os.path.isfile(config.script) and os.access(config.script, os.R_OK)):
+            raise SystemExit(f"Script not found or is not a readable file: {config.script}")
 
         args = Namespace(**vars(config))
         main(args=args, script_args=self.unknown_args)
