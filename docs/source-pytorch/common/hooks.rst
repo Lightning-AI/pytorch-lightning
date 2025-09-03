@@ -44,22 +44,15 @@ important to understand. The following order is always used:
 
     model = MyModel()
     callback = MyCallback()
-    trainer = Trainer(callbacks=[callback], logger=False, max_epochs=1)
+    trainer = Trainer(callbacks=[callback], logger=False, max_epochs=1, enable_progress_bar=False)
     trainer.fit(model)
 
 .. testoutput::
    :hide:
    :options: +ELLIPSIS, +NORMALIZE_WHITESPACE
 
-    ┏━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
-    ┃   ┃ Name  ┃ Type   ┃ Params ┃ Mode  ┃ FLOPs ┃
-    ┡━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
-    │ 0 │ layer │ Linear │     66 │ train │     0 │
-    └───┴───────┴────────┴────────┴───────┴───────┘
-    ...
     Callback: Training is starting!
     Model: Training is starting!
-    Epoch 0/0  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64/64 ...
 
 
 .. note::
