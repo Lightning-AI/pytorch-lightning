@@ -104,6 +104,7 @@ def restore_env_variables():
         "TF2_BEHAVIOR",  # TensorFlow 2.x behavior flag
         "TPU_ML_PLATFORM",  # TPU platform configuration
         "TPU_ML_PLATFORM_VERSION",  # TPU platform version
+        "LD_LIBRARY_PATH",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -342,7 +343,7 @@ def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.C
 
     options = {
         "standalone": "PL_RUN_STANDALONE_TESTS",
-        "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
+        "min_cuda_gpus": "RUN_ONLY_CUDA_TESTS",
         "tpu": "PL_RUN_TPU_TESTS",
     }
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
