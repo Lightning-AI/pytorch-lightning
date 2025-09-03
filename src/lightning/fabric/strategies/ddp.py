@@ -15,6 +15,7 @@ from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal, Optional, Union
 
+import inspect
 import torch
 import torch.distributed
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -156,10 +157,24 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
-        if torch.distributed.get_backend() == "nccl":
+        backend = torch.distributed.get_backend()
+        if backend == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
-        else:
+            return
+        # For CPU backends (e.g., gloo), recent PyTorch may attempt to resolve an accelerator and crash on CPU-only runs.
+        try:
             torch.distributed.barrier()
+        except RuntimeError as e:
+            # Handle: "Please register PrivateUse1HooksInterface by `RegisterPrivateUse1HooksInterface` first."
+            if "PrivateUse1HooksInterface" in str(e):
+                # Use explicit CPU device if supported in this PyTorch version
+                if "device" in inspect.signature(torch.distributed.barrier).parameters:
+                    torch.distributed.barrier(device=torch.device("cpu"))
+                else:
+                    # Older versions shouldn't trigger this path; re-raise to avoid masking other issues
+                    raise
+            else:
+                raise
 
     @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
