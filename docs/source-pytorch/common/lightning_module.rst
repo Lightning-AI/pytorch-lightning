@@ -287,7 +287,7 @@ Under the hood, Lightning does the following (pseudocode):
 
         if validate_at_some_point:
             # capture .training mode of every submodule
-            capture_training_mode()
+            training_mode = model.training
 
             # disable grads + batchnorm + dropout
             torch.set_grad_enabled(False)
@@ -302,7 +302,7 @@ Under the hood, Lightning does the following (pseudocode):
             torch.set_grad_enabled(True)
 
             # restore .training mode of every submodule
-            restore_training_mode()
+            model.training = training_mode
 
 You can also run just the validation loop on your validation dataloaders by overriding :meth:`~lightning.pytorch.core.LightningModule.validation_step`
 and calling :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`.
