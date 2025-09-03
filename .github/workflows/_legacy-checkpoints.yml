@@ -61,6 +61,10 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.9"
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
       - name: Install PL from source
         env:
