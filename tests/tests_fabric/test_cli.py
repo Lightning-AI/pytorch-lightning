@@ -35,7 +35,9 @@ def fake_script(tmp_path):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script])
+    assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
     assert "LT_ACCELERATOR" not in os.environ
     assert "LT_STRATEGY" not in os.environ
@@ -49,7 +51,9 @@ def test_run_env_vars_defaults(monkeypatch, fake_script):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--accelerator", accelerator])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--accelerator", accelerator])
+    assert e.value.code == 0
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
@@ -58,7 +62,9 @@ def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--strategy", strategy])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--strategy", strategy])
+    assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
 
 
@@ -74,9 +80,9 @@ def test_run_get_supported_strategies():
 def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        FabricCLI(args=["run", fake_script, "--strategy", strategy])
+        _run.main([fake_script, "--strategy", strategy])
     assert e.value.code == 2
-    assert f"invalid choice: '{strategy}'" in ioerr.getvalue().lower()
+    assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
@@ -84,7 +90,9 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--accelerator", "cuda", "--devices", devices])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+    assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == devices
 
 
@@ -93,7 +101,9 @@ def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--accelerator", accelerator])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--accelerator", accelerator])
+    assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == "1"
 
 
@@ -101,7 +111,9 @@ def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--num-nodes", num_nodes])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--num-nodes", num_nodes])
+    assert e.value.code == 0
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
@@ -109,7 +121,9 @@ def test_run_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
-    FabricCLI(args=["run", fake_script, "--precision", precision])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--precision", precision])
+    assert e.value.code == 0
     assert os.environ["LT_PRECISION"] == precision
 
 
@@ -117,7 +131,9 @@ def test_run_env_vars_precision(precision, monkeypatch, fake_script):
 def test_run_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
-    FabricCLI(args=["run", fake_script])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script])
+    assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         "--nproc_per_node=1",
         "--nnodes=1",
@@ -143,7 +159,9 @@ def test_run_torchrun_defaults(monkeypatch, fake_script):
 def test_run_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
-    FabricCLI(args=["run", fake_script, "--accelerator", "cuda", "--devices", devices])
+    with pytest.raises(SystemExit) as e:
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+    assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         f"--nproc_per_node={expected}",
         "--nnodes=1",
@@ -156,22 +174,25 @@ def test_run_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 
 def test_run_through_fabric_entry_point():
     result = subprocess.run("fabric run --help", capture_output=True, text=True, shell=True)
-    output = result.stdout + result.stderr
-    assert "usage: lightning-fabric run" in output
-    assert "Path to the Python script with the code to run" in output
+
+    message = "Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    assert message in result.stdout or message in result.stderr
 
 
-@mock.patch("lightning.fabric.cli.torch.save")
-@mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
 @mock.patch("lightning.fabric.cli._process_cli_args")
-def test_consolidate(process_cli_args_mock, load_distributed_checkpoint_mock, save_mock, tmp_path):
-    with pytest.raises(SystemExit, match="Checkpoint folder not found: not exist"):
-        FabricCLI(args=["consolidate", "not exist"])
+@mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
+@mock.patch("lightning.fabric.cli.torch.save")
+def test_consolidate(save_mock, _, __, tmp_path):
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _consolidate.main(["not exist"])
+    assert e.value.code == 2
+    assert "Path 'not exist' does not exist" in ioerr.getvalue()
 
     checkpoint_folder = tmp_path / "checkpoint"
     checkpoint_folder.mkdir()
-    FabricCLI(args=["consolidate", str(checkpoint_folder)])
-
-    process_cli_args_mock.assert_called_once()
-    load_distributed_checkpoint_mock.assert_called_once()
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _consolidate.main([str(checkpoint_folder)])
+    assert e.value.code == 0
     save_mock.assert_called_once()
