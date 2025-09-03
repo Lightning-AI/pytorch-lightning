@@ -26,7 +26,6 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
@@ -58,12 +57,11 @@ def _load(
         )
     if str(path_or_url).startswith("http"):
         if weights_only is None:
-            if _TORCH_GREATER_EQUAL_2_6:
-                weights_only = True
-                log.debug(f"Default to `weights_only=True` for remote checkpoint for torch>=2.6: {path_or_url}")
-            else:
-                weights_only = False
-                log.debug(f"Default to `weights_only=False` for remote checkpoint for torch<2.6: {path_or_url}")
+            weights_only = False
+            log.debug(
+                f"Defaulting to `weights_only=False` for remote checkpoint: {path_or_url}."
+                f" If loading a checkpoint from an untrustted source, we recommend using `weights_only=True`."
+            )
 
         return torch.hub.load_state_dict_from_url(
             str(path_or_url),
