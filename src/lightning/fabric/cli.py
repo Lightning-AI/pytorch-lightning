@@ -60,6 +60,7 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 
         set_config_read_mode(fsspec_enabled=True)
 
+
 class FabricCLI:
     """Lightning Fabric command-line tool."""
 
@@ -195,6 +196,7 @@ class FabricCLI:
         processed_args = _process_cli_args(args)
         checkpoint = _load_distributed_checkpoint(processed_args.checkpoint_folder)
         torch.save(checkpoint, processed_args.output_file)
+
 
 def _entrypoint() -> None:
     """The CLI entrypoint."""
