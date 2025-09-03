@@ -510,6 +510,7 @@ limit_train_batches
 
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
+Value is per device.
 
 .. testcode::
 
@@ -535,7 +536,7 @@ limit_test_batches
     :width: 400
     :muted:
 
-How much of test dataset to check.
+How much of test dataset to check. Value is per device.
 
 .. testcode::
 
@@ -560,6 +561,7 @@ limit_val_batches
 
 How much of validation dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
+Value is per device.
 
 .. testcode::
 

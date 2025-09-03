@@ -265,7 +265,9 @@ class TQDMProgressBar(ProgressBar):
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         if self._leave:
             self.train_progress_bar = self.init_train_tqdm()
-        self.train_progress_bar.reset(convert_inf(self.total_train_batches))
+        total = convert_inf(self.total_train_batches)
+        self.train_progress_bar.reset()
+        self.train_progress_bar.total = total
         self.train_progress_bar.initial = 0
         self.train_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
@@ -306,7 +308,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.val_progress_bar.reset(convert_inf(self.total_val_batches_current_dataloader))
+        total = convert_inf(self.total_val_batches_current_dataloader)
+        self.val_progress_bar.reset()
+        self.val_progress_bar.total = total
         self.val_progress_bar.initial = 0
         desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
         self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
@@ -348,7 +352,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.test_progress_bar.reset(convert_inf(self.total_test_batches_current_dataloader))
+        total = convert_inf(self.total_test_batches_current_dataloader)
+        self.test_progress_bar.reset()
+        self.test_progress_bar.total = total
         self.test_progress_bar.initial = 0
         self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
@@ -387,7 +393,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.predict_progress_bar.reset(convert_inf(self.total_predict_batches_current_dataloader))
+        total = convert_inf(self.total_predict_batches_current_dataloader)
+        self.predict_progress_bar.reset()
+        self.predict_progress_bar.total = total
         self.predict_progress_bar.initial = 0
         self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 
