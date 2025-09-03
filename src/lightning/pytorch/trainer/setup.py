@@ -199,6 +199,39 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
 
 
 def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
+    """Convert a time interval into seconds.
+
+    This helper parses different representations of a time interval and
+    normalizes them into a float number of seconds.
+
+    Supported input formats:
+      * `timedelta`: The total seconds are returned directly.
+      * `dict`: A dictionary of keyword arguments accepted by
+        `datetime.timedelta`, e.g. `{"days": 1, "hours": 2}`.
+      * `str`: A string in the format `"DD:HH:MM:SS"`, where each
+        component must be an integer.
+
+    Args:
+        value (Union[str, timedelta, dict]): The time interval to parse.
+
+    Returns:
+        float: The duration represented by `value` in seconds.
+
+    Raises:
+        MisconfigurationException: If the input type is unsupported, the
+        string format is invalid, or any string component is not an integer.
+
+    Examples:
+        >>> _parse_time_interval_seconds("01:02:03:04")
+        93784.0
+
+        >>> _parse_time_interval_seconds({"hours": 2, "minutes": 30})
+        9000.0
+
+        >>> from datetime import timedelta
+        >>> _parse_time_interval_seconds(timedelta(days=1, seconds=30))
+        86430.0
+    """
     if isinstance(value, timedelta):
         return value.total_seconds()
     if isinstance(value, dict):
