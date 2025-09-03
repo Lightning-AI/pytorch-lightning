@@ -66,7 +66,7 @@ def test_multi_gpu_model_ddp_fit_test(tmp_path):
         assert out["test_acc"] > 0.7
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.7")
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 @mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
