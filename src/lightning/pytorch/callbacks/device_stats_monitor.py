@@ -75,7 +75,7 @@ class DeviceStatsMonitor(Callback):
             - ``num_device_free`` — Number of device deallocations
 
         For a full list of CUDA memory stats, see the
-        `PyTorch documentation <https://pytorch.org/docs/stable/generated/torch.cuda.memory_stats.html>`_.
+        `PyTorch documentation <https://docs.pytorch.org/docs/stable//generated/torch.cuda.device_memory_used.html>`_.
 
     - TPU (via ``torch_xla``)
 
