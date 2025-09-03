@@ -57,7 +57,7 @@ def test_fsdp_precision_scaler_with_bf16():
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
-    ("precision_str", "default_dtype", "autocast_dtype"),
+    ("precision_type", "default_dtype", "autocast_dtype"),
     [
         ("16-mixed", torch.float32, torch.float16),
         ("16-true", torch.float32, torch.float16),
@@ -65,13 +65,13 @@ def test_fsdp_precision_scaler_with_bf16():
         ("bf16-true", torch.float32, torch.bfloat16),
     ],
 )
-def test_fsdp_precision_forward_context(prec_name, default_dtype, autocast_dtype):
+def test_fsdp_precision_forward_context(precision_type, default_dtype, autocast_dtype):
     """Test to ensure that the context manager correctly is set to the expected precision."""
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-    precision = FSDPPrecision(precision=prec_name)
+    precision = FSDPPrecision(precision=precision_type)
 
-    if prec_name == "16-mixed":
+    if precision_type == "16-mixed":
         assert isinstance(precision.scaler, ShardedGradScaler)
     else:
         assert precision.scaler is None
@@ -80,7 +80,7 @@ def test_fsdp_precision_forward_context(prec_name, default_dtype, autocast_dtype
     with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == autocast_dtype
 
-    if prec_name.endswith("-mixed"):
+    if precision_type.endswith("-mixed"):
         assert isinstance(precision.forward_context(), torch.autocast)
         assert precision.forward_context().fast_dtype == autocast_dtype
     else:
