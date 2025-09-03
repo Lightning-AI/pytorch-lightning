@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal, Optional, Union
@@ -158,24 +157,20 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
-        backend = torch.distributed.get_backend()
-        if backend == "nccl":
+        if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
-            return
-        # For CPU backends (e.g., gloo), recent PyTorch may attempt to resolve an accelerator and crash on CPU-only runs.
-        try:
-            torch.distributed.barrier()
-        except RuntimeError as e:
-            # Handle: "Please register PrivateUse1HooksInterface by `RegisterPrivateUse1HooksInterface` first."
-            if "PrivateUse1HooksInterface" in str(e):
-                # Use explicit CPU device if supported in this PyTorch version
-                if "device" in inspect.signature(torch.distributed.barrier).parameters:
-                    torch.distributed.barrier(device=torch.device("cpu"))
+        else:
+            # Handle PyTorch bug where barrier() fails on CPU with "PrivateUse1HooksInterface" error
+            try:
+                torch.distributed.barrier()
+            except RuntimeError as e:
+                if "PrivateUse1HooksInterface" in str(e):
+                    # Fallback: Use all_reduce as barrier - all processes must participate
+                    # This achieves the same synchronization effect as barrier()
+                    dummy_tensor = torch.tensor(0.0, device=self.root_device)
+                    torch.distributed.all_reduce(dummy_tensor)
                 else:
-                    # Older versions shouldn't trigger this path; re-raise to avoid masking other issues
                     raise
-            else:
-                raise
 
     @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
