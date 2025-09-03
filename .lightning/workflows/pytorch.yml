@@ -25,6 +25,8 @@ parametrize:
 env:
   FREEZE_REQUIREMENTS: "1"
   RUN_ONLY_CUDA_TESTS: "1"
+  CUDA_LAUNCH_BLOCKING: "1"
+  NCCL_DEBUG: "INFO"
 
 run: |
   whereis nvidia
