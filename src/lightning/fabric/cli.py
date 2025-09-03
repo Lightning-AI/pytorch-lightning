@@ -181,20 +181,30 @@ class FabricCLI:
 
     def _run_script(self) -> None:
         """Runs the script with the given arguments."""
-        config = self.config.run
+        config = self.config
         if not (os.path.isfile(config.script) and os.access(config.script, os.R_OK)):
             raise SystemExit(f"Script not found or is not a readable file: {config.script}")
 
-        args = Namespace(**vars(config))
+        args = Namespace(
+            script=config.script,
+            accelerator=getattr(config, "accelerator", None),
+            strategy=getattr(config, "strategy", None),
+            devices=getattr(config, "devices", "1"),
+            num_nodes=getattr(config, "num_nodes", 1),
+            node_rank=getattr(config, "node_rank", 0),
+            main_address=getattr(config, "main_address", "127.0.0.1"),
+            main_port=getattr(config, "main_port", 29400),
+            precision=getattr(config, "precision", None),
+        )
         main(args=args, script_args=self.unknown_args)
 
     def _consolidate_checkpoint(self) -> None:
         """Consolidates the checkpoint."""
-        config = self.config.consolidate
+        config = self.config
         if not os.path.isdir(config.checkpoint_folder):
             raise SystemExit(f"Checkpoint folder not found: {config.checkpoint_folder}")
 
-        args = Namespace(**vars(config))
+        args = Namespace(checkpoint_folder=config.checkpoint_folder, output_file=getattr(config, "output_file", None))
         processed_args = _process_cli_args(args)
         checkpoint = _load_distributed_checkpoint(processed_args.checkpoint_folder)
         torch.save(checkpoint, processed_args.output_file)
