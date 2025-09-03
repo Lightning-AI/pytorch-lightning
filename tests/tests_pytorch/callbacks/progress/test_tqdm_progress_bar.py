@@ -18,7 +18,7 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, Mock, PropertyMock, call
+from unittest.mock import ANY, Mock, PropertyMock, call, patch
 
 import pytest
 import torch
@@ -803,7 +803,7 @@ def test_tqdm_leave(leave, tmp_path):
     assert pbar.init_train_tqdm.call_count == (4 if leave else 1)
 
 
-@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
+@patch("lightning.pytorch.callbacks.progress.rich_progress._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_reset_behavior(tmp_path):
     """Test that progress bars call reset() without parameters and set total separately."""
     model = BoringModel()
