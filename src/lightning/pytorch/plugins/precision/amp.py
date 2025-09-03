@@ -116,7 +116,8 @@ class MixedPrecision(Precision):
         )
 
     def autocast_context_manager(self) -> torch.autocast:
-        return torch.autocast(self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half))
+        dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.half
+        return torch.autocast(self.device, dtype=dtype, cache_enabled=False)
 
     @override
     @contextmanager

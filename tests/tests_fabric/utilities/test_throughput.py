@@ -68,6 +68,8 @@ def test_get_available_flops(xla_available):
     "device_name",
     [
         # Hopper
+        "NVIDIA H200 SXM1",
+        "NVIDIA H200 NVL1",
         "h100-nvl",  # TODO: switch with `torch.cuda.get_device_name()` result
         "h100-hbm3",  # TODO: switch with `torch.cuda.get_device_name()` result
         "NVIDIA H100 PCIe",

@@ -14,7 +14,8 @@
 from unittest.mock import Mock
 
 import pytest
-from torch.nn import Module
+import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from lightning.pytorch.plugins import MixedPrecision
@@ -23,7 +24,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
-    module = Mock(spec=Module)
+    module = Mock(spec=nn.Module)
     optimizer = Mock(spec=Optimizer)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
@@ -48,9 +49,25 @@ def test_optimizer_amp_scaling_support_in_step_method():
     """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
     gradient clipping (example: fused Adam)."""
 
-    module = Mock(spec=Module)
+    module = Mock(spec=nn.Module)
     optimizer = Mock(_step_supports_amp_scaling=True)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
         precision.clip_gradients(module, optimizer, clip_val=1.0)
+
+
+def test_amp_with_no_grad():
+    """Test that asserts using `no_grad` context wrapper with a persistent AMP context wrapper does not break gradient
+    tracking."""
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.autocast_context_manager():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None
