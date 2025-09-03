@@ -6,23 +6,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [unReleased] - 2025-09-DD
+## [2.5.5] - 2025-09-05
 
 ### Changed
 
 - Include `exclude_frozen_parameters` to `DeepSpeedStrategy` ([#21060](https://github.com/Lightning-AI/pytorch-lightning/pull/21060))
-
-
 - Let `_get_default_process_group_backend_for_device` support more hardware platforms (
     [#21057](https://github.com/Lightning-AI/pytorch-lightning/pull/21057), [#21093](https://github.com/Lightning-AI/pytorch-lightning/pull/21093))
-
 
 ### Fixed
 
 - Fixed with adding a missing device id for pytorch 2.8 ([#21105](https://github.com/Lightning-AI/pytorch-lightning/pull/21105))
-
-
-- Respect `verbose=False` in `seed_everything` when no seed is provided
+- Respecting `verbose=False` in `seed_everything` when no seed is provided ([#21161](https://github.com/Lightning-AI/pytorch-lightning/pull/21161))
 
 
 ## [2.5.4] - 2025-08-29
