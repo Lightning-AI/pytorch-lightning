@@ -20,8 +20,10 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from jsonargparse import Namespace
 
-from lightning.fabric.cli import FabricCLI, _get_supported_strategies
+from lightning.fabric.cli import FabricCLI, _get_supported_strategies, main as _run_main
+from lightning.fabric.utilities.consolidate_checkpoint import main as _consolidate_main
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -36,7 +38,8 @@ def fake_script(tmp_path):
 def test_run_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script])
+        args = Namespace(script=fake_script, accelerator=None, strategy=None, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
     assert "LT_ACCELERATOR" not in os.environ
@@ -52,7 +55,8 @@ def test_run_env_vars_defaults(monkeypatch, fake_script):
 def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--accelerator", accelerator])
+        args = Namespace(script=fake_script, accelerator=accelerator, strategy=None, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
@@ -63,7 +67,8 @@ def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 def test_run_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--strategy", strategy])
+        args = Namespace(script=fake_script, accelerator=None, strategy=strategy, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
 
@@ -80,7 +85,7 @@ def test_run_get_supported_strategies():
 def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        _run.main([fake_script, "--strategy", strategy])
+        FabricCLI(["run", fake_script, "--strategy", strategy])
     assert e.value.code == 2
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
@@ -91,7 +96,8 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
 def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        args = Namespace(script=fake_script, accelerator="cuda", strategy=None, devices=devices, num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == devices
 
@@ -102,7 +108,8 @@ def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--accelerator", accelerator])
+        args = Namespace(script=fake_script, accelerator=accelerator, strategy=None, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == "1"
 
@@ -112,7 +119,8 @@ def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
 def test_run_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--num-nodes", num_nodes])
+        args = Namespace(script=fake_script, accelerator=None, strategy=None, devices="1", num_nodes=int(num_nodes), node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
@@ -122,7 +130,8 @@ def test_run_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
 def test_run_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--precision", precision])
+        args = Namespace(script=fake_script, accelerator=None, strategy=None, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=precision)
+        _run_main(args)
     assert e.value.code == 0
     assert os.environ["LT_PRECISION"] == precision
 
@@ -132,7 +141,8 @@ def test_run_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script])
+        args = Namespace(script=fake_script, accelerator=None, strategy=None, devices="1", num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         "--nproc_per_node=1",
@@ -160,7 +170,8 @@ def test_run_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        args = Namespace(script=fake_script, accelerator="cuda", strategy=None, devices=devices, num_nodes=1, node_rank=0, main_address="127.0.0.1", main_port=29400, precision=None)
+        _run_main(args)
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         f"--nproc_per_node={expected}",
@@ -185,7 +196,8 @@ def test_run_through_fabric_entry_point():
 def test_consolidate(save_mock, _, __, tmp_path):
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        _consolidate.main(["not exist"])
+        args = Namespace(checkpoint_folder="not exist", output_file=None)
+        _consolidate_main(args)
     assert e.value.code == 2
     assert "Path 'not exist' does not exist" in ioerr.getvalue()
 
@@ -193,6 +205,7 @@ def test_consolidate(save_mock, _, __, tmp_path):
     checkpoint_folder.mkdir()
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        _consolidate.main([str(checkpoint_folder)])
+        args = Namespace(checkpoint_folder=str(checkpoint_folder), output_file=None)
+        _consolidate_main(args)
     assert e.value.code == 0
     save_mock.assert_called_once()
