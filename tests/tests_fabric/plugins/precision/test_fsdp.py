@@ -77,7 +77,7 @@ def test_fsdp_precision_forward_context_f16():
     assert precision.forward_context()._new_dtype == torch.float16
 
 
-@RunIf(min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1, bf16_cuda=True)
 def test_fsdp_precision_forward_context_bf16():
     """Test to ensure that the context manager correctly is set to bfloat16."""
     precision = FSDPPrecision(precision="bf16-mixed")
