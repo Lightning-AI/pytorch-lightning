@@ -7,19 +7,19 @@
 set -e
 
 LEGACY_FOLDER=$(cd $(dirname $0); pwd -P)
-printf "LEGACY_FOLDER: $LEGACY_FOLDER"
+printf "LEGACY_FOLDER: $LEGACY_FOLDER\n"
 TESTS_FOLDER=$(dirname $LEGACY_FOLDER)
 ENV_PATH=$LEGACY_FOLDER/.venv
-printf "ENV_PATH: $ENV_PATH"
+printf "ENV_PATH: $ENV_PATH\n"
 export PYTHONPATH=$TESTS_FOLDER  # for `import tests_pytorch`
-printf "PYTHONPATH: $PYTHONPATH"
+printf "PYTHONPATH: $PYTHONPATH\n"
 rm -rf $ENV_PATH
 
 function create_and_save_checkpoint {
   uv --version
   uv pip list
 
-  uv run $LEGACY_FOLDER/simple_classif_training.py $pl_ver
+  python $LEGACY_FOLDER/simple_classif_training.py $pl_ver
 
   cp $LEGACY_FOLDER/simple_classif_training.py $LEGACY_FOLDER/checkpoints/$pl_ver
   mv $LEGACY_FOLDER/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_FOLDER/checkpoints/$pl_ver/
