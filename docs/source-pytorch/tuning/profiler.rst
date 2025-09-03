@@ -23,10 +23,6 @@ Find bottlenecks in your code
             ...
         )
         trainer.fit(model, train_dataloaders=...)
-
-    **References:**
-      - https://github.com/pytorch/pytorch/issues/88472
-
 .. raw:: html
 
     <div class="display-card-container">
