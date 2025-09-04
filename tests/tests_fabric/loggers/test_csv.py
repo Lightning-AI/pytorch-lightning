@@ -170,7 +170,7 @@ def test_append_metrics_file(_, tmp_path):
 
 def test_append_columns(tmp_path):
     """Test that the CSV file gets rewritten with new headers if the columns change."""
-    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=1)
 
     # initial metrics
     logger.log_metrics({"a": 1, "b": 2})
