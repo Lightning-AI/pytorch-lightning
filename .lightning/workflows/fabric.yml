@@ -26,10 +26,14 @@ parametrize:
   exclude: []
 
 env:
-  FREEZE_REQUIREMENTS: "1"
-  RUN_ONLY_CUDA_TESTS: "1"
+  TZ: "Etc/UTC"
+  DEBIAN_FRONTEND: "noninteractive"
+  CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
+  MKL_THREADING_LAYER: "GNU"
   CUDA_LAUNCH_BLOCKING: "1"
   NCCL_DEBUG: "INFO"
+  FREEZE_REQUIREMENTS: "1"
+  RUN_ONLY_CUDA_TESTS: "1"
 
 run: |
   # Install Python and UV
