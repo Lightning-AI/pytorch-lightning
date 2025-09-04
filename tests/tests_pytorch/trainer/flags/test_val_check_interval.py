@@ -142,6 +142,7 @@ def test_val_check_interval_float_with_none_check_val_every_n_epoch():
             check_val_every_n_epoch=None,
         )
 
+
 @pytest.mark.parametrize(
     "interval",
     [
