@@ -87,8 +87,8 @@ def _scale_batch_size(
         garbage_collection_cuda()
 
         log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
-    except Exception as e:
-        raise e
+    except Exception as ex:
+        raise ex
     finally:
         __scale_batch_restore_params(trainer, params)
 
