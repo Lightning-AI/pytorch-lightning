@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import glob
 import logging
 import os
 from copy import deepcopy
@@ -486,3 +487,49 @@ def test_batch_size_finder_callback_val_batches(tmp_path):
 
     assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
     assert trainer.num_val_batches[0] != steps_per_trial
+
+
+def test_scale_batch_size_checkpoint_cleanup_on_error(tmp_path):
+    """Test that temporary checkpoint files are cleaned up even when an error occurs during batch size scaling."""
+
+    class FailingModel(BoringModel):
+        def __init__(self, fail_on_step=2):
+            super().__init__()
+            self.fail_on_step = fail_on_step
+            self.current_step = 0
+            self.batch_size = 2
+
+        def training_step(self, batch, batch_idx):
+            self.current_step += 1
+            if self.current_step >= self.fail_on_step:
+                raise RuntimeError("Intentional failure for testing cleanup")
+            return super().training_step(batch, batch_idx)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+    model = FailingModel()
+    batch_size_finder = BatchSizeFinder(max_trials=3, steps_per_trial=2)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        callbacks=[batch_size_finder],
+    )
+
+    # Check no scale_batch_size checkpoint files exist initially
+    scale_checkpoints = glob.glob(os.path.join(tmp_path, ".scale_batch_size_*.ckpt"))
+    assert len(scale_checkpoints) == 0, "No scale_batch_size checkpoint files should exist initially"
+
+    # Run batch size scaler and expect it to fail
+    with pytest.raises(RuntimeError, match="Intentional failure for testing cleanup"):
+        trainer.fit(model)
+
+    # Check that no scale_batch_size checkpoint files are left behind
+    scale_checkpoints = glob.glob(os.path.join(tmp_path, ".scale_batch_size_*.ckpt"))
+    assert len(scale_checkpoints) == 0, (
+        f"scale_batch_size checkpoint files should be cleaned up, but found: {scale_checkpoints}"
+    )
