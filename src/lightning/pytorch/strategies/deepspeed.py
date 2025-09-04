@@ -125,14 +125,13 @@ class DeepSpeedStrategy(DDPStrategy):
         exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
-        billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
+        billion parameter models. *For more information:* :ref:`deepspeed_advanced`.
 
         .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
-        `For more information: https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training`.
+        *For more information:* https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training.
 
         Arguments:
 
