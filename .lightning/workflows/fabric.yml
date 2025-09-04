@@ -116,7 +116,6 @@ run: |
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
-  python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
 
   echo "Testing: Fabric doctests"
