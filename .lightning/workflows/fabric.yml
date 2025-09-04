@@ -9,16 +9,19 @@ parametrize:
   matrix: {}
   include:
     # note that this is setting also all oldest requirements which is linked to Torch == 2.1
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
+    - image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
       PACKAGE_NAME: "fabric"
-      machine: "T4_X_4"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
+      python_version: "3.10"
+      machine: "A100_X_2"
+    - image: "nvidia/cuda:12.6-devel-ubuntu22.04"
       PACKAGE_NAME: "fabric"
+      python_version: "3.12"
       machine: "L4_X_2"
-    # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
+    # - image: "nvidia/cuda:12.6-devel-ubuntu22.04"
     #   PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
+    - image: "nvidia/cuda:12.6-devel-ubuntu22.04"
       PACKAGE_NAME: "lightning"
+      python_version: "3.12"
       machine: "L4_X_2"
   exclude: []
 
@@ -29,12 +32,18 @@ env:
   NCCL_DEBUG: "INFO"
 
 run: |
+  # Install Python and UV
+  apt-get update && apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev curl
+  ln -sf /usr/bin/python${python_version} /usr/bin/python
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.cargo/bin:$PATH"
+
   whereis nvidia
   nvidia-smi
   python --version
-  pip --version
-  pip install -q fire wget packaging
-  pip list
+  uv --version
+  uv pip install fire wget packaging
+  uv pip list
   set -ex
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
@@ -47,20 +56,20 @@ run: |
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
   TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
-  if [ "${TORCH_VER}" == "2.1" ]; then
+  if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    pip uninstall -y deepspeed
-    pip install -U "lightning-utilities[cli]"
+    uv pip uninstall deepspeed
+    uv pip install --upgrade "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
-    pip install "cython<3.0" wheel  # for compatibility
+    uv pip install "cython<3.0" wheel  # for compatibility
   fi
 
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  pip install -q wget packaging
+  uv pip install wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -68,7 +77,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     echo "Replaced PL imports"
-    pip install -U -q -r .actions/requirements.txt
+    uv pip install --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
@@ -78,7 +87,7 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+  uv pip install -e ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
