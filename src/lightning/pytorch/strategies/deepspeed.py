@@ -122,16 +122,16 @@ class DeepSpeedStrategy(DDPStrategy):
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
-        billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
+        billion parameter models. *For more information:* :ref:`deepspeed_advanced`.
 
         .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
-        `For more information: https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training`.
+        *For more information:* https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training.
 
         Arguments:
 
@@ -253,6 +253,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
 
+            exclude_frozen_parameters: Exclude frozen parameters when saving checkpoints.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -311,6 +313,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.exclude_frozen_parameters = exclude_frozen_parameters
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -648,7 +651,12 @@ class DeepSpeedStrategy(DDPStrategy):
         # dump states as a checkpoint dictionary object
         _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
+        self.deepspeed_engine.save_checkpoint(
+            filepath,
+            client_state=checkpoint,
+            tag="checkpoint",
+            exclude_frozen_parameters=self.exclude_frozen_parameters,
+        )
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
