@@ -68,10 +68,12 @@ run: |
   uv pip list
   set -ex
 
-  CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
+  # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+  IMAGE_TAG="${image##*:}"  # "12.6.3-devel-ubuntu22.04"
+  CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
   echo "Using CUDA version: ${CUDA_VERSION}"
-  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
-  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
   TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
   echo "Torch URL: ${TORCH_URL}"
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
