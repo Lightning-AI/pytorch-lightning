@@ -486,3 +486,48 @@ def test_batch_size_finder_callback_val_batches(tmp_path):
 
     assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
     assert trainer.num_val_batches[0] != steps_per_trial
+
+
+@pytest.mark.parametrize("margin", [0.0, 0.1, 0.2])
+def test_scale_batch_size_margin_and_max_val(tmp_path, margin):
+    """Test margin feature for batch size scaling by comparing results with and without margin."""
+    # First, find the batch size without margin
+    model1 = BatchSizeModel(batch_size=2)
+    trainer1 = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner1 = Tuner(trainer1)
+
+    result_without_margin = tuner1.scale_batch_size(
+        model1, mode="binsearch", max_trials=2, steps_per_trial=1, margin=0.0
+    )
+
+    model2 = BatchSizeModel(batch_size=2)
+    trainer2 = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner2 = Tuner(trainer2)
+
+    result_with_margin = tuner2.scale_batch_size(
+        model2, mode="binsearch", max_trials=2, steps_per_trial=1, margin=margin
+    )
+
+    assert result_without_margin is not None
+    assert result_with_margin is not None
+
+    if margin == 0.0:
+        assert result_with_margin == result_without_margin
+    else:
+        expected_with_margin = max(1, int(result_without_margin * (1 - margin)))
+        assert result_with_margin == expected_with_margin
+        assert result_with_margin <= result_without_margin
+
+
+@pytest.mark.parametrize("mode", ["power", "binsearch"])
+def test_scale_batch_size_max_val_limit(tmp_path, mode):
+    """Test that max_val limits the batch size for both power and binsearch modes."""
+    model = BatchSizeModel(batch_size=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
+    tuner = Tuner(trainer)
+
+    max_val = 8  # Set a low max value
+    result = tuner.scale_batch_size(model, mode=mode, max_trials=5, steps_per_trial=1, max_val=max_val)
+
+    assert result is not None
+    assert result <= max_val
