@@ -56,12 +56,16 @@ run: |
   # Verify UV installation
   command -v uv || (echo "UV not found in PATH" && exit 1)
 
+  # Alias to use system Python for all uv pip commands
+  shopt -s expand_aliases 2>/dev/null || true
+  alias uvpip="uv pip --system"
+
   whereis nvidia
   nvidia-smi
   python --version
   uv --version
-  uv pip install --system fire wget packaging
-  uv pip list --system
+  uvpip install fire wget packaging
+  uvpip list
   set -ex
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
@@ -72,22 +76,21 @@ run: |
   echo "Torch URL: ${TORCH_URL}"
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
-  TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
   if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    uv pip uninstall --system -y deepspeed
-    uv pip install --system --upgrade "lightning-utilities[cli]"
+    uvpip uninstall -y deepspeed
+    uvpip install --upgrade "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
-    uv pip install --system "cython<3.0" wheel  # for compatibility
+    uvpip install "cython<3.0" wheel  # for compatibility
   fi
 
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  uv pip install --system wget packaging
+  uvpip install wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -95,7 +98,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     echo "Replaced PL imports"
-    uv pip install --system --upgrade -r .actions/requirements.txt
+    uvpip install --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
@@ -105,7 +108,7 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  uv pip install --system -e ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
+  uvpip install -e ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
