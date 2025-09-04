@@ -91,7 +91,7 @@ run: |
   fi
 
   # install the base so we can adjust other packages
-  uv pip install . --find-links="${TORCH_URL}"
+  uv pip install . --extra-index-url="${TORCH_URL}"
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
   uv pip install wget packaging
@@ -112,7 +112,7 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  uv pip install ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
+  uv pip install ".[${extra}dev]" --upgrade --extra-index-url="${TORCH_URL}"
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
