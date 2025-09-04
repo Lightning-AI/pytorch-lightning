@@ -25,7 +25,7 @@ class _DeviceDtypeModuleMixin(Module):
     def __init__(self) -> None:
         super().__init__()
         self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
-        self._device = torch.device("cpu")
+        self._device: torch.device = torch.get_default_device()
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
