@@ -36,7 +36,13 @@ run: |
   apt-get update && apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev curl
   ln -sf /usr/bin/python${python_version} /usr/bin/python
   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # Source the environment and ensure UV is in PATH
+  source $HOME/.cargo/env 2>/dev/null || true
   export PATH="$HOME/.cargo/bin:$PATH"
+
+  # Verify UV installation
+  which uv || (echo "UV not found in PATH" && exit 1)
 
   whereis nvidia
   nvidia-smi
