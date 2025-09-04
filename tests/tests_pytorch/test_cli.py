@@ -17,7 +17,7 @@ import json
 import operator
 import os
 import sys
-from contextlib import ExitStack, contextmanager, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -98,7 +98,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     def _raise():
         raise _UnkArgError
 
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+    parser = LightningArgumentParser(add_help=False)
     parser.add_lightning_class_args(Trainer, None)
 
     monkeypatch.setattr(parser, "exit", lambda *args: _raise(), raising=True)
@@ -485,6 +485,45 @@ def test_lightning_cli_print_config():
     assert outval["model"]["class_path"] == "lightning.pytorch.demos.BoringModel"
     assert outval["data"]["class_path"] == "lightning.pytorch.demos.BoringDataModule"
     assert outval["ckpt_path"] is None
+
+
+class BoringCkptPathModel(BoringModel):
+    def __init__(self, out_dim: int = 2, hidden_dim: int = 2) -> None:
+        super().__init__()
+        self.save_hyperparameters()
+        self.layer = torch.nn.Linear(32, out_dim)
+
+
+def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
+    class CkptPathCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
+
+    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.fit.model.out_dim == 3
+    assert cli.config.fit.model.hidden_dim == 6
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    assert hparams["out_dim"] == 3
+    assert hparams["hidden_dim"] == 6
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+    cli_args = ["predict", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.predict.model.out_dim == 3
+    assert cli.config.predict.model.hidden_dim == 6
+    assert cli.config_init.predict.model.layer.out_features == 3
+
+    err = StringIO()
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
+        cli = LightningCLI(BoringModel)
+    assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
 
 
 def test_lightning_cli_submodules(cleandir):
