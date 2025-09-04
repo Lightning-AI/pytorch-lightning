@@ -100,6 +100,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -229,6 +230,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
 
+            exclude_frozen_parameters: Exclude frozen parameters when saving checkpoints.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise ImportError(
@@ -289,6 +292,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.exclude_frozen_parameters = exclude_frozen_parameters
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -444,7 +448,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state, filter={})
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
-        engine.save_checkpoint(path, client_state=state, tag="checkpoint")
+        engine.save_checkpoint(
+            path, client_state=state, tag="checkpoint", exclude_frozen_parameters=self.exclude_frozen_parameters
+        )
 
     @override
     def load_checkpoint(
