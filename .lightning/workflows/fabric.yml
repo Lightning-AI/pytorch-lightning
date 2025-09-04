@@ -60,8 +60,8 @@ run: |
   nvidia-smi
   python --version
   uv --version
-  uv pip install fire wget packaging
-  uv pip list
+  uv pip install --system fire wget packaging
+  uv pip list --system
   set -ex
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
@@ -76,18 +76,18 @@ run: |
 
   if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    uv pip uninstall deepspeed
-    uv pip install --upgrade "lightning-utilities[cli]"
+    uv pip uninstall --system -y deepspeed
+    uv pip install --system --upgrade "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
-    uv pip install "cython<3.0" wheel  # for compatibility
+    uv pip install --system "cython<3.0" wheel  # for compatibility
   fi
 
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  uv pip install wget packaging
+  uv pip install --system wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -95,7 +95,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     echo "Replaced PL imports"
-    uv pip install --upgrade -r .actions/requirements.txt
+    uv pip install --system --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
@@ -105,7 +105,7 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  uv pip install -e ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
+  uv pip install --system -e ".[${extra}dev]" --upgrade --find-links="${TORCH_URL}"
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
