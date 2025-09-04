@@ -32,6 +32,8 @@ def _scale_batch_size(
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
+    margin: float = 0.05,
+    max_val: Optional[int] = None,
 ) -> Optional[int]:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
@@ -58,6 +60,10 @@ def _scale_batch_size(
             - ``model.hparams``
             - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
+        margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
+            'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
+        max_val: Maximum batch size limit. If provided, the found batch size will not exceed this value.
+
     """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
@@ -79,9 +85,9 @@ def _scale_batch_size(
     new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
 
     if mode == "power":
-        new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params)
+        new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params, max_val)
     elif mode == "binsearch":
-        new_size = _run_binary_scaling(trainer, new_size, batch_arg_name, max_trials, params)
+        new_size = _run_binsearch_scaling(trainer, new_size, batch_arg_name, max_trials, params, margin, max_val)
 
     garbage_collection_cuda()
 
@@ -170,6 +176,7 @@ def _run_power_scaling(
     batch_arg_name: str,
     max_trials: int,
     params: dict[str, Any],
+    max_val: Optional[int],
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
@@ -183,7 +190,9 @@ def _run_power_scaling(
 
         try:
             _try_loop_run(trainer, params)
-            new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
+            new_size, changed = _adjust_batch_size(
+                trainer, batch_arg_name, factor=2.0, desc="succeeded", max_val=max_val
+            )
 
             if not changed:
                 break
@@ -206,12 +215,14 @@ def _run_power_scaling(
     return new_size
 
 
-def _run_binary_scaling(
+def _run_binsearch_scaling(
     trainer: "pl.Trainer",
     new_size: int,
     batch_arg_name: str,
     max_trials: int,
     params: dict[str, Any],
+    margin: float,
+    max_val: Optional[int],
 ) -> int:
     """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is encountered.
 
@@ -239,9 +250,13 @@ def _run_binary_scaling(
                 if high - low <= 1:
                     break
                 midval = (high + low) // 2
-                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="succeeded")
+                new_size, changed = _adjust_batch_size(
+                    trainer, batch_arg_name, value=midval, desc="succeeded", max_val=max_val
+                )
             else:
-                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
+                new_size, changed = _adjust_batch_size(
+                    trainer, batch_arg_name, factor=2.0, desc="succeeded", max_val=max_val
+                )
 
             if not changed:
                 break
@@ -267,6 +282,15 @@ def _run_binary_scaling(
             else:
                 raise  # some other error not memory related
 
+    # Apply margin reduction for binsearch mode
+    if margin > 0:
+        margin_reduced_size = max(1, int(new_size * (1 - margin)))
+        if margin_reduced_size != new_size:
+            rank_zero_info(
+                f"Applying margin of {margin:.1%}, reducing batch size from {new_size} to {margin_reduced_size}"
+            )
+            new_size = margin_reduced_size
+
     return new_size
 
 
@@ -276,6 +300,7 @@ def _adjust_batch_size(
     factor: float = 1.0,
     value: Optional[int] = None,
     desc: Optional[str] = None,
+    max_val: Optional[int] = None,
 ) -> tuple[int, bool]:
     """Helper function for adjusting the batch size.
 
@@ -286,6 +311,7 @@ def _adjust_batch_size(
         value: if a value is given, will override the batch size with this value.
             Note that the value of `factor` will not have an effect in this case
         desc: either ``"succeeded"`` or ``"failed"``. Used purely for logging
+        max_val: Maximum batch size limit. If provided, the new batch size will not exceed this value.
 
     Returns:
         The new batch size for the next trial and a bool that signals whether the
@@ -311,6 +337,12 @@ def _adjust_batch_size(
         pass
 
     new_size = value if value is not None else int(batch_size * factor)
+
+    # Apply max_val limit if provided
+    if max_val is not None and new_size > max_val:
+        if desc:
+            rank_zero_info(f"Batch size {new_size} exceeds max_val limit {max_val}, capping at {max_val}")
+        new_size = max_val
     if desc:
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
     changed = new_size != batch_size
