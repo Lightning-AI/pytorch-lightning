@@ -14,6 +14,7 @@
 import logging
 import re
 import time
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -141,8 +142,15 @@ def test_val_check_interval_float_with_none_check_val_every_n_epoch():
             check_val_every_n_epoch=None,
         )
 
-
-def test_time_based_val_check_interval(tmp_path):
+@pytest.mark.parametrize(
+    "interval",
+    [
+        "00:00:00:02",
+        {"seconds": 2},
+        timedelta(seconds=2),
+    ],
+)
+def test_time_based_val_check_interval(tmp_path, interval):
     call_count = {"count": 0}
 
     def fake_time():
@@ -158,7 +166,7 @@ def test_time_based_val_check_interval(tmp_path):
             max_epochs=1,
             max_steps=5,  # 5 steps: simulate 10s total wall-clock time
             limit_val_batches=1,
-            val_check_interval="00:00:00:02",  # every 2s
+            val_check_interval=interval,  # every 2s
         )
         model = BoringModel()
         trainer.fit(model)
@@ -174,9 +182,9 @@ def test_time_based_val_check_interval(tmp_path):
     [
         (None, "00:00:00:04", 2, [0, 1, 0, 1, 0], "val_check_interval timer only, no epoch gating"),
         (1, "00:00:00:06", 8, [1, 1, 2, 1, 1], "val_check_interval timer only, no epoch gating"),
-        (2, "00:00:00:06", 9, [0, 2, 0, 2, 0], "epoch gating, timer longer than epoch"),
-        (2, "00:00:00:20", 9, [0, 0, 0, 1, 0], "epoch gating, timer much longer"),
-        (2, "00:00:00:03", 9, [0, 3, 0, 3, 0], "epoch gating, timer shorter than epoch"),
+        (2, "00:00:00:06", 9, [0, 2, 0, 2, 0], "epoch gating, timer shorter than epoch"),
+        (2, "00:00:00:03", 9, [0, 3, 0, 3, 0], "epoch gating, timer much shorter than epoch"),
+        (2, "00:00:00:20", 9, [0, 0, 0, 1, 0], "epoch gating, timer longer than epoch"),
     ],
 )
 def test_time_and_epoch_gated_val_check(
