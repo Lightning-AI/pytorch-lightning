@@ -132,7 +132,7 @@ run: |
 
   echo "Testing: fabric standalone"
   export PL_RUN_STANDALONE_TESTS=1
-  wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+  python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
   export PL_RUN_STANDALONE_TESTS=0
 
