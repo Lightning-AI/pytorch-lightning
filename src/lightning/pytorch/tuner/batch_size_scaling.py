@@ -82,24 +82,27 @@ def _scale_batch_size(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
-    new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
+    try:
+        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
 
-    if mode == "power":
-        new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params, max_val)
-    elif mode == "binsearch":
-        new_size = _run_binsearch_scaling(trainer, new_size, batch_arg_name, max_trials, params, margin, max_val)
+        if mode == "power":
+            new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params, max_val)
+        elif mode == "binsearch":
+            new_size = _run_binsearch_scaling(trainer, new_size, batch_arg_name, max_trials, params, margin, max_val)
 
-    garbage_collection_cuda()
+        garbage_collection_cuda()
 
-    log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
+        log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
+    except Exception as ex:
+        raise ex
+    finally:
+        __scale_batch_restore_params(trainer, params)
 
-    __scale_batch_restore_params(trainer, params)
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.enable()
 
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.enable()
-
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
+        trainer._checkpoint_connector.restore(ckpt_path)
+        trainer.strategy.remove_checkpoint(ckpt_path)
 
     return new_size
 

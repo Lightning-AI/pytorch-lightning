@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed with adding a missing device id for pytorch 2.8 ([#21105](https://github.com/Lightning-AI/pytorch-lightning/pull/21105))
 
 
+- Respect `verbose=False` in `seed_everything` when no seed is provided
+
+
 ---
 
 ## [2.5.4] - 2025-08-29
