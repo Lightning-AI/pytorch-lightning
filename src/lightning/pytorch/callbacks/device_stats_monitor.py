@@ -34,6 +34,67 @@ class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
     ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
+    **Logged Metrics**
+
+    Logs device statistics with keys prefixed as ``DeviceStatsMonitor.{hook_name}/{base_metric_name}``.
+    The actual metrics depend on the active accelerator and the ``cpu_stats`` flag. Below are an overview of the
+    possible available metrics and their meaning.
+
+    - CPU (via ``psutil``)
+
+        - ``cpu_percent`` — System-wide CPU utilization (%)
+        - ``cpu_vm_percent`` — System-wide virtual memory (RAM) utilization (%)
+        - ``cpu_swap_percent`` — System-wide swap memory utilization (%)
+
+    - CUDA GPU (via ``torch.cuda.memory_stats``)
+
+        Logs memory statistics from PyTorch caching allocator (all in bytes).
+        GPU compute utilization is not logged by default.
+
+        - General Memory Usage:
+
+            - ``allocated_bytes.all.current`` — Current allocated GPU memory
+            - ``allocated_bytes.all.peak`` — Peak allocated GPU memory
+            - ``reserved_bytes.all.current`` — Current reserved GPU memory (allocated + cached)
+            - ``reserved_bytes.all.peak`` — Peak reserved GPU memory
+            - ``active_bytes.all.current`` — Current GPU memory in active use
+            - ``active_bytes.all.peak`` — Peak GPU memory in active use
+            - ``inactive_split_bytes.all.current`` — Memory in inactive, splittable blocks
+
+        - Allocator Pool Statistics* (for ``small_pool`` and ``large_pool``):
+
+            - ``allocated_bytes.{pool_type}.current`` / ``allocated_bytes.{pool_type}.peak``
+            - ``reserved_bytes.{pool_type}.current`` / ``reserved_bytes.{pool_type}.peak``
+            - ``active_bytes.{pool_type}.current`` / ``active_bytes.{pool_type}.peak``
+
+        - Allocator Events:
+
+            - ``num_ooms`` — Cumulative out-of-memory errors
+            - ``num_alloc_retries`` — Number of allocation retries
+            - ``num_device_alloc`` — Number of device allocations
+            - ``num_device_free`` — Number of device deallocations
+
+        For a full list of CUDA memory stats, see the
+        `PyTorch documentation <https://docs.pytorch.org/docs/stable//generated/torch.cuda.device_memory_used.html>`_.
+
+    - TPU (via ``torch_xla``)
+
+        - *Memory Metrics* (per device, e.g., ``xla:0``):
+
+            - ``memory.free.xla:0`` — Free HBM memory (MB)
+            - ``memory.used.xla:0`` — Used HBM memory (MB)
+            - ``memory.percent.xla:0`` — Percentage of HBM memory used (%)
+
+        - *XLA Operation Counters*:
+
+            - ``CachedCompile.xla``
+            - ``CreateXlaTensor.xla``
+            - ``DeviceDataCacheMiss.xla``
+            - ``UncachedCompile.xla``
+            - ``xla::add.xla``, ``xla::addmm.xla``, etc.
+
+        These counters can be retrieved using: ``torch_xla.debug.metrics.counter_names()``
+
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
