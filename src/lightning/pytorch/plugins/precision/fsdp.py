@@ -86,6 +86,7 @@ class FSDPPrecision(Precision):
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
         if module is None:
             return
+        assert isinstance(module.clip_grad_norm_, Module)
         module.clip_grad_norm_(clip_val)
 
     @property
