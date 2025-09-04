@@ -281,8 +281,8 @@ def _lr_find(
         # Update results across ranks
         lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
         lr_finder_finished = True
-    except Exception as e:
-        raise e
+    except Exception as ex:
+        raise ex
     finally:
         # Restore initial state of model (this will also restore the original optimizer state)
         trainer._checkpoint_connector.restore(ckpt_path)
