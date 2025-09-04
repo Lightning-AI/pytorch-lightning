@@ -48,7 +48,7 @@ class MyTrainerSpikeDetection(SpikeDetection):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
 
-@pytest.mark.flaky(max_runs=3)
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
     # NOTE FOR ALL FOLLOWING TESTS:
