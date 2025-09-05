@@ -18,6 +18,8 @@ import torch
 from torch.nn import Module
 from typing_extensions import Self, override
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+
 
 class _DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__: list[str] = ["device", "dtype"]
