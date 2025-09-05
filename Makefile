@@ -45,12 +45,8 @@ clean:
 	rm -rf src/lightning_fabric/*/
 	rm -rf src/pytorch_lightning/*/
 
-test: clean
+test: clean setup
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . \
-	-r requirements/pytorch/base.txt \
-	-r requirements/fabric/base.txt \
-	-r requirements/pytorch/test.txt \
 
 	# run tests with coverage
 	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
