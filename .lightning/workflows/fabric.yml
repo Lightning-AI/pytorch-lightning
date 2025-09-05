@@ -1,8 +1,8 @@
 trigger:
   push:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
 
 timeout: "55" # minutes
 parametrize:

@@ -72,6 +72,14 @@ def test_seed_everything_accepts_valid_seed_from_env():
     assert seed_everything() == 17
 
 
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything_non_verbose_no_warning():
+    """Ensure that no warning is emitted when verbose is False and no seed is provided."""
+    with warnings.catch_warnings(record=True) as caught:
+        seed_everything(verbose=False)
+    assert caught == []
+
+
 def test_reset_seed_no_op():
     """Test that the reset_seed function is a no-op when seed_everything() was not used."""
     assert "PL_GLOBAL_SEED" not in os.environ
