@@ -27,7 +27,7 @@ class _DeviceDtypeModuleMixin(Module):
         self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
         # Workarounds from the original pytorch issue:
         # https://github.com/pytorch/pytorch/issues/115333#issuecomment-1848449687
-        self._device = torch.get_default_device() if torch.__version__ >= "2.3.0" else torch.empty(0).device
+        self._device = torch.get_default_device() if _TORCH_GREATER_EQUAL_2_3 else torch.empty(0).device
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
