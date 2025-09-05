@@ -12,7 +12,7 @@ parametrize:
     - image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.10"
-      machine: "T4_X_4"
+      machine: "A100X_X_2"
     - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.12"
@@ -124,10 +124,10 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     echo "uninstall lightning to have just single package"
-    uv pip uninstall -y lightning || true
+    uv pip uninstall lightning
   elif [ "${PACKAGE_NAME}" == "lightning" ]; then
     echo "uninstall PL to have just single package"
-    uv pip uninstall -y pytorch-lightning || true
+    uv pip uninstall pytorch-lightning
   fi
 
   python requirements/collect_env_details.py
