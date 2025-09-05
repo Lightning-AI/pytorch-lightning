@@ -65,7 +65,6 @@ run: |
   nvidia-smi
   python --version
   uv --version
-  uv pip install fire wget packaging
   uv pip list
   set -ex
 
@@ -75,15 +74,14 @@ run: |
   echo "Using CUDA version: ${CUDA_VERSION}"
   CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
-  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo "Torch URL: ${TORCH_URL}"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
+  uv pip install fire wget packaging "lightning-utilities[cli]"
   if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
     uv pip uninstall -y deepspeed
-    uv pip install --upgrade "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
@@ -92,7 +90,7 @@ run: |
   fi
 
   # install the base so we can adjust other packages
-  uv pip install . --extra-index-url="${TORCH_URL}"
+  uv pip install .
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
   uv pip install wget packaging
@@ -113,7 +111,7 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  uv pip install ".[${extra}dev]" --upgrade --extra-index-url="${TORCH_URL}"
+  uv pip install ".[${extra}dev]" --upgrade
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
