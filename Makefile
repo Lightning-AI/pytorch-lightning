@@ -59,7 +59,7 @@ test: clean
 
 docs: docs-pytorch
 
-sphinx-theme:
+sphinx-theme: setup
 	uv pip install -q awscli
 	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
