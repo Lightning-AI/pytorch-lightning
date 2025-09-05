@@ -91,7 +91,6 @@ run: |
   uv pip install fire wget packaging "lightning-utilities[cli]"
   if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    uv pip uninstall -y deepspeed
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
