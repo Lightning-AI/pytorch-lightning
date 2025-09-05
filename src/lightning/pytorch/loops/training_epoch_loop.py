@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import math
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -534,11 +535,18 @@ class _TrainingEpochLoop(loops._Loop):
             # and when the loop allows to stop (min_epochs/steps met)
             return True
 
+        interval = self.trainer._val_check_time_interval
+        if interval is not None:
+            now = time.monotonic()
+            # if time’s up → tell Trainer to validate
+            return now - self.trainer._last_val_time >= interval
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
+            # if we got here, we’re in batch-based mode, so this can’t be None
+            assert self.trainer.val_check_batch is not None
             # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
             # else condition it based on the batch_idx of the current epoch
             current_iteration = self.total_batch_idx if self.trainer.check_val_every_n_epoch is None else self.batch_idx
