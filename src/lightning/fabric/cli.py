@@ -31,7 +31,7 @@ from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
 
-_CLICK_AVAILABLE = RequirementCache("click")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.27.7")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
@@ -45,127 +45,174 @@ def _get_supported_strategies() -> list[str]:
     return [strategy for strategy in available_strategies if not re.match(excluded, strategy)]
 
 
-if _CLICK_AVAILABLE:
-    import click
+if _JSONARGPARSE_SIGNATURES_AVAILABLE:
+    from jsonargparse import ArgumentParser, register_unresolvable_import_paths
 
-    @click.group()
-    def _main() -> None:
-        pass
+    # Align with pytorch CLI behavior
+    register_unresolvable_import_paths(torch)  # Required until the upstream PyTorch issue is fixed
 
-    @_main.command(
-        "run",
-        context_settings={
-            "ignore_unknown_options": True,
-        },
-    )
-    @click.argument(
-        "script",
-        type=click.Path(exists=True),
-    )
-    @click.option(
-        "--accelerator",
-        type=click.Choice(_SUPPORTED_ACCELERATORS),
-        default=None,
-        help="The hardware accelerator to run on.",
-    )
-    @click.option(
-        "--strategy",
-        type=click.Choice(_get_supported_strategies()),
-        default=None,
-        help="Strategy for how to run across multiple devices.",
-    )
-    @click.option(
-        "--devices",
-        type=str,
-        default="1",
-        help=(
-            "Number of devices to run on (``int``), which devices to run on (``list`` or ``str``), or ``'auto'``."
-            " The value applies per node."
-        ),
-    )
-    @click.option(
-        "--num-nodes",
-        "--num_nodes",
-        type=int,
-        default=1,
-        help="Number of machines (nodes) for distributed execution.",
-    )
-    @click.option(
-        "--node-rank",
-        "--node_rank",
-        type=int,
-        default=0,
-        help=(
-            "The index of the machine (node) this command gets started on. Must be a number in the range"
-            " 0, ..., num_nodes - 1."
-        ),
-    )
-    @click.option(
-        "--main-address",
-        "--main_address",
-        type=str,
-        default="127.0.0.1",
-        help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
-    )
-    @click.option(
-        "--main-port",
-        "--main_port",
-        type=int,
-        default=29400,
-        help="The main port to connect to the main machine.",
-    )
-    @click.option(
-        "--precision",
-        type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
-        default=None,
-        help=(
-            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``32``), "
-            "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
-        ),
-    )
-    @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-    def _run(**kwargs: Any) -> None:
-        """Run a Lightning Fabric script.
+    try:
+        from jsonargparse import set_parsing_settings
 
-        SCRIPT is the path to the Python script with the code to run. The script must contain a Fabric object.
+        set_parsing_settings(config_read_mode_fsspec_enabled=True)
+    except ImportError:
+        from jsonargparse import set_config_read_mode
 
-        SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
-        there.
+        set_config_read_mode(fsspec_enabled=True)
+else:
+    locals()["ArgumentParser"] = object
 
-        """
-        script_args = list(kwargs.pop("script_args", []))
-        main(args=Namespace(**kwargs), script_args=script_args)
 
-    @_main.command(
-        "consolidate",
-        context_settings={
-            "ignore_unknown_options": True,
-        },
-    )
-    @click.argument(
-        "checkpoint_folder",
-        type=click.Path(exists=True),
-    )
-    @click.option(
-        "--output_file",
-        type=click.Path(exists=True),
-        default=None,
-        help=(
-            "Path to the file where the converted checkpoint should be saved. The file should not already exist."
-            " If no path is provided, the file will be saved next to the input checkpoint folder with the same name"
-            " and a '.consolidated' suffix."
-        ),
-    )
-    def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
-        """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
+class FabricCLI:
+    """Lightning Fabric command-line tool."""
 
-        Only supports FSDP sharded checkpoints at the moment.
+    def __init__(self, args: Optional[list[str]] = None, run: bool = True) -> None:
+        self.parser = self.init_parser()
+        self._add_subcommands(self.parser)
+        self.config, self.unknown_args = self.parser.parse_known_args(args)
 
-        """
-        args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
-        config = _process_cli_args(args)
-        checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-        torch.save(checkpoint, config.output_file)
+        if run:
+            self.run()
+
+    def init_parser(self) -> ArgumentParser:
+        """Method that instantiates the argument parser."""
+        return ArgumentParser(prog="lightning-fabric", description=self.__class__.__doc__)
+
+    def _add_subcommands(self, parser: ArgumentParser) -> None:
+        """Adds subcommands to the parser."""
+        subparsers = parser.add_subparsers(dest="command", required=True)
+        self.add_run_subcommand(subparsers)
+        self.add_consolidate_subcommand(subparsers)
+
+    def add_run_subcommand(self, subparsers: Any) -> None:
+        """Adds the `run` subcommand to the parser."""
+        parser = subparsers.add_parser("run", help="Run a Lightning Fabric script.")
+        parser.add_argument(
+            "script",
+            type=str,
+            help="Path to the Python script with the code to run. The script must contain a Fabric object.",
+        )
+        parser.add_argument(
+            "--accelerator",
+            choices=_SUPPORTED_ACCELERATORS,
+            default=None,
+            help="The hardware accelerator to run on.",
+        )
+        parser.add_argument(
+            "--strategy",
+            choices=_get_supported_strategies(),
+            default=None,
+            help="Strategy for how to run across multiple devices.",
+        )
+        parser.add_argument(
+            "--devices",
+            type=str,
+            default="1",
+            help=(
+                "Number of devices to run on (int), which devices to run on (list or str), or 'auto'."
+                " The value applies per node."
+            ),
+        )
+        parser.add_argument(
+            "--num-nodes",
+            "--num_nodes",
+            type=int,
+            default=1,
+            help="Number of machines (nodes) for distributed execution.",
+        )
+        parser.add_argument(
+            "--node-rank",
+            "--node_rank",
+            type=int,
+            default=0,
+            help="The index of the machine (node) this command gets started on. Must be 0, ..., num_nodes - 1.",
+        )
+        parser.add_argument(
+            "--main-address",
+            "--main_address",
+            type=str,
+            default="127.0.0.1",
+            help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
+        )
+        parser.add_argument(
+            "--main-port",
+            "--main_port",
+            type=int,
+            default=29400,
+            help="The main port to connect to the main machine.",
+        )
+        parser.add_argument(
+            "--precision",
+            choices=list(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
+            default=None,
+            help=(
+                "Double precision ('64-true' or '64'), full precision ('32-true' or '32'), "
+                "half precision ('16-mixed' or '16') or bfloat16 precision ('bf16-mixed' or 'bf16')."
+            ),
+        )
+
+    def add_consolidate_subcommand(self, subparsers: Any) -> None:
+        """Adds the `consolidate` subcommand to the parser."""
+        parser = subparsers.add_parser(
+            "consolidate", help="Convert a distributed/sharded checkpoint into a single file."
+        )
+        parser.add_argument(
+            "checkpoint_folder",
+            type=str,
+            help="Path to the input checkpoint folder.",
+        )
+        parser.add_argument(
+            "--output_file",
+            type=str,
+            default=None,
+            help=(
+                "Path to the file where the converted checkpoint should be saved. The file should not already exist."
+                " If no path is provided, the file will be saved next to the input checkpoint folder with the same"
+                " name and a '.consolidated' suffix."
+            ),
+        )
+
+    def run(self) -> None:
+        """Runs the subcommand."""
+        if self.config.command == "run":
+            self._run_script()
+        elif self.config.command == "consolidate":
+            self._consolidate_checkpoint()
+
+    def _run_script(self) -> None:
+        """Runs the script with the given arguments."""
+        config = self.config
+        if not (os.path.isfile(config.script) and os.access(config.script, os.R_OK)):
+            raise SystemExit(f"Script not found or is not a readable file: {config.script}")
+
+        args = Namespace(
+            script=config.script,
+            accelerator=getattr(config, "accelerator", None),
+            strategy=getattr(config, "strategy", None),
+            devices=getattr(config, "devices", "1"),
+            num_nodes=getattr(config, "num_nodes", 1),
+            node_rank=getattr(config, "node_rank", 0),
+            main_address=getattr(config, "main_address", "127.0.0.1"),
+            main_port=getattr(config, "main_port", 29400),
+            precision=getattr(config, "precision", None),
+        )
+        main(args=args, script_args=self.unknown_args)
+
+    def _consolidate_checkpoint(self) -> None:
+        """Consolidates the checkpoint."""
+        config = self.config
+        if not os.path.isdir(config.checkpoint_folder):
+            raise SystemExit(f"Checkpoint folder not found: {config.checkpoint_folder}")
+
+        args = Namespace(checkpoint_folder=config.checkpoint_folder, output_file=getattr(config, "output_file", None))
+        processed_args = _process_cli_args(args)
+        checkpoint = _load_distributed_checkpoint(processed_args.checkpoint_folder)
+        torch.save(checkpoint, processed_args.output_file)
+
+
+def _entrypoint() -> None:
+    """The CLI entrypoint."""
+    FabricCLI()
 
 
 def _set_env_variables(args: Namespace) -> None:
@@ -235,11 +282,11 @@ def main(args: Namespace, script_args: Optional[list[str]] = None) -> None:
 
 
 if __name__ == "__main__":
-    if not _CLICK_AVAILABLE:  # pragma: no cover
+    if not _JSONARGPARSE_SIGNATURES_AVAILABLE:  # pragma: no cover
         _log.error(
-            "To use the Lightning Fabric CLI, you must have `click` installed."
-            " Install it by running `pip install -U click`."
+            "To use the Lightning Fabric CLI, you must have 'jsonargparse[signatures]>=4.27.7' installed."
+            " Install it by running: pip install -U 'jsonargparse[signatures]>=4.27.7'."
         )
         raise SystemExit(1)
 
-    _run()
+    _entrypoint()
