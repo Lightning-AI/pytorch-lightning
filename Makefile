@@ -60,17 +60,17 @@ test: clean
 docs: docs-pytorch
 
 sphinx-theme:
-	pip install -q awscli
+	uv pip install -q awscli
 	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
-	pip install lai-sphinx-theme -f dist/
+	uv pip install lai-sphinx-theme -f dist/
 
 docs-fabric: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/fabric/docs.txt
+	uv pip install -e '.[all]' --quiet -r requirements/fabric/docs.txt
 	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
 
 docs-pytorch: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt
+	uv pip install -e '.[all]' --quiet -r requirements/pytorch/docs.txt
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
