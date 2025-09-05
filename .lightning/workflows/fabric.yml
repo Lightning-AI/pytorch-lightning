@@ -38,11 +38,11 @@ env:
 
 run: |
   # Install Python and UV
-  apt-get update -qq
-  apt-get install -y software-properties-common curl
+  apt-get update -qq --fix-missing
+  apt-get install -q -y software-properties-common curl
   # Add deadsnakes PPA for newer Python versions if needed
   add-apt-repository ppa:deadsnakes/ppa -y
-  apt-get update -qq
+  apt-get update -qq --fix-missing
   apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
