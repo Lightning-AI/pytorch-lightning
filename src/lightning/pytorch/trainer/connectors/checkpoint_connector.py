@@ -414,7 +414,9 @@ class _CheckpointConnector:
         """Creating a model checkpoint dictionary object from various component states.
 
         Args:
-            weights_only: saving model weights only
+            weights_only: If True, only saves model and loops state_dict objects. If False,
+            additionally saves callbacks, optimizers, schedulers, and precision plugin states.
+
         Return:
             structured dictionary: {
                 'epoch':                     training epoch

@@ -10,8 +10,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added `exclude_frozen_parameters` to `DeepSpeedStrategy` ([#21060](https://github.com/Lightning-AI/pytorch-lightning/pull/21060))
-
-
 -
 
 
@@ -22,8 +20,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- let `_get_default_process_group_backend_for_device` support more hardware platforms (
-    [#21057](https://github.com/Lightning-AI/pytorch-lightning/pull/21057), [#21093](https://github.com/Lightning-AI/pytorch-lightning/pull/21093))
+- Default to `weights_only=True` for `torch>=2.6` when loading checkpoints. ([#21072](https://github.com/Lightning-AI/pytorch-lightning/pull/21072))
+- let `_get_default_process_group_backend_for_device` support more hardware platforms ([#21057](https://github.com/Lightning-AI/pytorch-lightning/pull/21057), [#21093](https://github.com/Lightning-AI/pytorch-lightning/pull/21093))
 
 
 ### Fixed
