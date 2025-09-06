@@ -98,7 +98,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     def _raise():
         raise _UnkArgError
 
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+    parser = LightningArgumentParser(add_help=False)
     parser.add_lightning_class_args(Trainer, None)
 
     monkeypatch.setattr(parser, "exit", lambda *args: _raise(), raising=True)

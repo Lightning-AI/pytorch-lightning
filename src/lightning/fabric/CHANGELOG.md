@@ -22,12 +22,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- let `_get_default_process_group_backend_for_device` support more hardware platforms (
+    [#21057](https://github.com/Lightning-AI/pytorch-lightning/pull/21057), [#21093](https://github.com/Lightning-AI/pytorch-lightning/pull/21093))
 
 
 ### Fixed
 
 - Fixed with adding a missing device id for pytorch 2.8 ([#21105](https://github.com/Lightning-AI/pytorch-lightning/pull/21105))
+
+
+- Respect `verbose=False` in `seed_everything` when no seed is provided
 
 
 ---
