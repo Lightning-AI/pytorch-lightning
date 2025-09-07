@@ -2,6 +2,7 @@ import pytest
 import torch
 from torch import nn as nn
 
+from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from tests_fabric.helpers.runif import RunIf
 
@@ -58,14 +59,17 @@ def test_submodules_device_and_dtype(dst_device_str, dst_type):
         pytest.param("mps:0", marks=RunIf(mps=True)),
     ],
 )
-@pytest.mark.parametrize("dst_type", [torch.half, torch.float, torch.double])
+@pytest.mark.parametrize(
+    "dst_type",
+    [
+        torch.float,
+        pytest.param(torch.half, marks=RunIf(mps=False)),
+        pytest.param(torch.double, marks=RunIf(mps=False)),
+    ],
+)
 def test_submodules_context_device_and_dtype(dst_device_str, dst_type):
-    if dst_device_str == "mps:0" and dst_type in (torch.half, torch.double):
-        pytest.skip("MPS does not yet support half and double.")
-
     dst_device = torch.device(dst_device_str)
-    torch.set_default_dtype(dst_type)
-    with dst_device:
+    with _DtypeContextManager(dst_type), dst_device:
         model = TopModule()
     assert model.device == dst_device
     assert model.dtype == dst_type
