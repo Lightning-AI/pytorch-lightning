@@ -104,6 +104,8 @@ jobs:
           python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt', 'test.txt']"
           uv pip install "cython<3.0" wheel
           uv pip install "pyyaml==5.4" --no-build-isolation
+          # This script removes any line containing "error::FutureWarning" from pyproject.toml
+          sed -i '/error::FutureWarning/d' pyproject.toml
 
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.config.requires != 'oldest' }}
