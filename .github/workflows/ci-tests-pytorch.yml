@@ -106,7 +106,6 @@ jobs:
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           sed -i '/error::FutureWarning/d' pyproject.toml
 
-
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.config.requires != 'oldest' }}
         run: |
