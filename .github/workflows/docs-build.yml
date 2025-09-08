@@ -70,7 +70,7 @@ jobs:
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
           lfs: ${{ matrix.pkg-name == 'pytorch' }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
