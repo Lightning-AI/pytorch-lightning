@@ -81,7 +81,7 @@ jobs:
           fetch-depth: 0 # checkout entire history for all branches (required when using scm-based versioning)
           submodules: recursive
       - name: Set up Python 🐍
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version || '3.x' }}
 
@@ -149,7 +149,7 @@ jobs:
         with:
           submodules: recursive
       - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version || '3.x' }}
 
