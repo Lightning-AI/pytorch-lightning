@@ -49,3 +49,6 @@ jobs:
 
       - name: Check typing
         run: mypy
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
