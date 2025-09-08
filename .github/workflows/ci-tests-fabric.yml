@@ -99,9 +99,9 @@ jobs:
       - name: Set min. dependencies
         if: ${{ matrix.config.requires == 'oldest' }}
         run: |
-          cd requirements/fabric
           uv pip install -U "lightning-utilities[cli]"
-          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt', 'test.txt']"
+          python -m lightning_utilities.cli requirements set-oldest \
+            --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
           uv pip install "cython<3.0" wheel
           uv pip install "pyyaml==5.4" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
