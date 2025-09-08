@@ -64,7 +64,7 @@ class _CheckpointConnector:
             return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
         return None
 
-    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def resume_start(self, checkpoint_path: Optional[_PATH] = None, weights_only: bool = False) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
@@ -80,7 +80,7 @@ class _CheckpointConnector:
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
@@ -403,9 +403,11 @@ class _CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def _restore_modules_and_callbacks(
+        self, checkpoint_path: Optional[_PATH] = None, weights_only: bool = False
+    ) -> None:
         # restore modules after setup
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only)
         self.restore_model()
         self.restore_datamodule()
         self.restore_callbacks()

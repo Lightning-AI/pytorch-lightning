@@ -526,6 +526,7 @@ class Trainer:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -573,7 +574,14 @@ class Trainer:
         self.training = True
         self.should_stop = False
         call._call_and_handle_interrupt(
-            self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
+            self,
+            self._fit_impl,
+            model,
+            train_dataloaders,
+            val_dataloaders,
+            datamodule,
+            ckpt_path,
+            weights_only,
         )
 
     def _fit_impl(
@@ -583,6 +591,7 @@ class Trainer:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -610,7 +619,7 @@ class Trainer:
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
-        self._run(model, ckpt_path=ckpt_path)
+        self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
 
         assert self.state.stopped
         self.training = False
@@ -621,6 +630,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -676,7 +686,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
         return call._call_and_handle_interrupt(
-            self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
+            self, self._validate_impl, model, dataloaders, ckpt_path, weights_only, verbose, datamodule
         )
 
     def _validate_impl(
@@ -684,6 +694,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -717,7 +728,7 @@ class Trainer:
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-        results = self._run(model, ckpt_path=ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
         # remove the tensors from the validation results
         results = convert_tensors_to_scalars(results)
 
@@ -731,6 +742,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -787,7 +799,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
         return call._call_and_handle_interrupt(
-            self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
+            self, self._test_impl, model, dataloaders, ckpt_path, weights_only, verbose, datamodule
         )
 
     def _test_impl(
@@ -795,6 +807,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -828,7 +841,7 @@ class Trainer:
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-        results = self._run(model, ckpt_path=ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
         # remove the tensors from the test results
         results = convert_tensors_to_scalars(results)
 
@@ -844,6 +857,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
@@ -899,7 +913,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
         return call._call_and_handle_interrupt(
-            self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+            self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path, weights_only
         )
 
     def _predict_impl(
@@ -909,6 +923,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[_PATH] = None,
+        weights_only: bool = False,
     ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
@@ -939,7 +954,7 @@ class Trainer:
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-        results = self._run(model, ckpt_path=ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
 
         assert self.state.stopped
         self.predicting = False
@@ -947,7 +962,7 @@ class Trainer:
         return results
 
     def _run(
-        self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
+        self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None, weights_only: bool = False
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
@@ -992,7 +1007,7 @@ class Trainer:
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
+            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path, weights_only)
 
         # reset logger connector
         self._logger_connector.reset_results()
