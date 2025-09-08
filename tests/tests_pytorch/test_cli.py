@@ -1222,7 +1222,7 @@ def test_lightning_cli_model_short_arguments():
     ):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]),
@@ -1250,7 +1250,7 @@ def test_lightning_cli_datamodule_short_arguments():
     ):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]),
@@ -1271,7 +1271,7 @@ def test_lightning_cli_datamodule_short_arguments():
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]),
@@ -1447,7 +1447,7 @@ def test_lightning_cli_config_with_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=False)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1463,7 +1463,9 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(
+        cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=False
+    )
     assert cli.trainer.limit_test_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1476,7 +1478,7 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=False)
     assert cli.trainer.limit_val_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1494,7 +1496,9 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(
+        cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=False
+    )
     assert cli.trainer.limit_test_batches == 1
 
     with (
@@ -1503,7 +1507,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=False)
     assert cli.trainer.limit_val_batches == 1
 
 
@@ -1515,7 +1519,7 @@ def test_lightning_cli_config_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=False)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1528,7 +1532,9 @@ def test_lightning_cli_config_before_and_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar")
+    test_mock.assert_called_once_with(
+        cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar", weights_only=False
+    )
     assert cli.trainer.limit_test_batches == 1
     assert cli.trainer.fast_dev_run == 1
 

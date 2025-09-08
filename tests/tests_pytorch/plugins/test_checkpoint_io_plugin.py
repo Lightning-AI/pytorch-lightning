@@ -69,7 +69,7 @@ def test_checkpoint_plugin_called(tmp_path):
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
-    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last.ckpt"))
+    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last.ckpt"), weights_only=False)
 
     checkpoint_plugin.reset_mock()
     ck = ModelCheckpoint(dirpath=tmp_path, save_last=True)
@@ -97,7 +97,7 @@ def test_checkpoint_plugin_called(tmp_path):
 
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
-    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last-v1.ckpt"))
+    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last-v1.ckpt"), weights_only=False)
 
 
 @pytest.mark.flaky(reruns=3)
