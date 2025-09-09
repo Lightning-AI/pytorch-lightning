@@ -44,7 +44,7 @@ def _prepare_extras() -> dict[str, Any]:
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["all"] = extras["strategies"] + extras["examples"]
+    extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]
     return extras
 
