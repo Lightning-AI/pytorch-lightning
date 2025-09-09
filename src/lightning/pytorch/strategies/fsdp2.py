@@ -65,7 +65,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import Precision
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning.pytorch.plugins.precision.fsdp2 import FSDP2Precision
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -173,19 +173,19 @@ class FSDP2Strategy(ParallelStrategy):
 
     @property
     @override
-    def precision_plugin(self) -> FSDPPrecision:
+    def precision_plugin(self) -> FSDP2Precision:
         plugin = self._precision_plugin
         if plugin is not None:
-            assert isinstance(plugin, FSDPPrecision)
+            assert isinstance(plugin, FSDP2Precision)
             return plugin
-        return FSDPPrecision("32-true")
+        return FSDP2Precision("32-true")
 
     @precision_plugin.setter
     @override
     def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
-        if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecision):
+        if precision_plugin is not None and not isinstance(precision_plugin, FSDP2Precision):
             raise TypeError(
-                f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision_plugin}"
+                f"The FSDP2 strategy can only work with the `FSDP2Precision` plugin, found {precision_plugin}"
             )
         self._precision_plugin = precision_plugin
 
