@@ -1,6 +1,7 @@
 .. testsetup:: *
 
-    from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+    from lightning.pytorch.callbacks.early_stopping import EarlyStopping, EarlyStoppingReason
+    from lightning.pytorch import Trainer, LightningModule
 
 .. _early_stopping:
 
@@ -71,8 +72,37 @@ Additional parameters that stop training at extreme points:
 - ``check_on_train_epoch_end``: When turned on, it checks the metric at the end of a training epoch. Use this only when you are monitoring any metric logged within
   training-specific hooks on epoch-level.
 
+**Accessing Stopping Reason**
 
-In case you need early stopping in a different part of training, subclass :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping`
+After training completes, you can programmatically check why early stopping occurred using the ``stopping_reason`` attribute, which returns an ``EarlyStoppingReason`` enum value.
+
+.. testcode::
+
+    from lightning.pytorch.callbacks import EarlyStopping, EarlyStoppingReason
+
+    early_stopping = EarlyStopping(monitor="val_loss", patience=3)
+    trainer = Trainer(callbacks=[early_stopping])
+    trainer.fit(model)
+
+    # Check why training stopped
+    if early_stopping.stopping_reason == EarlyStoppingReason.PATIENCE_EXHAUSTED:
+        print("Training stopped due to patience exhaustion")
+    elif early_stopping.stopping_reason == EarlyStoppingReason.STOPPING_THRESHOLD:
+        print("Training stopped due to reaching stopping threshold")
+    elif early_stopping.stopping_reason == EarlyStoppingReason.NOT_STOPPED:
+        print("Training completed normally without early stopping")
+
+    # Access human-readable message
+    if early_stopping.stopping_reason_message:
+        print(f"Details: {early_stopping.stopping_reason_message}")
+
+The available stopping reasons are:
+
+- ``NOT_STOPPED``: Training completed normally without early stopping
+- ``STOPPING_THRESHOLD``: Training stopped because the monitored metric reached the stopping threshold
+- ``DIVERGENCE_THRESHOLD``: Training stopped because the monitored metric exceeded the divergence threshold
+- ``PATIENCE_EXHAUSTED``: Training stopped because the metric didn't improve for the specified patience
+- ``NON_FINITE_METRIC``: Training stopped because the monitored metric became NaN or infiniteIn case you need early stopping in a different part of training, subclass :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping`
 and change where it is called:
 
 .. testcode::
