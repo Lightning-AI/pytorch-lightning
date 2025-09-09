@@ -113,3 +113,21 @@ def _has_meta_device_parameters_or_buffers(obj: Union[Module, Optimizer], recurs
     if isinstance(obj, Module):
         return any(t.is_meta for t in itertools.chain(obj.parameters(recurse=recurse), obj.buffers(recurse=recurse)))
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
+
+
+def _has_all_dtensor_params_or_buffers(obj: Union[Module, Optimizer], recurse: bool = True) -> bool:
+    from torch.distributed.tensor import DTensor
+
+    if isinstance(obj, Optimizer):
+        return all(
+            isinstance(t, DTensor)
+            for param_group in obj.param_groups
+            for t in param_group["params"]
+            if isinstance(t, Parameter)
+        )
+    if isinstance(obj, Module):
+        return all(
+            isinstance(t, DTensor)
+            for t in itertools.chain(obj.parameters(recurse=recurse), obj.buffers(recurse=recurse))
+        )
+    raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
