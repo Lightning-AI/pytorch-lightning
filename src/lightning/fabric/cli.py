@@ -16,7 +16,7 @@ import os
 import re
 import sys
 from argparse import Namespace
-from typing import Any, Optional
+from typing import Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
