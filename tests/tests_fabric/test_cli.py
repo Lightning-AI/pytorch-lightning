@@ -78,7 +78,8 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     assert e.value.code == 2
     # jsonargparse error message format
     msg = ioerr.getvalue()
-    assert "--strategy" in msg and strategy in msg
+    assert "--strategy" in msg
+    assert strategy in msg
 
 
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
