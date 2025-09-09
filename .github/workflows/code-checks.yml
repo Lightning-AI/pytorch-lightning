@@ -29,23 +29,32 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
-
-      - name: Mypy cache
-        uses: actions/cache@v4
-        with:
-          path: .mypy_cache
-          key: mypy-${{ hashFiles('requirements/typing.txt') }}
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
         run: |
-          pip install -e '.[pytorch-all,fabric-all]' -r requirements/typing.txt
-          pip list
+          uv pip install '.[pytorch-all,fabric-all]' -r requirements/typing.txt
+          uv pip list
+
+      - name: mypy cache
+        uses: actions/cache@v4
+        with:
+          path: .mypy_cache
+          key: mypy-${{ hashFiles('requirements/typing.txt') }}
 
       - name: Check typing
         run: mypy
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci

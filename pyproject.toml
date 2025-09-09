@@ -182,7 +182,6 @@ filterwarnings = [
     # "error::DeprecationWarning",
     "error::FutureWarning",
     "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
-    "ignore:The pynvml package is deprecated:FutureWarning", # Ignore pynvml deprecation warning, since it is not installed by PL directly
 ]
 xfail_strict = true
 junit_duration_report = "call"
