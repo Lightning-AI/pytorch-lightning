@@ -51,6 +51,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed cleanup of temporary files from `Tuner` on crashes ([#21162](https://github.com/Lightning-AI/pytorch-lightning/pull/21162))
 
+
+- Fixed LR Finder: compute gradients w.r.t. `log10(lr)` in exponential mode #([#21171](https://github.com/Lightning-AI/pytorch-lightning/pull/21171))
+
+
+
 ---
 
 ## [2.5.4] - 2025-08-29
