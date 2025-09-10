@@ -103,7 +103,9 @@ The available stopping reasons are:
 - ``STOPPING_THRESHOLD``: Training stopped because the monitored metric reached the stopping threshold
 - ``DIVERGENCE_THRESHOLD``: Training stopped because the monitored metric exceeded the divergence threshold
 - ``PATIENCE_EXHAUSTED``: Training stopped because the metric didn't improve for the specified patience
-- ``NON_FINITE_METRIC``: Training stopped because the monitored metric became NaN or infiniteIn case you need early stopping in a different part of training, subclass :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping`
+- ``NON_FINITE_METRIC``: Training stopped because the monitored metric became NaN or infinite
+
+In case you need early stopping in a different part of training, subclass :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping`
 and change where it is called:
 
 .. testcode::
