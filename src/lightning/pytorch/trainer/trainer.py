@@ -913,7 +913,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
         return call._call_and_handle_interrupt(
-            self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path, weights_only
+            self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path, weights_only=weights_only
         )
 
     def _predict_impl(

@@ -80,7 +80,7 @@ class _CheckpointConnector:
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
@@ -407,7 +407,7 @@ class _CheckpointConnector:
         self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None
     ) -> None:
         # restore modules after setup
-        self.resume_start(checkpoint_path, weights_only)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
         self.restore_model()
         self.restore_datamodule()
         self.restore_callbacks()
