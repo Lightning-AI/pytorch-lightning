@@ -31,7 +31,6 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
-from torch.distributed.tensor import DTensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard, override
@@ -797,6 +796,8 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
 
 
 def _optimizer_has_dtensor_params(optimizer: Optimizer) -> bool:
+    from torch.distributed.tensor import DTensor
+
     return any(isinstance(param, DTensor) for group in optimizer.param_groups for param in group["params"])
 
 
