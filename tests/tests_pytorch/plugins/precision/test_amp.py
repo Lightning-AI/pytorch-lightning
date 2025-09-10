@@ -33,7 +33,9 @@ def test_clip_gradients():
     precision.clip_grad_by_value.assert_not_called()
     precision.clip_grad_by_norm.assert_not_called()
 
-    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE, module=module)
+    precision.clip_gradients(
+        optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE, module=module
+    )
     precision.clip_grad_by_value.assert_called_once()
     precision.clip_grad_by_norm.assert_not_called()
 
