@@ -41,7 +41,7 @@ from lightning.fabric.strategies.fsdp import (
     _distributed_checkpoint_load,
     _distributed_checkpoint_save,
     _move_torchmetrics_to_device,
-    _optimizer_has_flat_params,
+    _optimizer_has_dtensor_params,
 )
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
@@ -139,6 +139,7 @@ class FSDP2Strategy(ParallelStrategy):
         self.mp_policy = _init_fsdp2_mp_policy(mp_policy)
 
         self.device_mesh = device_mesh
+        self.kwargs = kwargs
 
     @property
     @override
@@ -249,12 +250,19 @@ class FSDP2Strategy(ParallelStrategy):
                 )
 
             log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+            if isinstance(self.device_mesh, tuple):
+                from torch.distributed.device_mesh import DeviceMesh
+
+                self.device_mesh = DeviceMesh("cuda", self.device_mesh)
+
+            if self.mp_policy is None:
+                raise ValueError("`mp_policy` cannot be None when calling `fully_shard`.")
+
             fully_shard(
                 module=model,
                 mesh=self.device_mesh,
                 mp_policy=self.mp_policy,
                 offload_policy=self.cpu_offload,
-                cpu_offload=self.cpu_offload,
             )
 
             if is_on_meta_device:
@@ -321,7 +329,7 @@ class FSDP2Strategy(ParallelStrategy):
                 raise
             invalid_params_error = True
 
-        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+        if invalid_params_error or any(not _optimizer_has_dtensor_params(optimizer) for optimizer in self.optimizers):
             # We avoid this limitation by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
@@ -428,7 +436,7 @@ class FSDP2Strategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp2")
 
         strategy_registry.register(
-            "fsdp_cpu_offload",
+            "fsdp2_cpu_offload",
             cls,
             description="FSDP2 training with Full Sharding and CPU Offloading",
             cpu_offload=True,

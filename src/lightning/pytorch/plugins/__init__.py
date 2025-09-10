@@ -8,6 +8,7 @@ from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisi
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.pytorch.plugins.precision.double import DoublePrecision
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning.pytorch.plugins.precision.fsdp2 import FSDP2Precision
 from lightning.pytorch.plugins.precision.half import HalfPrecision
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
@@ -28,6 +29,7 @@ __all__ = [
     "Precision",
     "TransformerEnginePrecision",
     "FSDPPrecision",
+    "FSDP2Precision",
     "XLAPrecision",
     "LayerSync",
     "TorchSyncBatchNorm",

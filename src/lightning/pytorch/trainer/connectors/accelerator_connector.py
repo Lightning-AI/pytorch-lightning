@@ -42,6 +42,7 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
     DoublePrecision,
+    FSDP2Precision,
     FSDPPrecision,
     HalfPrecision,
     MixedPrecision,
@@ -53,6 +54,7 @@ from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDP2Strategy,
     FSDPStrategy,
     ModelParallelStrategy,
     ParallelStrategy,
@@ -493,6 +495,8 @@ class _AcceleratorConnector:
             return DeepSpeedPrecision(self._precision_flag)  # type: ignore[arg-type]
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(self._precision_flag)  # type: ignore[arg-type]
+        if isinstance(self.strategy, FSDP2Strategy):
+            return FSDP2Precision(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
