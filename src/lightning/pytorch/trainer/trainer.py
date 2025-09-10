@@ -526,7 +526,7 @@ class Trainer:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -591,7 +591,7 @@ class Trainer:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -630,7 +630,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -694,7 +694,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -742,7 +742,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -807,7 +807,7 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -857,7 +857,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
@@ -923,7 +923,7 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: bool = False,
+        weights_only: Optional[bool] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
@@ -962,7 +962,10 @@ class Trainer:
         return results
 
     def _run(
-        self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None, weights_only: bool = False
+        self,
+        model: "pl.LightningModule",
+        ckpt_path: Optional[_PATH] = None,
+        weights_only: Optional[bool] = None,
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
@@ -1401,7 +1404,7 @@ class Trainer:
         self._checkpoint_connector._user_managed = bool(ckpt_path)
 
     def save_checkpoint(
-        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+        self, filepath: _PATH, weights_only: Optional[bool] = None, storage_options: Optional[Any] = None
     ) -> None:
         r"""Runs routine to create a checkpoint.
 
