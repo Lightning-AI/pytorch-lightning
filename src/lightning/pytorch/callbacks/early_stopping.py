@@ -90,7 +90,8 @@ class EarlyStopping(Callback):
     Example::
 
         >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.callbacks import EarlyStopping, EarlyStoppingReason
+        >>> from lightning.pytorch.callbacks import EarlyStopping
+        >>> from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
         >>> # After training...
