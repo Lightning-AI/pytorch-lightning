@@ -101,10 +101,10 @@ class MixedPrecision(Precision):
     @override
     def clip_gradients(
         self,
-        module: Optional[Module],
         optimizer: Optimizer,
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        module: Optional[Module] = None,
     ) -> None:
         if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
             raise RuntimeError(
@@ -112,7 +112,7 @@ class MixedPrecision(Precision):
                 " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
             )
         super().clip_gradients(
-            module=module, optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+            optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm, module=module
         )
 
     def autocast_context_manager(self) -> torch.autocast:
