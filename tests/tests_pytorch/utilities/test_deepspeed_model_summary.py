@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
+
+import torch
+
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.model_summary import DeepSpeedSummary
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -52,3 +55,38 @@ def test_deepspeed_summary(tmp_path):
     )
 
     trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, deepspeed=True, rich=True)
+@mock.patch("rich.table.Table.add_row", autospec=True)
+def test_deepspeed_summary_with_rich_model_summary(mock_table_add_row, tmp_path):
+    from lightning.pytorch.callbacks import RichModelSummary
+
+    model = BoringModel()
+    model.example_input_array = torch.randn(4, 32)
+
+    trainer = Trainer(
+        strategy=DeepSpeedStrategy(stage=3),
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        fast_dev_run=True,
+        devices=1,
+        enable_model_summary=True,
+        callbacks=[RichModelSummary()],
+    )
+
+    trainer.fit(model)
+
+    # assert that the input summary data was converted correctly
+    args, _ = mock_table_add_row.call_args_list[0]
+    assert args[1:] == (
+        "0",
+        "layer",
+        "Linear",
+        "66  ",
+        "66  ",
+        "train",
+        "512  ",
+        "[4, 32]",
+        "[4, 2]",
+    )

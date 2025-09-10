@@ -21,9 +21,10 @@ import os
 import re
 import tempfile
 from argparse import Namespace
+from collections.abc import Mapping
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -117,7 +118,7 @@ class MLFlowLogger(Logger):
         experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
-        tags: Optional[Dict[str, Any]] = None,
+        tags: Optional[dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
@@ -140,7 +141,7 @@ class MLFlowLogger(Logger):
         self._run_id = run_id
         self.tags = tags
         self._log_model = log_model
-        self._logged_model_time: Dict[str, float] = {}
+        self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
@@ -177,7 +178,7 @@ class MLFlowLogger(Logger):
 
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
-            if expt is not None:
+            if expt is not None and expt.lifecycle_stage != "deleted":
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
@@ -227,7 +228,7 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
@@ -249,7 +250,7 @@ class MLFlowLogger(Logger):
         from mlflow.entities import Metric
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        metrics_list: List[Metric] = []
+        metrics_list: list[Metric] = []
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -299,7 +300,7 @@ class MLFlowLogger(Logger):
 
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
+            return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
         return None
 
     @property
@@ -360,13 +361,13 @@ class MLFlowLogger(Logger):
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
 
             # Artifact path on mlflow
-            artifact_path = f"model/checkpoints/{Path(p).stem}"
+            artifact_path = Path(p).stem
 
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, artifact_path)
 
             # Create a temporary directory to log on mlflow
-            with tempfile.TemporaryDirectory(prefix="test", suffix="test", dir=os.getcwd()) as tmp_dir:
+            with tempfile.TemporaryDirectory() as tmp_dir:
                 # Log the metadata
                 with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)

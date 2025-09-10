@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Dict, List, Optional, Union
+import time
+from dataclasses import dataclass
+from typing import Any, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -43,6 +45,15 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class RestartStage:
+    NONE = "none"
+    RESTARTED_ON_EPOCH_START = "restarted_on_epoch_start"
+    RESTARTED_MID_EPOCH = "restarted_mid_epoch"
+    RESTARTED_ON_EPOCH_END = "restarted_on_epoch_end"
+    RESUMED_ON_EPOCH_END = "resumed_on_epoch_end"
 
 
 class _FitLoop(_Loop):
@@ -94,9 +105,10 @@ class _FitLoop(_Loop):
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
-        self._combined_loader_states_to_load: List[Dict[str, Any]] = []
+        self._combined_loader_states_to_load: list[dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
+        self._restart_stage = RestartStage.NONE
 
     @property
     def total_batch_idx(self) -> int:
@@ -204,9 +216,10 @@ class _FitLoop(_Loop):
                 self.on_advance_start()
                 self.advance()
                 self.on_advance_end()
-                self._restarting = False
             except StopIteration:
                 break
+            finally:
+                self.on_iteration_done()
         self._restarting = False
         self.on_run_end()
 
@@ -271,7 +284,13 @@ class _FitLoop(_Loop):
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
 
-        if isinstance(trainer.val_check_interval, int):
+        # If time-based validation is enabled, disable batch-based scheduling here.
+        # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
+        if getattr(trainer, "_val_check_time_interval", None) is not None:
+            trainer.val_check_batch = None
+            trainer._train_start_time = time.monotonic()
+            trainer._last_val_time = trainer._train_start_time
+        elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
             if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
                 raise ValueError(
@@ -287,7 +306,7 @@ class _FitLoop(_Loop):
                 else:
                     raise MisconfigurationException(
                         "When using an IterableDataset for `train_dataloader`,"
-                        " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
+                        " `Trainer(val_check_interval)` must be time based, `1.0` or an int. An int k specifies"
                         " checking validation every k training batches."
                     )
             else:
@@ -302,13 +321,91 @@ class _FitLoop(_Loop):
                 category=PossibleUserWarning,
             )
 
+    @property
+    def restarted_on_epoch_start(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_EPOCH_START
+
+    @property
+    def restarted_mid_epoch(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_MID_EPOCH
+
+    @property
+    def restarted_on_epoch_end(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_EPOCH_END
+
+    @property
+    def resumed_on_epoch_end(self) -> bool:
+        # This case happens when restarting from last without validation at
+        # the end of epoch. In this case self.restarting is False.
+        return self._restart_stage == RestartStage.RESUMED_ON_EPOCH_END
+
+    def update_restart_stage(self) -> None:
+        if (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready - 1
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_EPOCH_START
+        elif (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started - 1
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed
+        ):
+            self._restart_stage = RestartStage.RESTARTED_MID_EPOCH
+        elif (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_EPOCH_END
+        elif (
+            self._loaded_from_state_dict
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
+        ):
+            self._restart_stage = RestartStage.RESUMED_ON_EPOCH_END
+        else:
+            self._restart_stage = RestartStage.NONE
+
+        self.epoch_loop.update_restart_stage()
+
+    def reset_restart_stage(self) -> None:
+        self._restart_stage = RestartStage.NONE
+
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         assert self.trainer.model is not None
         torch.set_grad_enabled(True)
 
-        if self.restarting:
+        self.update_restart_stage()
+
+        if self.restarted_on_epoch_start:
             self.epoch_progress.reset_on_restart()
+
+        if self.resumed_on_epoch_end:
+            # when restarting from last without validation at end of epoch,
+            # self.restarting is False but it's still resuming
+            self.epoch_progress.increment_completed()
+
+        if (
+            self.epoch_loop.restarted_on_train_batch_end
+            and self.restarted_mid_epoch
+            and self.epoch_loop.batch_progress.is_last_batch
+        ):
+            self.epoch_progress.increment_processed()
+            self.epoch_progress.increment_completed()
+
+        if (
+            self.epoch_loop.restarted_on_train_batch_end
+            and self.epoch_loop.batch_progress.is_last_batch
+            and not self.restarted_mid_epoch
+            and not self.epoch_loop.val_loop.batch_progress.is_last_batch
+        ):
+            self.epoch_progress.increment_completed()
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
@@ -323,6 +420,9 @@ class _FitLoop(_Loop):
             trainer.validating = True
             self.epoch_loop.val_loop.setup_data()
             trainer.training = True
+
+        # Check for modules in eval mode at training start
+        self._warn_if_modules_in_eval_mode()
 
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")
@@ -340,12 +440,14 @@ class _FitLoop(_Loop):
         for i, dl in enumerate(self._combined_loader.flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
-        self.epoch_progress.increment_ready()
+        if not self.restarted_mid_epoch and not self.restarted_on_epoch_end:
+            if not self.restarted_on_epoch_start:
+                self.epoch_progress.increment_ready()
 
-        call._call_callback_hooks(trainer, "on_train_epoch_start")
-        call._call_lightning_module_hook(trainer, "on_train_epoch_start")
+            call._call_callback_hooks(trainer, "on_train_epoch_start")
+            call._call_lightning_module_hook(trainer, "on_train_epoch_start")
 
-        self.epoch_progress.increment_started()
+            self.epoch_progress.increment_started()
 
     def advance(self) -> None:
         """Runs one whole epoch."""
@@ -379,8 +481,7 @@ class _FitLoop(_Loop):
 
         trainer._logger_connector.on_epoch_end()
 
-        if self.epoch_loop._num_ready_batches_reached():
-            # if we are restarting and the above condition holds, it's because we are reloading an epoch-end checkpoint.
+        if not self.restarting and self.epoch_loop._num_ready_batches_reached():
             # since metric-based schedulers require access to metrics and those are not currently saved in the
             # checkpoint, the plateau schedulers shouldn't be updated
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)
@@ -413,16 +514,29 @@ class _FitLoop(_Loop):
         self.epoch_loop.teardown()
 
     @override
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
         if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
             state_dict["combined_loader"] = loader_states
         return state_dict
 
     @override
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
         super().on_load_checkpoint(state_dict)
+
+    def _warn_if_modules_in_eval_mode(self) -> None:
+        """Warn if any modules are in eval mode at the start of training."""
+        model = self.trainer.lightning_module
+        eval_modules = [name for name, module in model.named_modules() if not module.training]
+
+        if eval_modules:
+            rank_zero_warn(
+                f"Found {len(eval_modules)} module(s) in eval mode at the start of training."
+                " This may lead to unexpected behavior during training. If this is intentional,"
+                " you can ignore this warning.",
+                category=PossibleUserWarning,
+            )
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""

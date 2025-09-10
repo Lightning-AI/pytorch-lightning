@@ -18,6 +18,8 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning_utilities.test.warning import no_warning_call
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import (
@@ -27,7 +29,6 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     ModelSummary,
     summarize,
 )
-
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -173,6 +174,7 @@ def test_empty_model_summary_shapes(max_depth):
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
+    assert summary.total_flops == 0
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
@@ -323,16 +325,30 @@ def test_empty_model_size(max_depth):
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_model_size_precision(tmp_path, accelerator):
-    """Test model size for half and full precision."""
-    model = PreCalculatedModel()
+@pytest.mark.parametrize("precision", ["16-true", "32-true", "64-true"])
+def test_model_size_precision(tmp_path, accelerator, precision):
+    """Test model size for different precision types."""
+    model = PreCalculatedModel(precision=int(precision.split("-")[0]))
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
+        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=precision
     )
     trainer.fit(model)
     summary = summarize(model)
+    assert model.pre_calculated_model_size == summary.model_size
+
+
+def test_model_size_warning_on_unsupported_precision(tmp_path):
+    """Test that a warning is raised when the precision is not supported."""
+    model = PreCalculatedModel(precision=32)  # fallback to 32 bits
+
+    # supported precision by lightning but not by the model summary
+    trainer = Trainer(max_epochs=1, precision="16-mixed", default_root_dir=tmp_path)
+    trainer.fit(model)
+
+    with pytest.warns(UserWarning, match="Precision .* is not supported by the model summary.*"):
+        summary = summarize(model)
     assert model.pre_calculated_model_size == summary.model_size
 
 
@@ -343,6 +359,7 @@ def test_lazy_model_summary():
 
     with pytest.warns(UserWarning, match="The total number of parameters detected may be inaccurate."):
         assert summary.total_parameters == 0
+    with no_warning_call():
         assert summary.trainable_parameters == 0
 
 

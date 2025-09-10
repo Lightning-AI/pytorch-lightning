@@ -13,10 +13,12 @@
 import os
 import pickle
 import warnings
+from collections import OrderedDict
+from collections.abc import Sequence
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -134,7 +136,7 @@ class _NotYetLoadedTensor:
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[dict] = None,
     ) -> Any:
         kwargs = kwargs or {}
         loaded_args = [(arg._load_tensor() if isinstance(arg, _NotYetLoadedTensor) else arg) for arg in args]
@@ -219,7 +221,7 @@ def _materialize_tensors(collection: Any) -> Any:
 
 
 def _move_state_into(
-    source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
+    source: dict[str, Any], destination: dict[str, Union[Any, _Stateful]], keys: Optional[set[str]] = None
 ) -> None:
     """Takes the state from the source destination and moves it into the destination dictionary.
 
@@ -235,7 +237,7 @@ def _move_state_into(
             destination[key] = state
 
 
-def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+def _load_distributed_checkpoint(checkpoint_folder: Path) -> dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
@@ -248,7 +250,7 @@ def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
-    checkpoint: Dict[str, Any] = {}
+    checkpoint: dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
         storage_reader=FileSystemReader(checkpoint_folder),

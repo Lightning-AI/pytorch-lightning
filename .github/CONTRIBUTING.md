@@ -3,7 +3,7 @@
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices
 and integrations that the amazing PyTorch team and other research organization rolls out!
 
-If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
+If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a).
 
 ## Main Core Value: One less thing to remember
 
@@ -97,7 +97,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Add/update the relevant tests!
 
-- [This PR](https://github.com/Lightning-AI/lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/lightning/pull/2721).
+- [This PR](https://github.com/Lightning-AI/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/pytorch-lightning/pull/2721).
 
 ### Test cases:
 
@@ -108,6 +108,50 @@ Most of the tests in PyTorch Lightning train a random `BoringModel` under variou
 ______________________________________________________________________
 
 ## Guidelines
+
+### Development environment
+
+To set up a local development environment, we recommend using `uv`, which can be installed following their [instructions](https://docs.astral.sh/uv/getting-started/installation/).
+
+Once `uv` has been installed, begin by cloning the forked repository:
+
+```bash
+git clone https://github.com/{YOUR_GITHUB_USERNAME}/pytorch-lightning.git
+cd pytorch-lightning
+```
+
+> If you're using [Lightning Studio](https://lightning.ai) or already have your `uv venv` activated, you can quickly set up the project by running:
+
+```bash
+make setup
+```
+
+This will:
+
+- Install all required dependencies.
+- Perform an editable install of the `pytorch-lightning` project.
+- Install and configure `pre-commit`.
+
+#### Manual Setup (Optional)
+
+If you prefer more fine-grained control over the dependencies, you can set up the environment manually:
+
+```bash
+uv venv
+# uv venv --python 3.11 # use this instead if you need a specific python version
+
+source .venv/bin/activate # command may differ based on your shell
+uv pip install ".[dev, examples]"
+```
+
+Once the dependencies have been installed, install pre-commit and set up the git hook scripts:
+
+```bash
+uv pip install pre-commit
+pre-commit install
+```
+
+If you would like more information regarding the uv commands, please refer to uv's documentation for more information on their [pip interface](https://docs.astral.sh/uv/pip/).
 
 ### Developments scripts
 
@@ -130,11 +174,11 @@ In case you are adding new dependencies, make sure that they are compatible with
 
 ### Documentation
 
-To learn about development of docs, check out the docs [README.md](https://github.com/Lightning-AI/lightning/blob/master/docs/README.md).
+To learn about development of docs, check out the docs [README.md](https://github.com/Lightning-AI/pytorch-lightning/blob/master/docs/README.md).
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md).
+To learn about tests, check out the tests [README.md](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/README.md).
 
 ### Pull Request
 
@@ -165,8 +209,8 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
 
-   - [Test README](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md)
-   - [CI/CD README](https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/README.md)
+   - [Test README](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/README.md)
+   - [CI/CD README](https://github.com/Lightning-AI/pytorch-lightning/tree/master/.github/workflows#readme)
 
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
 
@@ -182,14 +226,14 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 1. Use tags in PR name for the following cases:
 
    - **\[blocked by #<number>\]** if your work is dependent on other PRs.
-   - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
+   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 
 #### How can I help/contribute?
 
 All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes.
-To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
+To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/Lightning-AI/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/Lightning-AI/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
 #### Is there a recommendation for branch names?
 

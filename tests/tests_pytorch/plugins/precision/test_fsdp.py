@@ -15,9 +15,9 @@ from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
+
 from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -40,6 +40,24 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("bf16-mixed", torch.float32),
+        ("16-mixed", torch.float32),
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.float16),
+    ],
+)
+def test_convert_module(precision, expected_dtype):
+    precision = FSDPPrecision(precision=precision)
+    module = torch.nn.Linear(2, 2)
+    assert module.weight.dtype == module.bias.dtype == torch.float32
+    module = precision.convert_module(module)
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -56,8 +74,8 @@ def test_fsdp_precision_scaler_with_bf16():
 
 
 @RunIf(min_cuda_gpus=1)
-def test_fsdp_precision_forward_context():
-    """Test to ensure that the context manager correctly is set to bfloat16."""
+def test_fsdp_precision_forward_context_f16():
+    """Test to ensure that the context manager correctly is set to float16."""
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
     precision = FSDPPrecision(precision="16-mixed")
@@ -76,6 +94,10 @@ def test_fsdp_precision_forward_context():
     assert isinstance(precision.forward_context(), _DtypeContextManager)
     assert precision.forward_context()._new_dtype == torch.float16
 
+
+@RunIf(min_cuda_gpus=1, bf16_cuda=True)
+def test_fsdp_precision_forward_context_bf16():
+    """Test to ensure that the context manager correctly is set to bfloat16."""
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():

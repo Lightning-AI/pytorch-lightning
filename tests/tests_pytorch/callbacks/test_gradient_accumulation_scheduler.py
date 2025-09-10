@@ -15,6 +15,7 @@ import math
 from unittest.mock import Mock, patch
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel

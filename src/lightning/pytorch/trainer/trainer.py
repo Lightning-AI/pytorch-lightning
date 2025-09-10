@@ -23,12 +23,14 @@
 import logging
 import math
 import os
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Optional, Union
 from weakref import proxy
 
 import torch
+from lightning_utilities import module_available
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
@@ -69,6 +71,7 @@ from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.model_registry import _is_registry, download_model_from_registry
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.seed import isolate_rng
 from lightning.pytorch.utilities.types import (
@@ -90,23 +93,23 @@ class Trainer:
         *,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
-        callbacks: Optional[Union[List[Callback], Callback]] = None,
+        callbacks: Optional[Union[list[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: int = -1,
         min_steps: Optional[int] = None,
-        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+        max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
         limit_train_batches: Optional[Union[int, float]] = None,
         limit_val_batches: Optional[Union[int, float]] = None,
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         overfit_batches: Union[int, float] = 0.0,
-        val_check_interval: Optional[Union[int, float]] = None,
+        val_check_interval: Optional[Union[int, float, str, timedelta, dict[str, int]]] = None,
         check_val_every_n_epoch: Optional[int] = 1,
         num_sanity_val_steps: Optional[int] = None,
         log_every_n_steps: Optional[int] = None,
@@ -123,10 +126,12 @@ class Trainer:
         profiler: Optional[Union[Profiler, str]] = None,
         detect_anomaly: bool = False,
         barebones: bool = False,
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
+        enable_autolog_hparams: bool = True,
+        model_registry: Optional[str] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -180,16 +185,16 @@ class Trainer:
                 :class:`datetime.timedelta`.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
+                Value is per device. Default: ``1.0``.
 
             overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
                 Default: ``0.0``.
@@ -198,12 +203,21 @@ class Trainer:
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
                 ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
-                across epochs or during iteration-based training.
+                across epochs or during iteration-based training. Additionally, accepts a time-based duration
+                as a string "DD:HH:MM:SS", a :class:`datetime.timedelta`, or a dict of kwargs to
+                :class:`datetime.timedelta`. When time-based, validation triggers once the elapsed wall-clock time
+                since the last validation exceeds the interval; the check occurs after the current batch
+                completes, the validation loop runs, and the timer is reset.
                 Default: ``1.0``.
 
             check_val_every_n_epoch: Perform a validation loop after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
-                to be an integer value.
+                to be an integer value. When used together with a time-based ``val_check_interval`` and
+                ``check_val_every_n_epoch`` > 1, validation is aligned to epoch multiples: if the interval elapses
+                before the next multiple-N epoch, validation runs at the start of that epoch (after the first batch)
+                and the timer resets; if it elapses during a multiple-N epoch, validation runs after the current batch.
+                For ``None`` or ``1`` cases, the time-based behavior of ``val_check_interval`` applies without
+                additional alignment.
                 Default: ``1``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
@@ -289,6 +303,11 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
+            enable_autolog_hparams: Whether to log hyperparameters at the start of a run.
+                Default: ``True``.
+
+            model_registry: The name of the model being uploaded to Model hub.
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -302,6 +321,9 @@ class Trainer:
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
+
+        # remove version if accidentally passed
+        self._model_registry = model_registry.split(":")[0] if model_registry else None
 
         self.barebones = barebones
         if barebones:
@@ -472,11 +494,11 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: List[Logger]
+        self._loggers: list[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
-        self.val_check_batch: Union[int, float]
+        self.val_check_batch: Optional[Union[int, float]] = None
         self.val_check_interval: Union[int, float]
         self.num_sanity_val_steps: Union[int, float]
         self.limit_train_batches: Union[int, float]
@@ -494,6 +516,8 @@ class Trainer:
             val_check_interval,
             num_sanity_val_steps,
         )
+
+        self.enable_autolog_hparams = enable_autolog_hparams
 
     def fit(
         self,
@@ -517,8 +541,20 @@ class Trainer:
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
-            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
-                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
+            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of three special
+                keywords ``"last"``, ``"hpc"`` and ``"registry"``.
+                Otherwise, if there is no checkpoint file at the path, an exception is raised.
+
+                    - best: the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - last: the last model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - registry: the model will be downloaded from the Lightning Model Registry with following notations:
+
+                        - ``'registry'``: uses the latest/default version of default model set
+                          with ``Trainer(..., model_registry="my-model")``
+                        - ``'registry:model-name'``: uses the latest/default version of this model `model-name`
+                        - ``'registry:model-name:version:v2'``: uses the specific version 'v2' of the model `model-name`
+                        - ``'registry:version:v2'``: uses the default model set
+                          with ``Trainer(..., model_registry="my-model")`` and version 'v2'
 
         Raises:
             TypeError:
@@ -535,6 +571,7 @@ class Trainer:
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
+        self.should_stop = False
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -565,6 +602,8 @@ class Trainer:
         )
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn,
             ckpt_path,
@@ -594,8 +633,8 @@ class Trainer:
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to validate. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -673,6 +712,8 @@ class Trainer:
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -703,8 +744,8 @@ class Trainer:
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to test. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -782,6 +823,8 @@ class Trainer:
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -818,8 +861,8 @@ class Trainer:
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to predict.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to predict. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -872,7 +915,7 @@ class Trainer:
         # --------------------
         log.debug(f"{self.__class__.__name__}: trainer predict stage")
 
-        self.predict_loop.return_predictions = return_predictions  # type: ignore[assignment]
+        self.predict_loop.return_predictions = return_predictions
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -891,6 +934,8 @@ class Trainer:
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -961,7 +1006,9 @@ class Trainer:
             call._call_callback_hooks(self, "on_fit_start")
             call._call_lightning_module_hook(self, "on_fit_start")
 
-        _log_hyperparams(self)
+        # only log hparams if enabled
+        if self.enable_autolog_hparams:
+            _log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
@@ -1149,7 +1196,7 @@ class Trainer:
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
-    def device_ids(self) -> List[int]:
+    def device_ids(self) -> list[int]:
         """List of device indexes per node."""
         devices = (
             self.strategy.parallel_devices
@@ -1176,15 +1223,15 @@ class Trainer:
         return self.strategy.lightning_module  # type: ignore[return-value]
 
     @property
-    def optimizers(self) -> List[Optimizer]:
+    def optimizers(self) -> list[Optimizer]:
         return self.strategy.optimizers
 
     @optimizers.setter
-    def optimizers(self, new_optims: List[Optimizer]) -> None:
+    def optimizers(self, new_optims: list[Optimizer]) -> None:
         self.strategy.optimizers = new_optims
 
     @property
-    def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
+    def lr_scheduler_configs(self) -> list[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
 
     @property
@@ -1247,7 +1294,7 @@ class Trainer:
         return self.strategy.is_global_zero
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
+    def distributed_sampler_kwargs(self) -> Optional[dict[str, Any]]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
         return None
@@ -1280,7 +1327,7 @@ class Trainer:
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def early_stopping_callbacks(self) -> List[EarlyStopping]:
+    def early_stopping_callbacks(self) -> list[EarlyStopping]:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in the
         Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
@@ -1293,7 +1340,7 @@ class Trainer:
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def checkpoint_callbacks(self) -> List[Checkpoint]:
+    def checkpoint_callbacks(self) -> list[Checkpoint]:
         """A list of all instances of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` found in
         the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
@@ -1361,9 +1408,10 @@ class Trainer:
                 "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
                 " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
             )
-        checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
-        self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
-        self.strategy.barrier("Trainer.save_checkpoint")
+        with self.profiler.profile("save_checkpoint"):
+            checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
+            self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+            self.strategy.barrier("Trainer.save_checkpoint")
 
     """
     State properties
@@ -1521,14 +1569,14 @@ class Trainer:
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> List[Union[int, float]]:
+    def num_sanity_val_batches(self) -> list[Union[int, float]]:
         """The number of validation batches that will be used during the sanity-checking part of ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
         # re-compute the `min` in case this is called outside the sanity-checking stage
         return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
 
     @property
-    def num_val_batches(self) -> List[Union[int, float]]:
+    def num_val_batches(self) -> list[Union[int, float]]:
         """The number of validation batches that will be used during ``trainer.fit()`` or ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop.max_batches
@@ -1537,12 +1585,12 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> List[Union[int, float]]:
+    def num_test_batches(self) -> list[Union[int, float]]:
         """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
     @property
-    def num_predict_batches(self) -> List[Union[int, float]]:
+    def num_predict_batches(self) -> list[Union[int, float]]:
         """The number of prediction batches that will be used during ``trainer.predict()``."""
         return self.predict_loop.max_batches
 
@@ -1583,7 +1631,7 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[Logger]:
+    def loggers(self) -> list[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1595,7 +1643,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[Logger]]) -> None:
+    def loggers(self, loggers: Optional[list[Logger]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property

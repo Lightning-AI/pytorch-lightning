@@ -14,7 +14,7 @@
 """Utilities for loggers."""
 
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, Union
 
 from torch import Tensor
 
@@ -22,14 +22,14 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
 
 
-def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
+def _version(loggers: list[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
     # Concatenate versions together, removing duplicates and preserving order
     return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> list[tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:
@@ -69,9 +69,12 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         lightning_hparams = pl_module.hparams_initial
         inconsistent_keys = []
         for key in lightning_hparams.keys() & datamodule_hparams.keys():
+            if key == "_class_path":
+                # Skip LightningCLI's internal hparam
+                continue
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
             if (
-                type(lm_val) != type(dm_val)
+                type(lm_val) != type(dm_val)  # noqa: E721
                 or (isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val))
                 or lm_val != dm_val
             ):
@@ -87,6 +90,10 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         hparams_initial = pl_module.hparams_initial
     elif datamodule_log_hyperparams:
         hparams_initial = trainer.datamodule.hparams_initial
+
+    # Don't log LightningCLI's internal hparam
+    if hparams_initial is not None:
+        hparams_initial = {k: v for k, v in hparams_initial.items() if k != "_class_path"}
 
     for logger in trainer.loggers:
         if hparams_initial is not None:

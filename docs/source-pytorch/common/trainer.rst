@@ -510,6 +510,7 @@ limit_train_batches
 
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
+Value is per device.
 
 .. testcode::
 
@@ -535,7 +536,7 @@ limit_test_batches
     :width: 400
     :muted:
 
-How much of test dataset to check.
+How much of test dataset to check. Value is per device.
 
 .. testcode::
 
@@ -560,6 +561,7 @@ limit_val_batches
 
 How much of validation dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
+Value is per device.
 
 .. testcode::
 
@@ -759,6 +761,9 @@ overfit_batches
 Uses this much data of the training & validation set.
 If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
+* When set to a value > 0, sequential sampling (no shuffling) is used
+* Consistent batches are used for both training and validation across epochs, but training and validation use different sets of data
+
 Useful for quickly debugging or trying to overfit on purpose.
 
 .. testcode::
@@ -769,11 +774,11 @@ Useful for quickly debugging or trying to overfit on purpose.
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 
-    # overfit on 10 of the same batches
+    # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
 
-plugins
-^^^^^^^
+    # debug using a single consistent train batch and a single consistent val batch
+
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
@@ -895,7 +900,7 @@ DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 
     # if 0 (default)
     train_loader = model.train_dataloader()
-    # or if using data module: datamodule.train_dataloader()
+    # or if using data module: datamodule.train_dataloaders()
     for epoch in epochs:
         for batch in train_loader:
             ...
@@ -986,11 +991,23 @@ val_check_interval
     :muted:
 
 How often within one training epoch to check the validation set.
-Can specify as float or int.
+Can specify as float, int, or a time-based duration.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
 - pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
   batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
+- pass a ``string`` duration in the format "DD:HH:MM:SS", a ``datetime.timedelta`` object, or a ``dictionary`` of keyword arguments that can be passed
+  to ``datetime.timedelta`` for time-based validation. When using a time-based duration, validation will trigger once the elapsed wall-clock time
+  since the last validation exceeds the interval. The validation check occurs after the current batch completes, the validation loop runs, and
+  the timer resets.
+
+**Time-based validation behavior with check_val_every_n_epoch:**  When used together with ``val_check_interval`` (time-based) and
+``check_val_every_n_epoch > 1``, validation is aligned to epoch multiples:
+
+- If the time-based interval elapses **before** the next multiple-N epoch, validation runs at the start of that epoch (after the first batch),
+  and the timer resets.
+- If the interval elapses **during** a multiple-N epoch, validation runs after the current batch.
+- For cases where ``check_val_every_n_epoch=None`` or ``1``, the time-based behavior of ``val_check_interval`` applies without additional alignment.
 
 .. testcode::
 
@@ -1008,10 +1025,25 @@ Can specify as float or int.
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)
 
+    # check validation every 15 minutes of wall-clock time using a string-based approach
+    trainer = Trainer(val_check_interval="00:00:15:00")
+
+    # check validation every 15 minutes of wall-clock time using a dictionary-based approach
+    trainer = Trainer(val_check_interval={"minutes": 15})
+
+    # check validation every 1 hour of wall-clock time using a dictionary-based approach
+    trainer = Trainer(val_check_interval={"hours": 1})
+
+    # check validation every 1 hour of wall-clock time using a datetime.timedelta object
+    from datetime import timedelta
+    trainer = Trainer(val_check_interval=timedelta(hours=1))
+
+
 
 .. code-block:: python
 
     # Here is the computation to estimate the total number of batches seen within an epoch.
+    # This logic applies when `val_check_interval` is specified as an integer or a float.
 
     # Find the total number of train batches
     total_train_batches = total_train_samples // (train_batch_size * world_size)
@@ -1077,6 +1109,32 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
     trainer = Trainer(inference_mode=False)
     trainer.validate(model)
 
+enable_autolog_hparams
+^^^^^^^^^^^^^^^^^^^^^^
+
+Whether to log hyperparameters at the start of a run. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_autolog_hparams=True)
+
+    # disable logging hyperparams
+    trainer = Trainer(enable_autolog_hparams=False)
+
+With the parameter set to false, you can add custom code to log hyperparameters.
+
+.. code-block:: python
+
+    model = LitModel()
+    trainer = Trainer(enable_autolog_hparams=False)
+    for logger in trainer.loggers:
+        if isinstance(logger, lightning.pytorch.loggers.CSVLogger):
+            logger.log_hyperparams(hparams_dict_1)
+        else:
+            logger.log_hyperparams(hparams_dict_2)
+
+You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log.
 
 -----
 

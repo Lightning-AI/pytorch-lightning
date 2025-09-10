@@ -13,10 +13,11 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 
+import errno
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Dict, Union
+from typing import IO, Any, Union
 
 import fsspec
 import fsspec.utils
@@ -69,7 +70,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: Union[str, Path]) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -84,10 +85,16 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
     log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
 
-    # We use a transaction here to avoid file corruption if the save gets interrupted
-    fs, urlpath = fsspec.core.url_to_fs(str(filepath))
-    with fs.transaction, fs.open(urlpath, "wb") as f:
-        f.write(bytesbuffer.getvalue())
+    try:
+        # We use a transaction here to avoid file corruption if the save gets interrupted
+        fs, urlpath = fsspec.core.url_to_fs(str(filepath))
+        with fs.transaction, fs.open(urlpath, "wb") as f:
+            f.write(bytesbuffer.getvalue())
+    except PermissionError as e:
+        if isinstance(e.__context__, OSError) and getattr(e.__context__, "errno", None) == errno.EXDEV:
+            raise RuntimeError(
+                'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"',
+            ) from e
 
 
 def _is_object_storage(fs: AbstractFileSystem) -> bool:

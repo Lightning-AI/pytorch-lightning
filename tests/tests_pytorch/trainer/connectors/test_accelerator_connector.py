@@ -15,15 +15,16 @@ import inspect
 import os
 import sys
 from contextlib import nullcontext
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
+import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -61,7 +62,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
-
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -178,7 +178,7 @@ def test_custom_accelerator(cuda_count_0):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:
@@ -207,23 +207,23 @@ def test_custom_accelerator(cuda_count_0):
     class Prec(Precision):
         pass
 
-    class Strat(SingleDeviceStrategy):
+    class TestStrategy(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    strategy = TestStrategy(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
     trainer = Trainer(strategy=strategy, fast_dev_run=True, devices=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, Strat)
+    assert isinstance(trainer.strategy, TestStrategy)
     assert isinstance(trainer.precision_plugin, Prec)
     assert trainer._accelerator_connector.strategy is strategy
 
-    class Strat(DDPStrategy):
+    class TestStrategy(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
+    strategy = TestStrategy(accelerator=Accel(), precision_plugin=Prec())
     trainer = Trainer(strategy=strategy, fast_dev_run=True, devices=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, Strat)
+    assert isinstance(trainer.strategy, TestStrategy)
     assert isinstance(trainer.precision_plugin, Prec)
     assert trainer._accelerator_connector.strategy is strategy
 
@@ -491,13 +491,15 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
         "LOCAL_RANK": "1",
     },
 )
-@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_torchelastic_priority_over_slurm(*_):
+def test_torchelastic_priority_over_slurm(monkeypatch):
     """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 2)
+        mock_mps_count(monkeypatch, 0)
+        mock_hpu_count(monkeypatch, 0)
+        connector = _AcceleratorConnector(strategy="ddp")
     assert TorchElasticEnvironment.detect()
     assert SLURMEnvironment.detect()
-    connector = _AcceleratorConnector(strategy="ddp")
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
@@ -578,6 +580,11 @@ def test_check_fsdp_strategy_and_fallback():
     # we allow subclasses of FSDPStrategy to be used with other accelerators
     Trainer(accelerator="cpu", strategy=FSDPStrategySubclass())
     Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
+
+
+@RunIf(min_cuda_gpus=1)
+def test_check_fsdp_strategy_and_fallback_with_cudaaccelerator():
+    Trainer(strategy="fsdp", accelerator=CUDAAccelerator())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -1003,6 +1010,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     with monkeypatch.context():
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
+        mock_hpu_count(monkeypatch, 0)
         _mock_tpu_available(True)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, XLAAccelerator)

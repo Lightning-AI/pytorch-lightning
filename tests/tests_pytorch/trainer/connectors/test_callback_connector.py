@@ -14,10 +14,11 @@
 import contextlib
 import logging
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
+
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import (
@@ -34,13 +35,14 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_checkpoint_callbacks_are_last(tmp_path):
-    """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
-    checkpoint1 = ModelCheckpoint(tmp_path, monitor="foo")
-    checkpoint2 = ModelCheckpoint(tmp_path, monitor="bar")
-    model_summary = ModelSummary()
+    """Test that checkpoint callbacks always come last."""
+    checkpoint1 = ModelCheckpoint(tmp_path / "path1", filename="ckpt1", monitor="val_loss_c1")
+    checkpoint2 = ModelCheckpoint(tmp_path / "path2", filename="ckpt2", monitor="val_loss_c2")
     early_stopping = EarlyStopping(monitor="foo")
     lr_monitor = LearningRateMonitor()
+    model_summary = ModelSummary()
     progress_bar = TQDMProgressBar()
 
     # no model reference
@@ -70,7 +72,7 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     # with model-specific callbacks that substitute ones in Trainer
     model = LightningModule()
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
-    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmp_path)])
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmp_path, filename="ckpt_trainer")])
     trainer.strategy._lightning_module = model
     cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
@@ -160,6 +162,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     )
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_attach_model_callbacks():
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 

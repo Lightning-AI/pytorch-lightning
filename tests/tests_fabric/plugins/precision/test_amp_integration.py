@@ -16,9 +16,9 @@
 import pytest
 import torch
 import torch.nn as nn
+
 from lightning.fabric import Fabric, seed_everything
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -42,8 +42,8 @@ class MixedPrecisionModule(nn.Module):
 @pytest.mark.parametrize(
     ("accelerator", "precision", "expected_dtype"),
     [
-        ("cpu", "16-mixed", torch.bfloat16),
-        ("cpu", "bf16-mixed", torch.bfloat16),
+        pytest.param("cpu", "16-mixed", torch.bfloat16, marks=RunIf(skip_windows=True)),
+        pytest.param("cpu", "bf16-mixed", torch.bfloat16, marks=RunIf(skip_windows=True)),
         pytest.param("cuda", "16-mixed", torch.float16, marks=RunIf(min_cuda_gpus=2)),
         pytest.param("cuda", "bf16-mixed", torch.bfloat16, marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
     ],

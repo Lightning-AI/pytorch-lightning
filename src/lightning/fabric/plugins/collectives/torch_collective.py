@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -24,6 +24,8 @@ class TorchCollective(Collective):
     """
 
     manages_default_group = False
+    addr_key = "MASTER_ADDR"
+    port_key = "MASTER_PORT"
 
     def __init__(self) -> None:
         if not dist.is_available():
@@ -50,7 +52,7 @@ class TorchCollective(Collective):
 
     @override
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
-        dist.broadcast(tensor, src, group=self.group)
+        dist.broadcast(tensor, src, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
@@ -62,34 +64,34 @@ class TorchCollective(Collective):
     @override
     def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
-        dist.reduce(tensor, dst, op=op, group=self.group)
+        dist.reduce(tensor, dst, op=op, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
-    def all_gather(self, tensor_list: List[Tensor], tensor: Tensor) -> List[Tensor]:
+    def all_gather(self, tensor_list: list[Tensor], tensor: Tensor) -> list[Tensor]:
         dist.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
     @override
-    def gather(self, tensor: Tensor, gather_list: List[Tensor], dst: int = 0) -> List[Tensor]:
-        dist.gather(tensor, gather_list, dst, group=self.group)
+    def gather(self, tensor: Tensor, gather_list: list[Tensor], dst: int = 0) -> list[Tensor]:
+        dist.gather(tensor, gather_list, dst, group=self.group)  # type: ignore[arg-type]
         return gather_list
 
     @override
-    def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:
-        dist.scatter(tensor, scatter_list, src, group=self.group)
+    def scatter(self, tensor: Tensor, scatter_list: list[Tensor], src: int = 0) -> Tensor:
+        dist.scatter(tensor, scatter_list, src, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
     def reduce_scatter(
-        self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
+        self, output: Tensor, input_list: list[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
     ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 
     @override
-    def all_to_all(self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor]) -> List[Tensor]:
+    def all_to_all(self, output_tensor_list: list[Tensor], input_tensor_list: list[Tensor]) -> list[Tensor]:
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
@@ -102,60 +104,55 @@ class TorchCollective(Collective):
         dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
         return tensor
 
-    def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
+    def all_gather_object(self, object_list: list[Any], obj: Any) -> list[Any]:
         dist.all_gather_object(object_list, obj, group=self.group)
         return object_list
 
     def broadcast_object_list(
-        self, object_list: List[Any], src: int, device: Optional[torch.device] = None
-    ) -> List[Any]:
-        dist.broadcast_object_list(object_list, src, group=self.group, device=device)
+        self, object_list: list[Any], src: int, device: Optional[torch.device] = None
+    ) -> list[Any]:
+        dist.broadcast_object_list(object_list, src, group=self.group, device=device)  # type: ignore[arg-type]
         return object_list
 
-    def gather_object(self, obj: Any, object_gather_list: List[Any], dst: int = 0) -> List[Any]:
-        dist.gather_object(obj, object_gather_list, dst, group=self.group)
+    def gather_object(self, obj: Any, object_gather_list: list[Any], dst: int = 0) -> list[Any]:
+        dist.gather_object(obj, object_gather_list, dst, group=self.group)  # type: ignore[arg-type]
         return object_gather_list
 
     def scatter_object_list(
-        self, scatter_object_output_list: List[Any], scatter_object_input_list: List[Any], src: int = 0
-    ) -> List[Any]:
-        dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
+        self, scatter_object_output_list: list[Any], scatter_object_input_list: list[Any], src: int = 0
+    ) -> list[Any]:
+        dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)  # type: ignore[arg-type]
         return scatter_object_output_list
 
     @override
-    def barrier(self, device_ids: Optional[List[int]] = None) -> None:
+    def barrier(self, device_ids: Optional[list[int]] = None) -> None:
         if self.group == dist.GroupMember.NON_GROUP_MEMBER:
             return
-        dist.barrier(group=self.group, device_ids=device_ids)
+        dist.barrier(group=self.group, device_ids=device_ids)  # type: ignore[arg-type]
 
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
-        dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
+        dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)  # type: ignore[arg-type]
 
     @override
     def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
         # maybe set addr
-        set_addr = False
-        addr_key = "MASTER_ADDR"
-        if main_address is not None and addr_key not in os.environ:
-            os.environ[addr_key] = main_address
-            set_addr = True
+        setting_env = []
+        if main_address is not None and self.addr_key not in os.environ:
+            os.environ[self.addr_key] = main_address
+            setting_env.append(self.addr_key)
         # maybe set port
-        set_port = False
-        port_key = "MASTER_PORT"
-        if main_port is not None and port_key not in os.environ:
-            os.environ[port_key] = str(main_port)
-            set_port = True
+        if main_port is not None and self.port_key not in os.environ:
+            os.environ[self.port_key] = str(main_port)
+            setting_env.append(self.port_key)
         # this will `init_group`
         super().setup(**kwargs)
         # set as a class attribute so any instance can know whether we initialized the default process group
         TorchCollective.manages_default_group = True
         # cleanup
-        if set_addr:
-            os.environ.pop("MASTER_ADDR", None)
-        if set_port:
-            os.environ.pop("MASTER_PORT", None)
+        for kenv in setting_env:
+            os.environ.pop(kenv, None)
         return self
 
     @override

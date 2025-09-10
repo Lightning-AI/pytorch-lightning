@@ -22,6 +22,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
@@ -30,7 +31,6 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -55,7 +55,7 @@ def _sleep_generator(durations):
         yield duration
 
 
-@pytest.fixture()
+@pytest.fixture
 def simple_profiler():
     return SimpleProfiler()
 
@@ -69,13 +69,13 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/Lightning-AI/lightning/issues/796
+    # see: https://github.com/Lightning-AI/pytorch-lightning/issues/796
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-def test_simple_profiler_overhead(simple_profiler, n_iter=5):
+def test_simple_profiler_overhead(simple_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
-    for _ in range(n_iter):
+    for _ in range(5):
         with simple_profiler.profile("no-op"):
             pass
 
@@ -264,7 +264,7 @@ def test_simple_profiler_summary(tmp_path, extended):
     assert expected_text == summary
 
 
-@pytest.fixture()
+@pytest.fixture
 def advanced_profiler(tmp_path):
     return AdvancedProfiler(dirpath=tmp_path, filename="profiler")
 
@@ -277,15 +277,16 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/Lightning-AI/lightning/issues/796
+    # see: https://github.com/Lightning-AI/pytorch-lightning/issues/796
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)
-def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
+def test_advanced_profiler_overhead(advanced_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
+    n_iter = 5
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -336,7 +337,13 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture()
+def test_advanced_profiler_nested(advanced_profiler):
+    """Ensure AdvancedProfiler does not raise ValueError for nested profiling actions (Python 3.12+ compatibility)."""
+    with advanced_profiler.profile("outer"), advanced_profiler.profile("inner"):
+        pass  # Should not raise ValueError
+
+
+@pytest.fixture
 def pytorch_profiler(tmp_path):
     return PyTorchProfiler(dirpath=tmp_path, filename="profiler")
 
@@ -614,8 +621,8 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmp_path, trainer_con
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)
-        assert trainer.profiler._schedule is None
-        warning_cache.clear()
+    assert trainer.profiler._schedule is None
+    warning_cache.clear()
 
 
 def test_profile_callbacks(tmp_path):

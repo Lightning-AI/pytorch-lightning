@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -38,7 +39,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -114,7 +115,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
@@ -237,7 +238,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> List[int]:
+    def _determine_device_ids(self) -> list[int]:
         return [self.root_device.index]
 
     @override
@@ -249,7 +250,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self.accelerator.teardown()
 
     @override
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Collects the state dict of the model.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -267,7 +268,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Any]:
         """Collects the state of the given optimizer.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -296,7 +297,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         if storage_options is not None:
             raise TypeError(
@@ -328,7 +329,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
         state = {
@@ -349,7 +350,10 @@ class ModelParallelStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)

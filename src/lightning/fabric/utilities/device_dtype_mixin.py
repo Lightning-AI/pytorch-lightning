@@ -12,20 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.nn import Module
 from typing_extensions import Self, override
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+
 
 class _DeviceDtypeModuleMixin(Module):
-    __jit_unused_properties__: List[str] = ["device", "dtype"]
+    __jit_unused_properties__: list[str] = ["device", "dtype"]
 
     def __init__(self) -> None:
         super().__init__()
         self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
-        self._device = torch.device("cpu")
+        # Workarounds from the original pytorch issue:
+        # https://github.com/pytorch/pytorch/issues/115333#issuecomment-1848449687
+        self._device = torch.get_default_device() if _TORCH_GREATER_EQUAL_2_3 else torch.empty(0).device
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:

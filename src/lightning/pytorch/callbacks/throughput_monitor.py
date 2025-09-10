@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -84,10 +84,10 @@ class ThroughputMonitor(Callback):
         self.batch_size_fn = batch_size_fn
         self.length_fn = length_fn
         self.available_flops: Optional[int] = None
-        self._throughputs: Dict[RunningStage, Throughput] = {}
-        self._t0s: Dict[RunningStage, float] = {}
-        self._lengths: Dict[RunningStage, int] = {}
-        self._samples: Dict[RunningStage, int] = {}
+        self._throughputs: dict[RunningStage, Throughput] = {}
+        self._t0s: dict[RunningStage, float] = {}
+        self._lengths: dict[RunningStage, int] = {}
+        self._samples: dict[RunningStage, int] = {}
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
@@ -143,7 +143,7 @@ class ThroughputMonitor(Callback):
             # this assumes that all iterations used the same batch size
             samples=self._samples[stage],
             lengths=None if self.length_fn is None else self._lengths[stage],
-            flops=flops_per_batch,
+            flops=flops_per_batch,  # type: ignore[arg-type]
         )
 
     def _compute(self, trainer: "Trainer", iter_num: Optional[int] = None) -> None:

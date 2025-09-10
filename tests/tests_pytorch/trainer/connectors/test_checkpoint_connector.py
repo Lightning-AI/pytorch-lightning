@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import errno
 import os
+import re
 from unittest import mock
 from unittest.mock import ANY, Mock
 
+import fsspec
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
@@ -102,6 +106,31 @@ def test_hpc_max_ckpt_version(tmp_path):
         trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmp_path / "not" / "existing")
         is None
     )
+
+
+def test_local_cross_device_checkpoint(tmpdir):
+    """Test that the _CheckpointConnector can write local cross-device files or raises an error if fsspec<2025.5.0."""
+    model = BoringModel()
+    # hardcoding dir since `tmp_path` can be windows path
+    trainer = Trainer(
+        default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
+    )
+    trainer.fit(model)
+    # Simulate the behavior of fsspec when writing to a local file system but other device.
+    with (
+        mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
+        mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
+    ):
+        if fsspec.__version__ < "2025.5.0":
+            with pytest.raises(
+                RuntimeError,
+                match=re.escape(
+                    'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"'
+                ),
+            ):
+                trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+        else:
+            trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
 
 
 def test_ckpt_for_fsspec():
@@ -234,3 +263,53 @@ def test_strict_loading(strict_loading, expected, tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, barebones=True, max_steps=2)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     model.load_state_dict.assert_called_once_with(ANY, strict=expected)
+
+
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
+    """Test that callbacks are properly restored in non-fit phases."""
+
+    class TestCallback(Callback):
+        def __init__(self):
+            self.restored = False
+
+        def on_load_checkpoint(self, trainer, pl_module, checkpoint):
+            if "callbacks" in checkpoint:
+                callback_state = checkpoint["callbacks"][self.__class__.__name__]
+                self.restored = callback_state["restored"]
+
+        def state_dict(self):
+            return {"restored": self.restored}
+
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            checkpoint["callbacks"] = checkpoint.get("callbacks", {})
+            checkpoint["callbacks"][self.__class__.__name__] = self.state_dict()
+
+    # First create and train a model with the callback
+    callback = TestCallback()
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[callback], max_steps=1)
+    trainer.fit(model)
+
+    # Set the callback state to True before saving
+    callback.restored = True
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    trainer.save_checkpoint(ckpt_path)
+
+    # Now create new instances and test restoration
+    new_callback = TestCallback()
+    new_model = BoringModel()
+    assert not new_callback.restored  # Should start False
+
+    new_trainer = Trainer(default_root_dir=tmp_path, callbacks=[new_callback])
+
+    # Connect the model and restore callbacks before evaluation
+    new_trainer.strategy.connect(new_model)
+    new_trainer._checkpoint_connector.resume_start(ckpt_path)
+    new_trainer._checkpoint_connector.restore_callbacks()
+
+    # Run the evaluation phase (validate/test/predict)
+    fn = getattr(new_trainer, trainer_fn)
+    fn(new_model, ckpt_path=ckpt_path)
+
+    assert new_callback.restored  # Should be True after loading the checkpoint

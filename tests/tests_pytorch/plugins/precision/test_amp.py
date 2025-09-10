@@ -14,9 +14,12 @@
 from unittest.mock import Mock
 
 import pytest
+import torch
+from torch import nn
+from torch.optim import Optimizer
+
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
-from torch.optim import Optimizer
 
 
 def test_clip_gradients():
@@ -50,3 +53,19 @@ def test_optimizer_amp_scaling_support_in_step_method():
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
         precision.clip_gradients(optimizer, clip_val=1.0)
+
+
+def test_amp_with_no_grad():
+    """Test that asserts using `no_grad` context wrapper with a persistent AMP context wrapper does not break gradient
+    tracking."""
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.autocast_context_manager():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None

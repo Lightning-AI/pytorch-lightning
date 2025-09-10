@@ -297,7 +297,8 @@ Validation Within Training Epoch
 
 For large datasets, it's often desirable to check validation multiple times within a training epoch.
 Pass in a float to check that often within one training epoch. Pass in an int ``K`` to check every ``K`` training batch.
-Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
+Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`. Alternatively, pass a string ("DD:HH:MM:SS"),
+a dict of ``datetime.timedelta`` kwargs, or a ``datetime.timedelta`` to check validation after a given amount of wall-clock time.
 
 .. testcode::
 
@@ -309,6 +310,16 @@ Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 
     # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
     trainer = Trainer(val_check_interval=100)
+
+    # check validation every 15 minutes of wall-clock time
+    trainer = Trainer(val_check_interval="00:00:15:00")
+
+    # alternatively, pass a dict of timedelta kwargs
+    trainer = Trainer(val_check_interval={"minutes": 1})
+
+    # or use a timedelta object directly
+    from datetime import timedelta
+    trainer = Trainer(val_check_interval=timedelta(hours=1))
 
 Learn more in our :ref:`trainer_flags` guide.
 
@@ -464,7 +475,7 @@ takes a great deal of care to be optimized for this.
 Clear Cache
 ===========
 
-Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
+Don't call ``torch.cuda.empty_cache`` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
 
 Transferring Tensors to Device
 ==============================

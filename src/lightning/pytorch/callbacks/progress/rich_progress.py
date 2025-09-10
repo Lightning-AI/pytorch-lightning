@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Generator, Optional, Union, cast
+from typing import Any, Optional, Union, cast
 
-from lightning_utilities.core.imports import RequirementCache
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-
-_RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
@@ -146,15 +147,15 @@ if _RICH_AVAILABLE:
             metrics_format: str,
         ):
             self._trainer = trainer
-            self._tasks: Dict[Union[int, TaskID], Any] = {}
+            self._tasks: dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
-            self._metrics: Dict[Union[str, Style], Any] = {}
+            self._metrics: dict[Union[str, Style], Any] = {}
             self._style = style
             self._text_delimiter = text_delimiter
             self._metrics_format = metrics_format
             super().__init__()
 
-        def update(self, metrics: Dict[Any, Any]) -> None:
+        def update(self, metrics: dict[Any, Any]) -> None:
             # Called when metrics are ready to be rendered.
             # This is to prevent render from causing deadlock issues by requesting metrics
             # in separate threads.
@@ -170,7 +171,7 @@ if _RICH_AVAILABLE:
                 return Text()
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
-                if self._renderable_cache:
+                if self._renderable_cache and self._current_task_id in self._renderable_cache:
                     self._current_task_id = cast(TaskID, self._current_task_id)
                     self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
                 self._current_task_id = task.id
@@ -184,7 +185,10 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = f"{value:{self._metrics_format}}"
+                    try:
+                        value = f"{value:{self._metrics_format}}"
+                    except (TypeError, ValueError):
+                        value = str(value)
                 yield f"{name}: {value}"
 
 
@@ -206,14 +210,14 @@ class RichProgressBarTheme:
 
     """
 
-    description: Union[str, "Style"] = "white"
+    description: Union[str, "Style"] = ""
     progress_bar: Union[str, "Style"] = "#6206E0"
     progress_bar_finished: Union[str, "Style"] = "#6206E0"
     progress_bar_pulse: Union[str, "Style"] = "#6206E0"
-    batch_progress: Union[str, "Style"] = "white"
-    time: Union[str, "Style"] = "grey54"
-    processing_speed: Union[str, "Style"] = "grey70"
-    metrics: Union[str, "Style"] = "white"
+    batch_progress: Union[str, "Style"] = ""
+    time: Union[str, "Style"] = "dim"
+    processing_speed: Union[str, "Style"] = "dim underline"
+    metrics: Union[str, "Style"] = "italic"
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
@@ -257,7 +261,7 @@ class RichProgressBar(ProgressBar):
         refresh_rate: int = 1,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[Dict[str, Any]] = None,
+        console_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
@@ -280,7 +284,6 @@ class RichProgressBar(ProgressBar):
         self._metric_component: Optional[MetricsTextColumn] = None
         self._progress_stopped: bool = False
         self.theme = theme
-        self._update_for_light_colab_theme()
 
     @property
     def refresh_rate(self) -> float:
@@ -318,13 +321,6 @@ class RichProgressBar(ProgressBar):
         assert self.test_progress_bar_id is not None
         return self.progress.tasks[self.test_progress_bar_id]
 
-    def _update_for_light_colab_theme(self) -> None:
-        if _detect_light_colab_theme():
-            attributes = ["description", "batch_progress", "metrics"]
-            for attr in attributes:
-                if getattr(self.theme, attr) == "white":
-                    setattr(self.theme, attr, "black")
-
     @override
     def disable(self) -> None:
         self._enabled = False
@@ -338,7 +334,19 @@ class RichProgressBar(ProgressBar):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
             self._console = get_console()
-            self._console.clear_live()
+
+            # Compatibility shim for Rich >= 14.1.0:
+            if hasattr(self._console, "_live_stack"):
+                # In recent Rich releases, the internal `_live` variable was replaced with `_live_stack` (a list)
+                # to support nested Live displays. This broke our original call to `clear_live()`,
+                # because it now only pops one Live instance instead of clearing them all.
+                # We check for `_live_stack` and clear it manually for compatibility across
+                # both old and new Rich versions.
+                if len(self._console._live_stack) > 0:
+                    self._console.clear_live()
+            else:
+                self._console.clear_live()
+
             self._metric_component = MetricsTextColumn(
                 trainer,
                 self.theme.metrics,
@@ -382,8 +390,7 @@ class RichProgressBar(ProgressBar):
 
     @override
     def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.progress is not None:
-            assert self.val_sanity_progress_bar_id is not None
+        if self.progress is not None and self.val_sanity_progress_bar_id is not None:
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
@@ -437,7 +444,7 @@ class RichProgressBar(ProgressBar):
             if self.val_progress_bar_id is not None:
                 self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
 
-            # TODO: remove old tasks when new onces are created
+            # TODO: remove old tasks when new once they are created
             self.val_progress_bar_id = self._add_task(
                 self.total_val_batches_current_dataloader,
                 self.validation_description,
@@ -449,23 +456,23 @@ class RichProgressBar(ProgressBar):
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
         return self.progress.add_task(
-            f"[{self.theme.description}]{description}",
+            f"[{self.theme.description}]{description}" if self.theme.description else description,
             total=total_batches,
             visible=visible,
         )
 
+    def _initialize_train_progress_bar_id(self) -> None:
+        total_batches = self.total_train_batches
+        train_description = self._get_train_description(self.trainer.current_epoch)
+        self.train_progress_bar_id = self._add_task(total_batches, train_description)
+
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
-        if self.progress is not None and self.is_enabled:
-            assert progress_bar_id is not None
+        if self.progress is not None and self.is_enabled and progress_bar_id is not None:
             total = self.progress.tasks[progress_bar_id].total
             assert total is not None
             if not self._should_update(current, total):
                 return
-
-            leftover = current % self.refresh_rate
-            advance = leftover if (current == total and leftover != 0) else self.refresh_rate
-            self.progress.update(progress_bar_id, advance=advance, visible=visible)
-            self.refresh()
+            self.progress.update(progress_bar_id, completed=current, visible=visible)
 
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return current % self.refresh_rate == 0 or current == total
@@ -538,13 +545,16 @@ class RichProgressBar(ProgressBar):
         batch: Any,
         batch_idx: int,
     ) -> None:
+        if not self.is_disabled and self.train_progress_bar_id is None:
+            # can happen when resuming from a mid-epoch restart
+            self._initialize_train_progress_bar_id()
         self._update(self.train_progress_bar_id, batch_idx + 1)
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, batch_idx + 1)
         self.refresh()
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._update_metrics(trainer, pl_module)
+        self._update_metrics(trainer, pl_module, total_batches=True)
 
     @override
     def on_validation_batch_end(
@@ -559,9 +569,13 @@ class RichProgressBar(ProgressBar):
         if self.is_disabled:
             return
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
-        elif self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, batch_idx + 1)
+            if self.val_sanity_progress_bar_id is not None:
+                self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
+            return
+
+        if self.val_progress_bar_id is None:
+            return
+        self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     @override
@@ -574,9 +588,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.test_progress_bar_id is None:
             return
-        assert self.test_progress_bar_id is not None
         self._update(self.test_progress_bar_id, batch_idx + 1)
         self.refresh()
 
@@ -590,9 +603,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.predict_progress_bar_id is None:
             return
-        assert self.predict_progress_bar_id is not None
         self._update(self.predict_progress_bar_id, batch_idx + 1)
         self.refresh()
 
@@ -619,7 +631,29 @@ class RichProgressBar(ProgressBar):
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
 
-    def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    @override
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> dict[str, Union[int, str, float, dict[str, float]]]:
+        items = super().get_metrics(trainer, pl_module)
+        # convert all metrics to float before sending to rich
+        return apply_to_collection(items, torch.Tensor, lambda x: x.item())
+
+    def _update_metrics(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        current: Optional[int] = None,
+        total_batches: bool = False,
+    ) -> None:
+        if not self.is_enabled or self._metric_component is None:
+            return
+
+        if current is not None and not total_batches:
+            total = self.total_train_batches
+            if not self._should_update(current, total):
+                return
+
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
             self._metric_component.update(metrics)
@@ -650,26 +684,9 @@ class RichProgressBar(ProgressBar):
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         # both the console and progress object can hold thread lock objects that are not pickleable
         state["progress"] = None
         state["_console"] = None
         return state
-
-
-def _detect_light_colab_theme() -> bool:
-    """Detect if it's light theme in Colab."""
-    try:
-        import get_ipython
-    except (NameError, ModuleNotFoundError):
-        return False
-    ipython = get_ipython()
-    if "google.colab" in str(ipython.__class__):
-        try:
-            from google.colab import output
-
-            return output.eval_js('document.documentElement.matches("[theme=light]")')
-        except ModuleNotFoundError:
-            return False
-    return False

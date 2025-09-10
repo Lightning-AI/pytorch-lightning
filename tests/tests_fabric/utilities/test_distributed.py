@@ -5,9 +5,11 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
+from lightning_utilities.core.imports import RequirementCache
+
+import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
@@ -15,6 +17,7 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.utilities.distributed import (
     _destroy_dist_connection,
     _gather_all_tensors,
+    _get_default_process_group_backend_for_device,
     _InfiniteBarrier,
     _init_dist_connection,
     _is_dtensor,
@@ -23,14 +26,12 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp,
     is_shared_filesystem,
 )
-from lightning_utilities.core.imports import RequirementCache
-
 from tests_fabric.helpers.runif import RunIf
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 
@@ -105,6 +106,8 @@ def _test_all_reduce(strategy):
         assert result is tensor  # inplace
 
 
+# flaky with "torch.multiprocessing.spawn.ProcessExitedException: process 0 terminated with signal SIGABRT" (GLOO)
+@pytest.mark.flaky(reruns=3)
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
@@ -126,9 +129,10 @@ def test_collective_operations(devices, process):
 
 
 @pytest.mark.skipif(
-    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    RequirementCache("numpy>=2.0"),
     reason="torch.distributed not compatible with numpy>=2.0",
 )
+@RunIf(min_torch="2.4", skip_windows=True)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
@@ -215,9 +219,10 @@ def test_infinite_barrier():
 
     # distributed available
     barrier = _InfiniteBarrier()
-    with mock.patch(
-        "lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True
-    ), mock.patch("lightning.fabric.utilities.distributed.torch.distributed") as dist_mock:
+    with (
+        mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed") as dist_mock,
+    ):
         barrier.__enter__()
         dist_mock.new_group.assert_called_once()
         assert barrier.barrier == barrier.group.monitored_barrier
@@ -237,6 +242,27 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     atexit_mock.reset_mock()
     _init_dist_connection(LightningEnvironment(), "gloo")
     atexit_mock.register.assert_not_called()
+
+
+def test_get_default_process_group_backend_for_device():
+    """Test that each device type maps to its correct default process group backend."""
+    # register a custom backend for test
+    torch.utils.rename_privateuse1_backend("pcu")
+
+    def mock_backend(store, group_rank, group_size, timeout):
+        pass
+
+    torch.distributed.Backend.register_backend(
+        "pccl",
+        lambda store, group_rank, group_size, timeout: mock_backend(store, group_rank, group_size, timeout),
+        devices=["pcu"],
+    )
+
+    # test that the default backend is correctly set for each device
+    devices = [torch.device("cpu"), torch.device("cuda:0"), torch.device("pcu:0")]
+    backends = ["gloo", "nccl", "pccl"]
+    for device, backend in zip(devices, backends):
+        assert _get_default_process_group_backend_for_device(device) == backend
 
 
 @RunIf(min_torch="2.4")

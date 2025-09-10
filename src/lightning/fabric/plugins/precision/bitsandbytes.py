@@ -16,10 +16,11 @@ import logging
 import math
 import os
 import warnings
-from contextlib import ExitStack
+from collections import OrderedDict
+from contextlib import AbstractContextManager, ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type, cast
+from typing import Any, Callable, Literal, Optional, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -39,11 +40,11 @@ from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
-_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.42.0")
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes")
 
 
 class BitsandbytesPrecision(Precision):
-    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -70,7 +71,7 @@ class BitsandbytesPrecision(Precision):
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
         dtype: Optional[torch.dtype] = None,
-        ignore_modules: Optional[Set[str]] = None,
+        ignore_modules: Optional[set[str]] = None,
     ) -> None:
         _import_bitsandbytes()
 
@@ -122,11 +123,11 @@ class BitsandbytesPrecision(Precision):
         return module
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             raise RuntimeError(
@@ -144,7 +145,7 @@ class BitsandbytesPrecision(Precision):
         return stack
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override
@@ -175,7 +176,7 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
 
 
 def _replace_param(
-    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
+    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[tuple] = None
 ) -> torch.nn.Parameter:
     bnb = _import_bitsandbytes()
 
@@ -184,11 +185,15 @@ def _replace_param(
     if param.device.type == "meta":
         if isinstance(param, bnb.nn.Params4bit):
             return bnb.nn.Params4bit(
-                data,
+                data=data,
                 requires_grad=data.requires_grad,
                 quant_state=quant_state,
+                blocksize=param.blocksize,
                 compress_statistics=param.compress_statistics,
                 quant_type=param.quant_type,
+                quant_storage=param.quant_storage,
+                module=param.module,
+                bnb_quantized=param.bnb_quantized,
             )
         return torch.nn.Parameter(data, requires_grad=data.requires_grad)
     param.data = data
@@ -221,7 +226,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
             self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -251,9 +256,12 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                CB, CBt, SCB, SCBt, _ = bnb.functional.double_quant(B)
-                del CBt
-                del SCBt
+                # bitsandbytes >= 0.45 supports an improved API
+                if hasattr(bnb.functional, "int8_vectorwise_quant"):
+                    CB, SCB, _ = bnb.functional.int8_vectorwise_quant(B)
+                else:  # old method is deprecated in 0.45, removed in 0.46+.
+                    CB, _, SCB, _, _ = bnb.functional.double_quant(B)
+
                 int8params.data = CB
                 setattr(int8params, "CB", CB)
                 setattr(int8params, "SCB", SCB)
@@ -305,7 +313,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
             self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -322,6 +330,7 @@ def _import_bitsandbytes() -> ModuleType:
                 return
             assert isinstance(self.weight, bnb.nn.Params4bit)
             self.weight = self.quantize(self.weight, weight, device)
+            self.weight.bnb_quantized = True
 
         @staticmethod
         def quantize(
@@ -337,6 +346,7 @@ def _import_bitsandbytes() -> ModuleType:
                 blocksize=params4bit.blocksize,
                 compress_statistics=params4bit.compress_statistics,
                 quant_type=params4bit.quant_type,
+                quant_storage=params4bit.quant_storage,
             )
             return _replace_param(params4bit, w_4bit, quant_state)
 
@@ -396,7 +406,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
-    # these classes are defined programatically like this to avoid importing bitsandbytes in environments that have
+    # these classes are defined programmatically like this to avoid importing bitsandbytes in environments that have
     # it available but will not use it
     classes = {
         "_Linear8bitLt": _Linear8bitLt,
@@ -412,7 +422,7 @@ def _import_bitsandbytes() -> ModuleType:
     return bnb
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: Set[str], prefix: str = "") -> None:
+def _convert_layers(module: torch.nn.Module, linear_cls: type, ignore_modules: set[str], prefix: str = "") -> None:
     for name, child in module.named_children():
         fullname = f"{prefix}.{name}" if prefix else name
         if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in ignore_modules):

@@ -1,11 +1,13 @@
 import os
 import random
+import warnings
 from unittest import mock
 from unittest.mock import Mock
 
 import numpy
 import pytest
 import torch
+
 from lightning.fabric.utilities.seed import (
     _collect_rng_states,
     _set_rng_states,
@@ -29,9 +31,9 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
         seed_everything()
     initial_seed = os.environ.get("PL_GLOBAL_SEED")
 
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         seed_everything()
-    assert not record  # does not warn
     seed = os.environ.get("PL_GLOBAL_SEED")
 
     assert initial_seed == seed
@@ -45,19 +47,37 @@ def test_correct_seed_with_environment_variable():
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 def test_invalid_seed():
-    """Ensure that we still fix the seed even if an invalid seed is given."""
-    with pytest.warns(UserWarning, match="Invalid seed found"):
-        seed = seed_everything()
-    assert seed == 0
+    """Ensure that a ValueError is raised if an invalid seed is given."""
+    with pytest.raises(ValueError, match="Invalid seed specified"):
+        seed_everything()
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
 def test_out_of_bounds_seed(seed):
-    """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
-    with pytest.warns(UserWarning, match="is not in bounds"):
-        actual = seed_everything(seed)
-    assert actual == 0
+    """Ensure that a ValueError is raised if an out-of-bounds seed is given."""
+    with pytest.raises(ValueError, match="is not in bounds"):
+        seed_everything(seed)
+
+
+def test_seed_everything_accepts_valid_seed_argument():
+    """Ensure that seed_everything returns the provided valid seed."""
+    seed_value = 45
+    assert seed_everything(seed_value) == seed_value
+
+
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "17"}, clear=True)
+def test_seed_everything_accepts_valid_seed_from_env():
+    """Ensure that seed_everything uses the valid seed from the PL_GLOBAL_SEED environment variable."""
+    assert seed_everything() == 17
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything_non_verbose_no_warning():
+    """Ensure that no warning is emitted when verbose is False and no seed is provided."""
+    with warnings.catch_warnings(record=True) as caught:
+        seed_everything(verbose=False)
+    assert caught == []
 
 
 def test_reset_seed_no_op():

@@ -18,10 +18,11 @@ import re
 import shutil
 import tempfile
 import urllib.request
+from collections.abc import Iterable, Iterator, Sequence
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 from packaging.requirements import Requirement
 from packaging.version import Version
@@ -127,7 +128,7 @@ def _parse_requirements(lines: Iterable[str]) -> Iterator[_RequirementWithCommen
         pip_argument = None
 
 
-def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> List[str]:
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> list[str]:
     """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
@@ -153,8 +154,8 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
 
     """
     path_readme = os.path.join(path_dir, "README.md")
-    with open(path_readme, encoding="utf-8") as fo:
-        text = fo.read()
+    with open(path_readme, encoding="utf-8") as fopen:
+        text = fopen.read()
 
     # drop images from readme
     text = text.replace(
@@ -222,7 +223,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
 
-def _retrieve_files(directory: str, *ext: str) -> List[str]:
+def _retrieve_files(directory: str, *ext: str) -> list[str]:
     all_files = []
     for root, _, files in os.walk(directory):
         for fname in files:
@@ -232,7 +233,7 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
-def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning_by: str = "") -> List[str]:
+def _replace_imports(lines: list[str], mapping: list[tuple[str, str]], lightning_by: str = "") -> list[str]:
     """Replace imports of standalone package to lightning.
 
     >>> lns = [
@@ -307,20 +308,20 @@ def copy_replace_imports(
         if ext in (".pyc",):
             continue
         # Try to parse everything else
-        with open(fp, encoding="utf-8") as fo:
+        with open(fp, encoding="utf-8") as fopen:
             try:
-                lines = fo.readlines()
+                lines = fopen.readlines()
             except UnicodeDecodeError:
                 # a binary file, skip
                 print(f"Skipped replacing imports for {fp}")
                 continue
         lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-        with open(fp_new, "w", encoding="utf-8") as fo:
-            fo.writelines(lines)
+        with open(fp_new, "w", encoding="utf-8") as fopen:
+            fopen.writelines(lines)
 
 
-def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> None:
     """Create a mirror package with adjusted imports."""
     # replace imports and copy the code
     mapping = package_mapping.copy()
@@ -340,47 +341,6 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
 
 
 class AssistantCLI:
-    @staticmethod
-    def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Remove some packages from given requirement files."""
-        if isinstance(req_files, str):
-            req_files = [req_files]
-        for req in req_files:
-            AssistantCLI._prune_packages(req, packages)
-
-    @staticmethod
-    def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
-        """Remove some packages from given requirement files."""
-        path = Path(req_file)
-        assert path.exists()
-        text = path.read_text()
-        lines = text.splitlines()
-        final = []
-        for line in lines:
-            ln_ = line.strip()
-            if not ln_ or ln_.startswith("#"):
-                final.append(line)
-                continue
-            req = list(_parse_requirements([ln_]))[0]
-            if req.name not in packages:
-                final.append(line)
-        print(final)
-        path.write_text("\n".join(final) + "\n")
-
-    @staticmethod
-    def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fo:
-            req = fo.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fw:
-            fw.write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            print(fname)
-            AssistantCLI._replace_min(fname)
-
     @staticmethod
     def copy_replace_imports(
         source_dir: str,
@@ -470,15 +430,53 @@ class AssistantCLI:
         """Load the actual version and convert it to the nightly version."""
         from datetime import datetime
 
-        with open(ver_file) as fo:
-            version = fo.read().strip()
+        with open(ver_file) as fopen:
+            version = fopen.read().strip()
         # parse X.Y.Z version and prune any suffix
         vers = re.match(r"(\d+)\.(\d+)\.(\d+).*", version)
         # create timestamp  YYYYMMDD
         timestamp = datetime.now().strftime("%Y%m%d")
         version = f"{'.'.join(vers.groups())}.dev{timestamp}"
-        with open(ver_file, "w") as fo:
-            fo.write(version + os.linesep)
+        with open(ver_file, "w") as fopen:
+            fopen.write(version + os.linesep)
+
+    @staticmethod
+    def generate_docker_tags(
+        release_version: str,
+        python_version: str,
+        torch_version: str,
+        cuda_version: str,
+        docker_project: str = "pytorchlightning/pytorch_lightning",
+        add_latest: bool = False,
+    ) -> None:
+        """Generate docker tags for the given versions."""
+        tags = [f"latest-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if release_version:
+            tags += [f"{release_version}-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if add_latest:
+            tags += ["latest"]
+
+        tags = [f"{docker_project}:{tag}" for tag in tags]
+        print(",".join(tags))
+
+    @staticmethod
+    def prune_pytest_as_errors(
+        pyproject_toml: str = "pyproject.toml", errors: tuple = ("FutureWarning", "DeprecationWarning")
+    ) -> None:
+        """Prune pytest warnings as errors from the pyproject.toml file."""
+        import tomlkit
+
+        with open(pyproject_toml, encoding="utf-8") as fopen:
+            content = fopen.read()
+        pyproject = tomlkit.parse(content)
+        filterwarnings = pyproject.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("filterwarnings", [])
+        if not filterwarnings:
+            return
+        filterwarnings = [wrn for wrn in filterwarnings if not any(f"error::{err}" in wrn for err in errors)]
+        pyproject["tool"]["pytest"]["ini_options"]["filterwarnings"] = filterwarnings
+
+        with open(pyproject_toml, "w", encoding="utf-8") as fopen:
+            fopen.write(tomlkit.dumps(pyproject))
 
 
 if __name__ == "__main__":

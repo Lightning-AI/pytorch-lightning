@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor
@@ -23,7 +23,7 @@ from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
-from lightning.fabric.plugins import XLAPrecision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
@@ -43,7 +43,7 @@ class XLAStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         checkpoint_io: Optional[XLACheckpointIO] = None,
         precision: Optional[XLAPrecision] = None,
         sync_module_states: bool = True,
@@ -83,7 +83,7 @@ class XLAStrategy(ParallelStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -99,7 +99,7 @@ class XLAStrategy(ParallelStrategy):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[XLAPrecision]) -> None:
+    def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
@@ -133,7 +133,7 @@ class XLAStrategy(ParallelStrategy):
         assert self.parallel_devices is not None
         if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
-            # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
+            # https://github.com/Lightning-AI/pytorch-lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 f"The {type(self).__name__} does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
@@ -276,9 +276,9 @@ class XLAStrategy(ParallelStrategy):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: Dict[str, Union[Module, Optimizer, Any]],
+        state: dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 

@@ -18,7 +18,7 @@ Role: All final decisions related to Lightning.
 
 Maintainers
 -----------
-- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
+- Luca Antiga (`lantiga <https://github.com/lantiga>`_)
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 
@@ -32,6 +32,7 @@ Emeritus Maintainers
 
 Alumni
 ------
+- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
@@ -66,6 +67,6 @@ and start tracking the development. It is possible that priorities change over t
 
 Commits to the project are exclusively to be added by pull requests on GitHub and anyone in the community is welcome to
 review them. However, reviews submitted by
-`code owners <https://github.com/Lightning-AI/lightning/blob/master/.github/CODEOWNERS>`_
+`code owners <https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CODEOWNERS>`_
 have higher weight and it is necessary to get the approval of code owners before a pull request can be merged.
 Additional requirements may apply case by case.

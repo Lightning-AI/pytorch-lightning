@@ -15,7 +15,7 @@ We developed `StreamingDataset` to optimize training of large datasets stored on
 
 Specifically crafted for multi-gpu & multi-node (with [DDP](https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html), [FSDP](https://lightning.ai/docs/pytorch/stable/advanced/model_parallel/fsdp.html), etc...), distributed training with large models, it enhances accuracy, performance, and user-friendliness. Now, training efficiently is possible regardless of the data's location. Simply stream in the required data when needed.
 
-The `StreamingDataset` is compatible with any data type, including **images, text, video, audio, geo-spatial, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs.
+The `StreamingDataset` is compatible with any data type, including **images, text, video, audio, geo-spatial, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/litgpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs.
 
 <br/>
 
@@ -31,11 +31,11 @@ Find the reproducible [Studio Benchmark](https://lightning.ai/lightning-ai/studi
 
 ### Imagenet-1.2M Streaming from AWS S3
 
-| Framework   | Images / sec  1st Epoch (float32) | Images / sec   2nd Epoch (float32) | Images / sec 1st Epoch (torch16) | Images / sec 2nd Epoch (torch16) |
-| ----------- | --------------------------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
-| PL Data     | **5800.34**                       | **6589.98**                        | **6282.17**                      | **7221.88**                      |
-| Web Dataset | 3134.42                           | 3924.95                            | 3343.40                          | 4424.62                          |
-| Mosaic ML   | 2898.61                           | 5099.93                            | 2809.69                          | 5158.98                          |
+| Framework   | Images / sec 1st Epoch (float32) | Images / sec 2nd Epoch (float32) | Images / sec 1st Epoch (torch16) | Images / sec 2nd Epoch (torch16) |
+| ----------- | -------------------------------- | -------------------------------- | -------------------------------- | -------------------------------- |
+| PL Data     | **5800.34**                      | **6589.98**                      | **6282.17**                      | **7221.88**                      |
+| Web Dataset | 3134.42                          | 3924.95                          | 3343.40                          | 4424.62                          |
+| Mosaic ML   | 2898.61                          | 5099.93                          | 2809.69                          | 5158.98                          |
 
 Higher is better.
 
@@ -284,7 +284,7 @@ for batch in tqdm(train_dataloader):
 
 Lightning Data provides a stateful `StreamingDataLoader`. This simplifies resuming training over large datasets.
 
-Note: The `StreamingDataLoader` is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs. The statefulness still works when using a mixture of datasets with the `CombinedStreamingDataset`.
+Note: The `StreamingDataLoader` is used by [Lit-GPT](https://github.com/Lightning-AI/litgpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs. The statefulness still works when using a mixture of datasets with the `CombinedStreamingDataset`.
 
 ```python
 import os

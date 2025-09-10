@@ -13,10 +13,12 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
+import copy
 import logging
 import numbers
 import weakref
-from contextlib import contextmanager
+from collections.abc import Generator, Mapping, Sequence
+from contextlib import contextmanager, nullcontext
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -24,14 +26,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Generator,
-    List,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
     Union,
     cast,
     overload,
@@ -52,6 +48,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -65,7 +62,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -77,16 +74,24 @@ from lightning.pytorch.utilities.types import (
     OptimizerLRScheduler,
 )
 
+_ONNX_AVAILABLE = RequirementCache("onnx")
+_ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
+_TORCH_TRT_AVAILABLE = RequirementCache("torch_tensorrt")
+
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
 
-_ONNX_AVAILABLE = RequirementCache("onnx")
+    if _TORCH_GREATER_EQUAL_2_5:
+        if _TORCH_GREATER_EQUAL_2_6:
+            from torch.onnx import ONNXProgram
+        else:
+            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 MODULE_OPTIMIZERS = Union[
-    Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]
+    Optimizer, LightningOptimizer, _FabricOptimizer, list[Optimizer], list[LightningOptimizer], list[_FabricOptimizer]
 ]
 
 
@@ -100,7 +105,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__: List[str] = (
+    __jit_unused_properties__: list[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -132,19 +137,19 @@ class LightningModule(
         self._trainer: Optional[pl.Trainer] = None
 
         # attributes that can be set by user
-        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
+        self._example_input_array: Optional[Union[Tensor, tuple, dict]] = None
         self._automatic_optimization: bool = True
         self._strict_loading: Optional[bool] = None
 
         # attributes used internally
         self._current_fx_name: Optional[str] = None
-        self._param_requires_grad_state: Dict[str, bool] = {}
-        self._metric_attributes: Optional[Dict[int, str]] = None
-        self._compiler_ctx: Optional[Dict[str, Any]] = None
+        self._param_requires_grad_state: dict[str, bool] = {}
+        self._metric_attributes: Optional[dict[int, str]] = None
+        self._compiler_ctx: Optional[dict[str, Any]] = None
 
         # attributes only used when using fabric
         self._fabric: Optional[lf.Fabric] = None
-        self._fabric_optimizers: List[_FabricOptimizer] = []
+        self._fabric_optimizers: list[_FabricOptimizer] = []
 
         # access to device mesh in `conigure_model()` hook
         self._device_mesh: Optional[DeviceMesh] = None
@@ -152,10 +157,10 @@ class LightningModule(
     @overload
     def optimizers(
         self, use_pl_optimizer: Literal[True] = True
-    ) -> Union[LightningOptimizer, List[LightningOptimizer]]: ...
+    ) -> Union[LightningOptimizer, list[LightningOptimizer]]: ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]: ...
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, list[Optimizer]]: ...
 
     @overload
     def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS: ...
@@ -190,7 +195,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Union[None, List[LRSchedulerPLType], LRSchedulerPLType]:
+    def lr_schedulers(self) -> Union[None, list[LRSchedulerPLType], LRSchedulerPLType]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual optimization.
 
         Returns:
@@ -202,7 +207,7 @@ class LightningModule(
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers: List[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
+        lr_schedulers: list[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -223,7 +228,7 @@ class LightningModule(
     def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v.trainer = trainer  # type: ignore[assignment]
+                v.trainer = trainer
         self._trainer = trainer
 
     @property
@@ -240,7 +245,7 @@ class LightningModule(
         self._fabric = fabric
 
     @property
-    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
+    def example_input_array(self) -> Optional[Union[Tensor, tuple, dict]]:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method. The
         return type is interpreted as follows:
 
@@ -255,7 +260,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
+    def example_input_array(self, example: Optional[Union[Tensor, tuple, dict]]) -> None:
         self._example_input_array = example
 
     @property
@@ -267,7 +272,7 @@ class LightningModule(
     def global_step(self) -> int:
         """Total training batches seen across all epochs.
 
-        If no Trainer is attached, this propery is 0.
+        If no Trainer is attached, this property is 0.
 
         """
         return self.trainer.global_step if self._trainer else 0
@@ -318,7 +323,7 @@ class LightningModule(
         return self._trainer.logger if self._trainer is not None else None
 
     @property
-    def loggers(self) -> Union[List[Logger], List[FabricLogger]]:
+    def loggers(self) -> Union[list[Logger], list[FabricLogger]]:
         """Reference to the list of loggers in the Trainer."""
         if self._fabric is not None:
             return self._fabric.loggers
@@ -386,7 +391,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
@@ -471,10 +476,10 @@ class LightningModule(
         )
 
         # make sure user doesn't introduce logic for multi-dataloaders
-        if "/dataloader_idx_" in name:
+        if add_dataloader_idx and "/dataloader_idx_" in name:
             raise MisconfigurationException(
                 f"You called `self.log` with the key `{name}`"
-                " but it should not contain information about `dataloader_idx`"
+                " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
         value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
@@ -531,7 +536,7 @@ class LightningModule(
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,  # type: ignore[arg-type]
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
@@ -551,7 +556,7 @@ class LightningModule(
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        reduce_fx: Union[str, Callable[[Any], Any]] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
@@ -599,7 +604,7 @@ class LightningModule(
         if self._fabric is not None:
             return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
 
-        kwargs: Dict[str, bool] = {}
+        kwargs: dict[str, bool] = {}
 
         if isinstance(dictionary, MetricCollection):
             kwargs["keep_base"] = False
@@ -665,8 +670,8 @@ class LightningModule(
         return value
 
     def all_gather(
-        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[Tensor, Dict, List, Tuple]:
+        self, data: Union[Tensor, dict, list, tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Union[Tensor, dict, list, tuple]:
         r"""Gather tensors or collections of tensors from multiple processes.
 
         This method needs to be called on all processes and the tensors need to have the same shape across all
@@ -813,7 +818,22 @@ class LightningModule(
             # CASE 2: multiple validation dataloaders
             def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"val_loss_{dataloader_idx}": loss, f"val_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -880,7 +900,22 @@ class LightningModule(
             # CASE 2: multiple test dataloaders
             def test_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
-                ...
+                x, y = batch
+
+                # implement your own
+                out = self(x)
+
+                if dataloader_idx == 0:
+                    loss = self.loss0(out, y)
+                else:
+                    loss = self.loss1(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # log the outputs separately for each dataloader
+                self.log_dict({f"test_loss_{dataloader_idx}": loss, f"test_acc_{dataloader_idx}": acc})
 
         Note:
             If you don't need to test you don't need to implement this method.
@@ -984,7 +1019,7 @@ class LightningModule(
                 # `scheduler.step()`. 1 corresponds to updating the learning
                 # rate after every epoch/step.
                 "frequency": 1,
-                # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+                # Metric to monitor for schedulers like `ReduceLROnPlateau`
                 "monitor": "val_loss",
                 # If set to `True`, will enforce that the value specified 'monitor'
                 # is available when the scheduler is updated, thus stopping
@@ -1145,6 +1180,32 @@ class LightningModule(
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         self._param_requires_grad_state = {}
+
+    @contextmanager
+    def toggled_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> Generator:
+        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
+        prevent dangling gradients in multiple-optimizer setup. Combines :meth:`toggle_optimizer` and
+        :meth:`untoggle_optimizer` into context manager.
+
+        Args:
+            optimizer: The optimizer to toggle.
+
+        Example::
+
+            def training_step(...):
+                opt = self.optimizers()
+                with self.toggled_optimizer(opt):
+                    loss = ...
+                    opt.zero_grad()
+                    self.manual_backward(loss)
+                    opt.step()
+
+        """
+        self.toggle_optimizer(optimizer)
+        try:
+            yield
+        finally:
+            self.untoggle_optimizer(optimizer)
 
     def clip_gradients(
         self,
@@ -1365,12 +1426,18 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(
+        self,
+        file_path: Union[str, Path, BytesIO, None] = None,
+        input_sample: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Optional["ONNXProgram"]:
         """Saves the model in ONNX format.
 
         Args:
-            file_path: The path of the file the onnx model should be saved to.
+            file_path: The path of the file the onnx model should be saved to. Default: None (no file saved).
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example::
@@ -1391,6 +1458,12 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
+        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
+                "requires `onnxscript` and `torch>=2.5.0` to be installed."
+            )
+
         mode = self.training
 
         if input_sample is None:
@@ -1405,8 +1478,11 @@ class LightningModule(
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
-        torch.onnx.export(self, input_sample, file_path, **kwargs)
+        # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
+        #               BytesIO does work, too.
+        ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
+        return ret
 
     @torch.no_grad()
     def to_torchscript(
@@ -1415,7 +1491,7 @@ class LightningModule(
         method: Optional[str] = "script",
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
-    ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
+    ) -> Union[ScriptModule, dict[str, ScriptModule]]:
         """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
         please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
         provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
@@ -1475,6 +1551,10 @@ class LightningModule(
                     )
                 example_inputs = self.example_input_array
 
+            if kwargs.get("check_inputs") is not None:
+                kwargs["check_inputs"] = self._on_before_batch_transfer(kwargs["check_inputs"])
+                kwargs["check_inputs"] = self._apply_batch_transfer_handler(kwargs["check_inputs"])
+
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
@@ -1491,6 +1571,117 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
+
+    @torch.no_grad()
+    def to_tensorrt(
+        self,
+        file_path: Optional[Union[str, Path, BytesIO]] = None,
+        input_sample: Optional[Any] = None,
+        ir: Literal["default", "dynamo", "ts"] = "default",
+        output_format: Literal["exported_program", "torchscript"] = "exported_program",
+        retrace: bool = False,
+        default_device: Union[str, torch.device] = "cuda",
+        **compile_kwargs: Any,
+    ) -> Union[ScriptModule, torch.fx.GraphModule]:
+        """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
+
+        Args:
+            file_path: Path where to save the tensorrt model. Default: None (no file saved).
+            input_sample: inputs to be used during `torch_tensorrt.compile`.
+                Default: None (Use :attr:`example_input_array`).
+            ir: The IR mode to use for TensorRT compilation. Default: "default".
+            output_format: The format of the output model. Default: "exported_program".
+            retrace: Whether to retrace the model. Default: False.
+            default_device: The device to use for the model when the current model is not in CUDA. Default: "cuda".
+            **compile_kwargs: Additional arguments that will be passed to the TensorRT compile function.
+
+        Example::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            exported_program = model.to_tensorrt(
+                file_path="export.ep",
+                inputs=input_sample,
+            )
+
+        """
+        if not _TORCH_GREATER_EQUAL_2_2:
+            raise MisconfigurationException(
+                f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."
+            )
+
+        if not _TORCH_TRT_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "
+            )
+
+        mode = self.training
+        device = self.device
+        if self.device.type != "cuda":
+            default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
+
+            if not torch.cuda.is_available() or default_device.type != "cuda":
+                raise MisconfigurationException(
+                    f"TensorRT only supports CUDA devices. The current device is {self.device}."
+                    f" Please set the `default_device` argument to a CUDA device."
+                )
+
+            self.to(default_device)
+
+        if input_sample is None:
+            if self.example_input_array is None:
+                raise ValueError(
+                    "Could not export to TensorRT since neither `input_sample` nor"
+                    " `model.example_input_array` attribute is set."
+                )
+            input_sample = self.example_input_array
+
+        import torch_tensorrt
+
+        input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
+        input_sample = self._on_before_batch_transfer(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
+
+        with _jit_is_scripting() if ir == "ts" else nullcontext():
+            trt_obj = torch_tensorrt.compile(
+                module=self.eval(),
+                ir=ir,
+                inputs=input_sample,
+                **compile_kwargs,
+            )
+        self.train(mode)
+        self.to(device)
+
+        if file_path is not None:
+            if ir == "ts":
+                if output_format != "torchscript":
+                    raise ValueError(
+                        "TensorRT with IR mode 'ts' only supports output format 'torchscript'."
+                        f" The current output format is {output_format}."
+                    )
+                assert isinstance(trt_obj, (torch.jit.ScriptModule, torch.jit.ScriptFunction)), (
+                    f"Expected TensorRT object to be a ScriptModule, but got {type(trt_obj)}."
+                )
+                # Because of https://github.com/pytorch/TensorRT/issues/3775,
+                # we'll need to take special care for the ScriptModule
+                torch.jit.save(trt_obj, file_path)
+            else:
+                torch_tensorrt.save(
+                    trt_obj,
+                    file_path,
+                    inputs=input_sample,
+                    output_format=output_format,
+                    retrace=retrace,
+                )
+        return trt_obj
 
     @_restricted_classmethod
     def load_from_checkpoint(
@@ -1592,7 +1783,7 @@ class LightningModule(
         return cast(Self, loaded)
 
     @override
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None
         return state

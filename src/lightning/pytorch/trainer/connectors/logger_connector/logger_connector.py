@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -92,8 +93,9 @@ class _LoggerConnector:
 
         Args:
             metrics: Metric values
-            step: Step for which metrics should be logged. Default value is `self.global_step` during training or
-                the total validation / test log step count during validation and testing.
+            step: Step for which metrics should be logged. If a `step` metric is logged, this value will
+                be used else will default to `self.global_step` during training or the total log step count
+                during validation and testing.
 
         """
         if not self.trainer.loggers or not metrics:
@@ -105,12 +107,13 @@ class _LoggerConnector:
         scalar_metrics = convert_tensors_to_scalars(metrics)
 
         if step is None:
-            step = scalar_metrics.pop("step", None)
-
-        if step is None:
-            # added metrics for convenience
-            scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
+            step_metric = scalar_metrics.pop("step", None)
+            if step_metric is not None:
+                step = int(step_metric)
+            else:
+                # added metrics for convenience
+                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
+                step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
         for logger in self.trainer.loggers:

@@ -1,4 +1,4 @@
-.PHONY: test clean docs
+.PHONY: test clean docs setup
 
 # to imitate SLURM set only single node
 export SLURM_LOCALID=0
@@ -6,6 +6,23 @@ export SLURM_LOCALID=0
 export SPHINX_MOCK_REQUIREMENTS=1
 # install only Lightning Trainer packages
 export PACKAGE_NAME=pytorch
+
+setup:
+	uv pip install -r requirements.txt \
+	    -r requirements/pytorch/base.txt \
+	    -r requirements/pytorch/test.txt \
+	    -r requirements/pytorch/extra.txt \
+	    -r requirements/pytorch/strategies.txt \
+	    -r requirements/fabric/base.txt \
+	    -r requirements/fabric/test.txt \
+	    -r requirements/fabric/strategies.txt \
+	    -r requirements/typing.txt \
+	    -e ".[all]" \
+	    pre-commit
+	pre-commit install
+	@echo "-----------------------------"
+	@echo "✅ Environment setup complete. Ready to Contribute ⚡️!"
+
 
 clean:
 	# clean all temp runs
@@ -28,12 +45,8 @@ clean:
 	rm -rf src/lightning_fabric/*/
 	rm -rf src/pytorch_lightning/*/
 
-test: clean
+test: clean setup
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . \
-	-r requirements/pytorch/base.txt \
-	-r requirements/fabric/base.txt \
-	-r requirements/pytorch/test.txt \
 
 	# run tests with coverage
 	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
@@ -42,18 +55,18 @@ test: clean
 
 docs: docs-pytorch
 
-sphinx-theme:
-	pip install -q awscli
+sphinx-theme: setup
+	uv pip install -q awscli
 	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
-	pip install lai-sphinx-theme -f dist/
+	uv pip install lai-sphinx-theme -f dist/
 
 docs-fabric: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/fabric/docs.txt
+	uv pip install -e '.[all]' --quiet -r requirements/fabric/docs.txt
 	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
 
 docs-pytorch: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt
+	uv pip install -e '.[all]' --quiet -r requirements/pytorch/docs.txt
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:

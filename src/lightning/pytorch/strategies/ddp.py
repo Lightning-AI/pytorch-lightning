@@ -14,7 +14,7 @@
 import logging
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -36,7 +36,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
@@ -71,7 +71,7 @@ class DDPStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
@@ -133,7 +133,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
@@ -200,7 +200,10 @@ class DDPStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -283,7 +286,7 @@ class DDPStrategy(ParallelStrategy):
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
-    def determine_ddp_device_ids(self) -> Optional[List[int]]:
+    def determine_ddp_device_ids(self) -> Optional[list[int]]:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]

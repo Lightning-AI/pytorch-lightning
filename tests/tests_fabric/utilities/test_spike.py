@@ -1,10 +1,12 @@
 import contextlib
-import sys
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, SpikeDetection, TrainingSpikeException
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
+from lightning.fabric.utilities.spike import SpikeDetection, TrainingSpikeException
+from tests_fabric.helpers.runif import RunIf
 
 
 def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
@@ -28,9 +30,11 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
             )
 
 
-@pytest.mark.flaky(max_runs=3)
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
+    # NOTE FOR ALL FOLLOWING TESTS:
+    # adding run on linux only because multiprocessing on other platforms takes forever
     [
         pytest.param(0, 1, None, True),
         pytest.param(0, 1, None, False),
@@ -40,150 +44,22 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
         pytest.param(0, 1, float("-inf"), False),
         pytest.param(0, 1, float("NaN"), True),
         pytest.param(0, 1, float("NaN"), False),
-        pytest.param(
-            0,
-            2,
-            None,
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            None,
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            None,
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            None,
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("inf"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("inf"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("inf"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("inf"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("-inf"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("-inf"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("-inf"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("-inf"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("NaN"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            0,
-            2,
-            float("NaN"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("NaN"),
-            True,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
-        pytest.param(
-            1,
-            2,
-            float("NaN"),
-            False,
-            marks=pytest.mark.skipif(
-                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
-            ),
-        ),
+        pytest.param(0, 2, None, True, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, None, False, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, None, True, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, None, False, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("inf"), True, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("inf"), False, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("inf"), True, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("inf"), False, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("-inf"), True, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("-inf"), False, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("-inf"), True, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("-inf"), False, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("NaN"), True, marks=RunIf(linux_only=True)),
+        pytest.param(0, 2, float("NaN"), False, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("NaN"), True, marks=RunIf(linux_only=True)),
+        pytest.param(1, 2, float("NaN"), False, marks=RunIf(linux_only=True)),
     ],
 )
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")

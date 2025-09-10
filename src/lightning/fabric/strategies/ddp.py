@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
-from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -41,6 +41,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
@@ -55,7 +56,7 @@ class DDPStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
@@ -99,7 +100,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
@@ -159,7 +160,17 @@ class DDPStrategy(ParallelStrategy):
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:
-            torch.distributed.barrier()
+            # Handle PyTorch bug where barrier() fails on CPU with "PrivateUse1HooksInterface" error
+            try:
+                torch.distributed.barrier()
+            except RuntimeError as e:
+                if "PrivateUse1HooksInterface" in str(e):
+                    # Fallback: Use all_reduce as barrier - all processes must participate
+                    # This achieves the same synchronization effect as barrier()
+                    dummy_tensor = torch.tensor(0.0, device=self.root_device)
+                    torch.distributed.all_reduce(dummy_tensor)
+                else:
+                    raise
 
     @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
@@ -171,14 +182,14 @@ class DDPStrategy(ParallelStrategy):
         return obj[0]
 
     @override
-    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
         if isinstance(module, DistributedDataParallel):
             module = module.module
         return super().get_module_state_dict(module)
 
     @override
     def load_module_state_dict(
-        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
     ) -> None:
         if isinstance(module, DistributedDataParallel):
             module = module.module
@@ -212,7 +223,10 @@ class DDPStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -225,13 +239,13 @@ class DDPStrategy(ParallelStrategy):
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
-    def _determine_ddp_device_ids(self) -> Optional[List[int]]:
+    def _determine_ddp_device_ids(self) -> Optional[list[int]]:
         return None if self.root_device.type == "cpu" else [self.root_device.index]
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> AbstractContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
         wrapper."""
         if not enabled:
