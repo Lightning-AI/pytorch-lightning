@@ -411,7 +411,7 @@ def _load_checkpoint(
     state: dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
-    weights_only: bool = False,
+    weights_only: Optional[bool] = None,
 ) -> dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,
