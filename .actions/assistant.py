@@ -342,47 +342,6 @@ def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> N
 
 class AssistantCLI:
     @staticmethod
-    def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Remove some packages from given requirement files."""
-        if isinstance(req_files, str):
-            req_files = [req_files]
-        for req in req_files:
-            AssistantCLI._prune_packages(req, packages)
-
-    @staticmethod
-    def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
-        """Remove some packages from given requirement files."""
-        path = Path(req_file)
-        assert path.exists()
-        text = path.read_text()
-        lines = text.splitlines()
-        final = []
-        for line in lines:
-            ln_ = line.strip()
-            if not ln_ or ln_.startswith("#"):
-                final.append(line)
-                continue
-            req = list(_parse_requirements([ln_]))[0]
-            if req.name not in packages:
-                final.append(line)
-        print(final)
-        path.write_text("\n".join(final) + "\n")
-
-    @staticmethod
-    def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fopen:
-            req = fopen.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fwrite:
-            fwrite.write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            print(fname)
-            AssistantCLI._replace_min(fname)
-
-    @staticmethod
     def copy_replace_imports(
         source_dir: str,
         source_import: str,
@@ -499,6 +458,25 @@ class AssistantCLI:
 
         tags = [f"{docker_project}:{tag}" for tag in tags]
         print(",".join(tags))
+
+    @staticmethod
+    def prune_pytest_as_errors(
+        pyproject_toml: str = "pyproject.toml", errors: tuple = ("FutureWarning", "DeprecationWarning")
+    ) -> None:
+        """Prune pytest warnings as errors from the pyproject.toml file."""
+        import tomlkit
+
+        with open(pyproject_toml, encoding="utf-8") as fopen:
+            content = fopen.read()
+        pyproject = tomlkit.parse(content)
+        filterwarnings = pyproject.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("filterwarnings", [])
+        if not filterwarnings:
+            return
+        filterwarnings = [wrn for wrn in filterwarnings if not any(f"error::{err}" in wrn for err in errors)]
+        pyproject["tool"]["pytest"]["ini_options"]["filterwarnings"] = filterwarnings
+
+        with open(pyproject_toml, "w", encoding="utf-8") as fopen:
+            fopen.write(tomlkit.dumps(pyproject))
 
 
 if __name__ == "__main__":

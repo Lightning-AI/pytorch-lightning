@@ -205,7 +205,12 @@ def test_pruning_lth_callable(tmp_path, resample_parameters):
                 for i, name in names:
                     curr, curr_name = self._parameters_to_prune[i]
                     assert name == curr_name
-                    actual, expected = getattr(curr, name).data, getattr(copy, name).data
+                    # Check weight_orig if parameter is pruned, otherwise check the parameter directly
+                    if hasattr(curr, name + "_orig"):
+                        actual = getattr(curr, name + "_orig").data
+                    else:
+                        actual = getattr(curr, name).data
+                    expected = getattr(copy, name).data
                     allclose = torch.allclose(actual.cpu(), expected)
                     assert not allclose if self._resample_parameters else allclose
 
@@ -405,3 +410,56 @@ def test_original_issue_reproduction():
     for module, param_name in parameters_to_prune:
         param = getattr(module, param_name)
         assert isinstance(param, nn.Parameter), f"Non-parameter found: {type(param)}"
+
+
+def test_lottery_ticket_hypothesis_correctly_reset(tmp_path):
+    """Test that lottery ticket hypothesis correctly resets unpruned weights to original values."""
+    seed_everything(42)
+
+    class LTHTestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 2, bias=False)
+            with torch.no_grad():
+                # Initialize with a simple pattern for verification
+                self.layer.weight.copy_(torch.arange(1, 65, dtype=torch.float32).reshape(2, 32))
+
+    model = LTHTestModel()
+    original_weights = model.layer.weight.data.clone()
+
+    # Create a pruning callback that applies both pruning and LTH at epoch 1
+    pruning_callback = ModelPruning(
+        "l1_unstructured",
+        parameters_to_prune=[(model.layer, "weight")],
+        use_lottery_ticket_hypothesis=lambda epoch: epoch == 1,
+        amount=0.5,
+        verbose=0,  # Reduce verbosity
+        make_pruning_permanent=False,
+        apply_pruning=lambda epoch: epoch == 1,
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+        limit_train_batches=5,
+        limit_val_batches=1,
+        max_epochs=2,
+        accelerator="cpu",
+        callbacks=pruning_callback,
+    )
+    trainer.fit(model)
+
+    # After training with LTH applied, check that weight_orig was reset correctly
+    assert hasattr(model.layer, "weight_mask"), "Pruning should have created weight_mask"
+    assert hasattr(model.layer, "weight_orig"), "Pruning should have created weight_orig"
+
+    weight_orig = getattr(model.layer, "weight_orig")
+    assert torch.allclose(weight_orig, original_weights, atol=1e-6), (
+        f"Lottery ticket hypothesis failed. weight_orig should be reset to original values.\n"
+        f"Expected weight_orig: {original_weights}\n"
+        f"Actual weight_orig: {weight_orig}\n"
+        f"Max difference: {torch.max(torch.abs(weight_orig - original_weights))}"
+    )

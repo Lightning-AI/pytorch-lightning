@@ -23,18 +23,18 @@ on:
 jobs:
   cron-clear:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
-    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.15.0
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.15.2
     with:
-      scripts-ref: v0.14.3
+      scripts-ref: v0.15.2
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: "latest|docs"
       age-days: 7
 
   direct-clear:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
-    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.15.0
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.15.2
     with:
-      scripts-ref: v0.14.3
+      scripts-ref: v0.15.2
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: ${{ inputs.pattern || 'pypi_wheels' }} # setting str in case of PR / debugging
       age-days: ${{ fromJSON(inputs.age-days) || 0 }} # setting 0 in case of PR / debugging
