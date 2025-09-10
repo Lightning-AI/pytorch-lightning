@@ -18,7 +18,6 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import LightningModule, Trainer
@@ -76,6 +75,7 @@ def test_trainer_compiled_model_deepspeed(_, tmp_path, monkeypatch, mps_count_0)
 
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
         trainer.fit(compiled_model)
+
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
