@@ -562,6 +562,46 @@ def test_deepspeed_multigpu_single_file(tmp_path):
     trainer.test(model, ckpt_path=checkpoint_path)
 
 
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+def test_deepspeed_strategy_exclude_frozen_parameters_integration(tmp_path):
+    """Test end-to-end integration of exclude_frozen_parameters with actual model training and checkpointing."""
+
+    class TestModelWithFrozenParams(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.frozen_layer = torch.nn.Linear(32, 32)
+
+        def configure_model(self) -> None:
+            super().configure_model()
+            # Freeze the additional layer parameters
+            for param in self.frozen_layer.parameters():
+                param.requires_grad = False
+
+        def forward(self, x):
+            x = self.frozen_layer(x)
+            return super().forward(x)
+
+    model = TestModelWithFrozenParams()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        strategy=DeepSpeedStrategy(exclude_frozen_parameters=True),
+        accelerator="gpu",
+        devices=1,
+        fast_dev_run=True,
+        precision="16-mixed",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model)
+    checkpoint_path = os.path.join(tmp_path, "checkpoint_exclude_frozen.ckpt")
+    trainer.save_checkpoint(checkpoint_path)
+
+    # Verify checkpoint was created
+    assert os.path.exists(checkpoint_path)
+
+
 class ModelParallelClassificationModel(LightningModule):
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
         super().__init__()
