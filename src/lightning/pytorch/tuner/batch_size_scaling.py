@@ -76,24 +76,27 @@ def _scale_batch_size(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
-    new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
+    try:
+        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
 
-    if mode == "power":
-        new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params)
-    elif mode == "binsearch":
-        new_size = _run_binary_scaling(trainer, new_size, batch_arg_name, max_trials, params)
+        if mode == "power":
+            new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params)
+        elif mode == "binsearch":
+            new_size = _run_binary_scaling(trainer, new_size, batch_arg_name, max_trials, params)
 
-    garbage_collection_cuda()
+        garbage_collection_cuda()
 
-    log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
+        log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
+    except Exception as ex:
+        raise ex
+    finally:
+        __scale_batch_restore_params(trainer, params)
 
-    __scale_batch_restore_params(trainer, params)
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.enable()
 
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.enable()
-
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
+        trainer._checkpoint_connector.restore(ckpt_path)
+        trainer.strategy.remove_checkpoint(ckpt_path)
 
     return new_size
 
@@ -175,7 +178,8 @@ def _run_power_scaling(
     # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
     # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
     any_success = False
-    for _ in range(max_trials):
+    last_successful_size = new_size
+    for i in range(max_trials):
         garbage_collection_cuda()
 
         # reset after each try
@@ -183,6 +187,13 @@ def _run_power_scaling(
 
         try:
             _try_loop_run(trainer, params)
+            last_successful_size = new_size  # Store the current size before doubling
+
+            # Check if this is the last trial before trying to double
+            if i + 1 >= max_trials:
+                new_size = last_successful_size
+                break
+
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
             if not changed:
@@ -221,6 +232,7 @@ def _run_binary_scaling(
     low = 1
     high = None
     count = 0
+    last_successful_size = new_size
     while True:
         garbage_collection_cuda()
 
@@ -230,9 +242,14 @@ def _run_binary_scaling(
         try:
             # run loop
             _try_loop_run(trainer, params)
+            last_successful_size = new_size  # Store the current size before doubling
             count += 1
-            if count > max_trials:
+
+            # Check if we've reached max_trials before trying to adjust batch size
+            if count >= max_trials:
+                new_size = last_successful_size
                 break
+
             # Double in size
             low = new_size
             if high:

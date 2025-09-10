@@ -17,14 +17,14 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
-from lightning_utilities.core.imports import RequirementCache
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-
-_RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
@@ -171,7 +171,7 @@ if _RICH_AVAILABLE:
                 return Text()
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
-                if self._renderable_cache:
+                if self._renderable_cache and self._current_task_id in self._renderable_cache:
                     self._current_task_id = cast(TaskID, self._current_task_id)
                     self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
                 self._current_task_id = task.id
@@ -184,8 +184,11 @@ if _RICH_AVAILABLE:
 
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
-                if not isinstance(value, (str, int)):
-                    value = f"{value:{self._metrics_format}}"
+                if not isinstance(value, str):
+                    try:
+                        value = f"{value:{self._metrics_format}}"
+                    except (TypeError, ValueError):
+                        value = str(value)
                 yield f"{name}: {value}"
 
 
@@ -387,8 +390,7 @@ class RichProgressBar(ProgressBar):
 
     @override
     def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.progress is not None:
-            assert self.val_sanity_progress_bar_id is not None
+        if self.progress is not None and self.val_sanity_progress_bar_id is not None:
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
@@ -465,17 +467,12 @@ class RichProgressBar(ProgressBar):
         self.train_progress_bar_id = self._add_task(total_batches, train_description)
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
-        if self.progress is not None and self.is_enabled:
-            assert progress_bar_id is not None
+        if self.progress is not None and self.is_enabled and progress_bar_id is not None:
             total = self.progress.tasks[progress_bar_id].total
             assert total is not None
             if not self._should_update(current, total):
                 return
-
-            leftover = current % self.refresh_rate
-            advance = leftover if (current == total and leftover != 0) else self.refresh_rate
-            self.progress.update(progress_bar_id, advance=advance, visible=visible)
-            self.refresh()
+            self.progress.update(progress_bar_id, completed=current, visible=visible)
 
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return current % self.refresh_rate == 0 or current == total
@@ -572,9 +569,13 @@ class RichProgressBar(ProgressBar):
         if self.is_disabled:
             return
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
-        elif self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, batch_idx + 1)
+            if self.val_sanity_progress_bar_id is not None:
+                self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
+            return
+
+        if self.val_progress_bar_id is None:
+            return
+        self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     @override
@@ -587,9 +588,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.test_progress_bar_id is None:
             return
-        assert self.test_progress_bar_id is not None
         self._update(self.test_progress_bar_id, batch_idx + 1)
         self.refresh()
 
@@ -603,9 +603,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.predict_progress_bar_id is None:
             return
-        assert self.predict_progress_bar_id is not None
         self._update(self.predict_progress_bar_id, batch_idx + 1)
         self.refresh()
 
@@ -631,6 +630,14 @@ class RichProgressBar(ProgressBar):
         self.val_progress_bar_id = None
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
+
+    @override
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> dict[str, Union[int, str, float, dict[str, float]]]:
+        items = super().get_metrics(trainer, pl_module)
+        # convert all metrics to float before sending to rich
+        return apply_to_collection(items, torch.Tensor, lambda x: x.item())
 
     def _update_metrics(
         self,

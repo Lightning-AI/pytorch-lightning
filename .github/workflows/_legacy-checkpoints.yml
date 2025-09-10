@@ -55,30 +55,34 @@ jobs:
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v6
         with:
-          # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
           python-version: "3.9"
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
       - name: Install PL from source
         env:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
-        run: pip install . --extra-index-url="${TORCH_URL}"
+        run: uv pip install . --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version == ''
 
       - name: Install PL version
         timeout-minutes: 20
-        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}"
+        run: uv pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
-          pip install -q -r .actions/requirements.txt
+          uv pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning.fabric,lightning.pytorch" \
             --target_import="lightning_fabric,pytorch_lightning"
@@ -115,7 +119,7 @@ jobs:
         # export to env bool if secrets.AWS_REGION is not empty
         run: echo "WITH_SECRETS=$([ -n '${{ secrets.AWS_REGION }}' ] && echo 1 || echo 0)" >> $GITHUB_ENV
 
-      - run: pip install -r requirements/ci.txt
+      - run: uv pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
         if: ${{ env.WITH_SECRETS == '1' }}
         working-directory: ${{ env.LEGACY_FOLDER }}
@@ -135,7 +139,7 @@ jobs:
     env:
       PL_VERSION: ${{ needs.create-legacy-ckpts.outputs.pl-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: master
 

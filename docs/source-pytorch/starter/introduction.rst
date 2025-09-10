@@ -252,7 +252,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
     )
 
    # access the latest state of the art techniques
-   trainer = L.Trainer(callbacks=[StochasticWeightAveraging(...)])
+   trainer = L.Trainer(callbacks=[WeightAveraging(...)])
 
 ----
 
