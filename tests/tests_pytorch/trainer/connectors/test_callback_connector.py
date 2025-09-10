@@ -391,12 +391,7 @@ class AnotherConflictingCallback(Callback):
             "Found more than one stateful callback of type `ConflictingCallback`",
         ),
         (
-            [
-                Callback(),
-                ConflictingCallback(),
-                Callback(),
-                ConflictingCallback(),
-            ],
+            [ConflictingCallback(), Callback(), ConflictingCallback()],
             "Found more than one stateful callback of type `ConflictingCallback`",
         ),
         ([ConflictingCallback(), AnotherConflictingCallback()], "Found more than one stateful callback"),
