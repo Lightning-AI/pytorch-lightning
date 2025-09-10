@@ -67,10 +67,10 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp import CPUOffloadPolicy, MixedPrecisionPolicy, OffloadPolicy
 
 try:
-    from torch.distributed.checkpoint.stateful import Stateful
+    from torch.distributed.checkpoint.stateful import Stateful as _TorchStateful
 except ImportError:
-    # define a no-op base class for compatibility
-    class Stateful:
+
+    class _TorchStateful:  # type: ignore[no-redef]
         pass
 
 
@@ -541,7 +541,7 @@ def _init_fsdp2_mp_policy(mp_policy: Optional["MixedPrecisionPolicy"]) -> Option
 
 
 # Code taken from: https://docs.pytorch.org/tutorials/recipes/distributed_checkpoint_recipe.html#saving
-class AppState(Stateful):
+class AppState(_TorchStateful):
     """This is a useful wrapper for checkpointing the Application State. Since this object is compliant with the
     Stateful protocol, DCP will automatically call state_dict/load_stat_dict as needed in the dcp.save/load APIs.
 
