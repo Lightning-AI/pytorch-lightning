@@ -72,15 +72,7 @@ def test_trainer_compiled_model_deepspeed(_, tmp_path, monkeypatch, mps_count_0)
     compiled_model = torch.compile(model)
     mock_cuda_count(monkeypatch, 2)
 
-    # TODO: Update deepspeed to avoid deprecation warning for `torch.cuda.amp.custom_fwd` on import
-    warn_context = (
-        pytest.warns(FutureWarning, match="torch.cuda.amp.*is deprecated")
-        if _TORCH_GREATER_EQUAL_2_4
-        else nullcontext()
-    )
-
-    with warn_context:
-        trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
+    trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
 
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
         trainer.fit(compiled_model)
