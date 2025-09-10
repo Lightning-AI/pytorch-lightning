@@ -29,8 +29,6 @@ import torch
 import yaml
 from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
-from tensorboard.backend.event_processing import event_accumulator
-from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
@@ -53,6 +51,8 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from tests_pytorch.helpers.runif import RunIf
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
@@ -1917,3 +1917,29 @@ def test_lightning_cli_jsonnet(cleandir):
         cli = LightningCLI(MainModule, run=False, parser_kwargs={"parser_mode": "jsonnet"})
 
     assert cli.config["model"]["main_param"] == 2
+
+
+def test_lightning_cli_callback_trainer_default(cleandir):
+    """Check that callbacks passed as trainer_defaults are properly instantiated."""
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            trainer_defaults={
+                "logger": {
+                    "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
+                    "init_args": {
+                        "save_dir": ".",
+                        "name": "demo",
+                    },
+                },
+                "callbacks": {
+                    "class_path": "lightning.pytorch.callbacks.ModelCheckpoint",
+                    "init_args": {
+                        "monitor": "val_loss",
+                    },
+                },
+            },
+            run=False,
+        )
+    assert any(isinstance(c, ModelCheckpoint) for c in cli.trainer.callbacks)
