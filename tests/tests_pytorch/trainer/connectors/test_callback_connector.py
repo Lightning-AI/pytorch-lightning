@@ -32,7 +32,7 @@ from lightning.pytorch.callbacks import (
 )
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector, _validate_callbacks_list
 
 
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
@@ -323,3 +323,74 @@ def test_validate_unique_callback_state_key():
 
     with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `MockCallback`"):
         Trainer(callbacks=[MockCallback(), MockCallback()])
+
+
+def test_validate_callbacks_list_function():
+    """Test the _validate_callbacks_list function directly with various scenarios."""
+
+    # Test with non-stateful callbacks
+    callback1 = Callback()
+    callback2 = Callback()
+    _validate_callbacks_list([callback1, callback2])
+
+    # Test with single stateful callback
+    class StatefulCallback(Callback):
+        def state_dict(self):
+            return {"state": 1}
+
+    stateful_cb = StatefulCallback()
+    _validate_callbacks_list([stateful_cb])
+
+    # Test with multiple stateful callbacks with unique state keys
+    class StatefulCallback1(Callback):
+        @property
+        def state_key(self):
+            return "unique_key_1"
+
+        def state_dict(self):
+            return {"state": 1}
+
+    class StatefulCallback2(Callback):
+        @property
+        def state_key(self):
+            return "unique_key_2"
+
+        def state_dict(self):
+            return {"state": 2}
+
+    stateful_cb1 = StatefulCallback1()
+    stateful_cb2 = StatefulCallback2()
+    _validate_callbacks_list([stateful_cb1, stateful_cb2])
+
+    # Test with multiple stateful callbacks with same state key
+    class ConflictingCallback(Callback):
+        @property
+        def state_key(self):
+            return "same_key"
+
+        def state_dict(self):
+            return {"state": 1}
+
+    conflicting_cb1 = ConflictingCallback()
+    conflicting_cb2 = ConflictingCallback()
+
+    with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `ConflictingCallback`"):
+        _validate_callbacks_list([conflicting_cb1, conflicting_cb2])
+
+    # Test with mix of stateful and non-stateful callbacks where stateful ones conflict
+    with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `ConflictingCallback`"):
+        _validate_callbacks_list([callback1, conflicting_cb1, callback2, conflicting_cb2])
+
+    # Test with different types of stateful callbacks that happen to have same state key
+    class AnotherConflictingCallback(Callback):
+        @property
+        def state_key(self):
+            return "same_key"  # Same key as ConflictingCallback
+
+        def state_dict(self):
+            return {"state": 3}
+
+    another_conflicting_cb = AnotherConflictingCallback()
+
+    with pytest.raises(RuntimeError, match="Found more than one stateful callback"):
+        _validate_callbacks_list([conflicting_cb1, another_conflicting_cb])
