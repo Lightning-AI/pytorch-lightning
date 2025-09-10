@@ -459,6 +459,25 @@ class AssistantCLI:
         tags = [f"{docker_project}:{tag}" for tag in tags]
         print(",".join(tags))
 
+    @staticmethod
+    def prune_pytest_as_errors(
+        pyproject_toml: str = "pyproject.toml", errors: tuple = ("FutureWarning", "DeprecationWarning")
+    ) -> None:
+        """Prune pytest warnings as errors from the pyproject.toml file."""
+        import tomlkit
+
+        with open(pyproject_toml, encoding="utf-8") as fopen:
+            content = fopen.read()
+        pyproject = tomlkit.parse(content)
+        filterwarnings = pyproject.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("filterwarnings", [])
+        if not filterwarnings:
+            return
+        filterwarnings = [wrn for wrn in filterwarnings if not any(f"error::{err}" in wrn for err in errors)]
+        pyproject["tool"]["pytest"]["ini_options"]["filterwarnings"] = filterwarnings
+
+        with open(pyproject_toml, "w", encoding="utf-8") as fopen:
+            fopen.write(tomlkit.dumps(pyproject))
+
 
 if __name__ == "__main__":
     import jsonargparse
