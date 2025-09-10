@@ -1,6 +1,7 @@
 import math
 from datetime import timedelta
 
+import os
 import pytest
 import torch
 import torch.nn as nn
@@ -9,6 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class TinyDataset(Dataset):
@@ -210,10 +212,6 @@ def test_model_checkpoint_defer_until_next_validation_when_val_every_2_epochs(tm
 
 def test_model_checkpoint_save_last_link_symlink_bug(tmp_path):
     """Reproduce the bug where save_last='link' and save_top_k=-1 creates a recursive symlink."""
-    import os
-
-    from lightning.pytorch.demos.boring_classes import BoringModel
-
     trainer = Trainer(
         default_root_dir=tmp_path,
         max_epochs=2,
