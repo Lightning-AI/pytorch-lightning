@@ -82,7 +82,7 @@ class FSDPPrecision(Precision):
         return module
 
     @override
-    def clip_grad_by_norm(self, module: Optional[Module], optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float], module: Optional[Module] = None) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
         if module is None:
             return
