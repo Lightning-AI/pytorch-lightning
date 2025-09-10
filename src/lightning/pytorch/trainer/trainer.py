@@ -557,6 +557,12 @@ class Trainer:
                         - ``'registry:version:v2'``: uses the default model set
                           with ``Trainer(..., model_registry="my-model")`` and version 'v2'
 
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+
         Raises:
             TypeError:
                 If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
@@ -630,9 +636,9 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        weights_only: Optional[bool] = None,
     ) -> _EVALUATE_OUTPUT:
         r"""Perform one evaluation epoch over the validation set.
 
@@ -652,6 +658,12 @@ class Trainer:
 
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
@@ -686,7 +698,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
         return call._call_and_handle_interrupt(
-            self, self._validate_impl, model, dataloaders, ckpt_path, weights_only, verbose, datamodule
+            self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule, weights_only
         )
 
     def _validate_impl(
@@ -694,9 +706,9 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        weights_only: Optional[bool] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
@@ -742,9 +754,9 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        weights_only: Optional[bool] = None,
     ) -> _EVALUATE_OUTPUT:
         r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on your
         test set until you want to.
@@ -765,6 +777,12 @@ class Trainer:
 
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
@@ -799,7 +817,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
         return call._call_and_handle_interrupt(
-            self, self._test_impl, model, dataloaders, ckpt_path, weights_only, verbose, datamodule
+            self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule, weights_only
         )
 
     def _test_impl(
@@ -807,9 +825,9 @@ class Trainer:
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        weights_only: Optional[bool] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
@@ -880,6 +898,12 @@ class Trainer:
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
@@ -920,7 +944,7 @@ class Trainer:
             datamodule,
             return_predictions,
             ckpt_path,
-            weights_only=weights_only,
+            weights_only,
         )
 
     def _predict_impl(

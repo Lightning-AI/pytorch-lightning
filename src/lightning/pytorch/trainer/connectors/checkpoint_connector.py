@@ -230,7 +230,7 @@ class _CheckpointConnector:
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def restore(self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -244,7 +244,7 @@ class _CheckpointConnector:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
 
         # restore module states
         self.restore_datamodule()
