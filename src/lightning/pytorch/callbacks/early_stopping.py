@@ -191,7 +191,7 @@ class EarlyStopping(Callback):
             "stopped_epoch": self.stopped_epoch,
             "best_score": self.best_score,
             "patience": self.patience,
-            "stopping_reason": self.stopping_reason,
+            "stopping_reason": self.stopping_reason.value,
             "stopping_reason_message": self.stopping_reason_message,
         }
 
@@ -201,8 +201,8 @@ class EarlyStopping(Callback):
         self.stopped_epoch = state_dict["stopped_epoch"]
         self.best_score = state_dict["best_score"]
         self.patience = state_dict["patience"]
-        # For backward compatibility, set defaults if not present
-        self.stopping_reason = state_dict.get("stopping_reason", EarlyStoppingReason.NOT_STOPPED)
+        stopping_reason_value = state_dict.get("stopping_reason", EarlyStoppingReason.NOT_STOPPED.value)
+        self.stopping_reason = EarlyStoppingReason(stopping_reason_value)
         self.stopping_reason_message = state_dict.get("stopping_reason_message")
 
     def _should_skip_check(self, trainer: "pl.Trainer") -> bool:
