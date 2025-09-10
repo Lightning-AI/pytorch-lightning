@@ -330,6 +330,7 @@ class StatefulCallback(Callback):
     def state_dict(self):
         return {"state": 1}
 
+
 # Test with multiple stateful callbacks with unique state keys
 class StatefulCallback1(Callback):
     @property
@@ -339,6 +340,7 @@ class StatefulCallback1(Callback):
     def state_dict(self):
         return {"state": 1}
 
+
 class StatefulCallback2(Callback):
     @property
     def state_key(self):
@@ -347,12 +349,14 @@ class StatefulCallback2(Callback):
     def state_dict(self):
         return {"state": 2}
 
+
 @pytest.mark.parametrize(
     ("callbacks"),
-    [[Callback(), Callback()],
-     [StatefulCallback()],
-     [StatefulCallback1(), StatefulCallback2()],
-     ],
+    [
+        [Callback(), Callback()],
+        [StatefulCallback()],
+        [StatefulCallback1(), StatefulCallback2()],
+    ],
 )
 def test_validate_callbacks_list_function(callbacks: list):
     """Test the _validate_callbacks_list function directly with various scenarios."""
@@ -368,6 +372,7 @@ class ConflictingCallback(Callback):
     def state_dict(self):
         return {"state": 1}
 
+
 # Test with different types of stateful callbacks that happen to have same state key
 class AnotherConflictingCallback(Callback):
     @property
@@ -376,14 +381,27 @@ class AnotherConflictingCallback(Callback):
 
     def state_dict(self):
         return {"state": 3}
+
+
 @pytest.mark.parametrize(
     ("callbacks", "match_msg"),
     [
-        ([ConflictingCallback(), ConflictingCallback()], "Found more than one stateful callback of type `ConflictingCallback`"),
-        ([Callback(), ConflictingCallback(), Callback(),ConflictingCallback(), ], "Found more than one stateful callback of type `ConflictingCallback`"),
+        (
+            [ConflictingCallback(), ConflictingCallback()],
+            "Found more than one stateful callback of type `ConflictingCallback`",
+        ),
+        (
+            [
+                Callback(),
+                ConflictingCallback(),
+                Callback(),
+                ConflictingCallback(),
+            ],
+            "Found more than one stateful callback of type `ConflictingCallback`",
+        ),
         ([ConflictingCallback(), AnotherConflictingCallback()], "Found more than one stateful callback"),
     ],
 )
-def test_raising_error_validate_callbacks_list_function(callbacks: list, match_msg:str):
+def test_raising_error_validate_callbacks_list_function(callbacks: list, match_msg: str):
     with pytest.raises(RuntimeError, match=match_msg):
         _validate_callbacks_list(callbacks)
