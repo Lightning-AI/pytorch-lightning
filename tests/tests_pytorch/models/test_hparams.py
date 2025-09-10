@@ -30,6 +30,7 @@ from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -748,8 +749,9 @@ def test_model_with_fsspec_as_parameter(tmp_path):
     trainer = Trainer(
         default_root_dir=tmp_path, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
     )
-    trainer.fit(model)
-    trainer.test()
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
+    trainer.fit(model, weights_only=weights_only)
+    trainer.test(weights_only=weights_only)
 
 
 @pytest.mark.xfail(
