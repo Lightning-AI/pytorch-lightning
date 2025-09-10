@@ -78,7 +78,8 @@ After training completes, you can programmatically check why early stopping occu
 
 .. testcode::
 
-    from lightning.pytorch.callbacks import EarlyStopping, EarlyStoppingReason
+    from lightning.pytorch.callbacks import EarlyStopping
+    from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
 
     early_stopping = EarlyStopping(monitor="val_loss", patience=3)
     trainer = Trainer(callbacks=[early_stopping])
