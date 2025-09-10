@@ -1,55 +1,108 @@
 trigger:
   push:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
 
-timeout: "75" # minutes
-machine: "L4_X_2"
+timeout: "55" # minutes
 parametrize:
   matrix: {}
   include:
-    # note that this is setting also all oldest requirements which is linked to Torch == 2.0
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.10-torch2.1-cuda12.1.1"
+    # note that this is setting also all oldest requirements which is linked to python == 3.10
+    - image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
       PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+      python_version: "3.10"
+      machine: "A100_X_2"
+    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
       PACKAGE_NAME: "fabric"
-    # - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+      python_version: "3.12"
+      machine: "L4_X_2"
+    # - image: "nvidia/cuda:12.6-runtime-ubuntu22.04"
     #   PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda-py3.12-torch2.7-cuda12.6.3"
+    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
       PACKAGE_NAME: "lightning"
+      python_version: "3.12"
+      machine: "L4_X_2"
   exclude: []
 
 env:
+  TZ: "Etc/UTC"
+  DEBIAN_FRONTEND: "noninteractive"
+  CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
+  MKL_THREADING_LAYER: "GNU"
+  CUDA_LAUNCH_BLOCKING: "1"
+  NCCL_DEBUG: "INFO"
+  TORCHDYNAMO_VERBOSE: "1"
   FREEZE_REQUIREMENTS: "1"
   RUN_ONLY_CUDA_TESTS: "1"
 
 run: |
+  # Install Python and UV
+  apt-get update -qq --fix-missing
+  apt-get install -q -y software-properties-common curl
+  # Add deadsnakes PPA for newer Python versions if needed
+  add-apt-repository ppa:deadsnakes/ppa -y
+  apt-get update -qq --fix-missing
+  apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
+        build-essential \
+        pkg-config \
+        cmake \
+        ca-certificates \
+        libopenmpi-dev \
+        openmpi-bin \
+        ninja-build \
+        libnccl2 \
+        libnccl-dev
+
+  apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
+  ln -sf /usr/bin/python${python_version} /usr/bin/python
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # Source the environment and ensure UV is in PATH
+  [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
+  source $HOME/.cargo/env 2>/dev/null || true
+  export PATH="$HOME/.cargo/bin:$PATH"
+
+  # Verify UV installation
+  command -v uv || (echo "UV not found in PATH" && exit 1)
+  # Create and activate a local uv virtual environment
+  uv venv .venv -p "/usr/bin/python${python_version}" || uv venv .venv -p "python${python_version}" || uv venv .venv
+  . .venv/bin/activate
+  hash -r
+
   whereis nvidia
   nvidia-smi
   python --version
-  pip --version
-  pip install -q fire wget packaging
+  uv --version
+  uv pip list
   set -ex
 
-  CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
+  # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+  IMAGE_TAG="${image##*:}"  # "12.6.3-devel-ubuntu22.04"
+  CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
   echo "Using CUDA version: ${CUDA_VERSION}"
-  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
-  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
-  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo "Torch URL: ${TORCH_URL}"
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
   COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
-  if [ "${TORCH_VER}" == "2.1" ]; then
+  uv pip install fire wget packaging "lightning-utilities[cli]"
+  if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    python .actions/assistant.py replace_oldest_ver
-    pip install "cython<3.0" wheel  # for compatibility
+    cd requirements/fabric
+    python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
+    python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
+    cd ../..
+    uv pip install "cython<3.0" wheel  # for compatibility
   fi
 
+  # install the base so we can adjust other packages
+  uv pip install .
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  pip install -q wget packaging
+  uv pip install wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -57,7 +110,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     echo "Replaced PL imports"
-    pip install -U -q -r .actions/requirements.txt
+    uv pip install --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
@@ -67,11 +120,10 @@ run: |
   fi
 
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+  uv pip install ".[${extra}dev]" --upgrade
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
-  python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
 
   echo "Testing: Fabric doctests"
@@ -87,8 +139,9 @@ run: |
 
   echo "Testing: fabric standalone"
   export PL_RUN_STANDALONE_TESTS=1
-  wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+  python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
+  export PL_RUN_STANDALONE_TESTS=0
 
   #  echo "Reporting coverage" # todo
   #  python -m coverage report
