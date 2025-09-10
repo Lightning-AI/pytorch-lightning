@@ -161,7 +161,9 @@ class Precision(FabricPrecision, CheckpointHooks):
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float], module: Optional[Module] = None) -> None:
+    def clip_grad_by_norm(
+        self, optimizer: Optimizer, clip_val: Union[int, float], module: Optional[Module] = None
+    ) -> None:
         """Clip gradients by norm."""
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
