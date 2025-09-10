@@ -88,6 +88,7 @@ class ThroughputMonitor(Callback):
         self._t0s: dict[RunningStage, float] = {}
         self._lengths: dict[RunningStage, int] = {}
         self._samples: dict[RunningStage, int] = {}
+        self._batches: dict[RunningStage, int] = {}
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
@@ -107,10 +108,14 @@ class ThroughputMonitor(Callback):
     def _start(self, trainer: "Trainer") -> None:
         stage = trainer.state.stage
         assert stage is not None
-        self._throughputs[stage].reset()
-        self._lengths[stage] = 0
+
+        if stage not in self._samples:
+            self._throughputs[stage].reset()
+            self._lengths[stage] = 0
+            self._samples[stage] = 0
+            self._batches[stage] = 0
+
         self._t0s[stage] = time.perf_counter()
-        self._samples[stage] = 0
 
     @torch.inference_mode()  # in case `length_fn` or `batch_size_fn` computes grads
     def _update(self, trainer: "Trainer", pl_module: "LightningModule", batch: Any, iter_num: int) -> None:
@@ -136,10 +141,11 @@ class ThroughputMonitor(Callback):
             flops_per_batch = None
 
         self._samples[stage] += self.batch_size_fn(batch)
+        self._batches[stage] += 1
 
         throughput.update(
             time=elapsed,
-            batches=iter_num,
+            batches=self._batches[stage],
             # this assumes that all iterations used the same batch size
             samples=self._samples[stage],
             lengths=None if self.length_fn is None else self._lengths[stage],
