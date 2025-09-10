@@ -453,11 +453,19 @@ class _AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if (
+        is_fsdp1_str = (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
+        )
+        is_fsdp2_str = (
+            strategy_flag in FSDP2Strategy.get_registered_strategies() or type(self._strategy_flag) is FSDP2Strategy
+        )
+
+        if (is_fsdp1_str or is_fsdp2_str) and not (
+            self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)
+        ):
+            strategy_name = FSDP2Strategy.strategy_name if is_fsdp2_str else FSDPStrategy.strategy_name
             raise ValueError(
-                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
+                f"The strategy `{strategy_name}` requires a GPU accelerator, but received "
                 f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
                 " or pass a `CUDAAccelerator()` instance to use FSDP."
             )
