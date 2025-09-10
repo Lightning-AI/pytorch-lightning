@@ -412,7 +412,7 @@ class _CheckpointConnector:
         self.restore_datamodule()
         self.restore_callbacks()
 
-    def dump_checkpoint(self, weights_only: bool = False) -> dict:
+    def dump_checkpoint(self, weights_only: Optional[bool] = None) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
 
         Args:
@@ -449,6 +449,10 @@ class _CheckpointConnector:
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
         }
+
+        if weights_only is None:
+            weights_only = False
+            log.info("`weights_only` was not set, defaulting to `False`.")
 
         if not weights_only:
             # dump callbacks
