@@ -1923,3 +1923,29 @@ def test_lightning_cli_jsonnet(cleandir):
         cli = LightningCLI(MainModule, run=False, parser_kwargs={"parser_mode": "jsonnet"})
 
     assert cli.config["model"]["main_param"] == 2
+
+
+def test_lightning_cli_callback_trainer_default(cleandir):
+    """Check that callbacks passed as trainer_defaults are properly instantiated."""
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            trainer_defaults={
+                "logger": {
+                    "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
+                    "init_args": {
+                        "save_dir": ".",
+                        "name": "demo",
+                    },
+                },
+                "callbacks": {
+                    "class_path": "lightning.pytorch.callbacks.ModelCheckpoint",
+                    "init_args": {
+                        "monitor": "val_loss",
+                    },
+                },
+            },
+            run=False,
+        )
+    assert any(isinstance(c, ModelCheckpoint) for c in cli.trainer.callbacks)
