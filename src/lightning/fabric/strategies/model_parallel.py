@@ -275,6 +275,7 @@ class ModelParallelStrategy(ParallelStrategy):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -295,7 +296,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f"Loading a single optimizer object from a checkpoint is not supported yet with {type(self).__name__}."
             )
 
-        return _load_checkpoint(path=path, state=state, strict=strict)
+        return _load_checkpoint(path=path, state=state, strict=strict, weights_only=weights_only)
 
     def _setup_distributed(self) -> None:
         reset_seed()
