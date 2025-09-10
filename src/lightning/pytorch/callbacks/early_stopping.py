@@ -138,7 +138,7 @@ class EarlyStopping(Callback):
         self.wait_count = 0
         self.stopped_epoch = 0
         self.stopping_reason = EarlyStoppingReason.NOT_STOPPED
-        self.stopping_reason_message = None
+        self.stopping_reason_message: Optional[str] = None
         self._check_on_train_epoch_end = check_on_train_epoch_end
         self.log_rank_zero_only = log_rank_zero_only
 
@@ -239,7 +239,6 @@ class EarlyStopping(Callback):
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch
-            # Store the stopping reason message
             self.stopping_reason_message = reason
         if reason and self.verbose:
             self._log_info(trainer, reason, self.log_rank_zero_only)
