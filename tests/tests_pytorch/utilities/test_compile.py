@@ -32,7 +32,7 @@ _PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
-@RunIf(dynamo=True)
+@RunIf(dynamo=True, deepspeed=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
