@@ -29,6 +29,8 @@ import torch
 import yaml
 from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
@@ -51,8 +53,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from tensorboard.backend.event_processing import event_accumulator
-from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from tests_pytorch.helpers.runif import RunIf
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
