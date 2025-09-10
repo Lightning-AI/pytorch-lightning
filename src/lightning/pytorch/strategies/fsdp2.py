@@ -26,8 +26,6 @@ from typing import (
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
-from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict
-from torch.distributed.checkpoint.stateful import Stateful
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
@@ -66,7 +64,15 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
-    from torch.distributed.fsdp import CPUOffloadPolicy, MixedPrecisionPolicy
+    from torch.distributed.fsdp import CPUOffloadPolicy, MixedPrecisionPolicy, OffloadPolicy
+
+try:
+    from torch.distributed.checkpoint.stateful import Stateful
+except ImportError:
+    # define a no-op base class for compatibility
+    class Stateful:
+        pass
+
 
 log = logging.getLogger(__name__)
 
@@ -113,7 +119,7 @@ class FSDP2Strategy(ParallelStrategy):
 
     def __init__(
         self,
-        device_mesh: Union[tuple[int], "DeviceMesh"] = None,
+        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
@@ -270,7 +276,7 @@ class FSDP2Strategy(ParallelStrategy):
                 model.to_empty(device=self.root_device)
 
                 # Run your custom initialization
-                def init_weights(m):
+                def init_weights(m: Module) -> None:
                     if isinstance(m, torch.nn.Linear):
                         torch.nn.init.kaiming_uniform_(m.weight)
                         if m.bias is not None:
@@ -480,6 +486,11 @@ class FSDP2Strategy(ParallelStrategy):
             path.unlink()
         path.mkdir(parents=True, exist_ok=True)
 
+        if self.model is None:
+            raise RuntimeError(
+                "Cannot save checkpoint: FSDP2Strategy model is not initialized."
+                " Please ensure the strategy is set up before saving."
+            )
         state_dict = {"fsdp2_checkpoint_state_dict": AppState(self.model, self.optimizers)}
         _distributed_checkpoint_save(state_dict, path)
 
@@ -502,7 +513,7 @@ class FSDP2Strategy(ParallelStrategy):
         return metadata
 
 
-def _init_fsdp2_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffloadPolicy"]]) -> "CPUOffloadPolicy":
+def _init_fsdp2_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffloadPolicy"]]) -> "OffloadPolicy":
     from torch.distributed.fsdp import CPUOffloadPolicy, OffloadPolicy
 
     if cpu_offload is None or cpu_offload is False:
@@ -539,17 +550,21 @@ class AppState(Stateful):
 
     """
 
-    def __init__(self, model, optimizers):
+    def __init__(self, model: Module, optimizers: list[Optimizer]) -> None:
         self.model = model
         self.optimizers = optimizers
 
-    def state_dict(self):
+    def state_dict(self) -> dict[str, Any]:
+        from torch.distributed.checkpoint.state_dict import get_state_dict
+
         # this line automatically manages FSDP FQN's,
         # as well as sets the default state dict type to FSDP.SHARDED_STATE_DICT
         model_state_dict, optimizer_state_dict = get_state_dict(self.model, self.optimizers)
         return {"model": model_state_dict, "optim": optimizer_state_dict}
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        from torch.distributed.checkpoint.state_dict import set_state_dict
+
         # sets our state dicts on the model and optimizer, now that we've loaded
         set_state_dict(
             self.model, self.optimizers, model_state_dict=state_dict["model"], optim_state_dict=state_dict["optim"]
