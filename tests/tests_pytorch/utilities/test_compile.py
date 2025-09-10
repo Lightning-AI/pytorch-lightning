@@ -13,13 +13,12 @@
 # limitations under the License.
 import os
 import sys
-from contextlib import nullcontext
 from unittest import mock
 
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
