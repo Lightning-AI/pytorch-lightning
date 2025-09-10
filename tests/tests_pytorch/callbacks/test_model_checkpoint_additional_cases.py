@@ -1,7 +1,7 @@
 import math
+import os
 from datetime import timedelta
 
-import os
 import pytest
 import torch
 import torch.nn as nn
