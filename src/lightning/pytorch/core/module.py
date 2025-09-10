@@ -656,11 +656,20 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
-        value = (
-            value.clone().detach()
-            if isinstance(value, Tensor)
-            else torch.tensor(value, device=self.device, dtype=_get_default_dtype())
-        )
+        if isinstance(value, Tensor):
+            # Keep tensor on its original device to avoid unnecessary transfers
+            value = value.clone().detach()
+        else:
+            if self.device.type == "cuda":
+                # Place scalar metrics on CPU to avoid CPU-GPU transfer and synchronization.
+                # `torch.tensor(value, device="cuda")` contains such synchronization, while the metric
+                # itself is only used on the CPU side. So placing metric on CPU for scalar inputs is more efficient.
+                device = "cpu"
+            else:
+                # For non-CUDA devices, maintain original behavior
+                device = self.device
+            value = torch.tensor(value, device=device, dtype=_get_default_dtype())
+
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
