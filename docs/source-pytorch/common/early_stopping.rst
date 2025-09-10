@@ -72,11 +72,10 @@ Additional parameters that stop training at extreme points:
 - ``check_on_train_epoch_end``: When turned on, it checks the metric at the end of a training epoch. Use this only when you are monitoring any metric logged within
   training-specific hooks on epoch-level.
 
-**Accessing Stopping Reason**
+After training completes, you can programmatically check why early stopping occurred using the ``stopping_reason``
+attribute, which returns an ``EarlyStoppingReason`` enum value.
 
-After training completes, you can programmatically check why early stopping occurred using the ``stopping_reason`` attribute, which returns an ``EarlyStoppingReason`` enum value.
-
-.. testcode::
+.. code-block:: python
 
     from lightning.pytorch.callbacks import EarlyStopping
     from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
