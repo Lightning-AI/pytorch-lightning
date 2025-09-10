@@ -484,7 +484,7 @@ class ModelCheckpoint(Checkpoint):
 
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
-        if trainer.is_global_zero:
+        if trainer.is_global_zero and os.path.abspath(filepath) != os.path.abspath(linkpath):
             if os.path.islink(linkpath) or os.path.isfile(linkpath):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
