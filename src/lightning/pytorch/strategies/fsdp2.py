@@ -102,14 +102,12 @@ class FSDP2Strategy(ParallelStrategy):
     https://github.com/pytorch/pytorch/issues/114299
 
     Arguments:
+        mp_policy: A ``MixedPrecisionPolicy`` object that specifies the precision policy for
+            model parameters and gradients when using mixed precision training with FSDP2.
+        cpu_offload: A ``CPUOffloadPolicy`` or boolean that specifies whether to offload
+            model parameters and gradients to CPU memory. If ``True``, offloading is enabled with default settings.
         device_mesh: A :class:`torch.distributed.device_mesh.DeviceMesh` object that specifies
             how devices are arranged and how tensors should be sharded/replicated.
-        parallelize_module: Optional policy function or mapping that specifies how to wrap or
-            distribute submodules of the model using ``DTensor``.
-        checkpoint_policy: Defines how checkpoint saving/loading is performed with DTensor-based
-            modules. See ``torch.distributed.checkpoint`` for available options.
-        mixed_precision: Optional policy for mixed precision training. Can be used to specify
-            precision for parameters, gradients, and buffers.
         \**kwargs: Additional keyword arguments passed to the underlying FSDP2 APIs.
 
     .. note::
@@ -125,7 +123,6 @@ class FSDP2Strategy(ParallelStrategy):
 
     def __init__(
         self,
-        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
@@ -135,6 +132,7 @@ class FSDP2Strategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffloadPolicy", None] = None,
         mp_policy: Optional["MixedPrecisionPolicy"] = None,
+        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_2_6:
