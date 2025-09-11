@@ -40,6 +40,12 @@ run: |
   ln -sf /usr/bin/python${python_version} /usr/bin/python
   curl -LsSf https://astral.sh/uv/install.sh | sh
 
+  # Source the environment and ensure UV is in PATH
+  [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
+  source $HOME/.cargo/env 2>/dev/null || true
+  export PATH="$HOME/.cargo/bin:$PATH"
+
   # Verify UV installation
   command -v uv || (echo "UV not found in PATH" && exit 1)
   # Create and activate a local uv virtual environment
