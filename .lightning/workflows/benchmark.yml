@@ -8,6 +8,7 @@ timeout: "90" # minutes
 parametrize:
   matrix:
     PACKAGE_NAME: ["fabric", "pytorch"]
+image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
 machine: "L4_X_2"
 env:
   python_version: "3.12"
