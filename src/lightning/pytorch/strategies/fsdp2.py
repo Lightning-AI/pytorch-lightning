@@ -67,7 +67,13 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp import CPUOffloadPolicy, MixedPrecisionPolicy, OffloadPolicy
 
 if _TORCH_GREATER_EQUAL_2_6:
-    from torch.distributed.checkpoint.stateful import Stateful as _TorchStateful
+    try:
+        from torch.distributed.checkpoint.stateful import Stateful as _TorchStateful
+    except ImportError:
+
+        class _TorchStateful:  # type: ignore[no-redef]
+            pass
+
 else:
 
     class _TorchStateful:  # type: ignore[no-redef]
