@@ -208,14 +208,6 @@ class WandbLogger(Logger):
     More arguments can be passed for logging segmentation masks and bounding boxes. Refer to
     `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
 
-    **Log Tables**
-
-    `W&B Tables <https://docs.wandb.ai/guides/tables/visualize-tables>`_ can be used to log,
-    query and analyze tabular data.
-
-    They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing,
-    understanding and sharing any form of data, from datasets to model predictions.
-
     .. code-block:: python
 
         columns = ["caption", "image", "sound"]
