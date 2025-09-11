@@ -91,7 +91,7 @@ run: |
   export PL_RUN_STANDALONE_TESTS=1
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     cd parity_fabric/
-    bash run_standalone_tasks.sh
+    bash run_standalone_tasks.sh cuda
     cd ..
   fi
   export PL_RUN_STANDALONE_TESTS=0
