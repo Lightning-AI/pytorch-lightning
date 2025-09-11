@@ -170,9 +170,8 @@ def test_custom_mixed_precision():
         FSDP2Strategy(mp_policy=InvalidMPPolicy())
 
 
-@RunIf(min_torch="2.6.0")
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.6.0")
 def test_strategy_sync_batchnorm(tmp_path):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
     model = TestFSDP2Model()
@@ -188,9 +187,8 @@ def test_strategy_sync_batchnorm(tmp_path):
     _run_multiple_stages(trainer, model, os.path.join(tmp_path, "last.ckpt"))
 
 
-@RunIf(min_torch="2.6.0")
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@RunIf(min_cuda_gpus=1, skip_windows=True)
+@RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="2.6.0")
 def test_modules_without_parameters(tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
 
