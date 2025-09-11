@@ -10,6 +10,7 @@ parametrize:
     PACKAGE_NAME: ["fabric", "pytorch"]
 machine: "L4_X_2"
 env:
+  python_version: "3.12"
   MKL_THREADING_LAYER: "GNU"
   CUDA_LAUNCH_BLOCKING: "1"
   NCCL_DEBUG: "INFO"
@@ -24,6 +25,17 @@ run: |
   # Add deadsnakes PPA for newer Python versions if needed
   add-apt-repository ppa:deadsnakes/ppa -y
   apt-get update -qq --fix-missing
+  apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
+        build-essential \
+        pkg-config \
+        cmake \
+        ca-certificates \
+        libopenmpi-dev \
+        openmpi-bin \
+        ninja-build \
+        libnccl2 \
+        libnccl-dev
+
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
   ln -sf /usr/bin/python${python_version} /usr/bin/python
   curl -LsSf https://astral.sh/uv/install.sh | sh
