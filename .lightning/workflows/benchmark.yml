@@ -69,7 +69,7 @@ run: |
   export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
 
   # Adjust tests
-  pip install -U -q -r .actions/requirements.txt
+  uv pip install -q -r .actions/requirements.txt
   python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
     --source_import="lightning.fabric,lightning.pytorch" \
     --target_import="lightning_fabric,pytorch_lightning"
