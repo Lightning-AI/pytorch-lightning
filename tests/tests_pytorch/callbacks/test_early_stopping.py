@@ -505,3 +505,48 @@ def test_early_stopping_log_info(log_rank_zero_only, world_size, global_rank, ex
         log_mock.assert_called_once_with(expected_log)
     else:
         log_mock.assert_not_called()
+
+
+def test_early_stopping_message_priority_over_max_epochs(caplog):
+    """Test that early stopping message takes priority over max_epochs message when both conditions are met."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.validation_called = False
+
+        def validation_step(self, batch, batch_idx):
+            result = super().validation_step(batch, batch_idx)
+            self.log("monitor_metric", 1000.0 if not self.validation_called else 999.0)
+            self.validation_called = True
+            return result
+
+        def on_validation_end(self):
+            if self.current_epoch == 0:
+                self.trainer.should_stop = True
+
+    model = TestModel()
+    early_stopping = EarlyStopping(
+        monitor="monitor_metric",
+        mode="min",
+        patience=0,
+        verbose=True,
+    )
+
+    trainer = Trainer(
+        max_epochs=1,
+        callbacks=[early_stopping],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        limit_train_batches=1,
+        limit_val_batches=1,
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="lightning.pytorch.utilities.rank_zero"):
+        trainer.fit(model)
+
+    assert "`Trainer.fit` stopped: `trainer.should_stop` was set." in caplog.text
+    assert trainer.should_stop is True
+    assert early_stopping.stopped_epoch >= 0
+    assert "`Trainer.fit` stopped: `max_epochs=1` reached." not in caplog.text
