@@ -760,6 +760,10 @@ class LightningModule(
             When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
             normalized by ``accumulate_grad_batches`` internally.
 
+        Note:
+            When the :meth:`training_step` is called, the training/eval mode of the model and submodules is
+            whatever it was when provided to `trainer.fit`.
+
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
