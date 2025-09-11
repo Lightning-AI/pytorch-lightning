@@ -51,9 +51,9 @@ subprojects:
       - "pytorch.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, lightning, 3.12, L4_X_2)"
       - "pytorch.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, pytorch, 3.12, L4_X_2)"
 
-  - id: "pytorch_lightning: Benchmarks"
+  - id: "Benchmarks"
     paths:
-      - ".azure/gpu-benchmarks.yml"
+      - ".lightning/workflows/benchmark.yml"
       - "requirements/fabric/**"
       - "requirements/pytorch/**"
       - "src/lightning/fabric/**"
@@ -65,7 +65,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning.Benchmarks"
+      - "benchmark.yml / Lit Job (fabric)"
+      - "benchmark.yml / Lit Job (pytorch)"
 
   # Temporarily disabled
   #  - id: "pytorch-lightning: TPU workflow"
