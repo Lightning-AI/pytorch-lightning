@@ -48,7 +48,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.init import _has_all_dtensor_params_or_buffers, _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
@@ -66,9 +66,9 @@ if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
     from torch.distributed.fsdp import CPUOffloadPolicy, MixedPrecisionPolicy, OffloadPolicy
 
-try:
+if _TORCH_GREATER_EQUAL_2_6:
     from torch.distributed.checkpoint.stateful import Stateful as _TorchStateful
-except ImportError:
+else:
 
     class _TorchStateful:  # type: ignore[no-redef]
         pass
@@ -131,6 +131,11 @@ class FSDP2Strategy(ParallelStrategy):
         mp_policy: Optional["MixedPrecisionPolicy"] = None,
         **kwargs: Any,
     ) -> None:
+        if not _TORCH_GREATER_EQUAL_2_6:
+            raise ModuleNotFoundError(
+                "FSDP2Strategy requires torch>=2.6.0. "
+                f"Found torch {torch.__version__}. Please upgrade torch to use FSDP2Strategy."
+            )
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -206,7 +211,7 @@ class FSDP2Strategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
+        if _TORCH_GREATER_EQUAL_2_6:
             kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
@@ -551,6 +556,11 @@ class AppState(_TorchStateful):
     """
 
     def __init__(self, model: Module, optimizers: list[Optimizer]) -> None:
+        if not _TORCH_GREATER_EQUAL_2_6:
+            raise ModuleNotFoundError(
+                "AppState requires torch>=2.6.0. "
+                f"Found torch {torch.__version__}. Please upgrade torch to use AppState."
+            )
         self.model = model
         self.optimizers = optimizers
 

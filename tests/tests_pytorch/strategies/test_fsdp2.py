@@ -132,6 +132,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDP2Model):
             assert torch.equal(ddp_param, shard_param)
 
 
+@RunIf(min_torch="2.6.0")
 @pytest.mark.parametrize("strategy", ["fsdp2", "fsdp2_cpu_offload"])
 def test_invalid_on_cpu(tmp_path, cuda_count_0, strategy):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
@@ -141,6 +142,7 @@ def test_invalid_on_cpu(tmp_path, cuda_count_0, strategy):
         trainer.strategy.setup_environment()
 
 
+@RunIf(min_torch="2.6.0")
 def test_custom_mixed_precision():
     """Test to ensure that passing a custom mixed precision config works."""
     from torch.distributed.fsdp import MixedPrecisionPolicy
@@ -168,6 +170,7 @@ def test_custom_mixed_precision():
         FSDP2Strategy(mp_policy=InvalidMPPolicy())
 
 
+@RunIf(min_torch="2.6.0")
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_strategy_sync_batchnorm(tmp_path):
@@ -185,6 +188,7 @@ def test_strategy_sync_batchnorm(tmp_path):
     _run_multiple_stages(trainer, model, os.path.join(tmp_path, "last.ckpt"))
 
 
+@RunIf(min_torch="2.6.0")
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=1, skip_windows=True)
 def test_modules_without_parameters(tmp_path):
@@ -217,7 +221,7 @@ def test_modules_without_parameters(tmp_path):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.6.0")
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 def test_strategy_checkpoint(state_dict_type, precision, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
@@ -237,7 +241,7 @@ def custom_auto_wrap_policy(
     return nonwrapped_numel >= 2
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.6.0")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -279,6 +283,7 @@ def test_configure_model(precision, expected_dtype, tmp_path):
     trainer.fit(model)
 
 
+@RunIf(min_torch="2.6.0")
 def test_save_checkpoint_storage_options(tmp_path):
     """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
     strategy = FSDP2Strategy()
@@ -304,7 +309,7 @@ class TestFSDP2CheckpointModel(BoringModel):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.6.0")
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
     strategy = FSDP2Strategy()
@@ -341,7 +346,7 @@ def test_save_load_sharded_state_dict(tmp_path):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.6.0")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -391,7 +396,7 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.6.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP2-sharded checkpoint into a single file."""
 
@@ -433,3 +438,11 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
         max_steps=4,
     )
     trainer.fit(model, ckpt_path=checkpoint_path_full)
+
+
+@RunIf(max_torch="2.5")
+@pytest.mark.parametrize("strategy", ["fsdp2", "fsdp2_cpu_offload"])
+def test_fsdp2_requires_torch_2_6_or_newer(tmp_path, strategy):
+    """FSDP2 strategies should error on torch < 2.6."""
+    with pytest.raises(ValueError, match="FSDP2Strategy requires torch>=2.6.0."):
+        Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy=strategy)
