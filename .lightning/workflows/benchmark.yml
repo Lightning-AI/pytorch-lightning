@@ -41,7 +41,7 @@ run: |
   uv --version
   uv pip list
   set -ex
-  
+
   # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-devel-ubuntu22.04"
   IMAGE_TAG="${image##*:}"  # "12.6.3-devel-ubuntu22.04"
   CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
@@ -58,17 +58,17 @@ run: |
 
   # Install package
   uv pip install ".[dev]"
-  
+
   # Env details
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
-  
+
   cd tests/
   # Testing: benchmarks
   export PL_RUNNING_BENCHMARKS=1
   python -m pytest parity_${PACKAGE_NAME} -v --durations=0
   export PL_RUNNING_BENCHMARKS=0
-  
+
   # Testing: fabric standalone tasks
   export PL_RUN_STANDALONE_TESTS=1
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
@@ -77,6 +77,6 @@ run: |
     cd ..
   fi
   export PL_RUN_STANDALONE_TESTS=0
-  
+
   cd ..
   echo "Benchmarks completed successfully"
