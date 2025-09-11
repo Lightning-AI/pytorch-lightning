@@ -8,7 +8,7 @@ timeout: "90" # minutes
 parametrize:
   matrix:
     PACKAGE_NAME: ["fabric", "pytorch"]
-image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
 machine: "L4_X_2"
 env:
   python_version: "3.12"
@@ -32,10 +32,7 @@ run: |
         cmake \
         ca-certificates \
         libopenmpi-dev \
-        openmpi-bin \
-        ninja-build \
-        libnccl2 \
-        libnccl-dev
+        openmpi-bin
 
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
   ln -sf /usr/bin/python${python_version} /usr/bin/python
