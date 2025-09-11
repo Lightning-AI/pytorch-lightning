@@ -116,11 +116,8 @@ def _has_meta_device_parameters_or_buffers(obj: Union[Module, Optimizer], recurs
 
 
 def _has_all_dtensor_params_or_buffers(obj: Union[Module, Optimizer], recurse: bool = True) -> bool:
-    """
-    Check whether all parameters and buffers of a given
-    :class:`torch.nn.Module` or :class:`torch.optim.Optimizer` are instances of
-    :class:`torch.distributed.tensor.DTensor`.
-    """
+    """Check whether all parameters and buffers of a given :class:`torch.nn.Module` or :class:`torch.optim.Optimizer`
+    are instances of :class:`torch.distributed.tensor.DTensor`."""
     from torch.distributed.tensor import DTensor
 
     if isinstance(obj, Optimizer):
