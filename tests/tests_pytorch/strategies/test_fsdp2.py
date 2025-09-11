@@ -442,5 +442,5 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
 @pytest.mark.parametrize("strategy", ["fsdp2", "fsdp2_cpu_offload"])
 def test_fsdp2_requires_torch_2_6_or_newer(tmp_path, strategy):
     """FSDP2 strategies should error on torch < 2.6."""
-    with pytest.raises(ValueError, match="FSDP2Strategy requires torch>=2.6.0."):
+    with pytest.raises(ModuleNotFoundError, match="FSDP2Strategy requires torch>=2.6.0."):
         Trainer(default_root_dir=tmp_path, fast_dev_run=True, strategy=strategy)
