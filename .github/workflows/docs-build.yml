@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
-          submodules: 'recursive'
+          submodules: "recursive"
           lfs: true
       - uses: actions/setup-python@v6
         with:
