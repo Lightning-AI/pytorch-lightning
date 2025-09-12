@@ -586,7 +586,7 @@ impact to subsequent runs. These are the changes enabled:
 
 
 gradient_clip_algorithm
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"`` to clip by value, and
 ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will be set to ``"norm"``.
