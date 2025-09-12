@@ -101,8 +101,6 @@ ignore = [
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
-    "RET504",  # todo:Unnecessary variable assignment before `return` statement
-    "RET503",
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected
@@ -118,7 +116,6 @@ ignore = [
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
-    "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead

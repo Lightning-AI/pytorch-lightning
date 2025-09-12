@@ -375,12 +375,11 @@ class PyTorchProfiler(Profiler):
             )
             return num_val_batches + num_sanity_val_batches
         if self._schedule.is_testing:
-            num_test_batches = (
+            return (
                 sum(trainer.num_test_batches)
                 if isinstance(trainer.num_test_batches, list)
                 else trainer.num_test_batches
             )
-            return num_test_batches
         if self._schedule.is_predicting:
             return sum(trainer.num_predict_batches)
         raise NotImplementedError("Unsupported schedule")

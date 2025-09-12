@@ -1277,8 +1277,7 @@ class Trainer:
         else:
             dirpath = self.default_root_dir
 
-        dirpath = self.strategy.broadcast(dirpath)
-        return dirpath
+        return self.strategy.broadcast(dirpath)
 
     @property
     def is_global_zero(self) -> bool:
@@ -1731,5 +1730,4 @@ class Trainer:
         assert self.max_epochs is not None
         max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
 
-        max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
-        return max_estimated_steps
+        return min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps

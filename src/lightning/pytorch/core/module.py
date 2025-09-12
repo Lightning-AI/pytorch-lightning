@@ -360,8 +360,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         batch = self._call_batch_hook("transfer_batch_to_device", batch, device, dataloader_idx)
-        batch = self._call_batch_hook("on_after_batch_transfer", batch, dataloader_idx)
-        return batch
+        return self._call_batch_hook("on_after_batch_transfer", batch, dataloader_idx)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
         r"""Prints only from process 0. Use this in any distributed mode to log only once.
@@ -666,8 +665,7 @@ class LightningModule(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
                 f" You can try doing `self.log({name}, {value}.mean())`"
             )
-        value = value.squeeze()
-        return value
+        return value.squeeze()
 
     def all_gather(
         self, data: Union[Tensor, dict, list, tuple], group: Optional[Any] = None, sync_grads: bool = False

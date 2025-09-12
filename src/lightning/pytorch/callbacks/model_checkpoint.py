@@ -623,9 +623,7 @@ class ModelCheckpoint(Checkpoint):
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
-        should_update_best_and_save = trainer.strategy.reduce_boolean_decision(bool(should_update_best_and_save))
-
-        return should_update_best_and_save
+        return trainer.strategy.reduce_boolean_decision(bool(should_update_best_and_save))
 
     def _format_checkpoint_name(
         self,
