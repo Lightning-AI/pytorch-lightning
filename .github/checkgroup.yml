@@ -47,9 +47,9 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch.yml / Lit Job (nvidia/cuda:12.1.1-runtime-ubuntu22.04, pytorch, 3.10, L4_X_2)"
-      - "pytorch.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, lightning, 3.12, L4_X_2)"
-      - "pytorch.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, pytorch, 3.12, L4_X_2)"
+      - "pytorch.yml / Lit Job (pytorch, 3.10, L4_X_2)"
+      - "pytorch.yml / Lit Job (lightning, 3.12, L4_X_2)"
+      - "pytorch.yml / Lit Job (pytorch, 3.12, L4_X_2)"
 
   - id: "Benchmarks"
     paths:
@@ -148,9 +148,9 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-runtime-ubuntu22.04, fabric, 3.10, L4_X_2)"
-      - "fabric.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, fabric, 3.12, L4_X_2)"
-      - "fabric.yml / Lit Job (nvidia/cuda:12.6.3-runtime-ubuntu22.04, lightning, 3.12, L4_X_2)"
+      - "fabric.yml / Lit Job (fabric, 3.10, L4_X_2)"
+      - "fabric.yml / Lit Job (fabric, 3.12, L4_X_2)"
+      - "fabric.yml / Lit Job (lightning, 3.12, L4_X_2)"
 
   # Temporarily disabled
   #  - id: "lightning_fabric: TPU workflow"
