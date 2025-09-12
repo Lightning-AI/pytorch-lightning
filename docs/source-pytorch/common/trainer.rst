@@ -563,6 +563,39 @@ Gradient clipping value
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=None)
 
+
+inference_mode
+^^^^^^^^^^^^^^
+
+Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
+(``validate``/``test``/``predict``)
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(inference_mode=True)
+
+    # Use `torch.no_grad` instead
+    trainer = Trainer(inference_mode=False)
+
+
+With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def validation_step(self, batch, batch_idx):
+            preds = self.layer1(batch)
+            with torch.enable_grad():
+                grad_preds = preds.requires_grad_()
+                preds2 = self.layer2(grad_preds)
+
+
+    model = LitModel()
+    trainer = Trainer(inference_mode=False)
+    trainer.validate(model)
+
+
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 
@@ -1109,38 +1142,6 @@ Can specify as float, int, or a time-based duration.
 
     # Total number of batches run
     total_fit_batches = total_train_batches + total_val_batches
-
-
-inference_mode
-^^^^^^^^^^^^^^
-
-Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
-(``validate``/``test``/``predict``)
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(inference_mode=True)
-
-    # Use `torch.no_grad` instead
-    trainer = Trainer(inference_mode=False)
-
-
-With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
-
-.. code-block:: python
-
-    class LitModel(LightningModule):
-        def validation_step(self, batch, batch_idx):
-            preds = self.layer1(batch)
-            with torch.enable_grad():
-                grad_preds = preds.requires_grad_()
-                preds2 = self.layer2(grad_preds)
-
-
-    model = LitModel()
-    trainer = Trainer(inference_mode=False)
-    trainer.validate(model)
 
 -----
 
