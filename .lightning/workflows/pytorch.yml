@@ -9,17 +9,17 @@ parametrize:
   matrix: {}
   include:
     # note that this also sets oldest requirements which are linked to Python == 3.10
-    - image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
+    - image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.10"
       machine: "L4_X_2"
-    - image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.12"
       machine: "L4_X_2"
     # - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
     #   PACKAGE_NAME: "pytorch"
-    - image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
       PACKAGE_NAME: "lightning"
       python_version: "3.12"
       machine: "L4_X_2"
