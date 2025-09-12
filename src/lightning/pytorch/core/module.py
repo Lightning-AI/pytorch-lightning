@@ -762,7 +762,7 @@ class LightningModule(
 
         Note:
             When the :meth:`training_step` is called, the training/eval mode of the model and submodules is
-            whatever it was when provided to `trainer.fit`.
+            whatever it was when provided to :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`.
 
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
