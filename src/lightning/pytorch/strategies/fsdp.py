@@ -581,6 +581,7 @@ class FSDPStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+        return None
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
@@ -624,8 +625,7 @@ class FSDPStrategy(ParallelStrategy):
                         optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / _METADATA_FILENAME)
-            return metadata
+            return torch.load(path / _METADATA_FILENAME)
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path)

@@ -801,13 +801,12 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
 
     state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
     optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
-    state_dict_type_context = FSDP.state_dict_type(
+    return FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.SHARDED_STATE_DICT,
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context  # type: ignore[return-value]
 
 
 def _get_full_state_dict_context(
@@ -819,14 +818,12 @@ def _get_full_state_dict_context(
 
     state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
     optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
-    state_dict_type_context = FSDP.state_dict_type(
+    return FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-
-    return state_dict_type_context  # type: ignore[return-value]
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
