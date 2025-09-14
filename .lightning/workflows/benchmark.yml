@@ -23,11 +23,11 @@ env:
 
 run: |
   echo "Installing dependencies"
-  apt-get update -qq --fix-missing
+  apt-get update -qq --fix-missing > /dev/null
   apt-get install -q -y software-properties-common curl
   echo "Add deadsnakes PPA for newer Python versions if needed"
   add-apt-repository ppa:deadsnakes/ppa -y
-  apt-get update -qq --fix-missing
+  apt-get update -qq --fix-missing > /dev/null
   echo "Install Python ${python_version} and other dependencies"
   apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
