@@ -538,7 +538,7 @@ class OtherArgsModel(BoringModel):
 )
 def test_single_config_models_fail(tmp_path, cls, config):
     """Test fail on passing unsupported config type."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Primitives \(<class 'bool'>*"):
         _ = cls(**config)
 
 
