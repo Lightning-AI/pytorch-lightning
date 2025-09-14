@@ -1087,22 +1087,16 @@ def test_precision_selection_model_parallel(precision, raises, mps_count_0):
 
 
 @RunIf(mps=True)
+@pytest.mark.parametrize(
+    ("accelerator", "expected_device"),
+    [
+        ("mps", "mps"),
+        ("cpu", "cpu"),
+    ],
+)
 @pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
-def test_mps_amp_device_selection(precision):
+def test_mps_amp_device_selection(accelerator, expected_device, precision):
     """Test that MPS accelerator with mixed precision correctly sets device to 'mps' instead of 'cuda'."""
-    connector = _AcceleratorConnector(accelerator="mps", precision=precision)
+    connector = _AcceleratorConnector(accelerator=accelerator, precision=precision)
     assert isinstance(connector.precision_plugin, MixedPrecision)
-    # Verify the device parameter is set to "mps" for MPS accelerator
-    assert connector.precision_plugin.device == "mps"
-
-
-@RunIf(mps=True)
-def test_mps_amp_device_selection_vs_cpu():
-    """Test that MPS AMP device selection differs from CPU AMP device selection."""
-    # MPS with mixed precision should use "mps" device
-    mps_connector = _AcceleratorConnector(accelerator="mps", precision="bf16-mixed")
-    assert mps_connector.precision_plugin.device == "mps"
-
-    # CPU with mixed precision should use "cpu" device
-    cpu_connector = _AcceleratorConnector(accelerator="cpu", precision="bf16-mixed")
-    assert cpu_connector.precision_plugin.device == "cpu"
+    assert connector.precision_plugin.device == expected_device
