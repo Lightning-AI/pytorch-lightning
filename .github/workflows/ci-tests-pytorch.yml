@@ -138,7 +138,7 @@ jobs:
           uv pip list
 
       - name: Patch NumPy for old Torch versions
-        if: ${{ startsWith(matrix.pytorch-version, '2.1') || startsWith(matrix.pytorch-version, '2.2') || startsWith(matrix.pytorch-version, '2.3') }}
+        if: ${{ startsWith(matrix.config.pytorch-version, '2.1') || startsWith(matrix.config.pytorch-version, '2.2') || startsWith(matrix.config.pytorch-version, '2.3') }}
         # Patch numpy to avoid "RuntimeError: Numpy is not available"
         run: uv pip install -U "numpy<1.24"
 
