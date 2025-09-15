@@ -64,17 +64,18 @@ jobs:
       PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.checkout }}
-          # only Pytorch has/uses notebooks
-          submodules: ${{ matrix.pkg-name == 'pytorch' }}
-          lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - name: Setup Git LFS credentials
         if: ${{ matrix.pkg-name == 'pytorch' }}
         run: |
           git config --global credential.helper store
           echo "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com" > ~/.git-credentials
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.checkout }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # only Pytorch has/uses notebooks
+          submodules: ${{ matrix.pkg-name == 'pytorch' }}
+          lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
