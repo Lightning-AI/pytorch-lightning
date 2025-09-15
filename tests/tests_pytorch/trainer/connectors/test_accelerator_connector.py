@@ -1095,8 +1095,8 @@ def test_precision_selection_model_parallel(precision, raises, mps_count_0):
     ],
 )
 @pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
-def test_mps_amp_device_selection(accelerator, expected_device, precision):
+def test_mps_amp_device_selection(accelerator, precision):
     """Test that MPS accelerator with mixed precision correctly sets device to 'mps' instead of 'cuda'."""
     connector = _AcceleratorConnector(accelerator=accelerator, precision=precision)
     assert isinstance(connector.precision_plugin, MixedPrecision)
-    assert connector.precision_plugin.device == expected_device
+    assert connector.precision_plugin.device == accelerator
