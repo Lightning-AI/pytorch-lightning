@@ -66,6 +66,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
           lfs: ${{ matrix.pkg-name == 'pytorch' }}
