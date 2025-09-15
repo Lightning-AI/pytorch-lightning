@@ -52,7 +52,7 @@ env:
 
 jobs:
   docs-make:
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == true
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -69,6 +69,7 @@ jobs:
         run: |
           git config --global credential.helper store
           echo "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com" > ~/.git-credentials
+          git config --global lfs.url "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com"
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
