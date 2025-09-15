@@ -70,12 +70,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
-          lfs: ${{ matrix.pkg-name == 'pytorch' }}
-      - name: Configure Git LFS for submodules
+          lfs: false # Disable LFS during checkout to avoid auth issues
+      - name: Setup LFS and fetch notebooks manually
         if: ${{ matrix.pkg-name == 'pytorch' }}
         run: |
+          # Configure Git to use token for all GitHub operations
+          git config --global credential.helper store
+          echo "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+
+          # Navigate to submodule and configure LFS with correct URL
           cd _notebooks
           git config lfs.url "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
+          git config credential.helper store
+
+          # Install and configure LFS
+          git lfs install
+
+          # Fetch LFS objects
           git lfs fetch --all
           git lfs checkout
       - uses: actions/setup-python@v6
