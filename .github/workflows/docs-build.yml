@@ -90,12 +90,17 @@ jobs:
           # Set the correct remote URL with token
           git remote set-url origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git"
 
-          # Configure LFS to use the correct endpoint
+          # Configure LFS more aggressively
           git config lfs.url "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
+          git config --add lfs.https://github.com/Lightning-AI/tutorials.git/info/lfs.access basic
+          git config --add lfs.https://github.com/Lightning-AI/lightning-tutorials.git/info/lfs.access basic
           git config credential.helper store
 
           # Install and configure LFS
           git lfs install
+
+          # Try to fetch with environment variable override
+          export GIT_LFS_ENDPOINT="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
 
           # Fetch LFS objects
           git lfs fetch --all
