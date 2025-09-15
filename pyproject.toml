@@ -120,7 +120,6 @@ ignore = [
     "S607",  # todo: Starting a process with a partial executable path
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
-    "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
@@ -182,7 +181,6 @@ filterwarnings = [
     # "error::DeprecationWarning",
     "error::FutureWarning",
     "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
-    "ignore:The pynvml package is deprecated:FutureWarning", # Ignore pynvml deprecation warning, since it is not installed by PL directly
 ]
 xfail_strict = true
 junit_duration_report = "call"

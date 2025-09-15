@@ -12,7 +12,7 @@ Intel® Neural Compressor, is an open-source Python library that runs on Intel C
 
 **Audience** : Machine learning engineers optimizing models for a better model inference speed and lower memory usage.
 
-Visit the Intel® Neural Compressor online document website at: `<https://intel.github.io/neural-compressor>`_.
+Visit the Intel® Neural Compressor online document website at: `<https://github.com/intel/neural-compressor>`_.
 
 ******************
 Model Quantization
@@ -182,4 +182,4 @@ For more model quantization performance, please refer to `our model list <https:
 Technical Support
 *****************
 
-Welcome to visit Intel® Neural Compressor website at: https://intel.github.io/neural-compressor to find technical support or contribute your code.
+Welcome to visit Intel® Neural Compressor website at: https://github.com/intel/neural-compressor to find technical support or contribute your code.
