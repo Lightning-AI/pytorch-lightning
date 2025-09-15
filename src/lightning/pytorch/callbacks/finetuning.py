@@ -354,10 +354,46 @@ class BackboneFinetuning(BaseFinetuning):
 
     Example::
 
-        >>> from lightning.pytorch import Trainer
+        >>> import torch
+        >>> import torch.nn as nn
+        >>> from lightning.pytorch import LightningModule, Trainer
         >>> from lightning.pytorch.callbacks import BackboneFinetuning
+        >>> import torchvision.models as models
+        >>>
+        >>> class TransferLearningModel(LightningModule):
+        ...     def __init__(self, num_classes=10):
+        ...         super().__init__()
+        ...         # REQUIRED: Your model must have a 'backbone' attribute
+        ...         self.backbone = models.resnet50(weights="DEFAULT")
+        ...         # Remove the final classification layer from backbone
+        ...         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
+        ...
+        ...         # Add your task-specific head
+        ...         self.head = nn.Sequential(
+        ...             nn.Flatten(),
+        ...             nn.Linear(2048, 512),
+        ...             nn.ReLU(),
+        ...             nn.Linear(512, num_classes)
+        ...         )
+        ...
+        ...     def forward(self, x):
+        ...         # Extract features with backbone
+        ...         features = self.backbone(x)
+        ...         # Classify with head
+        ...         return self.head(features)
+        ...
+        ...     def configure_optimizers(self):
+        ...         # Initially only optimize the head - backbone will be added by callback
+        ...         return torch.optim.Adam(self.head.parameters(), lr=1e-3)
+        ...
+        >>> # Setup the callback
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
+        >>> backbone_finetuning = BackboneFinetuning(
+        ...     unfreeze_backbone_at_epoch=10,  # Start unfreezing at epoch 10
+        ...     lambda_func=multiplicative,     # Gradually increase backbone LR
+        ...     backbone_initial_ratio_lr=0.1,  # Start backbone at 10% of head LR
+        ... )
+        >>> model = TransferLearningModel()
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
 
     """
