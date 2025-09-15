@@ -339,7 +339,7 @@ def test_lightning_cli_save_config_seed_everything(cleandir):
 
 
 def test_save_to_log_dir_false_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="`save_to_log_dir=False` only makes sense*"):
         SaveConfigCallback(
             LightningArgumentParser(),
             Namespace(),
