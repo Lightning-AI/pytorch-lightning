@@ -80,6 +80,17 @@ jobs:
 
           # Navigate to submodule and configure LFS with correct URL
           cd _notebooks
+
+          # Check current remote and LFS config
+          echo "Current remote:"
+          git remote -v
+          echo "Current LFS config:"
+          git config --list | grep lfs || true
+
+          # Set the correct remote URL with token
+          git remote set-url origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git"
+
+          # Configure LFS to use the correct endpoint
           git config lfs.url "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
           git config credential.helper store
 
