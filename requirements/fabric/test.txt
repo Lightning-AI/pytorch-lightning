@@ -1,7 +1,7 @@
 coverage ==7.10.6
 numpy >=1.21.0, <1.27.0
 pytest ==8.4.2
-pytest-cov ==6.3.0
+pytest-cov ==7.0.0
 pytest-timeout ==2.4.0
 pytest-rerunfailures ==16.0.1
 pytest-random-order ==1.2.0
