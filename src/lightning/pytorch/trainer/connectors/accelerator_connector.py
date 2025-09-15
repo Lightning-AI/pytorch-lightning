@@ -42,6 +42,7 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
     DoublePrecision,
+    FSDP2Precision,
     FSDPPrecision,
     HalfPrecision,
     MixedPrecision,
@@ -53,6 +54,7 @@ from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDP2Strategy,
     FSDPStrategy,
     ModelParallelStrategy,
     ParallelStrategy,
@@ -451,11 +453,19 @@ class _AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if (
+        is_fsdp1_str = (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
+        )
+        is_fsdp2_str = (
+            strategy_flag in FSDP2Strategy.get_registered_strategies() or type(self._strategy_flag) is FSDP2Strategy
+        )
+
+        if (is_fsdp1_str or is_fsdp2_str) and not (
+            self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)
+        ):
+            strategy_name = FSDP2Strategy.strategy_name if is_fsdp2_str else FSDPStrategy.strategy_name
             raise ValueError(
-                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
+                f"The strategy `{strategy_name}` requires a GPU accelerator, but received "
                 f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
                 " or pass a `CUDAAccelerator()` instance to use FSDP."
             )
@@ -493,6 +503,8 @@ class _AcceleratorConnector:
             return DeepSpeedPrecision(self._precision_flag)  # type: ignore[arg-type]
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(self._precision_flag)  # type: ignore[arg-type]
+        if isinstance(self.strategy, FSDP2Strategy):
+            return FSDP2Precision(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
