@@ -74,37 +74,23 @@ jobs:
       - name: Setup LFS and fetch notebooks manually
         if: ${{ matrix.pkg-name == 'pytorch' }}
         run: |
-          # Configure Git to use token for all GitHub operations
-          git config --global credential.helper store
-          echo "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
-
-          # Navigate to submodule and configure LFS with correct URL
           cd _notebooks
 
-          # Check current remote and LFS config
-          echo "Current remote:"
-          git remote -v
-          echo "Current LFS config:"
-          git config --list | grep lfs || true
+          # Skip LFS entirely - download files directly from GitHub
+          echo "Bypassing LFS - downloading files directly via GitHub API..."
 
-          # Set the correct remote URL with token
-          git remote set-url origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git"
+          # List LFS tracked files and download them directly
+          git lfs ls-files --name-only | while read file; do
+            if [ -f "$file" ]; then
+              echo "Downloading $file..."
+              # Download the actual file content from GitHub raw API
+              curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                   -L "https://github.com/Lightning-AI/lightning-tutorials/raw/HEAD/$file" \
+                   -o "$file"
+            fi
+          done
 
-          # Configure LFS more aggressively
-          git config lfs.url "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
-          git config --add lfs.https://github.com/Lightning-AI/tutorials.git/info/lfs.access basic
-          git config --add lfs.https://github.com/Lightning-AI/lightning-tutorials.git/info/lfs.access basic
-          git config credential.helper store
-
-          # Install and configure LFS
-          git lfs install
-
-          # Try to fetch with environment variable override
-          export GIT_LFS_ENDPOINT="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/Lightning-AI/lightning-tutorials.git/info/lfs"
-
-          # Fetch LFS objects
-          git lfs fetch --all
-          git lfs checkout
+          echo "Direct download completed"
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
