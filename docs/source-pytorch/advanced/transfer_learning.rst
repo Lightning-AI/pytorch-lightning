@@ -164,9 +164,7 @@ Example: Computer Vision with ResNet
 Here's a complete example showing how to use :class:`~lightning.pytorch.callbacks.BackboneFinetuning`
 for computer vision:
 
-.. testcode::
-    :skipif: not _TORCHVISION_AVAILABLE
-
+.. code-block:: python
     import torch
     import torch.nn as nn
     import torchvision.models as models
