@@ -1,0 +1,103 @@
+trigger:
+  push:
+    branches: ["master", "release/stable"]
+  pull_request:
+    branches: ["master", "release/stable"]
+
+timeout: "90" # minutes
+parametrize:
+  matrix:
+    PACKAGE_NAME: ["fabric", "pytorch"]
+image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
+machine: "L4_X_2"
+env:
+  TZ: "Etc/UTC"
+  DEBIAN_FRONTEND: "noninteractive"
+  python_version: "3.12"
+  MKL_THREADING_LAYER: "GNU"
+  CUDA_LAUNCH_BLOCKING: "1"
+  NCCL_DEBUG: "INFO"
+  TORCHDYNAMO_VERBOSE: "1"
+  FREEZE_REQUIREMENTS: "1"
+  RUN_ONLY_CUDA_TESTS: "1"
+
+run: |
+  echo "Installing dependencies"
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  apt-get install -q -y software-properties-common curl
+  echo "Add deadsnakes PPA for newer Python versions if needed"
+  add-apt-repository ppa:deadsnakes/ppa -y
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  echo "Install Python ${python_version} and other dependencies"
+  apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
+        build-essential \
+        pkg-config \
+        cmake \
+        ca-certificates \
+        libopenmpi-dev \
+        openmpi-bin
+
+  echo "Install Python ${python_version} and UV"
+  apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
+  ln -sf /usr/bin/python${python_version} /usr/bin/python
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  echo "Source the environment and ensure UV is in PATH"
+  [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
+  source $HOME/.cargo/env 2>/dev/null || true
+  export PATH="$HOME/.cargo/bin:$PATH"
+
+  echo "Verify UV installation"
+  command -v uv || (echo "UV not found in PATH" && exit 1)
+  # Create and activate a local uv virtual environment
+  uv venv .venv -p "/usr/bin/python${python_version}" || uv venv .venv -p "python${python_version}" || uv venv .venv
+  . .venv/bin/activate
+  hash -r
+
+  echo "Show system information"
+  whereis nvidia
+  nvidia-smi
+  python --version
+  uv --version
+  uv pip list
+  set -ex
+
+  # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+  IMAGE_TAG="${image##*:}"  # "12.6.3-devel-ubuntu22.04"
+  CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
+  echo "Using CUDA version: ${CUDA_VERSION}"
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
+
+  echo "Adjust tests"
+  uv pip install -q -r .actions/requirements.txt
+  python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+    --source_import="lightning.fabric,lightning.pytorch" \
+    --target_import="lightning_fabric,pytorch_lightning"
+
+  echo "Install package"
+  uv pip install ".[dev]"
+
+  # Env details
+  python requirements/collect_env_details.py
+  python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
+
+  cd tests/
+  echo "Testing: benchmarks"
+  export PL_RUNNING_BENCHMARKS=1
+  python -m pytest parity_${PACKAGE_NAME} -v --durations=0
+  export PL_RUNNING_BENCHMARKS=0
+
+  echo "Testing: fabric standalone tasks"
+  export PL_RUN_STANDALONE_TESTS=1
+  if [ "${PACKAGE_NAME}" == "fabric" ]; then
+    cd parity_fabric/
+    bash run_standalone_tasks.sh cuda
+    cd ..
+  fi
+  export PL_RUN_STANDALONE_TESTS=0
+
+  cd ..
+  echo "Benchmarks completed successfully"
