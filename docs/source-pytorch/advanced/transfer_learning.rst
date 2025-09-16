@@ -165,6 +165,7 @@ Here's a complete example showing how to use :class:`~lightning.pytorch.callback
 for computer vision:
 
 .. code-block:: python
+
     import torch
     import torch.nn as nn
     import torchvision.models as models
