@@ -187,7 +187,8 @@ class _LRFinder:
             self._optimal_idx = None
             return None
 
-        gradients = torch.gradient(losses, spacing=[lrs])[0]  # Compute the gradient of losses w.r.t. learning rates
+        spacing = [torch.log10(lrs)] if self.mode == "exponential" else [lrs]
+        gradients = torch.gradient(losses, spacing=spacing)[0]  # Compute the gradient of losses w.r.t. learning rates
         min_grad = torch.argmin(gradients).item()
         all_losses_idx = torch.arange(len(self.results["loss"]))
         idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
