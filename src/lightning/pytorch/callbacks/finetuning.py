@@ -31,7 +31,12 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+
+if not _TORCHVISION_AVAILABLE:
+    __doctest_skip__ = ["BackboneFinetuning"]
+
 
 log = logging.getLogger(__name__)
 
