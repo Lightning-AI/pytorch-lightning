@@ -516,6 +516,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
 
@@ -608,7 +609,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                 )
             if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
                 raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
-            full_ckpt = torch.load(path)
+            full_ckpt = torch.load(path, weights_only=weights_only)
             model.load_state_dict(full_ckpt.pop("model"), strict=strict)
             return full_ckpt
 
