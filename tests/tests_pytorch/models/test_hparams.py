@@ -341,6 +341,20 @@ class UnconventionalArgsBoringModel(CustomBoringModel):
         obj.save_hyperparameters()
 
 
+class _MetaType(type):
+    def __call__(cls, *args, **kwargs):
+        instance = super().__call__(*args, **kwargs)  # Create the instance
+        if hasattr(instance, "_after_init"):
+            instance._after_init(**kwargs)  # Call the method if defined
+        return instance
+
+
+class MetaTypeBoringModel(CustomBoringModel, metaclass=_MetaType):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
 if _OMEGACONF_AVAILABLE:
 
     class DictConfSubClassBoringModel(SubClassBoringModel):
@@ -365,6 +379,7 @@ else:
         pytest.param(DictConfSubClassBoringModel, marks=RunIf(omegaconf=True)),
         BoringModelWithMixin,
         BoringModelWithMixinAndInit,
+        MetaTypeBoringModel,
     ],
 )
 def test_collect_init_arguments(tmp_path, cls):
