@@ -985,6 +985,37 @@ class Fabric:
             )
         return self._wrap_and_launch(function, self, *args, **kwargs)
 
+    def _filter_kwargs_for_callback(self, method: Callable, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Filter keyword arguments to only include those that match the callback method's signature.
+
+        Args:
+            method: The callback method to inspect
+            kwargs: The keyword arguments to filter
+
+        Returns:
+            A filtered dictionary of keyword arguments that match the method's signature
+
+        """
+        try:
+            sig = inspect.signature(method)
+        except (ValueError, TypeError):
+            # If we can't inspect the signature, pass all kwargs to maintain backward compatibility
+            return kwargs
+
+        filtered_kwargs = {}
+        for name, param in sig.parameters.items():
+            # Skip 'self' parameter for instance methods
+            if name == "self":
+                continue
+            # If the method accepts **kwargs, pass all original kwargs directly
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                return kwargs
+            # If the parameter exists in the incoming kwargs, add it to filtered_kwargs
+            if name in kwargs:
+                filtered_kwargs[name] = kwargs[name]
+
+        return filtered_kwargs
+
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         r"""Trigger the callback methods with the given name and arguments.
 
@@ -994,7 +1025,9 @@ class Fabric:
         Args:
             hook_name: The name of the callback method.
             *args: Optional positional arguments that get passed down to the callback method.
-            **kwargs: Optional keyword arguments that get passed down to the callback method.
+            **kwargs: Optional keyword arguments that get passed down to the callback method. Keyword arguments
+                that are not present in the callback's signature will be filtered out automatically, allowing
+                callbacks to have different signatures for the same hook.
 
         Example::
 
@@ -1016,13 +1049,8 @@ class Fabric:
                 )
                 continue
 
-            method(*args, **kwargs)
-
-            # TODO(fabric): handle the following signatures
-            # method(self, fabric|trainer, x, y=1)
-            # method(self, fabric|trainer, *args, x, y=1)
-            # method(self, *args, y=1)
-            # method(self, *args, **kwargs)
+            filtered_kwargs = self._filter_kwargs_for_callback(method, kwargs)
+            method(*args, **filtered_kwargs)
 
     def log(self, name: str, value: Any, step: Optional[int] = None) -> None:
         """Log a scalar to all loggers that were added to Fabric.
