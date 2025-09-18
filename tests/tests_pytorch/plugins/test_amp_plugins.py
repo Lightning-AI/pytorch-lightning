@@ -165,8 +165,7 @@ def test_amp_skip_optimizer(tmp_path):
 
         def forward(self, x: Tensor):
             x = self.layer1(x)
-            x = self.layer2(x)
-            return x
+            return self.layer2(x)
 
         def training_step(self, batch, batch_idx):
             _, opt2 = self.optimizers()

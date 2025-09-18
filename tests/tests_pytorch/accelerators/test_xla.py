@@ -46,8 +46,7 @@ class WeightSharingModule(BoringModel):
     def forward(self, x):
         x = self.layer_1(x)
         x = self.layer_2(x)
-        x = self.layer_3(x)
-        return x
+        return self.layer_3(x)
 
 
 @RunIf(tpu=True, standalone=True)
@@ -230,8 +229,7 @@ class NestedModule(BoringModel):
     def forward(self, x):
         x = self.net_a(x)
         x = self.layer_2(x)
-        x = self.net_b(x)
-        return x
+        return self.net_b(x)
 
 
 @RunIf(tpu=True)
