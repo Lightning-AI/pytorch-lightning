@@ -112,7 +112,7 @@ class _restricted_classmethod_impl(classmethod):
         super().__init__(method)
         self.method = method
 
-    def __get__(self, instance: Optional[_T], cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:
+    def __get__(self, instance: Optional[_T], cls: type[_T]) -> Callable[_P, _R_co]:
         # The wrapper ensures that the method can be inspected, but not called on an instance
         @functools.wraps(self.method)
         def wrapper(*args: Any, **kwargs: Any) -> _R_co:
