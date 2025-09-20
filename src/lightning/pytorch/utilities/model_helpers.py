@@ -112,18 +112,19 @@ class _restricted_classmethod_impl(classmethod):
         super().__init__(method)
         self.method = method
 
-    def __get__(self, instance: Optional[_T], cls: type[_T]) -> Callable[_P, _R_co]:
+    def __get__(self, instance: _T, cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:
         # The wrapper ensures that the method can be inspected, but not called on an instance
         @functools.wraps(self.method)
         def wrapper(*args: Any, **kwargs: Any) -> _R_co:
             # Workaround for https://github.com/pytorch/pytorch/issues/67146
             is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
+            cls_type = cls if cls is not None else type(instance)
             if instance is not None and not is_scripting:
                 raise TypeError(
-                    f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance."
+                    f"The classmethod `{cls_type.__name__}.{self.method.__name__}` cannot be called on an instance."
                     " Please call it on the class type and make sure the return value is used."
                 )
-            return self.method(cls, *args, **kwargs)
+            return self.method(cls_type, *args, **kwargs)
 
         return wrapper
 
