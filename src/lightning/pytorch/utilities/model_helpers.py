@@ -115,7 +115,7 @@ class _restricted_classmethod_impl(classmethod):
     def __get__(self, instance: _T, cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:
         # The wrapper ensures that the method can be inspected, but not called on an instance
         @functools.wraps(self.method)
-        def wrapper(*args: Any, **kwargs: Any) -> Callable[Concatenate[type[_T], _P], _R_co]:
+        def wrapper(*args: Any, **kwargs: Any) -> _R_co:
             # Workaround for https://github.com/pytorch/pytorch/issues/67146
             is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
             cls_type = cls if cls is not None else type(instance)
