@@ -15,7 +15,7 @@ import functools
 import inspect
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
@@ -104,27 +104,23 @@ _P = ParamSpec("_P")  # parameters of the decorated method
 _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
-class _restricted_classmethod_impl(Generic[_T, _R_co, _P]):
+def _restricted_classmethod_impl(method: Callable[Concatenate[type[_T], _P], _R_co]) -> classmethod:
     """Drop-in replacement for @classmethod, but raises an exception when the decorated method is called on an instance
     instead of a class type."""
 
-    def __init__(self, method: Callable[Concatenate[type[_T], _P], _R_co]) -> None:
-        self.method = method
+    # The wrapper ensures that the method can be inspected, but not called on an instance
+    @functools.wraps(method)
+    def wrapper(cls: type[_T], *args: _P.args, **kwargs: _P.kwargs) -> _R_co:
+        # Workaround for https://github.com/pytorch/pytorch/issues/67146
+        is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
+        if inspect.isclass(cls) and not is_scripting:
+            raise TypeError(
+                f"The classmethod `{cls.__name__}.{method.__name__}` cannot be called on an instance."
+                " Please call it on the class type and make sure the return value is used."
+            )
+        return method(cls, *args, **kwargs)
 
-    def __get__(self, instance: Optional[_T], cls: type[_T]) -> Callable[_P, _R_co]:
-        # The wrapper ensures that the method can be inspected, but not called on an instance
-        @functools.wraps(self.method)
-        def wrapper(*args: Any, **kwargs: Any) -> _R_co:
-            # Workaround for https://github.com/pytorch/pytorch/issues/67146
-            is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
-            if instance is not None and not is_scripting:
-                raise TypeError(
-                    f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance."
-                    " Please call it on the class type and make sure the return value is used."
-                )
-            return self.method(cls, *args, **kwargs)
-
-        return wrapper
+    return classmethod(wrapper)
 
 
 if TYPE_CHECKING:
