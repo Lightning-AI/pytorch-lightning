@@ -15,7 +15,7 @@ import functools
 import inspect
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
@@ -104,16 +104,18 @@ _P = ParamSpec("_P")  # parameters of the decorated method
 _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
-class _restricted_classmethod_impl(classmethod):
+class _restricted_classmethod_impl(classmethod, Generic[_T, _P, _R_co]):
     """Drop-in replacement for @classmethod, but raises an exception when the decorated method is called on an instance
     instead of a class type."""
+
+    method: Callable[Concatenate[type[_T], _P], _R_co]
 
     def __init__(self, method: Callable[Concatenate[type[_T], _P], _R_co]) -> None:
         super().__init__(method)
         self.method = method
 
     @override
-    def __get__(self, instance: Optional[_T], cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:
+    def __get__(self, instance: _T, cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:  # type: ignore[override]
         # The wrapper ensures that the method can be inspected, but not called on an instance
         @functools.wraps(self.method)
         def wrapper(*args: Any, **kwargs: Any) -> _R_co:
