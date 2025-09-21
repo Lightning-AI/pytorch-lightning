@@ -129,6 +129,7 @@ class _restricted_classmethod_impl(classmethod, Generic[_T, _P, _R_co]):
                 )
             return self.method(cls_type, *args, **kwargs)
 
+        wrapper.__func__ = self.method
         return wrapper
 
 
