@@ -660,3 +660,107 @@ def test_result_collection_changes_device():
     # same device as the new tensor
     results.log(fx, name, log_val, on_step=True, on_epoch=False, reduce_fx="mean")
     assert results[f"{fx}.{name}"].cumulated_batch_size.device == log_val.device
+
+
+@RunIf(min_cuda_gpus=1)
+def test_logger_connector_no_sync_without_progress_bar():
+    """Test logger connector doesn't sync when no progress bar."""
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.demos.boring_classes import BoringModel
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.to("cuda")
+
+        def training_step(self, batch, batch_idx):
+            # Log some metrics with progress bar enabled
+            loss = super().training_step(batch, batch_idx)["loss"]
+
+            # Enable sync debug mode to catch any synchronization
+            torch.cuda.set_sync_debug_mode("error")
+            try:
+                # These logs have prog_bar=True but should not sync
+                # when progress bar callback is not present
+                self.log("train_loss", loss, prog_bar=True)
+                self.log("train_acc", 0.95, prog_bar=True)
+
+            except RuntimeError as e:
+                if "called a synchronizing CUDA operation" in str(e):
+                    msg = f"Unexpected CUDA synchronization: {e}"
+                    pytest.fail(msg)
+                else:
+                    raise
+            finally:
+                torch.cuda.set_sync_debug_mode("default")
+
+            return loss
+
+    model = TestModel()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        accelerator="gpu",
+        devices=1,
+        enable_progress_bar=False,  # Key - no progress bar callback
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
+
+
+def test_result_collection_metrics_include_pbar_parameter():
+    """Test metrics method handles include_pbar_metrics parameter."""
+    from lightning.pytorch.trainer.connectors.logger_connector.result import (
+        _ResultCollection,
+    )
+
+    results = _ResultCollection(training=True)
+
+    # Log some metrics with different prog_bar settings
+    results.log(
+        "training_step",
+        "regular_metric",
+        torch.tensor(1.0),
+        on_step=True,
+        on_epoch=False,
+        prog_bar=False,
+    )
+    results.log(
+        "training_step",
+        "pbar_metric",
+        torch.tensor(2.0),
+        on_step=True,
+        on_epoch=False,
+        prog_bar=True,
+    )
+    results.log(
+        "training_step",
+        "both_metric",
+        torch.tensor(3.0),
+        on_step=True,
+        on_epoch=False,
+        prog_bar=True,
+        logger=True,
+    )
+
+    # Test with include_pbar_metrics=True (default behavior)
+    metrics_with_pbar = results.metrics(
+        on_step=True, include_pbar_metrics=True
+    )
+    assert "pbar_metric" in metrics_with_pbar["pbar"]
+    assert "both_metric" in metrics_with_pbar["pbar"]
+    assert "both_metric" in metrics_with_pbar["log"]
+
+    # Test with include_pbar_metrics=False (optimization)
+    metrics_without_pbar = results.metrics(
+        on_step=True, include_pbar_metrics=False
+    )
+    # No progress bar metrics should be included
+    assert len(metrics_without_pbar["pbar"]) == 0
+    # Logger metrics should still be included
+    assert "both_metric" in metrics_without_pbar["log"]
+
+    # Verify callback metrics are not affected
+    assert "regular_metric" in metrics_with_pbar["callback"]
+    assert "regular_metric" in metrics_without_pbar["callback"]
