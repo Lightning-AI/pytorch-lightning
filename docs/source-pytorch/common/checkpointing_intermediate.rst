@@ -21,7 +21,12 @@ For fine-grained control over checkpointing behavior, use the :class:`~lightning
         checkpoint_callback = ModelCheckpoint(dirpath="my/path/", save_top_k=2, monitor="val_loss")
         trainer = Trainer(callbacks=[checkpoint_callback])
         trainer.fit(model)
-        checkpoint_callback.best_model_path
+
+.. note::
+    You can access the paths of saved checkpoints via the ``checkpoint_callback.best_model_path`` and 
+    ``checkpoint_callback.last_model_path`` properties or alternatively ``trainer.checkpoint_callback.best_model_path`` 
+    and ``trainer.checkpoint_callback.last_model_path``. These provide the file paths to the best checkpoint 
+    (based on the monitored metric) and the most recently saved checkpoint, respectively.
 
 Any value that has been logged via *self.log* in the LightningModule can be monitored.
 
