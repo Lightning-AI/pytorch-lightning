@@ -1,10 +1,10 @@
 import shutil
 import tempfile
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 
-import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -63,17 +63,20 @@ class SimpleModule(LightningModule):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
 
-@pytest.fixture
-def auto_cleanup_lightning_logs():
-    """Fixture to clean up lightning_logs directory after each test."""
+@contextmanager
+def cleanup_after_test():
+    """Context manager to ensure all test artifacts are cleaned up."""
     log_dir = Path("tests_pytorch/lightning_logs")
-    yield
-    if log_dir.exists():
-        shutil.rmtree(log_dir, ignore_errors=True)
+    try:
+        yield
+    finally:
+        # Clean up any remaining log files
+        if log_dir.exists():
+            shutil.rmtree(log_dir, ignore_errors=True)
 
 
-def test_model_checkpoint_manual_opt(auto_cleanup_lightning_logs):
-    with tempfile.TemporaryDirectory() as tmpdir:
+def test_model_checkpoint_manual_opt():
+    with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
         dataset = FakeDataset()
         train_dataloader = DataLoader(dataset, batch_size=1)
         model = SimpleModule()
@@ -95,9 +98,12 @@ def test_model_checkpoint_manual_opt(auto_cleanup_lightning_logs):
             ],
             log_every_n_steps=1,
             num_sanity_val_steps=0,
+            logger=False,  # Disable logging to prevent creating lightning_logs
         )
-        trainer.fit(model, train_dataloader)
-        trainer._teardown()  # Ensure trainer is properly closed
+        try:
+            trainer.fit(model, train_dataloader)
+        finally:
+            trainer._teardown()  # Ensure trainer is properly closed
 
         # The best loss is at batch_idx=2 (loss=0.0)
         best_step = 2
@@ -113,7 +119,7 @@ def test_model_checkpoint_manual_opt(auto_cleanup_lightning_logs):
             )
 
 
-def test_model_checkpoint_manual_opt_warning(auto_cleanup_lightning_logs):
+def test_model_checkpoint_manual_opt_warning():
     """Test that a warning is raised when using manual optimization without saving the state."""
 
     class SimpleModuleNoSave(SimpleModule):
@@ -129,7 +135,7 @@ def test_model_checkpoint_manual_opt_warning(auto_cleanup_lightning_logs):
             optimizer.step()
             return loss
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
         dataset = FakeDataset()
         train_dataloader = DataLoader(dataset, batch_size=1, num_workers=0)  # Avoid num_workers warning
         model = SimpleModuleNoSave()
@@ -157,9 +163,12 @@ def test_model_checkpoint_manual_opt_warning(auto_cleanup_lightning_logs):
                 ],
                 log_every_n_steps=1,
                 num_sanity_val_steps=0,
+                logger=False,  # Disable logging to prevent creating lightning_logs
             )
-            trainer.fit(model, train_dataloader)
-            trainer._teardown()  # Ensure trainer is properly closed
+            try:
+                trainer.fit(model, train_dataloader)
+            finally:
+                trainer._teardown()
 
         # Find our warning in the list of warnings
         manual_opt_warnings = [
