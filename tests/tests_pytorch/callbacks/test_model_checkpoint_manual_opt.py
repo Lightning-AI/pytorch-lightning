@@ -110,7 +110,7 @@ def test_model_checkpoint_manual_opt():
         model_before_opt = load_model(best_step, model.saved_models)
         # Load the best checkpoint
         best_ckpt_path = trainer.checkpoint_callback.best_model_path
-        best_ckpt = torch.load(best_ckpt_path)["state_dict"]
+        best_ckpt = torch.load(best_ckpt_path, weights_only=True)["state_dict"]
 
         # The checkpoint should match the model before opt.step(), not after
         for layer_name, layer_value in best_ckpt.items():
