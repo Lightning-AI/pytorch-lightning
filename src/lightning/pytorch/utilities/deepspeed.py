@@ -93,10 +93,10 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     ]
     checkpoint_dir = ds_checkpoint_dir(checkpoint_dir)
     optim_files = get_optim_files(checkpoint_dir)
-    optim_state = torch.load(optim_files[0], map_location=CPU_DEVICE)
+    optim_state = torch.load(optim_files[0], map_location=CPU_DEVICE, weights_only=False)
     zero_stage = optim_state["optimizer_state_dict"]["zero_stage"]
     model_file = get_model_state_file(checkpoint_dir, zero_stage)
-    client_state = torch.load(model_file, map_location=CPU_DEVICE)
+    client_state = torch.load(model_file, map_location=CPU_DEVICE, weights_only=False)
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
     # State dict keys will include reference to wrapper _LightningModuleWrapperBase in old checkpoints created in
     # Lightning version < 2.1. Delete the `_forward_module` prefix before saving.
