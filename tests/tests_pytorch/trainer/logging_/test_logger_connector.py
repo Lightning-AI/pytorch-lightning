@@ -745,17 +745,13 @@ def test_result_collection_metrics_include_pbar_parameter():
     )
 
     # Test with include_pbar_metrics=True (default behavior)
-    metrics_with_pbar = results.metrics(
-        on_step=True, include_pbar_metrics=True
-    )
+    metrics_with_pbar = results.metrics(on_step=True, include_pbar_metrics=True)
     assert "pbar_metric" in metrics_with_pbar["pbar"]
     assert "both_metric" in metrics_with_pbar["pbar"]
     assert "both_metric" in metrics_with_pbar["log"]
 
     # Test with include_pbar_metrics=False (optimization)
-    metrics_without_pbar = results.metrics(
-        on_step=True, include_pbar_metrics=False
-    )
+    metrics_without_pbar = results.metrics(on_step=True, include_pbar_metrics=False)
     # No progress bar metrics should be included
     assert len(metrics_without_pbar["pbar"]) == 0
     # Logger metrics should still be included
