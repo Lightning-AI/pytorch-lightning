@@ -468,7 +468,7 @@ class _ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool, *, include_pbar_metrics: bool = True) -> _METRICS:
+    def metrics(self, on_step: bool, include_pbar_metrics: bool = True) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
         for _, result_metric in self.valid_items():
