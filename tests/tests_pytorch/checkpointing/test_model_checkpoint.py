@@ -2128,12 +2128,12 @@ def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
 
 def test_save_last_only_when_checkpoint_saved(tmp_path):
     """Test that save_last only creates last.ckpt when another checkpoint is actually saved."""
-    
+
     class SelectiveModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.validation_step_outputs = []
-            
+
         def validation_step(self, batch, batch_idx):
             outputs = super().validation_step(batch, batch_idx)
             epoch = self.trainer.current_epoch
@@ -2141,7 +2141,7 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
             outputs["val_loss"] = loss
             self.validation_step_outputs.append(outputs)
             return outputs
-            
+
         def on_validation_epoch_end(self):
             if self.validation_step_outputs:
                 avg_loss = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
@@ -2149,11 +2149,11 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
                 self.validation_step_outputs.clear()
 
     model = SelectiveModel()
-    
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmp_path,
         filename="best-{epoch}-{val_loss:.2f}",
-        monitor="val_loss", 
+        monitor="val_loss",
         save_last=True,
         save_top_k=1,
         mode="min",
@@ -2177,4 +2177,6 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     checkpoint_names = [f.name for f in checkpoint_files]
     assert "last.ckpt" in checkpoint_names, "last.ckpt should exist since checkpoints were saved"
     expected_files = 2  # best checkpoint + last.ckpt
-    assert len(checkpoint_files) == expected_files, f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
+    assert len(checkpoint_files) == expected_files, (
+        f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
+    )
