@@ -566,8 +566,8 @@ class LightningCLI:
                 return
             if "_class_path" in hparams:
                 hparams = {
-                    "class_path": hparams["_class_path"],
-                    "dict_kwargs": {k: v for k, v in hparams.items() if k != "_class_path"},
+                    "class_path": hparams.pop("_class_path"),
+                    "dict_kwargs": hparams,
                 }
             hparams = {self.config.subcommand: {"model": hparams}}
             try:
