@@ -4,6 +4,7 @@ trigger:
   pull_request:
     branches: ["master", "release/stable"]
 
+
 timeout: "55" # minutes
 machine: "L4_X_2"
 image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
