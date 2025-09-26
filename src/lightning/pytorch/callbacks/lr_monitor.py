@@ -241,7 +241,7 @@ class LearningRateMonitor(Callback):
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _remap_keys(self, names: list[list[str]], token: str = "/pg1") -> None:
+    def _remap_keys(self, names: list[list[str]], token: str = "/pg1") -> None:  # noqa: S107
         """This function is used the remap the keys if param groups for a given optimizer increased."""
         for group_new_names in names:
             for new_name in group_new_names:
