@@ -47,9 +47,9 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning (GPUs) (testing Lightning | latest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | oldest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
+      - "pytorch.yml / Lit Job (nvidia/cuda:12.1.1-runtime-ubuntu22.04, pytorch, 3.10)"
+      - "pytorch.yml / Lit Job (lightning, 3.12)"
+      - "pytorch.yml / Lit Job (pytorch, 3.12)"
 
   - id: "pytorch_lightning: Benchmarks"
     paths:
@@ -175,9 +175,9 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning-fabric (GPUs) (testing Fabric | oldest)"
-      - "lightning-fabric (GPUs) (testing Fabric | latest)"
-      - "lightning-fabric (GPUs) (testing Lightning | latest)"
+      - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-runtime-ubuntu22.04, fabric, 3.10)"
+      - "fabric.yml / Lit Job (fabric, 3.12)"
+      - "fabric.yml / Lit Job (lightning, 3.12)"
 
   # Temporarily disabled
   #  - id: "lightning_fabric: TPU workflow"

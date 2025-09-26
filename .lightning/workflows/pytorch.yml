@@ -4,22 +4,22 @@ trigger:
   pull_request:
     branches: ["master"]
 
-timeout: "55" # minutes
+timeout: "60" # minutes
+machine: "L4_X_2"
+image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
     # note that this is setting also all oldest requirements which is linked to Torch == 2.1
     - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
       PACKAGE_NAME: "pytorch"
-      machine: "A100_X_2"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
-      PACKAGE_NAME: "pytorch"
-      machine: "L4_X_2"
-    # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
+      python_version: "3.10"
+    - PACKAGE_NAME: "pytorch"
+      python_version: "3.12"
+    # - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
     #   PACKAGE_NAME: "pytorch"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
-      PACKAGE_NAME: "lightning"
-      machine: "L4_X_2"
+    - PACKAGE_NAME: "lightning"
+      python_version: "3.12"
   exclude: []
 
 env:
