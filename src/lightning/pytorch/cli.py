@@ -564,6 +564,11 @@ class LightningCLI:
             hparams.pop("_instantiator", None)
             if not hparams:
                 return
+            if "_class_path" in hparams:
+                hparams = {
+                    "class_path": hparams.pop("_class_path"),
+                    "dict_kwargs": hparams,
+                }
             hparams = {self.config.subcommand: {"model": hparams}}
             try:
                 self.config = self.parser.parse_object(hparams, self.config)
