@@ -66,6 +66,13 @@ ModuleType = TypeVar("ModuleType")
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
+    """Custom ReduceLROnPlateau scheduler that extends PyTorch's ReduceLROnPlateau.
+
+    This class adds a `monitor` attribute to the standard PyTorch ReduceLROnPlateau to specify which metric should be
+    tracked for learning rate adjustment.
+
+    """
+
     def __init__(self, optimizer: Optimizer, monitor: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(optimizer, *args, **kwargs)
         self.monitor = monitor
