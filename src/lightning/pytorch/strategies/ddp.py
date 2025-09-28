@@ -103,6 +103,7 @@ class DDPStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
+        self._pl_static_graph_delay_done = False
 
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
