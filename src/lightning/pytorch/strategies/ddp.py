@@ -320,6 +320,27 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     @override
+    def post_backward(self, closure_loss: Tensor) -> None:
+        # Only for first static-graph iteration with manual optimization
+        model = self.model
+        lm = self.lightning_module
+        if not isinstance(model, DistributedDataParallel):
+            return
+        if lm is None or lm.automatic_optimization:
+            return
+        if not getattr(model, "static_graph", False):
+            return
+        if self._pl_static_graph_delay_done:
+            return
+
+        # Call DDP's own first-iter static-graph flush.
+        # This is what actually launches the bucket all-reduces.
+        reducer = model.reducer
+        reducer._delay_all_reduce()
+
+        self._pl_static_graph_delay_done = True
+
+    @override
     def model_to_device(self) -> None:
         log.debug(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         assert self.model is not None
