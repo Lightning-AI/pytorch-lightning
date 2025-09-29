@@ -5,6 +5,5 @@ pytest-cov ==6.3.0
 pytest-timeout ==2.4.0
 pytest-rerunfailures ==16.0.1
 pytest-random-order ==1.2.0
-click ==8.1.8; python_version < "3.11"
-click ==8.2.1; python_version > "3.10"
+jsonargparse[signatures,jsonnet] >=4.39.0, <4.41.0
 tensorboardX >=2.6, <2.7.0  # todo: relax it back to `>=2.2` after fixing tests
