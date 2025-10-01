@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed preventing recursive symlink creation iwhen `save_last='link'` and `save_top_k=-1` ([#21186](https://github.com/Lightning-AI/pytorch-lightning/pull/21186))
 
 
+- Fixed redundant host-device sync in progressbar printing ([#21233](https://github.com/Lightning-AI/pytorch-lightning/pull/21233))
+
 ---
 
 ## [2.5.5] - 2025-09-05
