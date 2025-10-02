@@ -395,23 +395,19 @@ class EMAWeightAveraging(WeightAveraging):
             epoch_idx: The current epoch index.
         Returns:
             bool: True if the model weights should be updated, False otherwise.
+
         """
         if step_idx is not None:
             # Check step-based conditions only if we have a valid step_idx
-            meets_step_requirement = (
-                self.update_starting_at_step is None or step_idx >= self.update_starting_at_step
-            )
-            meets_step_frequency = (
-                self.update_every_n_steps > 0 and step_idx % self.update_every_n_steps == 0
-            )
+            meets_step_requirement = self.update_starting_at_step is None or step_idx >= self.update_starting_at_step
+            meets_step_frequency = self.update_every_n_steps > 0 and step_idx % self.update_every_n_steps == 0
             if meets_step_requirement and meets_step_frequency:
                 return True
 
         if epoch_idx is not None:
             # Check epoch-based condition only if we specify one
             meets_epoch_requirement = (
-                self.update_starting_at_epoch is not None
-                and epoch_idx >= self.update_starting_at_epoch
+                self.update_starting_at_epoch is not None and epoch_idx >= self.update_starting_at_epoch
             )
             if meets_epoch_requirement:
                 return True
