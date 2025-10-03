@@ -19,15 +19,15 @@ Role: All final decisions related to Lightning.
 Maintainers
 -----------
 - Luca Antiga (`lantiga <https://github.com/lantiga>`_)
-- Jirka Borovec (`Borda <https://github.com/Borda>`_)
-- Justus Schock (`justusschock <https://github.com/justusschock>`_)
+- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 
 
 Emeritus Maintainers
 --------------------
-- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
+- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
+- Jirka Borovec (`Borda <https://github.com/Borda>`_)
 
 
 Alumni
