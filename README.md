@@ -7,7 +7,7 @@
 
 **The deep learning framework to pretrain, finetune and deploy AI models.**
 
-**NEW- Deploying models? Check out [LitServe](https://github.com/Lightning-AI/litserve), the PyTorch Lightning for model serving**
+**NEW- Deploying models? Check out [LitServe](https://github.com/Lightning-AI/litserve), the PyTorch Lightning for inference engines**
 
 ______________________________________________________________________
 
@@ -191,7 +191,7 @@ python main.py
 &nbsp;
 
 
-# Why PyTorch Lightning?
+# Convert from PyTorch to PyTorch Lightning
 
 PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
 
