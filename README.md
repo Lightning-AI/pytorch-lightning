@@ -191,7 +191,7 @@ python main.py
 &nbsp;
 
 
-# Convert from PyTorch to PyTorch Lightning?
+# Convert from PyTorch to PyTorch Lightning
 
 PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
 
