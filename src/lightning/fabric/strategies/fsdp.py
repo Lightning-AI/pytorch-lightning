@@ -795,6 +795,12 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     )
 
 
+def _optimizer_has_dtensor_params(optimizer: Optimizer) -> bool:
+    from torch.distributed.tensor import DTensor
+
+    return any(isinstance(param, DTensor) for group in optimizer.param_groups for param in group["params"])
+
+
 def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
