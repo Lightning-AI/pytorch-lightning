@@ -35,10 +35,12 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
+    _DEEPSPEED_GREATER_EQUAL_0_16,
     _format_precision_config,
     _validate_checkpoint_directory,
     _validate_device_index_selection,
 )
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -260,6 +262,19 @@ class DeepSpeedStrategy(DDPStrategy):
             raise MisconfigurationException(
                 "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
                 " Install it by running `pip install -U deepspeed`."
+            )
+
+        if _TORCH_GREATER_EQUAL_2_6 and not _DEEPSPEED_GREATER_EQUAL_0_16:
+            # Starting with PyTorch 2.6, `torch.load` defaults to `weights_only=True` when loading full checkpoints.
+            # DeepSpeed added support for this behavior in version 0.16.0.
+            import deepspeed
+
+            deepspeed_version = deepspeed.__version__
+
+            raise ImportError(
+                f"PyTorch >= 2.6 requires DeepSpeed >= 0.16.0. "
+                f"Detected DeepSpeed version: {deepspeed_version}. "
+                "Please upgrade by running `pip install -U 'deepspeed>=0.16.0'`."
             )
 
         super().__init__(
