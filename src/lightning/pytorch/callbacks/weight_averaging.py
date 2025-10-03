@@ -21,7 +21,7 @@ from copy import deepcopy
 from typing import Any, Optional, Union
 
 import torch
-from torch.optim.swa_utils import AveragedModel
+from torch.optim.swa_utils import AveragedModel, get_ema_avg_fn
 from typing_extensions import override
 
 import lightning.pytorch as pl
