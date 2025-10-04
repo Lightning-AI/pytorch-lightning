@@ -176,7 +176,6 @@ class _FitLoop(_Loop):
             rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
-        # TODO: Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
         if stop_steps:
             rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
