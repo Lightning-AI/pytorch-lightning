@@ -6,18 +6,18 @@ trigger:
 
 timeout: "60" # minutes
 machine: "L4_X_2"
-image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
+image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
     # note that this is setting also all oldest requirements which is linked to python == 3.10
-    - image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
+    - image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
       PACKAGE_NAME: "fabric"
       python_version: "3.10"
     - PACKAGE_NAME: "fabric"
       python_version: "3.12"
-    # - image: "nvidia/cuda:12.6-runtime-ubuntu22.04"
-    #   PACKAGE_NAME: "fabric"
+    #- image: "nvidia/cuda:12.6-runtime-ubuntu22.04"
+    #  PACKAGE_NAME: "fabric"
     - PACKAGE_NAME: "lightning"
       python_version: "3.12"
   exclude: []
