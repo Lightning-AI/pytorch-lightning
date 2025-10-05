@@ -5,7 +5,7 @@
 <br/>
 <br/>
 
-**The deep learning framework to pretrain, finetune and deploy AI models.**
+**The deep learning framework to pretrai and finetune AI models.**
 
 **Deploying models?** Check out [LitServe](https://github.com/Lightning-AI/litserve?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme), the PyTorch Lightning for inference engines
 
