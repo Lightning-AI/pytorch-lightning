@@ -7,7 +7,7 @@
 
 **The deep learning framework to pretrain, finetune and deploy AI models.**
 
-**NEW- Deploying models? Check out [LitServe](https://github.com/Lightning-AI/litserve), the PyTorch Lightning for inference engines**
+**Deploying models?** Check out [LitServe](https://github.com/Lightning-AI/litserve?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme), the PyTorch Lightning for inference engines
 
 ______________________________________________________________________
 
@@ -16,7 +16,7 @@ ______________________________________________________________________
   <a href="#examples">Examples</a> •
   <a href="#why-pytorch-lightning">PyTorch Lightning</a> •
   <a href="#lightning-fabric-expert-control">Fabric</a> •
-  <a href="https://lightning.ai/">Lightning AI</a> •   
+  <a href="https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme">Lightning Cloud</a> •   
   <a href="#community">Community</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a>
 </p>
@@ -44,8 +44,8 @@ ______________________________________________________________________
 <p align="center">
 
 &nbsp;
-  
-<a target="_blank" href="https://lightning.ai/docs/pytorch/latest/starter/introduction.html#define-a-lightningmodule">
+
+<a target="_blank" href="https://lightning.ai/docs/pytorch/latest/starter/introduction.html?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme#define-a-lightningmodule">
   <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/get-started-badge.svg" height="36px" alt="Get started"/>
 </a>
 
@@ -54,6 +54,9 @@ ______________________________________________________________________
 </div>
 
 &nbsp;
+
+# Looking for GPUs?
+Over 340,000 developers use [Lightning Cloud](https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) - purpose-built for PyTorch and PyTorch Lightning. Get GPUs from $0.19, frontier-grade training/inference [clusters](https://lightning.ai/clusters?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme), vibe training/inference [workspaces](https://lightning.ai/studios?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme), [notebooks](https://lightning.ai/notebooks?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) with AI assistance and [inference](https://lightning.ai/deploy?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) for your custom models.
 
 # Why PyTorch Lightning?   
 
@@ -126,7 +129,7 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 <!-- end skipping PyPI description -->
 
 ### PyTorch Lightning example
-Define the training workflow. Here's a toy example ([explore real examples](https://lightning.ai/lightning-ai/studios?view=public&section=featured&query=pytorch+lightning)):
+Define the training workflow. Here's a toy example ([explore real examples](https://lightning.ai/lightning-ai/studios?view=public&section=featured&query=pytorch+lightning&utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme)):
 
 ```python
 # main.py
@@ -204,25 +207,27 @@ PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch cod
 ### Examples
 Explore various types of training possible with PyTorch Lightning. Pretrain and finetune ANY kind of model to perform ANY task like classification, segmentation, summarization and more:    
 
-| Task                                                                                                        | Description                                                    | Run |
-|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|---|
-| [Hello world](#hello-simple-model)                                                                          | Pretrain - Hello world example                                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning) | Finetune - ResNet-34 model to classify images of cars          | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)   | Finetune - ResNet-50 model to segment images                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning)       | Finetune - Faster R-CNN model to detect objects                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning) | Finetune - text classifier (BERT model)                        | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Text summarization](https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning)   | Finetune - text summarization (Hugging Face transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator)        | Finetune - audio generator (transformer model)                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [LLM finetuning](https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning)          | Finetune - LLM (Meta Llama 3.1 8B)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-| [Image generation](https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning)          | Pretrain - Image generator (diffusion model)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-| [Recommendation system](https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning)  | Train - recommendation system (factorization and embedding)    | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-| [Time-series forecasting](https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning) | Train - Time-series forecasting with LSTM               | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
+| Task | Description | Run |
+|------|--------------|-----|
+| [Hello world](#hello-simple-model) | Pretrain - Hello world example | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - ResNet-34 model to classify images of cars | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - ResNet-50 model to segment images | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - Faster R-CNN model to detect objects | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - text classifier (BERT model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Text summarization](https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - text summarization (Hugging Face transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - audio generator (transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [LLM finetuning](https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - LLM (Meta Llama 3.1 8B) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image generation](https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Pretrain - Image generator (diffusion model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Recommendation system](https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Train - recommendation system (factorization and embedding) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/recommendation-system-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Time-series forecasting](https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Train - Time-series forecasting with LSTM | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/time-series-forecasting-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+
 
 ______________________________________________________________________
 
 ## Advanced features
 
-Lightning has over [40+ advanced features](https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags) designed for professional AI research at scale.
+Lightning has over [40+ advanced features](https://lightning.ai/docs/pytorch/stable/common/trainer.html?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme#trainer-flags)
+designed for professional AI research at scale.
 
 Here are some examples:
 
@@ -352,7 +357,7 @@ ______________________________________________________________________
 ______________________________________________________________________
 
 <div align="center">
-    <a href="https://lightning.ai/docs/pytorch/stable/">Read the PyTorch Lightning docs</a>
+    <a href="https://lightning.ai/docs/pytorch/stable/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme">Read the PyTorch Lightning docs</a>
 </div>
 
 ______________________________________________________________________
@@ -537,7 +542,7 @@ You can find a more extensive example in our [examples](examples/fabric/build_yo
 ______________________________________________________________________
 
 <div align="center">
-    <a href="https://lightning.ai/docs/fabric/stable/">Read the Lightning Fabric docs</a>
+    <a href="https://lightning.ai/docs/fabric/stable/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme">Read the Lightning Fabric docs</a>
 </div>
 
 ______________________________________________________________________
@@ -608,7 +613,7 @@ The lightning community is maintained by
 - [10+ core contributors](https://lightning.ai/docs/pytorch/latest/community/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 800+ community contributors.
 
-Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html)
+Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme)
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
@@ -616,6 +621,6 @@ Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/
 
 If you have any questions please:
 
-1. [Read the docs](https://lightning.ai/docs).
+1. [Read the docs](https://lightning.ai/docs?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme).
 1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
 1. [Join our discord](https://discord.com/invite/tfXFetEZxv).
