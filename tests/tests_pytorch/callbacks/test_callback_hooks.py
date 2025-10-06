@@ -56,3 +56,44 @@ def test_train_step_no_return(tmp_path, single_cb: bool):
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
     trainer.fit(model)
+
+
+def test_callback_on_before_optimizer_setup(tmp_path):
+    """Tests that on_before_optimizer_step is called as expected."""
+
+    class CB(Callback):
+        def setup(self, trainer, pl_module, stage=None):
+            assert len(trainer.optimizers) == 0
+            assert pl_module.layer is None  # setup is called before `LightningModule.configure_model`
+
+        def on_before_optimizer_setup(self, trainer, pl_module):
+            assert len(trainer.optimizers) == 0
+            assert pl_module.layer is not None  # called after `LightningModule.configure_model`
+
+        def on_fit_start(self, trainer, pl_module):
+            assert len(trainer.optimizers) == 1
+            assert pl_module.layer is not None  # called after `LightningModule.configure_model`
+
+    class DemoModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = None  # initialize layer in `configure_model`
+
+        def configure_model(self):
+            import torch.nn as nn
+
+            self.layer = nn.Linear(32, 2)
+
+    model = DemoModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model)
