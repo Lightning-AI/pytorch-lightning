@@ -105,8 +105,8 @@ class BaseFinetuning(Callback):
             self._internal_optimizer_metadata = state_dict  # type: ignore[assignment]
 
     @override
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        # freeze the required modules before training
+    def on_before_optimizer_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # freeze the required modules before optimizers are created & after `configure_model` is run
         self.freeze_before_training(pl_module)
 
         from lightning.pytorch.strategies import DeepSpeedStrategy
@@ -117,6 +117,8 @@ class BaseFinetuning(Callback):
                 " Choose a different strategy or disable the callback."
             )
 
+    @override
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
             named_parameters = dict(pl_module.named_parameters())
