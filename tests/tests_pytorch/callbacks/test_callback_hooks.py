@@ -64,10 +64,10 @@ def test_callback_on_before_optimizer_setup(tmp_path):
     class CB(Callback):
         def setup(self, trainer, pl_module, stage=None):
             assert len(trainer.optimizers) == 0
-            assert pl_module.layer is None  # setup is called before `LightningModule.configure_model`
+            assert pl_module.layer is None  # called before `LightningModule.configure_model`
 
         def on_before_optimizer_setup(self, trainer, pl_module):
-            assert len(trainer.optimizers) == 0
+            assert len(trainer.optimizers) == 0  # `LightningModule.configure_optimizers` hasn't been called yet
             assert pl_module.layer is not None  # called after `LightningModule.configure_model`
 
         def on_fit_start(self, trainer, pl_module):
