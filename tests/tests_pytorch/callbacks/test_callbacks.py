@@ -83,7 +83,9 @@ def test_configure_callbacks_hook_multiple_calls(tmp_path):
             return model_callback_mock
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, enable_checkpointing=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path, fast_dev_run=True, enable_checkpointing=False, enable_progress_bar=False
+    )
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit

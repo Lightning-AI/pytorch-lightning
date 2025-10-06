@@ -36,8 +36,8 @@ from lightning.pytorch.trainer.connectors.callback_connector import _CallbackCon
 
 
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
-def test_checkpoint_callbacks_are_last(tmp_path):
-    """Test that checkpoint callbacks always come last."""
+def test_progressbar_and_checkpoint_callbacks_are_last(tmp_path):
+    """Test that progress bar and checkpoint callbacks always come last."""
     checkpoint1 = ModelCheckpoint(tmp_path / "path1", filename="ckpt1", monitor="val_loss_c1")
     checkpoint2 = ModelCheckpoint(tmp_path / "path2", filename="ckpt2", monitor="val_loss_c2")
     early_stopping = EarlyStopping(monitor="foo")
@@ -48,9 +48,9 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
     assert trainer.callbacks == [
-        progress_bar,
         lr_monitor,
         model_summary,
+        progress_bar,
         checkpoint1,
         checkpoint2,
     ]
@@ -62,9 +62,9 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
-        progress_bar,
         lr_monitor,
         model_summary,
+        progress_bar,
         checkpoint1,
         checkpoint2,
     ]
@@ -77,10 +77,10 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
-        progress_bar,
         lr_monitor,
         early_stopping,
         model_summary,
+        progress_bar,
         checkpoint1,
         checkpoint2,
     ]
@@ -95,10 +95,10 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         batch_size_finder,
-        progress_bar,
         lr_monitor,
         early_stopping,
         model_summary,
+        progress_bar,
         checkpoint2,
         checkpoint1,
     ]
@@ -200,7 +200,7 @@ def test_attach_model_callbacks():
         trainer_callbacks=[progress_bar, EarlyStopping(monitor="red")],
         model_callbacks=[early_stopping1],
     )
-    assert trainer.callbacks == [progress_bar, early_stopping1]
+    assert trainer.callbacks == [early_stopping1, progress_bar]  # progress_bar should be last
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
@@ -225,7 +225,7 @@ def test_attach_model_callbacks():
         ],
         model_callbacks=[early_stopping1, lr_monitor, grad_accumulation, early_stopping2],
     )
-    assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
+    assert trainer.callbacks == [early_stopping1, lr_monitor, grad_accumulation, early_stopping2, progress_bar]
 
     class CustomProgressBar(TQDMProgressBar): ...
 
