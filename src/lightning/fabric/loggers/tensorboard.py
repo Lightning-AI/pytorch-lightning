@@ -211,8 +211,7 @@ class TensorBoardLogger(Logger):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                # TODO(fabric): specify the possible exception
-                except Exception as ex:
+                except (NotImplementedError, ValueError) as ex:
                     raise ValueError(
                         f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     ) from ex
