@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-14, ubuntu-22.04, windows-2022]
+        os: [macOS-15, ubuntu-22.04, windows-2022]
         config:
           # only run PyTorch latest
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
