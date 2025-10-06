@@ -58,42 +58,53 @@ def test_train_step_no_return(tmp_path, single_cb: bool):
     trainer.fit(model)
 
 
-def test_callback_on_before_optimizer_setup(tmp_path):
-    """Tests that on_before_optimizer_step is called as expected."""
+def test_on_before_optimizer_setup_is_called_in_correct_order(tmp_path):
+    """Ensure `on_before_optimizer_setup` runs after `configure_model` but before `configure_optimizers`."""
 
-    class CB(Callback):
+    order = []
+
+    class TestCallback(Callback):
         def setup(self, trainer, pl_module, stage=None):
+            order.append("setup")
+            assert pl_module.layer is None
             assert len(trainer.optimizers) == 0
-            assert pl_module.layer is None  # called before `LightningModule.configure_model`
 
         def on_before_optimizer_setup(self, trainer, pl_module):
-            assert len(trainer.optimizers) == 0  # `LightningModule.configure_optimizers` hasn't been called yet
-            assert pl_module.layer is not None  # called after `LightningModule.configure_model`
+            order.append("on_before_optimizer_setup")
+            # configure_model should already have been called
+            assert pl_module.layer is not None
+            # but optimizers are not yet created
+            assert len(trainer.optimizers) == 0
 
         def on_fit_start(self, trainer, pl_module):
+            order.append("on_fit_start")
+            # optimizers should now exist
             assert len(trainer.optimizers) == 1
-            assert pl_module.layer is not None  # called after `LightningModule.configure_model`
+            assert pl_module.layer is not None
 
     class DemoModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.layer = None  # initialize layer in `configure_model`
+            self.layer = None
 
         def configure_model(self):
-            import torch.nn as nn
+            from torch import nn
 
             self.layer = nn.Linear(32, 2)
 
     model = DemoModel()
 
     trainer = Trainer(
-        callbacks=CB(),
+        callbacks=TestCallback(),
         default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        log_every_n_steps=1,
         enable_model_summary=False,
+        log_every_n_steps=1,
     )
 
     trainer.fit(model)
+
+    # Verify call order
+    assert order == ["setup", "on_before_optimizer_setup", "on_fit_start"]
