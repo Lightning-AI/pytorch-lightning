@@ -992,7 +992,7 @@ class Trainer:
         # run hook `on_before_optimizer_setup` before optimizers are set up & after model is configured
         if self.state.fn == TrainerFn.FITTING:
             call._call_callback_hooks(self, "on_before_optimizer_setup")
-            call._call_lightning_module_hook(self, "on_before_optimizer_setup")
+            # call._call_lightning_module_hook(self, "on_before_optimizer_setup")
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
