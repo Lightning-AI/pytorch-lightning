@@ -1690,6 +1690,7 @@ class LightningModule(
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
         strict: Optional[bool] = None,
+        weights_only: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1723,6 +1724,11 @@ class LightningModule(
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Defaults to ``True`` unless ``LightningModule.strict_loading`` is
                 set, in which case it defaults to the value of ``LightningModule.strict_loading``.
+            weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other
+                primitive types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+                ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+                ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -1778,6 +1784,7 @@ class LightningModule(
             map_location,
             hparams_file,
             strict,
+            weights_only,
             **kwargs,
         )
         return cast(Self, loaded)

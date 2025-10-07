@@ -64,7 +64,7 @@ class _CheckpointConnector:
             return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
         return None
 
-    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def resume_start(self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
@@ -80,7 +80,7 @@ class _CheckpointConnector:
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
@@ -230,7 +230,7 @@ class _CheckpointConnector:
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def restore(self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -244,7 +244,7 @@ class _CheckpointConnector:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
 
         # restore module states
         self.restore_datamodule()
@@ -403,18 +403,22 @@ class _CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def _restore_modules_and_callbacks(
+        self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None
+    ) -> None:
         # restore modules after setup
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
         self.restore_model()
         self.restore_datamodule()
         self.restore_callbacks()
 
-    def dump_checkpoint(self, weights_only: bool = False) -> dict:
+    def dump_checkpoint(self, weights_only: Optional[bool] = None) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
 
         Args:
-            weights_only: saving model weights only
+            weights_only: If True, only saves model and loops state_dict objects. If False,
+            additionally saves callbacks, optimizers, schedulers, and precision plugin states.
+
         Return:
             structured dictionary: {
                 'epoch':                     training epoch
@@ -445,6 +449,10 @@ class _CheckpointConnector:
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
         }
+
+        if weights_only is None:
+            weights_only = False
+            log.info("`weights_only` was not set, defaulting to `False`.")
 
         if not weights_only:
             # dump callbacks
