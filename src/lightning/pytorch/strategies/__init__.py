@@ -18,6 +18,7 @@ from lightning.fabric.utilities.registry import _register_classes
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
+from lightning.pytorch.strategies.fsdp2 import FSDP2Strategy
 from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
@@ -32,6 +33,7 @@ __all__ = [
     "DDPStrategy",
     "DeepSpeedStrategy",
     "FSDPStrategy",
+    "FSDP2Strategy",
     "ModelParallelStrategy",
     "ParallelStrategy",
     "SingleDeviceStrategy",
