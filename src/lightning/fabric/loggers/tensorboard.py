@@ -211,7 +211,11 @@ class TensorBoardLogger(Logger):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                except (NotImplementedError, ValueError) as ex:
+                except (
+                    NotImplementedError,
+                    ValueError,
+                    ModuleNotFoundError,  # https://github.com/pytorch/pytorch/issues/24175
+                ) as ex:
                     raise ValueError(
                         f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     ) from ex
