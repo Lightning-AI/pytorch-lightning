@@ -87,6 +87,14 @@ class MPSAccelerator(Accelerator):
             description=cls.__name__,
         )
 
+    @classmethod
+    @override
+    def device_name(cls, device: Optional[_DEVICE] = None) -> str:
+        # todo: implement a better way to get the device name
+        if not cls.is_available():
+            return ""
+        return "True (mps)"
+
 
 # device metrics
 _VM_PERCENT = "M1_vm_percent"
