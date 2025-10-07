@@ -121,19 +121,19 @@ def test_online_with_wrong_kwargs(neptune_mock):
     init."""
     run = neptune_mock.init_run()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Run parameter expected to be of type `neptune.Run`*"):
         NeptuneLogger(run="some string")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="When an already initialized run object is provided*"):
         NeptuneLogger(run=run, project="redundant project")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="When an already initialized run object is provided*"):
         NeptuneLogger(run=run, api_key="redundant api key")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="When an already initialized run object is provided*"):
         NeptuneLogger(run=run, name="redundant api name")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="When an already initialized run object is provided*"):
         NeptuneLogger(run=run, foo="random **kwarg")
 
     # this should work
