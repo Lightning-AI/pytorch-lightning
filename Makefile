@@ -7,7 +7,11 @@ export SPHINX_MOCK_REQUIREMENTS=1
 # install only Lightning Trainer packages
 export PACKAGE_NAME=pytorch
 
+
+#	in lightning studio, `lightning` is pre-installed
+#  	so we need to uninstall it first to use the editable install
 setup:
+	uv pip uninstall lightning pytorch-lightning lightning-fabric || true
 	uv pip install -r requirements.txt \
 	    -r requirements/pytorch/base.txt \
 	    -r requirements/pytorch/test.txt \
