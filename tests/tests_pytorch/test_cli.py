@@ -339,7 +339,7 @@ def test_lightning_cli_save_config_seed_everything(cleandir):
 
 
 def test_save_to_log_dir_false_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="`save_to_log_dir=False` only makes sense*"):
         SaveConfigCallback(
             LightningArgumentParser(),
             Namespace(),
@@ -491,6 +491,7 @@ class BoringCkptPathModel(BoringModel):
     def __init__(self, out_dim: int = 2, hidden_dim: int = 2) -> None:
         super().__init__()
         self.save_hyperparameters()
+        self.hidden_dim = hidden_dim
         self.layer = torch.nn.Linear(32, out_dim)
 
 
@@ -524,6 +525,41 @@ def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
     with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
         cli = LightningCLI(BoringModel)
     assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
+
+
+class BoringCkptPathSubclass(BoringCkptPathModel):
+    def __init__(self, extra: bool = True, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.extra = extra
+
+
+def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
+    class CkptPathCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.init_args.out_dim", "model.init_args.hidden_dim", compute_fn=lambda x: x * 2)
+
+    cli_args = ["fit", "--model=BoringCkptPathSubclass", "--model.out_dim=4", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
+
+    assert cli.config.fit.model.class_path.endswith(".BoringCkptPathSubclass")
+    assert cli.config.fit.model.init_args == Namespace(out_dim=4, hidden_dim=8, extra=True)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    assert hparams["out_dim"] == 4
+    assert hparams["hidden_dim"] == 8
+    assert hparams["extra"] is True
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+    cli_args = ["predict", "--model=BoringCkptPathModel", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
+
+    assert isinstance(cli.model, BoringCkptPathSubclass)
+    assert cli.model.hidden_dim == 8
+    assert cli.model.extra is True
+    assert cli.model.layer.out_features == 4
 
 
 def test_lightning_cli_submodules(cleandir):
@@ -1917,3 +1953,29 @@ def test_lightning_cli_jsonnet(cleandir):
         cli = LightningCLI(MainModule, run=False, parser_kwargs={"parser_mode": "jsonnet"})
 
     assert cli.config["model"]["main_param"] == 2
+
+
+def test_lightning_cli_callback_trainer_default(cleandir):
+    """Check that callbacks passed as trainer_defaults are properly instantiated."""
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            trainer_defaults={
+                "logger": {
+                    "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
+                    "init_args": {
+                        "save_dir": ".",
+                        "name": "demo",
+                    },
+                },
+                "callbacks": {
+                    "class_path": "lightning.pytorch.callbacks.ModelCheckpoint",
+                    "init_args": {
+                        "monitor": "val_loss",
+                    },
+                },
+            },
+            run=False,
+        )
+    assert any(isinstance(c, ModelCheckpoint) for c in cli.trainer.callbacks)

@@ -246,6 +246,27 @@ Example::
 See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation schedules.
 
 
+barebones
+^^^^^^^^^
+
+Whether to run in "barebones mode", where all features that may impact raw speed are disabled. This is meant for
+analyzing the Trainer overhead and is discouraged during regular training runs.
+
+When enabled, the following features are automatically deactivated:
+- Checkpointing: ``enable_checkpointing=False``
+- Logging: ``logger=False``, ``log_every_n_steps=0``
+- Progress bar: ``enable_progress_bar=False``
+- Model summary: ``enable_model_summary=False``
+- Sanity checking: ``num_sanity_val_steps=0``
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(barebones=False)
+
+    # enable barebones mode for speed analysis
+    trainer = Trainer(barebones=True)
+
 benchmark
 ^^^^^^^^^
 
@@ -364,6 +385,22 @@ will need to be set up to use remote filepaths.
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
 
+
+detect_anomaly
+^^^^^^^^^^^^^^
+
+Enable anomaly detection for the autograd engine. This will significantly slow down compute speed and is recommended
+only for model debugging.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(detect_anomaly=False)
+
+    # enable anomaly detection for debugging
+    trainer = Trainer(detect_anomaly=True)
+
+
 devices
 ^^^^^^^
 
@@ -413,6 +450,35 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
         # Training with GPU Accelerator using total number of gpus available on the system
         Trainer(accelerator="gpu")
 
+
+enable_autolog_hparams
+^^^^^^^^^^^^^^^^^^^^^^
+
+Whether to log hyperparameters at the start of a run. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_autolog_hparams=True)
+
+    # disable logging hyperparams
+    trainer = Trainer(enable_autolog_hparams=False)
+
+With the parameter set to false, you can add custom code to log hyperparameters.
+
+.. code-block:: python
+
+    model = LitModel()
+    trainer = Trainer(enable_autolog_hparams=False)
+    for logger in trainer.loggers:
+        if isinstance(logger, lightning.pytorch.loggers.CSVLogger):
+            logger.log_hyperparams(hparams_dict_1)
+        else:
+            logger.log_hyperparams(hparams_dict_2)
+
+You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log.
+
+
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -442,6 +508,40 @@ See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to c
 
     # Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
+
+
+enable_model_summary
+^^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the model summarization. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_model_summary=True)
+
+    # disable summarization
+    trainer = Trainer(enable_model_summary=False)
+
+    # enable custom summarization
+    from lightning.pytorch.callbacks import ModelSummary
+
+    trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
+
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
+
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -485,6 +585,24 @@ impact to subsequent runs. These are the changes enabled:
 - If using the CLI, the configuration file is not saved.
 
 
+gradient_clip_algorithm
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"`` to clip by value, and
+``gradient_clip_algorithm="norm"`` to clip by norm. By default it will be set to ``"norm"``.
+
+.. testcode::
+
+    # default used by the Trainer (defaults to "norm" when gradient_clip_val is set)
+    trainer = Trainer(gradient_clip_algorithm=None)
+
+    # clip by value
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="value")
+
+    # clip by norm
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+
+
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
 
@@ -499,6 +617,39 @@ Gradient clipping value
 
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=None)
+
+
+inference_mode
+^^^^^^^^^^^^^^
+
+Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
+(``validate``/``test``/``predict``)
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(inference_mode=True)
+
+    # Use `torch.no_grad` instead
+    trainer = Trainer(inference_mode=False)
+
+
+With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def validation_step(self, batch, batch_idx):
+            preds = self.layer1(batch)
+            with torch.enable_grad():
+                grad_preds = preds.requires_grad_()
+                preds2 = self.layer2(grad_preds)
+
+
+    model = LitModel()
+    trainer = Trainer(inference_mode=False)
+    trainer.validate(model)
+
 
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
@@ -527,6 +678,26 @@ Example::
 
     # run through only 10 batches of the training set each epoch
     trainer = Trainer(limit_train_batches=10)
+
+
+limit_predict_batches
+^^^^^^^^^^^^^^^^^^^^^
+
+How much of prediction dataset to check. Value is per device.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(limit_predict_batches=1.0)
+
+    # run through only 25% of the prediction set
+    trainer = Trainer(limit_predict_batches=0.25)
+
+    # run for only 10 batches
+    trainer = Trainer(limit_predict_batches=10)
+
+In the case of multiple prediction dataloaders, the limit applies to each dataloader individually.
+
 
 limit_test_batches
 ^^^^^^^^^^^^^^^^^^
@@ -705,6 +876,23 @@ For customizable options use the :class:`~lightning.pytorch.callbacks.timer.Time
 In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
 always has precedence.
 
+
+model_registry
+^^^^^^^^^^^^^^
+
+If specified will upload the model to lightning model registry under the provided name.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(model_registry=None)
+
+    # specify model name for model hub upload
+    trainer = Trainer(model_registry="my-model-name")
+
+See `Lightning model registry docs <https://lightning.ai/docs/overview/finetune-models/model-registry>`_ for more info.
+
+
 num_nodes
 ^^^^^^^^^
 
@@ -779,12 +967,25 @@ Useful for quickly debugging or trying to overfit on purpose.
 
     # debug using a single consistent train batch and a single consistent val batch
 
+plugins
+^^^^^^^
 
-:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
-
+Plugins allow you to connect arbitrary backends, precision libraries, clusters etc. and modification of core lightning logic.
+Examples of plugin types:
 - :ref:`Checkpoint IO <checkpointing_expert>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Precision Plugins <precision_expert>`
+- :class:`~lightning.pytorch.plugins.environments.ClusterEnvironment`
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(plugins=None)
+
+    # example using built in slurm plugin
+    from lightning.fabric.plugins.environments import SLURMEnvironment
+    trainer = Trainer(plugins=[SLURMEnvironment()])
+
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~lightning.pytorch.plugins.environments.ClusterEnvironment`.
@@ -871,18 +1072,6 @@ See the :doc:`profiler documentation <../tuning/profiler>` for more details.
     # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
     trainer = Trainer(profiler="advanced")
 
-enable_progress_bar
-^^^^^^^^^^^^^^^^^^^
-
-Whether to enable or disable the progress bar. Defaults to True.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(enable_progress_bar=True)
-
-    # disable progress bar
-    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -916,28 +1105,6 @@ DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 The pseudocode applies also to the ``val_dataloader``.
 
 .. _replace-sampler-ddp:
-
-use_distributed_sampler
-^^^^^^^^^^^^^^^^^^^^^^^
-
-See :paramref:`lightning.pytorch.trainer.Trainer.params.use_distributed_sampler`.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(use_distributed_sampler=True)
-
-By setting to False, you have to add your own distributed sampler:
-
-.. code-block:: python
-
-    # in your LightningModule or LightningDataModule
-    def train_dataloader(self):
-        dataset = ...
-        # default used by the Trainer
-        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
-        dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
-        return dataloader
 
 
 strategy
@@ -982,6 +1149,29 @@ Enable synchronization between batchnorm layers across all GPUs.
     trainer = Trainer(sync_batchnorm=True)
 
 
+use_distributed_sampler
+^^^^^^^^^^^^^^^^^^^^^^^
+
+See :paramref:`lightning.pytorch.trainer.Trainer.params.use_distributed_sampler`.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(use_distributed_sampler=True)
+
+By setting to False, you have to add your own distributed sampler:
+
+.. code-block:: python
+
+    # in your LightningModule or LightningDataModule
+    def train_dataloader(self):
+        dataset = ...
+        # default used by the Trainer
+        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+        return dataloader
+
+
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
 
@@ -991,11 +1181,23 @@ val_check_interval
     :muted:
 
 How often within one training epoch to check the validation set.
-Can specify as float or int.
+Can specify as float, int, or a time-based duration.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
 - pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
   batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
+- pass a ``string`` duration in the format "DD:HH:MM:SS", a ``datetime.timedelta`` object, or a ``dictionary`` of keyword arguments that can be passed
+  to ``datetime.timedelta`` for time-based validation. When using a time-based duration, validation will trigger once the elapsed wall-clock time
+  since the last validation exceeds the interval. The validation check occurs after the current batch completes, the validation loop runs, and
+  the timer resets.
+
+**Time-based validation behavior with check_val_every_n_epoch:**  When used together with ``val_check_interval`` (time-based) and
+``check_val_every_n_epoch > 1``, validation is aligned to epoch multiples:
+
+- If the time-based interval elapses **before** the next multiple-N epoch, validation runs at the start of that epoch (after the first batch),
+  and the timer resets.
+- If the interval elapses **during** a multiple-N epoch, validation runs after the current batch.
+- For cases where ``check_val_every_n_epoch=None`` or ``1``, the time-based behavior of ``val_check_interval`` applies without additional alignment.
 
 .. testcode::
 
@@ -1013,10 +1215,25 @@ Can specify as float or int.
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)
 
+    # check validation every 15 minutes of wall-clock time using a string-based approach
+    trainer = Trainer(val_check_interval="00:00:15:00")
+
+    # check validation every 15 minutes of wall-clock time using a dictionary-based approach
+    trainer = Trainer(val_check_interval={"minutes": 15})
+
+    # check validation every 1 hour of wall-clock time using a dictionary-based approach
+    trainer = Trainer(val_check_interval={"hours": 1})
+
+    # check validation every 1 hour of wall-clock time using a datetime.timedelta object
+    from datetime import timedelta
+    trainer = Trainer(val_check_interval=timedelta(hours=1))
+
+
 
 .. code-block:: python
 
     # Here is the computation to estimate the total number of batches seen within an epoch.
+    # This logic applies when `val_check_interval` is specified as an integer or a float.
 
     # Find the total number of train batches
     total_train_batches = total_train_samples // (train_batch_size * world_size)
@@ -1030,84 +1247,6 @@ Can specify as float or int.
 
     # Total number of batches run
     total_fit_batches = total_train_batches + total_val_batches
-
-
-enable_model_summary
-^^^^^^^^^^^^^^^^^^^^
-
-Whether to enable or disable the model summarization. Defaults to True.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(enable_model_summary=True)
-
-    # disable summarization
-    trainer = Trainer(enable_model_summary=False)
-
-    # enable custom summarization
-    from lightning.pytorch.callbacks import ModelSummary
-
-    trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
-
-
-inference_mode
-^^^^^^^^^^^^^^
-
-Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
-(``validate``/``test``/``predict``)
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(inference_mode=True)
-
-    # Use `torch.no_grad` instead
-    trainer = Trainer(inference_mode=False)
-
-
-With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
-
-.. code-block:: python
-
-    class LitModel(LightningModule):
-        def validation_step(self, batch, batch_idx):
-            preds = self.layer1(batch)
-            with torch.enable_grad():
-                grad_preds = preds.requires_grad_()
-                preds2 = self.layer2(grad_preds)
-
-
-    model = LitModel()
-    trainer = Trainer(inference_mode=False)
-    trainer.validate(model)
-
-enable_autolog_hparams
-^^^^^^^^^^^^^^^^^^^^^^
-
-Whether to log hyperparameters at the start of a run. Defaults to True.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(enable_autolog_hparams=True)
-
-    # disable logging hyperparams
-    trainer = Trainer(enable_autolog_hparams=False)
-
-With the parameter set to false, you can add custom code to log hyperparameters.
-
-.. code-block:: python
-
-    model = LitModel()
-    trainer = Trainer(enable_autolog_hparams=False)
-    for logger in trainer.loggers:
-        if isinstance(logger, lightning.pytorch.loggers.CSVLogger):
-            logger.log_hyperparams(hparams_dict_1)
-        else:
-            logger.log_hyperparams(hparams_dict_2)
-
-You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log.
 
 -----
 

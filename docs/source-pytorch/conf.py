@@ -645,6 +645,7 @@ linkcheck_ignore = [
     r"installation.html$",
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
+    "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
     "https://developer.habana.ai", # returns 403 error but redirects to intel.com documentation
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",

@@ -277,7 +277,8 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
-        dst = getattr(new, name)
+        # Check if the parameter has been pruned (has _orig suffix)
+        dst = getattr(new, name + "_orig") if hasattr(new, name + "_orig") else getattr(new, name)
         src = getattr(old, name)
         if dst is None or src is None or not isinstance(dst, Tensor) or not isinstance(src, Tensor):
             return
