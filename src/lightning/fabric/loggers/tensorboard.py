@@ -214,7 +214,7 @@ class TensorBoardLogger(Logger):
                 except (
                     NotImplementedError,
                     ValueError,
-                    ModuleNotFoundError,  # https://github.com/pytorch/pytorch/issues/24175
+                    ModuleNotFoundError,  # this exception only applies to torch < 2.4 (since caffe2 was dropped later) https://github.com/pytorch/pytorch/issues/24175
                 ) as ex:
                     raise ValueError(
                         f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
