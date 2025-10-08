@@ -63,6 +63,10 @@ class BatchSizeFinder(Callback):
             - ``model.hparams``
             - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
+        margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
+            'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
+        max_val: Maximum batch size limit. If provided, the found batch size will not exceed this value.
+
     Example::
 
         # 1. Customize the BatchSizeFinder callback to run at different epochs. This feature is
@@ -118,6 +122,8 @@ class BatchSizeFinder(Callback):
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
+        margin: float = 0.05,
+        max_val: Optional[int] = None,
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -129,6 +135,8 @@ class BatchSizeFinder(Callback):
         self._init_val = init_val
         self._max_trials = max_trials
         self._batch_arg_name = batch_arg_name
+        self._margin = margin
+        self._max_val = max_val
         self._early_exit = False
 
     @override
@@ -180,6 +188,8 @@ class BatchSizeFinder(Callback):
             self._init_val,
             self._max_trials,
             self._batch_arg_name,
+            self._margin,
+            self._max_val,
         )
 
         self.optimal_batch_size = new_size
