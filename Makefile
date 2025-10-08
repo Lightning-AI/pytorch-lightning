@@ -8,8 +8,8 @@ export SPHINX_MOCK_REQUIREMENTS=1
 export PACKAGE_NAME=pytorch
 
 
-#	in lightning studio, `lightning` is pre-installed
-#  	so we need to uninstall it first to use the editable install
+# In Lightning Studio, the `lightning` package comes pre-installed.
+# Uninstall it first to ensure the editable install works correctly.
 setup:
 	uv pip uninstall lightning pytorch-lightning lightning-fabric || true
 	uv pip install -r requirements.txt \
