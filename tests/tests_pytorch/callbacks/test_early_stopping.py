@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import logging
 import math
 import os
@@ -25,6 +26,7 @@ import torch
 
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -550,3 +552,190 @@ def test_early_stopping_message_priority_over_max_epochs(caplog):
     assert trainer.should_stop is True
     assert early_stopping.stopped_epoch >= 0
     assert "`Trainer.fit` stopped: `max_epochs=1` reached." not in caplog.text
+
+
+class ModelWithHighLoss(BoringModel):
+    def on_validation_epoch_end(self):
+        self.log("val_loss", 10.0)
+
+
+class ModelWithDecreasingLoss(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.epoch_losses = [5.0, 3.0, 1.0, 0.5]
+
+    def on_validation_epoch_end(self):
+        loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 0.1
+        self.log("val_loss", loss)
+
+
+class ModelWithIncreasingLoss(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.epoch_losses = [1.0, 2.0, 5.0, 10.0]
+
+    def on_validation_epoch_end(self):
+        loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 15.0
+        self.log("val_loss", loss)
+
+
+class ModelWithNaNLoss(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.epoch_losses = [1.0, 0.5, float("nan")]
+
+    def on_validation_epoch_end(self):
+        loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else float("nan")
+        self.log("val_loss", loss)
+
+
+class ModelWithImprovingLoss(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.epoch_losses = [5.0, 4.0, 3.0, 2.0, 1.0]
+
+    def on_validation_epoch_end(self):
+        loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 0.1
+        self.log("val_loss", loss)
+
+
+@pytest.mark.parametrize(
+    (
+        "model_cls",
+        "early_stopping_kwargs",
+        "trainer_kwargs",
+        "expected_reason",
+        "reason_message_substr",
+        "should_stop",
+        "state_dict_override",
+    ),
+    [
+        # Patience exhausted
+        (
+            ModelWithHighLoss,
+            {"monitor": "val_loss", "patience": 2, "verbose": True},
+            {"max_epochs": 10, "enable_progress_bar": False},
+            EarlyStoppingReason.PATIENCE_EXHAUSTED,
+            "did not improve",
+            True,
+            None,
+        ),
+        # Stopping threshold
+        (
+            ModelWithDecreasingLoss,
+            {"monitor": "val_loss", "stopping_threshold": 0.6, "mode": "min", "verbose": True},
+            {"max_epochs": 10, "enable_progress_bar": False},
+            EarlyStoppingReason.STOPPING_THRESHOLD,
+            "Stopping threshold reached",
+            True,
+            None,
+        ),
+        # Divergence threshold
+        (
+            ModelWithIncreasingLoss,
+            {"monitor": "val_loss", "divergence_threshold": 8.0, "mode": "min", "verbose": True},
+            {"max_epochs": 10, "enable_progress_bar": False},
+            EarlyStoppingReason.DIVERGENCE_THRESHOLD,
+            "Divergence threshold reached",
+            True,
+            None,
+        ),
+        # Non-finite metric
+        (
+            ModelWithNaNLoss,
+            {"monitor": "val_loss", "check_finite": True, "verbose": True},
+            {"max_epochs": 10, "enable_progress_bar": False},
+            EarlyStoppingReason.NON_FINITE_METRIC,
+            "is not finite",
+            True,
+            None,
+        ),
+        # Not stopped (normal completion)
+        (
+            ModelWithImprovingLoss,
+            {"monitor": "val_loss", "patience": 3, "verbose": True},
+            {"max_epochs": 3, "enable_progress_bar": False},
+            EarlyStoppingReason.NOT_STOPPED,
+            None,
+            False,
+            None,
+        ),
+        # State persistence
+        (
+            None,
+            {"monitor": "val_loss", "patience": 3},
+            {},
+            EarlyStoppingReason.PATIENCE_EXHAUSTED,
+            "Test message",
+            None,
+            {"stopping_reason": EarlyStoppingReason.PATIENCE_EXHAUSTED, "stopping_reason_message": "Test message"},
+        ),
+        # Backward compatibility (old state dict)
+        (
+            None,
+            {"monitor": "val_loss", "patience": 3},
+            {},
+            EarlyStoppingReason.NOT_STOPPED,
+            None,
+            None,
+            {
+                "wait_count": 2,
+                "stopped_epoch": 5,
+                "best_score": torch.tensor(0.5),
+                "patience": 3,
+            },
+        ),
+    ],
+)
+def test_early_stopping_reasons(
+    tmp_path,
+    model_cls,
+    early_stopping_kwargs,
+    trainer_kwargs,
+    expected_reason,
+    reason_message_substr,
+    should_stop,
+    state_dict_override,
+):
+    """Test all early stopping reasons in a single parametrized test."""
+    if state_dict_override is not None:
+        early_stopping = EarlyStopping(**early_stopping_kwargs)
+        if "stopping_reason" in state_dict_override:
+            # State persistence test
+            early_stopping.stopping_reason = state_dict_override["stopping_reason"]
+            early_stopping.stopping_reason_message = state_dict_override["stopping_reason_message"]
+            state_dict = early_stopping.state_dict()
+            new_early_stopping = EarlyStopping(**early_stopping_kwargs)
+            new_early_stopping.load_state_dict(state_dict)
+            assert new_early_stopping.stopping_reason == expected_reason
+            assert new_early_stopping.stopping_reason_message == reason_message_substr
+        else:
+            # Backward compatibility test
+            early_stopping.load_state_dict(copy.deepcopy(state_dict_override))
+            assert early_stopping.stopping_reason == expected_reason
+            assert early_stopping.stopping_reason_message is None
+            assert early_stopping.wait_count == state_dict_override["wait_count"]
+            assert early_stopping.stopped_epoch == state_dict_override["stopped_epoch"]
+        return
+
+    # All other tests
+    model = model_cls()
+    early_stopping = EarlyStopping(**early_stopping_kwargs)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[early_stopping],
+        **trainer_kwargs,
+    )
+    trainer.fit(model)
+
+    assert early_stopping.stopping_reason == expected_reason
+    if reason_message_substr is not None:
+        assert early_stopping.stopping_reason_message is not None
+        assert reason_message_substr in early_stopping.stopping_reason_message
+    else:
+        assert early_stopping.stopping_reason_message is None
+    if should_stop is not None:
+        if should_stop:
+            assert early_stopping.stopped_epoch > 0
+        else:
+            assert early_stopping.stopped_epoch == 0

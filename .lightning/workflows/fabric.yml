@@ -4,7 +4,9 @@ trigger:
   pull_request:
     branches: ["master", "release/stable"]
 
-timeout: "55" # minutes
+timeout: "60" # minutes
+machine: "L4_X_2"
+image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
@@ -12,17 +14,12 @@ parametrize:
     - image: "nvidia/cuda:12.1.1-runtime-ubuntu22.04"
       PACKAGE_NAME: "fabric"
       python_version: "3.10"
-      machine: "A100_X_2"
-    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
-      PACKAGE_NAME: "fabric"
+    - PACKAGE_NAME: "fabric"
       python_version: "3.12"
-      machine: "L4_X_2"
     # - image: "nvidia/cuda:12.6-runtime-ubuntu22.04"
     #   PACKAGE_NAME: "fabric"
-    - image: "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
-      PACKAGE_NAME: "lightning"
+    - PACKAGE_NAME: "lightning"
       python_version: "3.12"
-      machine: "L4_X_2"
   exclude: []
 
 env:
@@ -37,12 +34,13 @@ env:
   RUN_ONLY_CUDA_TESTS: "1"
 
 run: |
-  # Install Python and UV
-  apt-get update -qq --fix-missing
+  echo "Installing dependencies"
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
   apt-get install -q -y software-properties-common curl
-  # Add deadsnakes PPA for newer Python versions if needed
+  echo "Add deadsnakes PPA for newer Python versions if needed"
   add-apt-repository ppa:deadsnakes/ppa -y
-  apt-get update -qq --fix-missing
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  echo "Install Python ${python_version} and other dependencies"
   apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
@@ -54,23 +52,25 @@ run: |
         libnccl2 \
         libnccl-dev
 
+  echo "Install Python ${python_version} and UV"
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
   ln -sf /usr/bin/python${python_version} /usr/bin/python
   curl -LsSf https://astral.sh/uv/install.sh | sh
 
-  # Source the environment and ensure UV is in PATH
+  echo "Source the environment and ensure UV is in PATH"
   [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
   export PATH="$HOME/.local/bin:$PATH"
   source $HOME/.cargo/env 2>/dev/null || true
   export PATH="$HOME/.cargo/bin:$PATH"
 
-  # Verify UV installation
+  echo "Verify UV installation"
   command -v uv || (echo "UV not found in PATH" && exit 1)
   # Create and activate a local uv virtual environment
   uv venv .venv -p "/usr/bin/python${python_version}" || uv venv .venv -p "python${python_version}" || uv venv .venv
   . .venv/bin/activate
   hash -r
 
+  echo "Show system information"
   whereis nvidia
   nvidia-smi
   python --version
@@ -98,7 +98,7 @@ run: |
     uv pip install "cython<3.0" wheel  # for compatibility
   fi
 
-  # install the base so we can adjust other packages
+  echo "Install the base so we can adjust other packages"
   uv pip install .
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
@@ -119,6 +119,7 @@ run: |
       --target_import="lightning_fabric"
   fi
 
+  echo "Install package with [${PACKAGE_NAME}] extras"
   extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
   uv pip install ".[${extra}dev]" --upgrade
 

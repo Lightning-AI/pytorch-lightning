@@ -204,11 +204,11 @@ class ModelCheckpoint(Checkpoint):
         ... )
 
         # retrieve the best checkpoint after training
-        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        trainer = Trainer(callbacks=[checkpoint_callback])
-        model = ...
-        trainer.fit(model)
-        checkpoint_callback.best_model_path
+        >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+        >>> trainer = Trainer(callbacks=[checkpoint_callback])
+        >>> model = ...  # doctest: +SKIP
+        >>> trainer.fit(model)  # doctest: +SKIP
+        >>> print(checkpoint_callback.best_model_path)  # doctest: +SKIP
 
     .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
         following arguments:
@@ -484,7 +484,7 @@ class ModelCheckpoint(Checkpoint):
 
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
-        if trainer.is_global_zero:
+        if trainer.is_global_zero and os.path.abspath(filepath) != os.path.abspath(linkpath):
             if os.path.islink(linkpath) or os.path.isfile(linkpath):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
