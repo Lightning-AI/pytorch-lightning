@@ -5,9 +5,9 @@
 <br/>
 <br/>
 
-**用於預訓練、微調和部署 AI 模型的深度學習框架。**
+**用於預訓練和微調 AI 模型的深度學習框架。**
 
-**NEW- 需要部屬模型嗎? 試試看 [LitServe](https://github.com/Lightning-AI/litserve), 用於模型服務的 PyTorch Lightning**
+**NEW- 需要部屬模型嗎? 試試看 [LitServe](https://github.com/Lightning-AI/litserve), 用於推理引擎的 PyTorch Lightning**
 
 ______________________________________________________________________
 
@@ -16,7 +16,7 @@ ______________________________________________________________________
   <a href="#範例">範例</a> •
   <a href="#為何使用-pytorch-lightning">PyTorch Lightning</a> •
   <a href="#lightning-fabric-進階控制">Fabric</a> •
-  <a href="https://lightning.ai/">Lightning AI</a> •
+  <a href="https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme">Lightning Cloud</a> •
   <a href="#社群">社群</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">文件</a>
 </p>
@@ -61,7 +61,7 @@ ______________________________________________________________________
 
 在純 PyTorch 中訓練模型既繁瑣又容易出錯 —— 你必須手動處理反向傳播、混合精度、多 GPU 以及分散式訓練，而且往往每個新專案都需要重寫程式碼。
 PyTorch Lightning 將 PyTorch 程式碼進行結構化，幫你自動化這些複雜的部分，讓你能專注於模型和資料，同時保有完整的掌控權，
-並且能從 CPU 無縫擴展到多節點，而不需更改核心程式碼。不過，如果你希望自己掌控這些細節，也依然可以選擇更「DIY」的方式。
+並且能從 CPU 無縫擴展到多節點，而不需更改核心程式碼。不過，如果你希望自己掌控這些細節，也依然可以選擇更[進階的控制方式](#lightning-fabric-%E9%80%B2%E9%9A%8E%E6%8E%A7%E5%88%B6)。
 
 有趣的比喻：如果說 PyTorch 是 JavaScript，那麼 PyTorch Lightning 就是 ReactJS 或 NextJS。
 
@@ -198,7 +198,7 @@ python main.py
 
 &#160;
 
-# 為何使用 PyTorch Lightning?
+# 從 Pytorch 過渡到 PyTorch Lightning
 
 PyTorch Lightning 是一個結構化的 PyTorch 訓練框架 - Lightning 將 PyTorch 程式碼組織起來，並將科學實作及工程內容分離。
 
