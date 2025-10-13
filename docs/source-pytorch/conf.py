@@ -649,6 +649,7 @@ linkcheck_ignore = [
     "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
     "https://developer.habana.ai", # returns 403 error but redirects to intel.com documentation
+    "https://www.supermicro.com", # returns 403 error
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
