@@ -192,6 +192,10 @@ def _run_power_scaling(
         # reset after each try
         _reset_progress(trainer)
 
+        if max_val is not None and new_size >= max_val:
+            rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
+            break
+
         try:
             _try_loop_run(trainer, params)
             last_successful_size = new_size  # Store the current size before doubling
@@ -247,6 +251,10 @@ def _run_binsearch_scaling(
 
         # reset after each try
         _reset_progress(trainer)
+
+        if max_val is not None and new_size >= max_val:
+            rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
+            break
 
         try:
             # run loop
