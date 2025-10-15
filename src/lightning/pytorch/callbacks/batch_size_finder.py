@@ -123,7 +123,7 @@ class BatchSizeFinder(Callback):
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
         margin: float = 0.05,
-        max_val: Optional[int] = None,
+        max_val: int = 1024,
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
