@@ -101,7 +101,7 @@ class MPSAccelerator(Accelerator):
                 check=True,
             )
             result_str = result.stdout.strip()
-        except subprocess.SubprocessError:
+        except (subprocess.SubprocessError, FileNotFoundError):
             result_str = "True (mps)"
         return result_str
 
