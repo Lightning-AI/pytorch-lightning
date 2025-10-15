@@ -313,6 +313,8 @@ def _run_binsearch_scaling(
                 f"Applying margin of {margin:.1%}, reducing batch size from {new_size} to {margin_reduced_size}"
             )
             new_size = margin_reduced_size
+            # update attribute in the model/datamodule as well
+            lightning_setattr(trainer.lightning_module, batch_arg_name, new_size)
 
     return new_size
 
@@ -353,7 +355,10 @@ def _adjust_batch_size(
     try:
         combined_dataset_length = combined_loader._dataset_length()
         if batch_size >= combined_dataset_length:
-            rank_zero_info(f"The batch size {batch_size} is greater or equal than the length of your dataset.")
+            rank_zero_info(
+                f"The batch size {batch_size} is greater or equal than"
+                f" the length of your dataset: {combined_dataset_length}."
+            )
             return batch_size, False
     except NotImplementedError:
         # all datasets are iterable style
