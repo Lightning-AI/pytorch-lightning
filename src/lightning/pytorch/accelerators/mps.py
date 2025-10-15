@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import subprocess
 from typing import Any, Optional, Union
 
 import torch
@@ -90,10 +91,19 @@ class MPSAccelerator(Accelerator):
     @classmethod
     @override
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
-        # todo: implement a better way to get the device name
         if not cls.is_available():
             return ""
-        return "True (mps)"
+        try:
+            result = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            result_str = result.stdout.strip()
+        except subprocess.SubprocessError:
+            result_str = "True (mps)"
+        return result_str
 
 
 # device metrics
