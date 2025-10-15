@@ -33,7 +33,7 @@ def _scale_batch_size(
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
     margin: float = 0.05,
-    max_val: Optional[int] = None,
+    max_val: int = 1024,
 ) -> Optional[int]:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
