@@ -93,17 +93,21 @@ class MPSAccelerator(Accelerator):
     def device_name(cls, device: Optional[_DEVICE] = None) -> str:
         if not cls.is_available():
             return ""
-        try:
-            result = subprocess.run(
-                ["sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            result_str = result.stdout.strip()
-        except (subprocess.SubprocessError, FileNotFoundError):
-            result_str = "True (mps)"
-        return result_str
+        return _get_mps_device_name()
+
+
+def _get_mps_device_name() -> str:
+    try:
+        result = subprocess.run(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        result_str = result.stdout.strip()
+    except subprocess.SubprocessError:
+        result_str = "True (mps)"
+    return result_str
 
 
 # device metrics

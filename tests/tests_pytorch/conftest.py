@@ -208,6 +208,9 @@ def cuda_count_4(monkeypatch):
 def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+    monkeypatch.setattr(
+        lightning.pytorch.accelerators.mps, "_get_mps_device_name", lambda: "Mocked MPS Device" if n > 0 else ""
+    )
 
 
 @pytest.fixture
