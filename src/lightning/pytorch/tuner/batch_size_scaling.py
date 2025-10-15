@@ -67,6 +67,8 @@ def _scale_batch_size(
             when running on CPU or when automatic OOM detection is not available.
 
     """
+    assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
+
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
         return None
@@ -244,6 +246,8 @@ def _run_binsearch_scaling(
     Hereafter, the batch size is further refined using a binary search
 
     """
+    assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
+
     low = 1
     high = None
     count = 0

@@ -86,6 +86,7 @@ class Tuner:
         """
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
         _check_scale_batch_size_configuration(self._trainer)
+        assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
 
         # local import to avoid circular import
         from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder

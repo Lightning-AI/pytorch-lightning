@@ -131,6 +131,8 @@ class BatchSizeFinder(Callback):
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
 
+        assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
+
         self.optimal_batch_size: Optional[int] = init_val
         self._mode = mode
         self._steps_per_trial = steps_per_trial
