@@ -62,7 +62,9 @@ def _scale_batch_size(
 
         margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
             'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
-        max_val: Maximum batch size limit, to prevent overly large or inefficient batch sizes.
+        max_val: Maximum batch size limit, defaults to 8192.
+            Helps prevent testing unrealistically large or inefficient batch sizes (e.g., 2**25)
+            when running on CPU or when automatic OOM detection is not available.
 
     """
     if trainer.fast_dev_run:
@@ -336,7 +338,9 @@ def _adjust_batch_size(
         value: if a value is given, will override the batch size with this value.
             Note that the value of `factor` will not have an effect in this case
         desc: either ``"succeeded"`` or ``"failed"``. Used purely for logging
-        max_val: Maximum batch size limit, to prevent overly large or inefficient batch sizes.
+        max_val: Maximum batch size limit, defaults to 8192.
+            Helps prevent testing unrealistically large or inefficient batch sizes (e.g., 2**25)
+            when running on CPU or when automatic OOM detection is not available.
 
     Returns:
         The new batch size for the next trial and a bool that signals whether the

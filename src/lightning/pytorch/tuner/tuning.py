@@ -42,7 +42,7 @@ class Tuner:
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
         margin: float = 0.05,
-        max_val: Optional[int] = None,
+        max_val: int = 8192,
     ) -> Optional[int]:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
         error.
@@ -79,7 +79,9 @@ class Tuner:
 
             margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
                 'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
-            max_val: Maximum batch size limit. If provided, the found batch size will not exceed this value.
+            max_val: Maximum batch size limit, defaults to 8192.
+            Helps prevent testing unrealistically large or inefficient batch sizes (e.g., 2**25)
+            when running on CPU or when automatic OOM detection is not available.
 
         """
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
