@@ -315,7 +315,7 @@ def _run_binsearch_scaling(
                 f"Applying margin of {margin:.1%}, reducing batch size from {new_size} to {margin_reduced_size}"
             )
             new_size = margin_reduced_size
-            # update attribute in the model/datamodule as well
+            # propagate the reduced batch size to the model/datamodule attribute
             lightning_setattr(trainer.lightning_module, batch_arg_name, new_size)
 
     return new_size
