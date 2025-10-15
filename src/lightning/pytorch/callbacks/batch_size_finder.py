@@ -65,7 +65,7 @@ class BatchSizeFinder(Callback):
 
         margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
             'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
-        max_val: Maximum batch size limit. If provided, the found batch size will not exceed this value.
+        max_val: Maximum batch size limit, to prevent overly large or inefficient batch sizes.
 
     Example::
 
