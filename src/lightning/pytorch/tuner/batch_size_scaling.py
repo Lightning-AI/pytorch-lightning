@@ -33,7 +33,7 @@ def _scale_batch_size(
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
     margin: float = 0.05,
-    max_val: int = 1024,
+    max_val: int = 8192,
 ) -> Optional[int]:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
@@ -179,7 +179,7 @@ def _run_power_scaling(
     batch_arg_name: str,
     max_trials: int,
     params: dict[str, Any],
-    max_val: Optional[int],
+    max_val: int = 8192,
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
@@ -192,7 +192,7 @@ def _run_power_scaling(
         # reset after each try
         _reset_progress(trainer)
 
-        if max_val is not None and new_size >= max_val:
+        if new_size >= max_val:
             rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
             break
 
@@ -235,7 +235,7 @@ def _run_binsearch_scaling(
     max_trials: int,
     params: dict[str, Any],
     margin: float,
-    max_val: Optional[int],
+    max_val: int = 8192,
 ) -> int:
     """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is encountered.
 
@@ -252,7 +252,7 @@ def _run_binsearch_scaling(
         # reset after each try
         _reset_progress(trainer)
 
-        if max_val is not None and new_size >= max_val:
+        if new_size >= max_val:
             rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
             break
 
@@ -325,7 +325,7 @@ def _adjust_batch_size(
     factor: float = 1.0,
     value: Optional[int] = None,
     desc: Optional[str] = None,
-    max_val: Optional[int] = None,
+    max_val: int = 8192,
 ) -> tuple[int, bool]:
     """Helper function for adjusting the batch size.
 
@@ -336,7 +336,7 @@ def _adjust_batch_size(
         value: if a value is given, will override the batch size with this value.
             Note that the value of `factor` will not have an effect in this case
         desc: either ``"succeeded"`` or ``"failed"``. Used purely for logging
-        max_val: Maximum batch size limit. If provided, the new batch size will not exceed this value.
+        max_val: Maximum batch size limit, to prevent overly large or inefficient batch sizes.
 
     Returns:
         The new batch size for the next trial and a bool that signals whether the
@@ -367,7 +367,7 @@ def _adjust_batch_size(
     new_size = value if value is not None else int(batch_size * factor)
 
     # Apply max_val limit if provided
-    if max_val is not None and new_size > max_val:
+    if new_size > max_val:
         if desc:
             rank_zero_info(f"Batch size {new_size} exceeds max_val limit {max_val}, capping at {max_val}")
         new_size = max_val
