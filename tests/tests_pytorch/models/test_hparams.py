@@ -436,6 +436,21 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
+def test_collect_init_arguments_in_other_methods():
+    class _ABCModelCreator:
+        def init(self, model, **kwargs) -> LightningModule:
+            self.model = model
+            return self.model
+
+    class ConcreteModelCreator(_ABCModelCreator):
+        def init(self, model=None, **kwargs) -> LightningModule:
+            return super().init(model=model or CustomBoringModel(**kwargs))
+
+    model_creator = ConcreteModelCreator()
+    model = model_creator.init(batch_size=123)
+    assert model.hparams.batch_size == 123
+
+
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_under_composition(base_class):
     """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
