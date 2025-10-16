@@ -420,3 +420,26 @@ def test_throughput_monitor_variable_batch_size_with_validation(tmp_path):
             train_samples.append(metrics["train/samples"])
         elif "train|samples" in metrics:
             train_samples.append(metrics["train|samples"])
+
+
+def test_throughput_monitor_validation_sum_overflow_real(tmp_path):
+    logger_mock = Mock()
+    logger_mock.save_dir = tmp_path
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)
+    model = BoringModel()
+    model.flops_per_batch = 10
+
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=[monitor],
+        max_epochs=100,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    try:
+        trainer.fit(model)
+    except Exception as e:
+        pytest.fail(f"ThroughputMonitor raised an unexpected exception: {e}")
