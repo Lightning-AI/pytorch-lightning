@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import os
-import socket
 
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning.fabric.utilities.port_manager import get_port_manager
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 
@@ -111,9 +111,17 @@ def find_free_network_port() -> int:
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
 
+    This function uses a global port manager to prevent internal race conditions within the test suite.
+    The allocated port is reserved and won't be returned by subsequent calls until it's explicitly released.
+
+    Note:
+        While this prevents collisions between concurrent Lightning tests, external processes can still
+        claim the port between allocation and binding. For production use, explicitly set the MASTER_PORT
+        environment variable.
+
+    Returns:
+        A port number that is reserved and free at the time of allocation
+
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+    port_manager = get_port_manager()
+    return port_manager.allocate_port()
