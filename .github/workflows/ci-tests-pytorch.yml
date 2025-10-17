@@ -147,15 +147,6 @@ jobs:
         if: ${{ matrix.config.pkg-name == 'lightning' }}
         run: uv pip uninstall pytorch-lightning
 
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
-
       - name: Cache datasets
         uses: actions/cache@v4
         with:
