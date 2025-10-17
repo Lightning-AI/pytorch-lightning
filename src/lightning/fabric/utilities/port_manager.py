@@ -16,9 +16,13 @@
 import atexit
 import socket
 import threading
+from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
+
+# Maximum number of recently released ports to track before reuse
+_RECENTLY_RELEASED_PORTS_MAXLEN = 256
 
 
 class PortManager:
@@ -33,6 +37,8 @@ class PortManager:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._allocated_ports: set[int] = set()
+        # Recently released ports are kept in a queue to avoid immediate reuse
+        self._recently_released: deque[int] = deque(maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN)
         # Register cleanup to release all ports on exit
         atexit.register(self.release_all)
 
@@ -55,6 +61,7 @@ class PortManager:
             if (
                 preferred_port is not None
                 and preferred_port not in self._allocated_ports
+                and preferred_port not in self._recently_released
                 and self._is_port_free(preferred_port)
             ):
                 self._allocated_ports.add(preferred_port)
@@ -64,7 +71,10 @@ class PortManager:
             for attempt in range(max_attempts):
                 port = self._find_free_port()
 
-                # Double-check it's not in our reserved set (shouldn't happen, but be safe)
+                # Skip ports that were recently released to avoid TIME_WAIT conflicts
+                if port in self._recently_released:
+                    continue
+
                 if port not in self._allocated_ports:
                     self._allocated_ports.add(port)
                     return port
@@ -82,12 +92,43 @@ class PortManager:
 
         """
         with self._lock:
-            self._allocated_ports.discard(port)
+            if port in self._allocated_ports:
+                self._allocated_ports.remove(port)
+                # Add to the back of the queue; oldest will be evicted when queue is full
+                self._recently_released.append(port)
 
     def release_all(self) -> None:
         """Release all allocated ports."""
         with self._lock:
             self._allocated_ports.clear()
+            self._recently_released.clear()
+
+    def reserve_existing_port(self, port: int) -> bool:
+        """Reserve a port that was allocated externally.
+
+        Args:
+            port: The externally assigned port to reserve.
+
+        Returns:
+            True if the port was reserved (or already reserved), False if the port value is invalid.
+
+        """
+        if port <= 0 or port > 65535:
+            return False
+
+        with self._lock:
+            if port in self._allocated_ports:
+                return True
+
+            # Remove from recently released queue if present (we're explicitly reserving it)
+            if port in self._recently_released:
+                # Create a new deque without this port
+                self._recently_released = deque(
+                    (p for p in self._recently_released if p != port), maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN
+                )
+
+            self._allocated_ports.add(port)
+            return True
 
     @contextmanager
     def allocated_port(self, preferred_port: Optional[int] = None) -> Iterator[int]:
@@ -121,7 +162,8 @@ class PortManager:
 
         """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Don't use SO_REUSEADDR - we need to match the behavior of TCPStore
+        # which binds without it, so ports in TIME_WAIT will be rejected
         s.bind(("", 0))
         port = s.getsockname()[1]
         s.close()
@@ -140,7 +182,8 @@ class PortManager:
         """
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Don't use SO_REUSEADDR - we need to match the behavior of TCPStore
+            # which binds without it, so ports in TIME_WAIT will be rejected
             s.bind(("", port))
             s.close()
             return True

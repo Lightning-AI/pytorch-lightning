@@ -132,20 +132,20 @@ def teardown_process_group():
 
     from lightning.fabric.utilities.port_manager import get_port_manager
 
-    # Record the port used in this test (if any)
-    port_to_release = None
-    if "MASTER_PORT" in os.environ:
-        with contextlib.suppress(ValueError, KeyError):
-            port_to_release = int(os.environ["MASTER_PORT"])
-
     yield
 
     # Clean up distributed connection
     _destroy_dist_connection()
 
-    # Release the port from the manager so it can be reused
-    if port_to_release is not None:
-        get_port_manager().release_port(port_to_release)
+    manager = get_port_manager()
+
+    # If a process group created or updated MASTER_PORT during the test, reserve it and then clear it
+    if "MASTER_PORT" in os.environ:
+        with contextlib.suppress(ValueError):
+            port = int(os.environ["MASTER_PORT"])
+            manager.reserve_existing_port(port)
+            manager.release_port(port)
+        os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture(autouse=True)
