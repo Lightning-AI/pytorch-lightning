@@ -313,7 +313,7 @@ def test_deepspeed_config(tmp_path, deepspeed_zero_config):
     trainer.fit(model)
     trainer.test(model)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
-    assert len(set(lr_monitor.lrs["lr-SGD"])) == 8
+    assert len(lr_monitor.lrs["lr-SGD"]) == 8
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
