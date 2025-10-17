@@ -329,3 +329,142 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     callback = EMATestCallback(devices=devices)
     _train(model, dataset, tmp_path, callback, devices=devices, checkpoint_path=checkpoint_path, **kwargs)
     return model
+
+@pytest.mark.parametrize(
+    ("strategy", "accelerator", "devices"),
+    [
+        ("auto", "cpu", 1),
+        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
+def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
+    """Test EMAWeightAveraging callback with various update configurations."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    # Test with default settings (update every step)
+    callback = EMAWeightAveraging(decay=0.999, update_every_n_steps=1)
+    _train(model, dataset, tmp_path, callback, strategy=strategy, accelerator=accelerator, devices=devices)
+    
+    # Verify the average model was created and updated
+    assert callback._average_model is not None
+    assert callback._average_model.n_averaged > 0
+
+
+def test_ema_weight_averaging_step_frequency(tmp_path):
+    """Test EMAWeightAveraging with custom step update frequency."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    # Update every 5 steps
+    callback = EMAWeightAveraging(decay=0.95, update_every_n_steps=5)
+    _train(model, dataset, tmp_path, callback)
+    
+    assert callback._average_model is not None
+
+
+def test_ema_weight_averaging_starting_step(tmp_path):
+    """Test EMAWeightAveraging with delayed start based on steps."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    # Start updating after step 10
+    callback = EMAWeightAveraging(
+        decay=0.999,
+        update_every_n_steps=1,
+        update_starting_at_step=10
+    )
+    _train(model, dataset, tmp_path, callback)
+    
+    assert callback._average_model is not None
+
+
+def test_ema_weight_averaging_starting_epoch(tmp_path):
+    """Test EMAWeightAveraging with delayed start based on epochs."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    # Start updating after epoch 3
+    callback = EMAWeightAveraging(
+        decay=0.999,
+        update_every_n_steps=1,
+        update_starting_at_epoch=3
+    )
+    _train(model, dataset, tmp_path, callback)
+    
+    assert callback._average_model is not None
+
+
+def test_ema_weight_averaging_should_update(tmp_path):
+    """Test the should_update logic of EMAWeightAveraging."""
+    from weight_averaging import EMAWeightAveraging
+    
+    # Test with step-based updates
+    callback = EMAWeightAveraging(
+        update_every_n_steps=5,
+        update_starting_at_step=10
+    )
+    
+    # Before starting step
+    assert not callback.should_update(step_idx=5)
+    assert not callback.should_update(step_idx=9)
+    
+    # At and after starting step, but not on update frequency
+    assert callback.should_update(step_idx=10)  # First update
+    assert not callback.should_update(step_idx=11)
+    assert not callback.should_update(step_idx=14)
+    assert callback.should_update(step_idx=15)  # Second update
+    
+    # Test with epoch-based updates
+    callback = EMAWeightAveraging(
+        update_starting_at_epoch=2
+    )
+    
+    assert not callback.should_update(epoch_idx=0)
+    assert not callback.should_update(epoch_idx=1)
+    assert callback.should_update(epoch_idx=2)
+    assert callback.should_update(epoch_idx=3)
+
+
+def test_ema_weight_averaging_checkpoint_save_load(tmp_path):
+    """Test that EMAWeightAveraging correctly saves and loads checkpoints."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    callback = EMAWeightAveraging(decay=0.99, update_every_n_steps=2)
+    
+    # Train and create checkpoint
+    _train(model, dataset, tmp_path, callback, will_crash=True)
+    
+    # Resume from checkpoint
+    model2 = TestModel()
+    callback2 = EMAWeightAveraging(decay=0.99, update_every_n_steps=2)
+    checkpoint_path = str(tmp_path / "lightning_logs" / "version_0" / "checkpoints" / "*.ckpt")
+    
+    _train(model2, dataset, tmp_path, callback2, checkpoint_path=checkpoint_path)
+    
+    assert callback2._average_model is not None
+
+
+@pytest.mark.parametrize("decay", [0.9, 0.99, 0.999, 0.9999])
+def test_ema_weight_averaging_decay_values(tmp_path, decay):
+    """Test EMAWeightAveraging with different decay values."""
+    from weight_averaging import EMAWeightAveraging
+    
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    
+    callback = EMAWeightAveraging(decay=decay, update_every_n_steps=1)
+    _train(model, dataset, tmp_path, callback)
+    
+    assert callback._average_model is not None
