@@ -16,9 +16,15 @@
 import atexit
 import socket
 import threading
+from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
+
+# Size of the recently released ports queue
+# This prevents immediate reuse of ports that were just released
+# Increased to 1024 to reduce the chance of cycling back to TIME_WAIT ports
+_RECENTLY_RELEASED_PORTS_MAXLEN = 1024
 
 
 class PortManager:
@@ -33,10 +39,12 @@ class PortManager:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._allocated_ports: set[int] = set()
+        # Recently released ports are kept in a queue to avoid immediate reuse
+        self._recently_released: deque[int] = deque(maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN)
         # Register cleanup to release all ports on exit
         atexit.register(self.release_all)
 
-    def allocate_port(self, preferred_port: Optional[int] = None, max_attempts: int = 100) -> int:
+    def allocate_port(self, preferred_port: Optional[int] = None, max_attempts: int = 1000) -> int:
         """Allocate a free port, ensuring it's not already reserved.
 
         Args:
@@ -55,23 +63,27 @@ class PortManager:
             if (
                 preferred_port is not None
                 and preferred_port not in self._allocated_ports
+                and preferred_port not in self._recently_released
                 and self._is_port_free(preferred_port)
             ):
                 self._allocated_ports.add(preferred_port)
                 return preferred_port
 
-            # Try to find a free port
+            # Let the OS choose a free port, but verify it's not in our tracking structures
+            # The OS naturally avoids ports in TIME_WAIT (without SO_REUSEADDR)
             for attempt in range(max_attempts):
                 port = self._find_free_port()
 
-                # Double-check it's not in our reserved set (shouldn't happen, but be safe)
-                if port not in self._allocated_ports:
+                # Skip if already allocated by us or recently released
+                # This prevents race conditions within our process
+                if port not in self._allocated_ports and port not in self._recently_released:
                     self._allocated_ports.add(port)
                     return port
 
             raise RuntimeError(
                 f"Failed to allocate a free port after {max_attempts} attempts. "
-                f"Currently allocated ports: {len(self._allocated_ports)}"
+                f"Currently allocated: {len(self._allocated_ports)}, "
+                f"recently released: {len(self._recently_released)}"
             )
 
     def release_port(self, port: int) -> None:
@@ -82,12 +94,43 @@ class PortManager:
 
         """
         with self._lock:
-            self._allocated_ports.discard(port)
+            if port in self._allocated_ports:
+                self._allocated_ports.remove(port)
+                # Add to the back of the queue; oldest will be evicted when queue is full
+                self._recently_released.append(port)
 
     def release_all(self) -> None:
         """Release all allocated ports."""
         with self._lock:
             self._allocated_ports.clear()
+            self._recently_released.clear()
+
+    def reserve_existing_port(self, port: int) -> bool:
+        """Reserve a port that was allocated externally.
+
+        Args:
+            port: The externally assigned port to reserve.
+
+        Returns:
+            True if the port was reserved (or already reserved), False if the port value is invalid.
+
+        """
+        if port <= 0 or port > 65535:
+            return False
+
+        with self._lock:
+            if port in self._allocated_ports:
+                return True
+
+            # Remove from recently released queue if present (we're explicitly reserving it)
+            if port in self._recently_released:
+                # Create a new deque without this port
+                self._recently_released = deque(
+                    (p for p in self._recently_released if p != port), maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN
+                )
+
+            self._allocated_ports.add(port)
+            return True
 
     @contextmanager
     def allocated_port(self, preferred_port: Optional[int] = None) -> Iterator[int]:
@@ -121,7 +164,8 @@ class PortManager:
 
         """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Don't use SO_REUSEADDR - we need to match the behavior of TCPStore
+        # which binds without it, so ports in TIME_WAIT will be rejected
         s.bind(("", 0))
         port = s.getsockname()[1]
         s.close()
@@ -140,7 +184,8 @@ class PortManager:
         """
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Don't use SO_REUSEADDR - we need to match the behavior of TCPStore
+            # which binds without it, so ports in TIME_WAIT will be rejected
             s.bind(("", port))
             s.close()
             return True

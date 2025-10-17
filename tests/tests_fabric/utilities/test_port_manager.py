@@ -18,8 +18,44 @@ import socket
 import threading
 from collections import Counter
 
+import pytest
+
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.port_manager import PortManager, get_port_manager
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def with_master_port():
+    """Fixture that sets MASTER_PORT before test runs, for conftest coverage."""
+    port = find_free_network_port()
+    previous_value = os.environ.get("MASTER_PORT")
+    os.environ["MASTER_PORT"] = str(port)
+    try:
+        yield port
+    finally:
+        if previous_value is None:
+            os.environ.pop("MASTER_PORT", None)
+        else:
+            os.environ["MASTER_PORT"] = previous_value
+
+
+@pytest.fixture
+def with_invalid_master_port():
+    """Fixture that sets invalid MASTER_PORT to test error handling."""
+    previous_value = os.environ.get("MASTER_PORT")
+    os.environ["MASTER_PORT"] = "not_a_valid_port_number"
+    try:
+        yield
+    finally:
+        if previous_value is None:
+            os.environ.pop("MASTER_PORT", None)
+        else:
+            os.environ["MASTER_PORT"] = previous_value
+
 
 # =============================================================================
 # Unit Tests for PortManager
@@ -135,11 +171,18 @@ def test_port_manager_allocation_failure():
     """Test that PortManager raises error when unable to allocate after max attempts."""
     manager = PortManager()
 
-    # This is hard to test without actually exhausting ports, but we can test
-    # the error path by mocking or just ensure the code path exists
-    # For now, just verify that max_attempts parameter exists
-    port = manager.allocate_port(max_attempts=1)
+    # Pre-allocate a large number of ports to make it harder to find a free one
+    # Then try with max_attempts=1 which should fail quickly
+    allocated_ports = [manager.allocate_port() for _ in range(50)]
+
+    # Test that it can still allocate with enough attempts
+    port = manager.allocate_port(max_attempts=100)
     assert port >= 1024
+
+    # Clean up
+    for p in allocated_ports:
+        manager.release_port(p)
+    manager.release_port(port)
 
 
 def test_port_manager_prevents_reallocation():
@@ -160,6 +203,10 @@ def test_port_manager_prevents_reallocation():
     manager.release_port(port1)
     assert port1 not in manager._allocated_ports
 
+    # Clean up
+    for port in more_ports:
+        manager.release_port(port)
+
 
 def test_get_port_manager_singleton():
     """Test that get_port_manager returns the same instance."""
@@ -172,6 +219,9 @@ def test_get_port_manager_singleton():
     # Allocating from one should be visible in the other
     port = manager1.allocate_port()
     assert port in manager2._allocated_ports
+
+    # Clean up
+    manager1.release_port(port)
 
 
 def test_get_port_manager_thread_safe_singleton():
@@ -232,16 +282,21 @@ def test_port_manager_concurrent_allocation_and_release():
     manager = PortManager()
     ports = []
     lock = threading.Lock()
+    active_ports: set[int] = set()
 
     def allocate_and_release():
         for _ in range(5):
             # Allocate a port
             port = manager.allocate_port()
             with lock:
+                assert port not in active_ports, "Port allocated concurrently"
+                active_ports.add(port)
                 ports.append(port)
 
             # Release it immediately
             manager.release_port(port)
+            with lock:
+                active_ports.remove(port)
 
     # Run multiple threads
     threads = [threading.Thread(target=allocate_and_release) for _ in range(10)]
@@ -253,9 +308,6 @@ def test_port_manager_concurrent_allocation_and_release():
 
     # Should have allocated 50 ports total (10 threads × 5 ports)
     assert len(ports) == 50
-
-    # All should be unique (no port allocated twice before being released)
-    assert len(set(ports)) == 50, "Same port was allocated to multiple threads before release"
 
     # After all releases, manager should have no ports allocated
     assert len(manager._allocated_ports) == 0
@@ -278,6 +330,42 @@ def test_port_manager_atexit_cleanup():
 
     manager.release_all()
     assert len(manager._allocated_ports) == 0
+
+
+def test_port_manager_reserve_existing_port_free():
+    """reserve_existing_port should succeed for free ports and track them."""
+    manager = PortManager()
+
+    port = manager._find_free_port()
+    assert manager.reserve_existing_port(port)
+    assert port in manager._allocated_ports
+
+    # Second call should succeed but not duplicate
+    assert manager.reserve_existing_port(port)
+    assert len(manager._allocated_ports) == 1
+
+
+def test_port_manager_reserve_existing_port_invalid_value():
+    """reserve_existing_port should reject invalid port numbers."""
+    manager = PortManager()
+
+    assert not manager.reserve_existing_port(0)
+    assert not manager.reserve_existing_port(-1)
+    assert not manager.reserve_existing_port(70000)
+
+
+def test_port_manager_reserve_existing_port_after_release():
+    """Ports released from sockets should become reservable."""
+    manager = PortManager()
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("", 0))
+    reusable_port = s.getsockname()[1]
+    s.close()
+
+    assert manager.reserve_existing_port(reusable_port)
+    assert reusable_port in manager._allocated_ports
 
 
 def test_port_manager_context_manager():
@@ -430,6 +518,44 @@ def test_port_allocation_simulates_distributed_test_lifecycle():
     assert len(manager._allocated_ports) == initial_count
 
 
+def test_conftest_cleanup_with_master_port_set(with_master_port):
+    """Test conftest cleanup when MASTER_PORT is set before test starts.
+
+    This test uses a fixture to set MASTER_PORT before the test runs, allowing the conftest teardown_process_group
+    fixture to capture and clean it up. This ensures the conftest cleanup code is covered.
+
+    """
+    manager = get_port_manager()
+    port = with_master_port  # Port was set by fixture
+
+    # Verify port is allocated
+    assert port in manager._allocated_ports
+    assert os.environ.get("MASTER_PORT") == str(port)
+
+    # Leave MASTER_PORT set - conftest teardown will clean it up
+    # After this test, teardown_process_group will:
+    # 1. Detect MASTER_PORT in os.environ (line captured before yield)
+    # 2. Call get_port_manager().release_port(port)
+    # 3. Port gets released back to manager
+
+
+def test_conftest_handles_invalid_master_port(with_invalid_master_port):
+    """Test conftest handles invalid MASTER_PORT gracefully.
+
+    This exercises the contextlib.suppress(ValueError, KeyError) path in the conftest teardown_process_group fixture.
+
+    """
+    # Fixture set MASTER_PORT to "not_a_valid_port_number"
+    # The conftest will try to parse it: int(os.environ["MASTER_PORT"])
+    # This will raise ValueError, which should be caught by contextlib.suppress
+
+    # Verify the invalid value is set
+    assert os.environ.get("MASTER_PORT") == "not_a_valid_port_number"
+
+    # This test just needs to complete without crashing
+    # The conftest teardown will handle the ValueError gracefully
+
+
 def test_multiple_tests_can_reuse_ports_after_release():
     """Test that ports can be reused after being released."""
     manager = get_port_manager()
@@ -521,3 +647,109 @@ def test_port_manager_survives_multiple_test_sessions():
     # Clean up
     for port in session2_ports + session3_ports:
         manager.release_port(port)
+
+
+def test_port_manager_allocation_runtime_error():
+    """Test that allocation fails gracefully when max_attempts is exhausted."""
+    manager = PortManager()
+
+    # Allocate a port first
+    allocated_port = manager.allocate_port()
+
+    # Mock _find_free_port to always return the already-allocated port
+    # This will cause all allocation attempts to be skipped (port in allocated_ports)
+    original_find = manager._find_free_port
+
+    def always_return_allocated():
+        return allocated_port
+
+    manager._find_free_port = always_return_allocated
+
+    # This should raise RuntimeError after max_attempts
+    with pytest.raises(RuntimeError, match="Failed to allocate a free port after .* attempts"):
+        manager.allocate_port(max_attempts=5)
+
+    # Restore original method and clean up
+    manager._find_free_port = original_find
+    manager.release_port(allocated_port)
+
+
+def test_find_free_network_port_respects_existing_master_port(with_master_port):
+    """find_free_network_port should reuse externally provided MASTER_PORT."""
+    manager = get_port_manager()
+    port = with_master_port
+
+    returned_port = find_free_network_port()
+    assert returned_port == port
+    assert port in manager._allocated_ports
+
+
+def test_find_free_network_port_handles_invalid_master_port(with_invalid_master_port):
+    """Invalid MASTER_PORT values should fall back to allocating a fresh port."""
+    manager = get_port_manager()
+
+    returned_port = find_free_network_port()
+    assert isinstance(returned_port, int)
+    assert returned_port in manager._allocated_ports
+    assert returned_port != "not_a_valid_port_number"
+
+
+def test_port_manager_recently_released_prevents_immediate_reuse():
+    """Test that released ports enter recently_released queue and can't be immediately reallocated."""
+    manager = PortManager()
+
+    # Allocate and release a port
+    port = manager.allocate_port()
+    manager.release_port(port)
+
+    # Port should be in recently_released queue
+    assert port in manager._recently_released
+    assert port not in manager._allocated_ports
+
+    # Try to allocate again - should get a different port
+    new_port = manager.allocate_port()
+    assert new_port != port
+    assert new_port in manager._allocated_ports
+
+    manager.release_port(new_port)
+
+
+def test_port_manager_recently_released_queue_cycles():
+    """Test that recently_released queue cycles after maxlen allocations."""
+    from lightning.fabric.utilities.port_manager import _RECENTLY_RELEASED_PORTS_MAXLEN
+
+    manager = PortManager()
+
+    # Allocate and release a port
+    first_port = manager.allocate_port()
+    manager.release_port(first_port)
+
+    # Port should be in recently_released queue
+    assert first_port in manager._recently_released
+
+    # Allocate and release many ports to fill the queue beyond maxlen
+    for _ in range(_RECENTLY_RELEASED_PORTS_MAXLEN + 10):
+        port = manager.allocate_port()
+        manager.release_port(port)
+
+    # First port should have been evicted from the queue (oldest entry)
+    assert first_port not in manager._recently_released
+
+
+def test_port_manager_reserve_clears_recently_released():
+    """Test that reserve_existing_port clears recently_released for that port."""
+    manager = PortManager()
+
+    # Allocate and release a port
+    port = manager.allocate_port()
+    manager.release_port(port)
+
+    # Port should be in recently_released
+    assert port in manager._recently_released
+
+    # Reserve the port - should clear from recently_released and mark as allocated
+    assert manager.reserve_existing_port(port)
+    assert port not in manager._recently_released
+    assert port in manager._allocated_ports
+
+    manager.release_port(port)

@@ -104,6 +104,13 @@ class LightningEnvironment(ClusterEnvironment):
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
 
+        if self._main_port != -1:
+            get_port_manager().release_port(self._main_port)
+            self._main_port = -1
+
+        os.environ.pop("MASTER_PORT", None)
+        os.environ.pop("MASTER_ADDR", None)
+
 
 def find_free_network_port() -> int:
     """Finds a free port on localhost.
@@ -111,17 +118,24 @@ def find_free_network_port() -> int:
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
 
-    This function uses a global port manager to prevent internal race conditions within the test suite.
     The allocated port is reserved and won't be returned by subsequent calls until it's explicitly released.
-
-    Note:
-        While this prevents collisions between concurrent Lightning tests, external processes can still
-        claim the port between allocation and binding. For production use, explicitly set the MASTER_PORT
-        environment variable.
 
     Returns:
         A port number that is reserved and free at the time of allocation
 
     """
+    # If an external launcher already specified a MASTER_PORT (for example, torch.distributed.spawn or
+    # multiprocessing helpers), reserve it through the port manager so no other test reuses the same number.
+    if "MASTER_PORT" in os.environ:
+        master_port_str = os.environ["MASTER_PORT"]
+        try:
+            existing_port = int(master_port_str)
+        except ValueError:
+            pass
+        else:
+            port_manager = get_port_manager()
+            if port_manager.reserve_existing_port(existing_port):
+                return existing_port
+
     port_manager = get_port_manager()
     return port_manager.allocate_port()

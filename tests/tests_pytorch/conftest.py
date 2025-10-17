@@ -132,20 +132,20 @@ def teardown_process_group():
 
     from lightning.fabric.utilities.port_manager import get_port_manager
 
-    # Record the port used in this test (if any)
-    port_to_release = None
-    if "MASTER_PORT" in os.environ:
-        with contextlib.suppress(ValueError, KeyError):
-            port_to_release = int(os.environ["MASTER_PORT"])
-
     yield
 
     # Clean up distributed connection
     _destroy_dist_connection()
 
-    # Release the port from the manager so it can be reused
-    if port_to_release is not None:
-        get_port_manager().release_port(port_to_release)
+    manager = get_port_manager()
+
+    # If a process group created or updated MASTER_PORT during the test, reserve it and then clear it
+    if "MASTER_PORT" in os.environ:
+        with contextlib.suppress(ValueError):
+            port = int(os.environ["MASTER_PORT"])
+            manager.reserve_existing_port(port)
+            manager.release_port(port)
+        os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture(autouse=True)
@@ -347,6 +347,56 @@ def leave_no_artifacts_behind():
     # ignore the .coverage files
     difference = {f for f in difference if not f.endswith(".coverage")}
     assert not difference, f"Test left artifacts behind: {difference}"
+
+
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
+    """Retry tests that fail with EADDRINUSE errors.
+
+    This handles the race condition where a port might enter TIME_WAIT between our port allocation check and actual
+    binding by TCPStore.
+
+    """
+    if call.excinfo is not None and call.when == "call":
+        exception_msg = str(call.excinfo.value)
+        # Check if this is an EADDRINUSE error from distributed training
+        if "EADDRINUSE" in exception_msg or "address already in use" in exception_msg.lower():
+            # Get the retry count from the test node
+            retry_count = getattr(item, "_port_retry_count", 0)
+            max_retries = 3
+
+            if retry_count < max_retries:
+                # Increment retry counter
+                item._port_retry_count = retry_count + 1
+
+                # Log the retry
+                if hasattr(item.config, "get_terminal_writer"):
+                    writer = item.config.get_terminal_writer()
+                    writer.write(
+                        f"\n[Port conflict detected] Retrying test {item.name} "
+                        f"(attempt {retry_count + 2}/{max_retries + 1})...\n",
+                        yellow=True,
+                    )
+
+                # Clear the port manager's state to get fresh ports
+                from lightning.fabric.utilities.port_manager import get_port_manager
+
+                manager = get_port_manager()
+                manager.release_all()
+
+                # Re-run the test by raising Rerun exception
+                # Note: This requires pytest-rerunfailures plugin
+                import time
+
+                time.sleep(0.5)  # Brief delay to let ports settle
+
+                # If pytest-rerunfailures is available, use it
+                try:
+                    from pytest_rerunfailures import Rerun
+
+                    raise Rerun(f"Port conflict (EADDRINUSE), retry {retry_count + 1}/{max_retries}")
+                except ImportError:
+                    # Plugin not available, just let the test fail
+                    pass
 
 
 def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:
