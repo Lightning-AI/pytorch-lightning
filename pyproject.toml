@@ -91,7 +91,6 @@ ignore = [
 ]
 "src/**" = [
     "S101",  # todo: Use of `assert` detected
-    "S105", "S106", "S107",  # todo: Possible hardcoded password: ...
     "S113",  # todo: Probable use of requests call without timeout
     "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
     "S324",  # todo: Probable use of insecure hash functions in `hashlib`
@@ -106,7 +105,6 @@ ignore = [
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected
-    "S105", "S106",  # todo: Possible hardcoded password: ...
     "S301",  # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
     "S113",  # todo: Probable use of requests call without timeout
     "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
