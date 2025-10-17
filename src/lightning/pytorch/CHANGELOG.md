@@ -58,6 +58,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `LightningCLI` loading of hyperparameters from `ckpt_path` failing for subclass model mode ([#21246](https://github.com/Lightning-AI/pytorch-lightning/pull/21246))
 
 
+- Fixed redundant host-device sync in progressbar printing ([#21233](https://github.com/Lightning-AI/pytorch-lightning/pull/21233))
+
+
 ---
 
 ## [2.5.5] - 2025-09-05

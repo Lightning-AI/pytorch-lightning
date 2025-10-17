@@ -594,3 +594,53 @@ def test_grad_clipping_lm_fabric(algo):
         fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=1e-3, max_norm=None)
     else:
         fabric.clip_gradients.assert_called_once_with(orig_model, optimizer, clip_val=None, max_norm=1e-3)
+
+
+@RunIf(min_cuda_gpus=1)
+def test_log_no_cuda_sync():
+    """Test logging scalars and tensors doesn't introduce CUDA sync."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.to("cuda")
+
+        def training_step(self, batch, batch_idx):
+            # Create tensors before enabling sync debug mode to avoid sync
+            cuda_tensor = torch.tensor(0.7, device=self.device)
+            cpu_tensor = torch.tensor(1.0, device="cpu")
+
+            # Enable sync debug mode to catch any synchronization
+            torch.cuda.set_sync_debug_mode("error")
+            try:
+                # Test scalar value (should be placed on CPU to avoid sync)
+                self.log("scalar_loss", 0.5)
+
+                # Test CUDA tensor (should stay on original device)
+                self.log("cuda_tensor", cuda_tensor)
+
+                # Test CPU tensor (should stay on CPU)
+                self.log("cpu_tensor", cpu_tensor)
+
+            except RuntimeError as e:
+                if "called a synchronizing CUDA operation" in str(e):
+                    msg = f"Unexpected CUDA synchronization: {e}"
+                    pytest.fail(msg)
+                else:
+                    raise
+            finally:
+                torch.cuda.set_sync_debug_mode("default")
+
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        accelerator="gpu",
+        devices=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
