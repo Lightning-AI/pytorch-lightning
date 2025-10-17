@@ -109,7 +109,9 @@ class ThroughputMonitor(Callback):
         stage = trainer.state.stage
         assert stage is not None
 
-        if stage not in self._samples:
+        reset_needed = trainer.state.fn == TrainerFn.FITTING or stage not in self._samples
+
+        if reset_needed:
             self._throughputs[stage].reset()
             self._lengths[stage] = 0
             self._samples[stage] = 0
@@ -202,10 +204,17 @@ class ThroughputMonitor(Callback):
     def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
             return
+
+        train_times = self._throughputs[RunningStage.TRAINING]._time
+        val_times = self._throughputs[RunningStage.VALIDATING]._time
+
+        train_elapsed = train_times[-1] if train_times else 0.0
+        val_elapsed = val_times[-1] if val_times else 0.0
+
         # add the validation time to the training time before continuing to avoid sinking the training throughput
-        training_finished = self._t0s[RunningStage.TRAINING] + sum(self._throughputs[RunningStage.TRAINING]._time)
+        training_finished = self._t0s[RunningStage.TRAINING] + train_elapsed
         time_between_train_and_val = self._t0s[RunningStage.VALIDATING] - training_finished
-        val_time = sum(self._throughputs[RunningStage.VALIDATING]._time)
+        val_time = val_elapsed
         self._t0s[RunningStage.TRAINING] += time_between_train_and_val + val_time
 
     @override
