@@ -74,8 +74,7 @@ def _parallelize_feed_forward_fsdp2(model, device_mesh):
 
 def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
     model = _parallelize_feed_forward_tp(model, device_mesh)
-    model = _parallelize_feed_forward_fsdp2(model, device_mesh)
-    return model
+    return _parallelize_feed_forward_fsdp2(model, device_mesh)
 
 
 def _parallelize_with_compile(parallelize):
