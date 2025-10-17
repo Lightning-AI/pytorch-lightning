@@ -1029,6 +1029,9 @@ def _assert_save_model_is_equal(model, tmp_path, trainer):
     if trainer.is_global_zero:
         single_ckpt_path = os.path.join(tmp_path, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
+
+        if not os.path.isfile(single_ckpt_path):
+            single_ckpt_path = os.path.join(single_ckpt_path, "pytorch_model.bin")
         state_dict = torch.load(single_ckpt_path, weights_only=False)
 
         model = model.cpu()
