@@ -23,7 +23,7 @@ from torch.optim.swa_utils import get_swa_avg_fn
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.callbacks import WeightAveraging
+from lightning.pytorch.callbacks import EMAWeightAveraging, WeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
@@ -330,6 +330,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     _train(model, dataset, tmp_path, callback, devices=devices, checkpoint_path=checkpoint_path, **kwargs)
     return model
 
+
 @pytest.mark.parametrize(
     ("strategy", "accelerator", "devices"),
     [
@@ -338,9 +339,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     ],
 )
 def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
-    """Test EMAWeightAveraging callback with various update configurations."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test EMAWeightAveraging callback with various update configurations."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
@@ -354,9 +353,7 @@ def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
 
 
 def test_ema_weight_averaging_step_frequency(tmp_path):
-    """Test EMAWeightAveraging with custom step update frequency."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test EMAWeightAveraging with custom step update frequency."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
@@ -368,9 +365,7 @@ def test_ema_weight_averaging_step_frequency(tmp_path):
 
 
 def test_ema_weight_averaging_starting_step(tmp_path):
-    """Test EMAWeightAveraging with delayed start based on steps."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test EMAWeightAveraging with delayed start based on steps."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
@@ -386,9 +381,7 @@ def test_ema_weight_averaging_starting_step(tmp_path):
 
 
 def test_ema_weight_averaging_starting_epoch(tmp_path):
-    """Test EMAWeightAveraging with delayed start based on epochs."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test EMAWeightAveraging with delayed start based on epochs."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
@@ -404,9 +397,7 @@ def test_ema_weight_averaging_starting_epoch(tmp_path):
 
 
 def test_ema_weight_averaging_should_update(tmp_path):
-    """Test the should_update logic of EMAWeightAveraging."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test the should_update logic of EMAWeightAveraging."""    
     # Test with step-based updates
     callback = EMAWeightAveraging(
         update_every_n_steps=5,
@@ -435,9 +426,7 @@ def test_ema_weight_averaging_should_update(tmp_path):
 
 
 def test_ema_weight_averaging_checkpoint_save_load(tmp_path):
-    """Test that EMAWeightAveraging correctly saves and loads checkpoints."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test that EMAWeightAveraging correctly saves and loads checkpoints."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
@@ -458,9 +447,7 @@ def test_ema_weight_averaging_checkpoint_save_load(tmp_path):
 
 @pytest.mark.parametrize("decay", [0.9, 0.99, 0.999, 0.9999])
 def test_ema_weight_averaging_decay_values(tmp_path, decay):
-    """Test EMAWeightAveraging with different decay values."""
-    from weight_averaging import EMAWeightAveraging
-    
+    """Test EMAWeightAveraging with different decay values."""    
     model = TestModel()
     dataset = RandomDataset(32, 32)
     
