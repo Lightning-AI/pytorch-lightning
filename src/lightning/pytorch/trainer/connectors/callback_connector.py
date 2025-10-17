@@ -212,20 +212,22 @@ class _CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: list[Callback]) -> list[Callback]:
-        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint` callbacks
-        to the end of the list. The sequential order within the group of checkpoint callbacks is preserved, as well as
-        the order of all other callbacks.
+        """Reorders a list of callbacks such that:
+
+            1. All `tuner-specific` callbacks appear at the beginning.
+            2. `ProgressBar` followed by `ModelCheckpoint` callbacks appear at the end.
+            3. All other callbacks maintain their relative order.
 
         Args:
-            callbacks: A list of callbacks.
+            callbacks (list[Callback]): The list of callbacks to reorder.
 
         Return:
-            A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
-            if there were any present in the input.
+            list[Callback]: A new list with callbacks reordered as described above.
 
         """
         tuner_callbacks: list[Callback] = []
         other_callbacks: list[Callback] = []
+        progress_bar_callbacks: list[Callback] = []
         checkpoint_callbacks: list[Callback] = []
 
         for cb in callbacks:
@@ -233,10 +235,12 @@ class _CallbackConnector:
                 tuner_callbacks.append(cb)
             elif isinstance(cb, Checkpoint):
                 checkpoint_callbacks.append(cb)
+            elif isinstance(cb, ProgressBar):
+                progress_bar_callbacks.append(cb)
             else:
                 other_callbacks.append(cb)
 
-        return tuner_callbacks + other_callbacks + checkpoint_callbacks
+        return tuner_callbacks + other_callbacks + progress_bar_callbacks + checkpoint_callbacks
 
 
 def _validate_callbacks_list(callbacks: list[Callback]) -> None:
