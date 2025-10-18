@@ -387,7 +387,7 @@ class EMAWeightAveraging(WeightAveraging):
         self.update_starting_at_step = update_starting_at_step
         self.update_starting_at_epoch = update_starting_at_epoch
 
-    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> False:
+    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
         """Decide when to update the model weights.
 
         Args:
