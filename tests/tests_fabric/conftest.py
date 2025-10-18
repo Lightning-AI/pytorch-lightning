@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
 import sys
 import threading
@@ -77,8 +78,24 @@ def restore_env_variables():
 @pytest.fixture(autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
+    import os
+
+    from lightning.fabric.utilities.port_manager import get_port_manager
+
     yield
+
+    # Clean up distributed connection
     _destroy_dist_connection()
+
+    manager = get_port_manager()
+
+    # If a process group created or updated MASTER_PORT during the test, reserve it and then clear it
+    if "MASTER_PORT" in os.environ:
+        with contextlib.suppress(ValueError):
+            port = int(os.environ["MASTER_PORT"])
+            manager.reserve_existing_port(port)
+            manager.release_port(port)
+        os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture(autouse=True)
