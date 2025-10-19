@@ -1644,6 +1644,7 @@ class Trainer:
 
     @loggers.setter
     def loggers(self, loggers: Optional[list[Logger] | Mapping[str, Logger]]) -> None:
+        self._logger_keys: list[str | int]
         if isinstance(loggers, Mapping):
             self._loggers = list(loggers.values())
             self._logger_keys = list(loggers.keys())
