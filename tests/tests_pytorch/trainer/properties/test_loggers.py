@@ -28,12 +28,14 @@ def test_trainer_loggers_property():
     trainer = Trainer(logger=[logger1, logger2])
 
     assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger_map == {0: logger1, 1: logger2}
 
     # trainer.loggers should create a list of size 1
     trainer = Trainer(logger=logger1)
 
     assert trainer.logger == logger1
     assert trainer.loggers == [logger1]
+    assert trainer.logger_map == {0: logger1}
 
     # trainer.loggers should be a list of size 1 holding the default logger
     trainer = Trainer(logger=True)
@@ -66,25 +68,30 @@ def test_trainer_loggers_setters():
     assert trainer.logger is None
     assert trainer.loggers == []
     assert isinstance(trainer.loggers, list)
+    assert trainer.logger_map == {}
 
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
     assert isinstance(trainer.loggers, list)
+    assert trainer.logger_map == {0: logger1, 1: logger2}
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
     assert trainer.logger == logger1
+    assert trainer.logger_map == {0: logger1}
 
     trainer.loggers = []
     assert trainer.loggers == []
     assert trainer.logger is None
     assert isinstance(trainer.loggers, list)
+    assert trainer.logger_map == {}
 
     trainer.loggers = None
     assert trainer.loggers == []
     assert trainer.logger is None
     assert isinstance(trainer.loggers, list)
+    assert trainer.logger_map == {}
 
     trainer.loggers = {"log1": logger1, "log2": logger2}
     assert trainer.loggers == [logger1, logger2]
