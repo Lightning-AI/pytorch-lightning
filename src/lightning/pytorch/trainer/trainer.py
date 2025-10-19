@@ -1643,8 +1643,8 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[list[Logger] | Mapping[str, Logger]]) -> None:
-        self._logger_keys: list[str | int]
+    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger]]]) -> None:
+        self._logger_keys: list[Union[str, int]]
         if isinstance(loggers, Mapping):
             self._loggers = list(loggers.values())
             self._logger_keys = list(loggers.keys())
@@ -1653,7 +1653,7 @@ class Trainer:
             self._logger_keys = list(range(len(self._loggers)))
 
     @property
-    def logger_map(self) -> dict[str | int, Logger]:
+    def logger_map(self) -> dict[Union[str, int], Logger]:
         """A mapping of logger keys to :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
