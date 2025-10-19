@@ -41,6 +41,12 @@ def test_trainer_loggers_property():
     assert trainer.loggers == [trainer.logger]
     assert isinstance(trainer.logger, TensorBoardLogger)
 
+    trainer = Trainer(logger={"log1": logger1, "log2": logger2})
+    assert trainer.logger == logger1
+    assert trainer.loggers == [logger1, logger2]
+    assert isinstance(trainer.logger_map, dict)
+    assert trainer.logger_map == {"log1": logger1, "log2": logger2}
+
 
 def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
