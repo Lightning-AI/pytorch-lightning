@@ -23,7 +23,7 @@
 import logging
 import math
 import os
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -1625,13 +1625,12 @@ class Trainer:
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
-        if not logger:
-            self.loggers = []
-        else:
-            self.loggers = [logger]
+        if not isinstance(logger, Logger) or logger is not None:
+            raise TypeError(f"The `Trainer.logger` property must be of type `Logger`, get {type(logger)} instead.")
+        self.loggers = [logger]
 
     @property
-    def loggers(self) -> list[Logger]:
+    def loggers(self) -> list[Logger] | dict[str, Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1644,7 +1643,24 @@ class Trainer:
 
     @loggers.setter
     def loggers(self, loggers: Optional[list[Logger]]) -> None:
-        self._loggers = loggers if loggers else []
+        if isinstance(loggers, Mapping):
+            self._loggers = list(loggers.values())
+            self._logger_keys = list(loggers.keys())
+        else:
+            self._loggers = loggers if loggers else []
+            self._logger_keys = list(range(len(self._loggers)))
+
+    @property
+    def logger_map(self) -> dict[str | int, Logger]:
+        """A mapping of logger keys to :class:`~lightning.pytorch.loggers.logger.Logger` used.
+
+        .. code-block:: python
+            tb_logger = trainer.logger_map.get("tensorboard", None)
+            if tb_logger:
+                tb_logger.log_hyperparams({"lr": 0.001})
+
+        """
+        return dict(zip(self._logger_keys, self._loggers))
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
