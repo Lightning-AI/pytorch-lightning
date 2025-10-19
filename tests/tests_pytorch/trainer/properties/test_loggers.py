@@ -37,6 +37,10 @@ def test_trainer_loggers_property():
     assert trainer.loggers == [logger1]
     assert trainer.logger_map == {0: logger1}
 
+    trainer.loggers.append(logger2)
+    assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger_map == {0: logger1}
+
     # trainer.loggers should be a list of size 1 holding the default logger
     trainer = Trainer(logger=True)
 
