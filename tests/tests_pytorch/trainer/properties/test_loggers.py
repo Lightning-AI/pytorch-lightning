@@ -23,23 +23,24 @@ def test_trainer_loggers_property():
     """Test for correct initialization of loggers in Trainer."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
+    logger3 = CustomLogger()
 
     # trainer.loggers should be a copy of the input list
     trainer = Trainer(logger=[logger1, logger2])
 
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger_map == {0: logger1, 1: logger2}
+    assert trainer.logger_map == {}
 
     # trainer.loggers should create a list of size 1
     trainer = Trainer(logger=logger1)
 
     assert trainer.logger == logger1
     assert trainer.loggers == [logger1]
-    assert trainer.logger_map == {0: logger1}
+    assert trainer.logger_map == {}
 
     trainer.loggers.append(logger2)
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger_map == {0: logger1}
+    assert trainer.logger_map == {}
 
     # trainer.loggers should be a list of size 1 holding the default logger
     trainer = Trainer(logger=True)
@@ -53,11 +54,16 @@ def test_trainer_loggers_property():
     assert isinstance(trainer.logger_map, dict)
     assert trainer.logger_map == {"log1": logger1, "log2": logger2}
 
+    trainer.loggers.append(logger3)
+    assert trainer.loggers == [logger1, logger2, logger3]
+    assert trainer.logger_map == {"log1": logger1, "log2": logger2}
+
 
 def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
+    logger3 = CustomLogger()
 
     trainer = Trainer()
     assert type(trainer.logger) is TensorBoardLogger
@@ -78,12 +84,12 @@ def test_trainer_loggers_setters():
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
     assert isinstance(trainer.loggers, list)
-    assert trainer.logger_map == {0: logger1, 1: logger2}
+    assert trainer.logger_map == {}
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
     assert trainer.logger == logger1
-    assert trainer.logger_map == {0: logger1}
+    assert trainer.logger_map == {}
 
     trainer.loggers = []
     assert trainer.loggers == []
@@ -101,6 +107,9 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1, logger2]
     assert isinstance(trainer.loggers, list)
     assert isinstance(trainer.logger_map, dict)
+    assert trainer.logger_map == {"log1": logger1, "log2": logger2}
+
+    trainer.loggers.append(logger3)
     assert trainer.logger_map == {"log1": logger1, "log2": logger2}
 
 

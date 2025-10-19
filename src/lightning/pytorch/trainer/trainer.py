@@ -1650,7 +1650,7 @@ class Trainer:
             self._logger_keys = list(loggers.keys())
         else:
             self._loggers = loggers if loggers else []
-            self._logger_keys = list(range(len(self._loggers)))
+            self._logger_keys = None
 
     @property
     def logger_map(self) -> dict[Union[str, int], Logger]:
@@ -1662,7 +1662,7 @@ class Trainer:
                 tb_logger.log_hyperparams({"lr": 0.001})
 
         """
-        return dict(zip(self._logger_keys, self._loggers))
+        return dict(zip(self._logger_keys or [], self._loggers))
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
