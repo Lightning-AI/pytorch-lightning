@@ -1625,12 +1625,13 @@ class Trainer:
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
-        if not isinstance(logger, Logger) or logger is not None:
-            raise TypeError(f"The `Trainer.logger` property must be of type `Logger`, get {type(logger)} instead.")
-        self.loggers = [logger]
+        if not logger:
+            self.loggers = []
+        else:
+            self.loggers = [logger]
 
     @property
-    def loggers(self) -> list[Logger] | dict[str, Logger]:
+    def loggers(self) -> list[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1642,7 +1643,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[list[Logger]]) -> None:
+    def loggers(self, loggers: Optional[list[Logger] | Mapping[str, Logger]]) -> None:
         if isinstance(loggers, Mapping):
             self._loggers = list(loggers.values())
             self._logger_keys = list(loggers.keys())
