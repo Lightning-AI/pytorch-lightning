@@ -59,10 +59,12 @@ def test_trainer_loggers_setters():
     trainer.logger = None
     assert trainer.logger is None
     assert trainer.loggers == []
+    assert isinstance(trainer.loggers, list)
 
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
+    assert isinstance(trainer.loggers, list)
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
@@ -71,10 +73,18 @@ def test_trainer_loggers_setters():
     trainer.loggers = []
     assert trainer.loggers == []
     assert trainer.logger is None
+    assert isinstance(trainer.loggers, list)
 
     trainer.loggers = None
     assert trainer.loggers == []
     assert trainer.logger is None
+    assert isinstance(trainer.loggers, list)
+
+    trainer.loggers = {"log1": logger1, "log2": logger2}
+    assert trainer.loggers == [logger1, logger2]
+    assert isinstance(trainer.loggers, list)
+    assert isinstance(trainer.logger_map, dict)
+    assert trainer.logger_map == {"log1": logger1, "log2": logger2}
 
 
 @pytest.mark.parametrize(
@@ -94,3 +104,4 @@ def test_no_logger(tmp_path, logger_value):
     assert trainer.logger is None
     assert trainer.loggers == []
     assert trainer.log_dir == str(tmp_path)
+    assert trainer.logger_map == {}
