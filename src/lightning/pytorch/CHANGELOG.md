@@ -54,6 +54,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `last.ckpt` being created and not linked to another checkpoint ([#21244](https://github.com/Lightning-AI/pytorch-lightning/pull/21244))
 
+
+- Fixed `ModelPruning` sparsity logging bug that caused incorrect sparsity percentages ([#21223](https://github.com/Lightning-AI/pytorch-lightning/pull/21223))
+
+
+- Fixed `LightningCLI` loading of hyperparameters from `ckpt_path` failing for subclass model mode ([#21246](https://github.com/Lightning-AI/pytorch-lightning/pull/21246))
+
+
 ---
 
 ## [2.5.5] - 2025-09-05
