@@ -325,7 +325,7 @@ class _TrainingEpochLoop(loops._Loop):
         trainer._logger_connector.on_batch_start(batch)
 
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
-        should_skip_training = False
+        should_skip_rest_of_epoch = False
 
         if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
@@ -334,11 +334,11 @@ class _TrainingEpochLoop(loops._Loop):
             call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
             response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
-            should_skip_training = response == -1
+            should_skip_rest_of_epoch = response == -1
             # Signal this is the last batch for the current epoch
             self.batch_progress.increment_by(0, is_last_batch=True)
 
-            if not should_skip_training:
+            if not should_skip_rest_of_epoch:
                 self.batch_progress.increment_started()
 
                 kwargs = (
@@ -361,7 +361,7 @@ class _TrainingEpochLoop(loops._Loop):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        if should_skip_training:
+        if should_skip_rest_of_epoch:
             # Only raise StopIteration now so that the training epoch loop can finish
             raise StopIteration
 
