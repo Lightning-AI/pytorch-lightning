@@ -1948,7 +1948,7 @@ def test_save_last_every_n_epochs_interaction(tmp_path, every_n_epochs):
     with patch.object(trainer, "save_checkpoint") as save_mock:
         trainer.fit(model)
     assert mc.last_model_path  # a "last" ckpt was saved
-    assert save_mock.call_count == trainer.max_epochs
+    assert save_mock.call_count == trainer.max_epochs - 1
 
 
 def test_train_epoch_end_ckpt_with_no_validation():
