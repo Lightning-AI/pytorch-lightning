@@ -336,9 +336,9 @@ class _TrainingEpochLoop(loops._Loop):
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
             should_skip_rest_of_epoch = response == -1
             # Signal this is the last batch for the current epoch
-            self.batch_progress.increment_by(0, is_last_batch=True)
-
-            if not should_skip_rest_of_epoch:
+            if should_skip_rest_of_epoch:
+                self.batch_progress.increment_by(0, is_last_batch=True)
+            else:
                 self.batch_progress.increment_started()
 
                 kwargs = (
