@@ -80,7 +80,7 @@ class _RequirementWithComment(Requirement):
         """
         out = str(self)
         if self.strict:
-            return f"{out} # {self.strict_cmd}"
+            return f"{out}  # {self.strict_cmd}"
 
         specs = [(spec.operator, spec.version) for spec in self.specifier]
         if unfreeze == "major":
