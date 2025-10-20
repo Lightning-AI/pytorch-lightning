@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import os
 import signal
 import sys
@@ -128,30 +127,11 @@ def restore_signal_handlers():
 @pytest.fixture(autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
-    from lightning.fabric.utilities.port_manager import get_port_manager
-
-    # Record the port used in this test (if any)
-    port_to_release = None
-    if "MASTER_PORT" in os.environ:
-        with contextlib.suppress(ValueError, KeyError):
-            port_to_release = int(os.environ["MASTER_PORT"])
-
     yield
-
-    # Clean up distributed connection
     _destroy_dist_connection()
 
-    manager = get_port_manager()
-
-    # Release the port from the manager so it can be reused
-    if port_to_release is not None:
-        manager.release_port(port_to_release)
-
-    # If the process group updated MASTER_PORT, reserve and clear it to avoid leaking between tests
-    if "MASTER_PORT" in os.environ:
-        with contextlib.suppress(ValueError):
-            manager.reserve_existing_port(int(os.environ["MASTER_PORT"]))
-        os.environ.pop("MASTER_PORT", None)
+    # clean MASTER_PORT environment variable, to avoid leaking between tests
+    os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture(autouse=True)
