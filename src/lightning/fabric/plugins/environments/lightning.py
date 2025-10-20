@@ -112,8 +112,6 @@ def find_free_network_port() -> int:
     `MASTER_PORT` environment variable.
 
     """
-    # If an external launcher already specified a MASTER_PORT (for example, torch.distributed.spawn or
-    # multiprocessing helpers), reserve it through the port manager so no other test reuses the same number.
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
     port = s.getsockname()[1]

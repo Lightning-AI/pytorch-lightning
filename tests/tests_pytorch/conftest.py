@@ -130,9 +130,6 @@ def teardown_process_group():
     yield
     _destroy_dist_connection()
 
-    # clean MASTER_PORT environment variable, to avoid leaking between tests
-    os.environ.pop("MASTER_PORT", None)
-
 
 @pytest.fixture(autouse=True)
 def reset_deterministic_algorithm():

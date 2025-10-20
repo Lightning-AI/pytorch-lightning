@@ -80,8 +80,6 @@ def teardown_process_group():
     yield
     _destroy_dist_connection()
 
-    os.environ.pop("MASTER_PORT", None)
-
 
 @pytest.fixture(autouse=True)
 def thread_police_duuu_daaa_duuu_daaa():
