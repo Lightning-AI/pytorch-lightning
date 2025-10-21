@@ -221,8 +221,8 @@ def leave_no_artifacts_behind():
     yield
     files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     difference = files_after - files_before
-    # ignore files ending with .lock (lightning port files)
-    difference = {f for f in difference if not f.name.endswith(".lock")}
+    # ignore lightning port files
+    difference = {f for f in difference if not f.name.startswith("lightning_ports.lock")}
     difference = {str(f.relative_to(tests_root)) for f in difference}
     # ignore the .coverage files
     difference = {f for f in difference if not f.endswith(".coverage")}
