@@ -111,17 +111,11 @@ class LightningEnvironment(ClusterEnvironment):
             del os.environ["WORLD_SIZE"]
 
 
-def is_port_available(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.connect_ex(("localhost", port)) != 0
-
-
 def find_free_network_port(base: int = BASE_PORT, step: int = STEP) -> int:
     """Finds a free port on localhost.
 
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
-    MASTER_PORT environment variable.
+    `MASTER_PORT` environment variable.
 
     """
     PL_FORCE_DETERMINISTIC_PORTS = os.environ.get("PL_FORCE_DETERMINISTIC_PORTS", "0")
@@ -165,3 +159,9 @@ def find_free_network_port(base: int = BASE_PORT, step: int = STEP) -> int:
             f.write(f"{candidate}\n")
 
     return candidate
+
+
+def is_port_available(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.connect_ex(("localhost", port)) != 0
