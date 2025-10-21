@@ -66,6 +66,7 @@ def restore_env_variables():
         "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
+        "PL_FORCE_DETERMINISTIC_PORTS",  # to force deterministic behavior in tests
         # set by torchdynamo
         "TRITON_CACHE_DIR",
         "TORCHINDUCTOR_CACHE_DIR",
