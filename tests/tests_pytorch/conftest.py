@@ -139,7 +139,7 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def cleanup_lightning_ports():
     """Delete Lightning deterministic port files after all tests."""
     from lightning.fabric.plugins.environments.lightning import LOCK_FILE
