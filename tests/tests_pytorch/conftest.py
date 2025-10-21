@@ -341,7 +341,7 @@ def single_process_pg():
 
 
 @pytest.fixture(autouse=True)
-def leave_no_artifacts_behind():
+def leave_no_artifacts_behind(cleanup_lightning_ports):
     """Checks that no artifacts are left behind after the test."""
     tests_root = Path(__file__).parent.parent
     # Ignore the __pycache__ directories
