@@ -135,9 +135,30 @@ def teardown_process_group():
 @pytest.fixture(autouse=True)
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
-    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(autouse=True)
+def cleanup_lightning_ports():
+    """Delete Lightning deterministic port files after all tests."""
+    from lightning.fabric.plugins.environments.lightning import LOCK_FILE
+
+    # Ensure deterministic ports in tests
+    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
+
+    yield
+
+    files_to_remove = [
+        LOCK_FILE,  # the port storage file
+        LOCK_FILE + ".lock",  # the filelock lock file
+    ]
+    for f in files_to_remove:
+        try:
+            if os.path.exists(f):
+                os.remove(f)
+        except Exception as e:
+            print(f"Warning: failed to remove {f}: {e}")
 
 
 @pytest.fixture(autouse=True)
