@@ -134,6 +134,7 @@ def teardown_process_group():
 @pytest.fixture(autouse=True)
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
+    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
     yield
     torch.use_deterministic_algorithms(False)
 

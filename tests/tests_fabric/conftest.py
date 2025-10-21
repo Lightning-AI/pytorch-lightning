@@ -131,6 +131,7 @@ def reset_in_fabric_backward():
 @pytest.fixture
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
+    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
     yield
     os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
     torch.use_deterministic_algorithms(False)
