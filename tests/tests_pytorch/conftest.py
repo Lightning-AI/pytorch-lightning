@@ -94,6 +94,7 @@ def restore_env_variables():
         "TF_CPP_MIN_LOG_LEVEL",
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
+        "PL_FORCE_DETERMINISTIC_PORTS",  # to force deterministic behavior in tests
         "TORCHINDUCTOR_CACHE_DIR",  # leaked by torch.compile
         # TensorFlow and TPU related variables
         "TF2_BEHAVIOR",
