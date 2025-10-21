@@ -13,8 +13,9 @@
 # limitations under the License.
 """Utilities for loggers."""
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Self, TypeVar, Union
 
 from torch import Tensor
 
@@ -100,3 +101,111 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
             logger.log_hyperparams(hparams_initial)
         logger.log_graph(pl_module)
         logger.save()
+
+
+_T = TypeVar("_T")
+
+
+class _ListMap(list[_T]):
+    """A hybrid container for loggers allowing both index and name access."""
+
+    def __init__(self, loggers: Union[list[_T], Mapping[str, _T]] = None):
+        if isinstance(loggers, Mapping):
+            # super inits list with values
+            if any(not isinstance(x, str) for x in loggers):
+                raise TypeError("When providing a Mapping, all keys must be of type str.")
+            super().__init__(loggers.values())
+            self._dict = dict(zip(loggers.keys(), range(len(loggers))))
+        else:
+            super().__init__(() if loggers is None else loggers)
+            self._dict: dict = {}
+
+    def __eq__(self, other):
+        self_list = list(self)
+        if isinstance(other, _ListMap):
+            return self_list == list(other) and self._dict == other._dict
+        if isinstance(other, list):
+            return self_list == other
+        return False
+
+    # --- List-like interface ---
+    def __getitem__(self, key: Union[int, slice, str]) -> _T:
+        if isinstance(key, (int, slice)):
+            return list.__getitem__(self, key)
+        if isinstance(key, str):
+            return list.__getitem__(self, self._dict[key])
+        raise TypeError("Key must be int / slice (for index) or str (for name).")
+
+    def __add__(self, other: Union[list[_T], Self]) -> list[_T]:
+        # todo
+        return list.__add__(self, other)
+
+    def __iadd__(self, other: Union[list[_T], Self]) -> Self:
+        # todo
+        return list.__iadd__(self, other)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, (int, slice)):
+            # replace element by index
+            return list.__setitem__(self, key, value)
+        if isinstance(key, str):
+            # replace or insert by name
+            if key in self._dict:
+                list.__setitem__(self, self._dict[key], value)
+            else:
+                self.append(value)
+                self._dict[key] = len(self) - 1
+            return None
+        raise TypeError("Key must be int or str")
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            return item in self._dict
+        return list.__contains__(self, item)
+
+    # --- Dict-like interface ---
+
+    def __delitem__(self, key):
+        if isinstance(key, (int, slice)):
+            loggers = list.__getitem__(self, key)
+            super(list, self).__delitem__(key)
+            for logger in loggers if isinstance(key, slice) else [loggers]:
+                name = getattr(logger, "name", None)
+                if name:
+                    self._dict.pop(name, None)
+        elif isinstance(key, str):
+            logger = self._dict.pop(key)
+            self.remove(logger)
+        else:
+            raise TypeError("Key must be int or str")
+
+    def keys(self):
+        return self._dict.keys()
+
+    def values(self):
+        d = {k: self[v] for k, v in self._dict.items()}
+        return d.values()
+
+    def items(self):
+        d = {k: self[v] for k, v in self._dict.items()}
+        return d.items()
+
+    # --- List and Dict interface ---
+    def pop(self, key: Union[int, str] = -1, default: Optional[Any] = None) -> _T:
+        if isinstance(key, int):
+            ret = list.pop(self, key)
+            for str_key, idx in list(self._dict.items()):
+                if idx == key:
+                    self._dict.pop(str_key)
+                elif idx > key:
+                    self._dict[str_key] = idx - 1
+            return ret
+        if isinstance(key, str):
+            if key not in self._dict:
+                return default
+            return self.pop(self._dict[key])
+        raise TypeError("Key must be int or str")
+
+    def __repr__(self):
+        ret = super().__repr__()
+        return f"_ListMap({ret}, keys={list(self._dict.keys())})"

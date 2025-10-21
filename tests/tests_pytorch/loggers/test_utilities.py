@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.loggers.utilities import _version
+from lightning.pytorch.loggers.utilities import _ListMap, _version
 
 
 def test_version(tmp_path):
@@ -31,3 +33,147 @@ def test_version(tmp_path):
     assert version == "0_2_1"
     version = _version(loggers, "-")
     assert version == "0-2-1"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (1, 2),
+        [1, 2],
+        {1, 2},
+        range(2),
+    ],
+)
+def test_listmap_init(args):
+    """Test initialization with different iterable types."""
+    lm = _ListMap(args)
+    assert len(lm) == len(args)
+    assert isinstance(lm, list)
+
+
+def test_listmap_append():
+    """Test appending loggers to the collection."""
+    lm = _ListMap()
+    lm.append(1)
+    assert len(lm) == 1
+    lm.append(2)
+    assert len(lm) == 2
+
+
+def test_listmap_extend():
+    # extent
+    lm = _ListMap([1, 2])
+    lm.extend([1, 2, 3])
+    assert len(lm) == 5
+    assert lm == [1, 2, 1, 2, 3]
+
+
+def test_listmap_pop():
+    lm = _ListMap([1, 2, 3, 4])
+    item = lm.pop()
+    assert item == 4
+    assert len(lm) == 3
+    item = lm.pop(1)
+    assert item == 2
+    assert len(lm) == 2
+    assert lm == [1, 3]
+
+
+def test_listmap_getitem():
+    """Test getting items from the collection."""
+    lm = _ListMap([1, 2])
+    assert lm[0] == 1
+    assert lm[1] == 2
+
+
+def test_listmap_setitem():
+    """Test setting items in the collection."""
+    lm = _ListMap([1, 2, 3])
+    lm[0] = 10
+    assert lm == [10, 2, 3]
+    lm[1:3] = [20, 30]
+    assert lm == [10, 20, 30]
+
+
+def test_listmap_add():
+    """Test adding two collections together."""
+    lm1 = _ListMap([1, 2])
+    lm2 = _ListMap([3, 4])
+    combined = lm1 + lm2
+    assert isinstance(combined, list)
+    assert len(combined) == 4
+    assert combined[0] == 1
+    assert combined[1] == 2
+    assert combined[2] == 3
+    assert combined[3] == 4
+
+    combined += lm1
+    assert isinstance(combined, list)
+    assert len(combined) == 6
+    for item, expected in zip(combined, [1, 2, 3, 4, 1, 2]):
+        assert item == expected
+
+
+def test_listmap_remove():
+    """Test removing items from the collection."""
+    lm = _ListMap([1, 2, 3])
+    lm.remove(2)
+    assert len(lm) == 2
+    assert 2 not in lm
+
+
+# Dict type properties tests
+def test_listmap_keys():
+    lm = _ListMap({
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    })
+    keys = lm.keys()
+    assert set(keys) == {"a", "b", "c"}
+    assert "a" in lm
+    assert "d" not in lm
+
+
+def test_listmap_values():
+    lm = _ListMap({
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    })
+    values = lm.values()
+    assert set(values) == {1, 2, 3}
+
+
+def test_listmap_dict_items():
+    lm = _ListMap({
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    })
+    items = lm.items()
+    assert set(items) == {("a", 1), ("b", 2), ("c", 3)}
+
+
+def test_listmap_dict_pop():
+    lm = _ListMap({
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    })
+    value = lm.pop("b")
+    assert value == 2
+    assert "b" not in lm
+    assert len(lm) == 2
+
+
+def test_listmap_dict_setitem():
+    lm = _ListMap({
+        "a": 1,
+        "b": 2,
+    })
+    lm["b"] = 20
+    assert lm["b"] == 20
+    lm["c"] = 3
+    assert lm["c"] == 3
+    assert len(lm) == 3

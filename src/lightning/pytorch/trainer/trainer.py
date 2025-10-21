@@ -43,7 +43,7 @@ from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.loggers.utilities import _log_hyperparams
+from lightning.pytorch.loggers.utilities import _ListMap, _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
@@ -1631,7 +1631,7 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> list[Logger]:
+    def loggers(self) -> _ListMap[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1644,25 +1644,7 @@ class Trainer:
 
     @loggers.setter
     def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger]]]) -> None:
-        self._logger_keys: list[Union[str, int]]
-        if isinstance(loggers, Mapping):
-            self._loggers = list(loggers.values())
-            self._logger_keys = list(loggers.keys())
-        else:
-            self._loggers = loggers if loggers else []
-            self._logger_keys = []
-
-    @property
-    def logger_map(self) -> dict[Union[str, int], Logger]:
-        """A mapping of logger keys to :class:`~lightning.pytorch.loggers.logger.Logger` used.
-
-        .. code-block:: python
-            tb_logger = trainer.logger_map.get("tensorboard", None)
-            if tb_logger:
-                tb_logger.log_hyperparams({"lr": 0.001})
-
-        """
-        return dict(zip(self._logger_keys, self._loggers))
+        self._loggers = _ListMap(loggers)
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
