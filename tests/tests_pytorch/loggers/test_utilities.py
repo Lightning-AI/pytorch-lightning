@@ -232,3 +232,10 @@ def test_listmap_sort():
     assert lm["b"] == 1
     assert lm["c"] == 3
     assert lm["z"] == -7
+
+
+def test_listmap_get():
+    lm = _ListMap({"a": 1, "b": 2, "c": 3})
+    assert lm.get("b") == 2
+    assert lm.get("d") is None
+    assert lm.get("d", 10) == 10

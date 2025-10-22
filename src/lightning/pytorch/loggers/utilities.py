@@ -262,7 +262,10 @@ class _ListMap(list[_T]):
         d = {k: self[v] for k, v in self._dict.items()}
         return d.items()
 
-    # --- List and Dict interface ---
+    def get(self, __key: str, default: Optional[Any] = None) -> _T:
+        if __key in self._dict:
+            return self[self._dict[__key]]
+        return default
 
     def __repr__(self) -> str:
         ret = super().__repr__()
