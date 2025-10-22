@@ -121,14 +121,16 @@ class _ListMap(list[_T]):
             super().__init__(loggers.values())
             self._dict = dict(zip(loggers.keys(), range(len(loggers))))
         else:
+            default_dict = {}
+            if isinstance(loggers, _ListMap):
+                default_dict = loggers._dict.copy()
             super().__init__(() if loggers is None else loggers)
-            self._dict: dict = {}
+            self._dict: dict = default_dict
 
     def __eq__(self, other: Any) -> bool:
         list_eq = list.__eq__(self, other)
         if isinstance(other, _ListMap):
-            dict_eq = self._dict == other._dict
-            return list_eq and dict_eq
+            return list_eq and self._dict == other._dict
         return list_eq
 
     def copy(self):

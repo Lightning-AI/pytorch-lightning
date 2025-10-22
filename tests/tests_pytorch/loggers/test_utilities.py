@@ -42,6 +42,7 @@ def test_version(tmp_path):
         [1, 2],
         {1, 2},
         range(2),
+        _ListMap({"a": 1, "b": 2}),
     ],
 )
 def test_listmap_init(args):
@@ -49,6 +50,8 @@ def test_listmap_init(args):
     lm = _ListMap(args)
     assert len(lm) == len(args)
     assert isinstance(lm, list)
+    if isinstance(args, _ListMap):
+        assert lm == args
 
 
 def test_listmap_append():
