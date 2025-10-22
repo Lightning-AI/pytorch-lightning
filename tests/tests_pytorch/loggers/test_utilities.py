@@ -98,20 +98,24 @@ def test_listmap_setitem():
 def test_listmap_add():
     """Test adding two collections together."""
     lm1 = _ListMap([1, 2])
-    lm2 = _ListMap([3, 4])
+    lm2 = _ListMap({"3": 3, "5": 5})
     combined = lm1 + lm2
-    assert isinstance(combined, list)
+    assert isinstance(combined, _ListMap)
     assert len(combined) == 4
-    assert combined[0] == 1
-    assert combined[1] == 2
-    assert combined[2] == 3
-    assert combined[3] == 4
+    assert combined is not lm1
+    assert combined == [1, 2, 3, 5]
+    assert combined["3"] == 3
+    assert combined["5"] == 5
 
-    combined += lm1
-    assert isinstance(combined, list)
-    assert len(combined) == 6
-    for item, expected in zip(combined, [1, 2, 3, 4, 1, 2]):
-        assert item == expected
+    ori_lm1_id = id(lm1)
+
+    lm1 += lm2
+    assert ori_lm1_id == id(lm1)
+    assert isinstance(lm1, _ListMap)
+    assert len(lm1) == 4
+    assert lm1 == [1, 2, 3, 5]
+    assert lm1["3"] == 3
+    assert lm1["5"] == 5
 
 
 def test_listmap_remove():
@@ -190,6 +194,13 @@ def test_listmap_dict_pop():
     assert "b" not in lm
     assert len(lm) == 2
 
+    value = lm.pop(0)
+    assert value == 1
+    assert lm["c"] == 3  # still accessible by key
+    assert len(lm) == 1
+    with pytest.raises(KeyError):
+        lm["a"]  # "a" was removed
+
 
 def test_listmap_dict_setitem():
     lm = _ListMap({
@@ -201,3 +212,23 @@ def test_listmap_dict_setitem():
     lm["c"] = 3
     assert lm["c"] == 3
     assert len(lm) == 3
+
+
+def test_listmap_sort():
+    lm = _ListMap({"b": 1, "c": 3, "a": 2, "z": -7})
+
+    lm.extend([-1, -2, 5])
+    lm.sort(key=lambda x: abs(x))
+    assert lm == [1, -1, 2, -2, 3, 5, -7]
+    assert lm["a"] == 2
+    assert lm["b"] == 1
+    assert lm["c"] == 3
+    assert lm["z"] == -7
+
+    lm = _ListMap({"b": 1, "c": 3, "a": 2, "z": -7})
+    lm.sort(reverse=True)
+    assert lm == [3, 2, 1, -7]
+    assert lm["a"] == 2
+    assert lm["b"] == 1
+    assert lm["c"] == 3
+    assert lm["z"] == -7

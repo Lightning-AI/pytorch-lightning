@@ -15,13 +15,16 @@
 
 from collections.abc import ItemsView, Iterable, KeysView, Mapping, ValuesView
 from pathlib import Path
-from typing import Any, Optional, SupportsIndex, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, SupportsIndex, TypeVar, Union
 
 from torch import Tensor
 from typing_extensions import Self
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsRichComparison
 
 
 def _version(loggers: list[Any], separator: str = "_") -> Union[int, str]:
@@ -122,28 +125,96 @@ class _ListMap(list[_T]):
             self._dict: dict = {}
 
     def __eq__(self, other: Any) -> bool:
-        self_list = list(self)
+        list_eq = list.__eq__(self, other)
         if isinstance(other, _ListMap):
-            return self_list == list(other) and self._dict == other._dict
-        if isinstance(other, list):
-            return self_list == other
-        return False
+            dict_eq = self._dict == other._dict
+            return list_eq and dict_eq
+        return list_eq
+
+    def copy(self):
+        new_listmap = _ListMap(self)
+        new_listmap._dict = self._dict.copy()
+        return new_listmap
+
+    def extend(self, __iterable: Iterable[_T]) -> None:
+        if isinstance(__iterable, _ListMap):
+            offset = len(self)
+            for key, idx in __iterable._dict.items():
+                self._dict[key] = idx + offset
+        super().extend(__iterable)
+
+    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[Any] = None) -> _T:
+        if isinstance(key, int):
+            ret = list.pop(self, key)
+            for str_key, idx in list(self._dict.items()):
+                if idx == key:
+                    self._dict.pop(str_key)
+                elif idx > key:
+                    self._dict[str_key] = idx - 1
+            return ret
+        if isinstance(key, str):
+            if key not in self._dict:
+                return default
+            return self.pop(self._dict[key])
+        raise TypeError("Key must be int or str")
+
+    def insert(self, index: SupportsIndex, __object: _T) -> None:
+        for key, idx in self._dict.items():
+            if idx >= index:
+                self._dict[key] = idx + 1
+        list.insert(self, index, __object)
+
+    def remove(self, __object: _T) -> None:
+        idx = self.index(__object)
+        name = None
+        for key, val in self._dict.items():
+            if val == idx:
+                name = key
+            elif val > idx:
+                self._dict[key] = val - 1
+        if name:
+            self._dict.pop(name, None)
+        list.remove(self, __object)
+
+    def sort(
+        self,
+        *,
+        key: Optional[Callable[[_T], "SupportsRichComparison"]] = None,
+        reverse: bool = False,
+    ) -> None:
+        # Create a mapping from item to its name(s)
+        item_to_names = {}
+        for name, idx in self._dict.items():
+            item = self[idx]
+            item_to_names.setdefault(item, []).append(name)
+        # Sort the list
+        list.sort(self, key=key, reverse=reverse)
+        # Update _dict with new indices
+        new_dict = {}
+        for idx, item in enumerate(self):
+            if item in item_to_names:
+                for name in item_to_names[item]:
+                    new_dict[name] = idx
+        self._dict = new_dict
 
     # --- List-like interface ---
     def __getitem__(self, key: Union[int, slice, str]) -> _T:
-        if isinstance(key, (int, slice)):
-            return list.__getitem__(self, key)
         if isinstance(key, str):
-            return list.__getitem__(self, self._dict[key])
-        raise TypeError("Key must be int / slice (for index) or str (for name).")
+            return self[self._dict[key]]
+        return list.__getitem__(self, key)
 
-    def __add__(self, other: Union[list[_T], Self]) -> list[_T]:
-        # todo
-        return list.__add__(self, other)
+    def __add__(self, other: Union[list[_T], Self]) -> Self:
+        new_listmap = self.copy()
+        new_listmap += other
+        return new_listmap
 
     def __iadd__(self, other: Union[list[_T], Self]) -> Self:
-        # todo
-        return list.__iadd__(self, other)
+        if isinstance(other, _ListMap):
+            offset = len(self)
+            for key, idx in other._dict.items():
+                self._dict[key] = idx + offset
+
+        return super().__iadd__(other)
 
     def __setitem__(self, key: Union[SupportsIndex, slice, str], value: _T) -> None:
         if isinstance(key, (int, slice)):
@@ -192,20 +263,6 @@ class _ListMap(list[_T]):
         return d.items()
 
     # --- List and Dict interface ---
-    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[Any] = None) -> _T:
-        if isinstance(key, int):
-            ret = list.pop(self, key)
-            for str_key, idx in list(self._dict.items()):
-                if idx == key:
-                    self._dict.pop(str_key)
-                elif idx > key:
-                    self._dict[str_key] = idx - 1
-            return ret
-        if isinstance(key, str):
-            if key not in self._dict:
-                return default
-            return self.pop(self._dict[key])
-        raise TypeError("Key must be int or str")
 
     def __repr__(self) -> str:
         ret = super().__repr__()
