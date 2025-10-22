@@ -122,6 +122,30 @@ def test_listmap_remove():
     assert 2 not in lm
 
 
+def test_listmap_reverse():
+    """Test reversing the collection."""
+    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    lm.reverse()
+    assert lm == [3, 2, 1]
+    for (key, value), expected in zip(lm.items(), [("1", 1), ("2", 2), ("3", 3)]):
+        assert (key, value) == expected
+
+
+def test_listmap_reversed():
+    """Test reversed iterator of the collection."""
+    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    rev_lm = list(reversed(lm))
+    assert rev_lm == [3, 2, 1]
+
+
+def test_listmap_clear():
+    """Test clearing the collection."""
+    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    lm.clear()
+    assert len(lm) == 0
+    assert len(lm.keys()) == 0
+
+
 # Dict type properties tests
 def test_listmap_keys():
     lm = _ListMap({

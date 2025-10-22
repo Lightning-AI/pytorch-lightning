@@ -13,9 +13,9 @@
 # limitations under the License.
 """Utilities for loggers."""
 
-from collections.abc import ItemsView, KeysView, Mapping, ValuesView
+from collections.abc import ItemsView, Iterable, KeysView, Mapping, ValuesView
 from pathlib import Path
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, SupportsIndex, TypeVar, Union
 
 from torch import Tensor
 from typing_extensions import Self
@@ -110,7 +110,7 @@ _T = TypeVar("_T")
 class _ListMap(list[_T]):
     """A hybrid container for loggers allowing both index and name access."""
 
-    def __init__(self, loggers: Union[list[_T], Mapping[str, _T]] = None):
+    def __init__(self, loggers: Union[Iterable[_T], Mapping[str, _T]] = None):
         if isinstance(loggers, Mapping):
             # super inits list with values
             if any(not isinstance(x, str) for x in loggers):
@@ -145,7 +145,7 @@ class _ListMap(list[_T]):
         # todo
         return list.__iadd__(self, other)
 
-    def __setitem__(self, key: Union[int, slice, str], value: _T) -> None:
+    def __setitem__(self, key: Union[SupportsIndex, slice, str], value: _T) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
             return list.__setitem__(self, key, value)
@@ -192,7 +192,7 @@ class _ListMap(list[_T]):
         return d.items()
 
     # --- List and Dict interface ---
-    def pop(self, key: Union[int, str] = -1, default: Optional[Any] = None) -> _T:
+    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[Any] = None) -> _T:
         if isinstance(key, int):
             ret = list.pop(self, key)
             for str_key, idx in list(self._dict.items()):
@@ -210,3 +210,15 @@ class _ListMap(list[_T]):
     def __repr__(self) -> str:
         ret = super().__repr__()
         return f"_ListMap({ret}, keys={list(self._dict.keys())})"
+
+    def __reversed__(self) -> Iterable[_T]:
+        return reversed(list(self))
+
+    def reverse(self) -> None:
+        for key, idx in self._dict.items():
+            self._dict[key] = len(self) - 1 - idx
+        list.reverse(self)
+
+    def clear(self):
+        self._dict.clear()
+        list.clear(self)
