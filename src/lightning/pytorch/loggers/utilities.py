@@ -13,11 +13,12 @@
 # limitations under the License.
 """Utilities for loggers."""
 
-from collections.abc import Mapping
+from collections.abc import ItemsView, KeysView, Mapping, ValuesView
 from pathlib import Path
-from typing import Any, Optional, Self, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from torch import Tensor
+from typing_extensions import Self
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
@@ -120,7 +121,7 @@ class _ListMap(list[_T]):
             super().__init__(() if loggers is None else loggers)
             self._dict: dict = {}
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         self_list = list(self)
         if isinstance(other, _ListMap):
             return self_list == list(other) and self._dict == other._dict
@@ -144,7 +145,7 @@ class _ListMap(list[_T]):
         # todo
         return list.__iadd__(self, other)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Union[int, slice, str], value: _T) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
             return list.__setitem__(self, key, value)
@@ -158,14 +159,14 @@ class _ListMap(list[_T]):
             return None
         raise TypeError("Key must be int or str")
 
-    def __contains__(self, item):
+    def __contains__(self, item: Union[_T, str]) -> bool:
         if isinstance(item, str):
             return item in self._dict
         return list.__contains__(self, item)
 
     # --- Dict-like interface ---
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Union[int, slice, str]) -> None:
         if isinstance(key, (int, slice)):
             loggers = list.__getitem__(self, key)
             super(list, self).__delitem__(key)
@@ -179,14 +180,14 @@ class _ListMap(list[_T]):
         else:
             raise TypeError("Key must be int or str")
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         return self._dict.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[_T]:
         d = {k: self[v] for k, v in self._dict.items()}
         return d.values()
 
-    def items(self):
+    def items(self) -> ItemsView[str, _T]:
         d = {k: self[v] for k, v in self._dict.items()}
         return d.items()
 
@@ -206,6 +207,6 @@ class _ListMap(list[_T]):
             return self.pop(self._dict[key])
         raise TypeError("Key must be int or str")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         ret = super().__repr__()
         return f"_ListMap({ret}, keys={list(self._dict.keys())})"
