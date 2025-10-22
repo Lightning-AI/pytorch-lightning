@@ -212,6 +212,7 @@ class _ListMap(list[_T]):
         if isinstance(other, _ListMap):
             offset = len(self)
             for key, idx in other._dict.items():
+                # notes: if there are duplicate keys, the ones from other will overwrite self
                 self._dict[key] = idx + offset
 
         return super().__iadd__(other)
