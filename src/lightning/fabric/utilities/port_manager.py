@@ -14,6 +14,7 @@
 """Port allocation manager to prevent race conditions in distributed training."""
 
 import atexit
+import logging
 import socket
 import threading
 from collections import deque
@@ -21,9 +22,11 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
+log = logging.getLogger(__name__)
+
 # Size of the recently released ports queue
 # This prevents immediate reuse of ports that were just released
-# Increased to 1024 to reduce the chance of cycling back to TIME_WAIT ports
+# Set to 1024 to balance memory usage vs TIME_WAIT protection
 _RECENTLY_RELEASED_PORTS_MAXLEN = 1024
 
 
@@ -78,12 +81,29 @@ class PortManager:
                 # This prevents race conditions within our process
                 if port not in self._allocated_ports and port not in self._recently_released:
                     self._allocated_ports.add(port)
+
+                    # Log diagnostics if queue utilization is high
+                    queue_count = len(self._recently_released)
+                    if queue_count > _RECENTLY_RELEASED_PORTS_MAXLEN * 0.8:  # >80% full
+                        log.warning(
+                            f"Port queue utilization high: {queue_count}/{_RECENTLY_RELEASED_PORTS_MAXLEN} "
+                            f"({queue_count / _RECENTLY_RELEASED_PORTS_MAXLEN * 100:.1f}% full). "
+                            f"Allocated port {port}. Active allocations: {len(self._allocated_ports)}"
+                        )
+
                     return port
+
+            # Provide detailed diagnostics to understand allocation failures
+            allocated_count = len(self._allocated_ports)
+            queue_count = len(self._recently_released)
+            queue_capacity = _RECENTLY_RELEASED_PORTS_MAXLEN
+            queue_utilization = (queue_count / queue_capacity * 100) if queue_capacity > 0 else 0
 
             raise RuntimeError(
                 f"Failed to allocate a free port after {max_attempts} attempts. "
-                f"Currently allocated: {len(self._allocated_ports)}, "
-                f"recently released: {len(self._recently_released)}"
+                f"Diagnostics: allocated={allocated_count}, "
+                f"recently_released={queue_count}/{queue_capacity} ({queue_utilization:.1f}% full). "
+                f"If queue is near capacity, consider increasing _RECENTLY_RELEASED_PORTS_MAXLEN."
             )
 
     def release_port(self, port: int) -> None:

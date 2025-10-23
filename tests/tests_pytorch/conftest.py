@@ -358,8 +358,14 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
     """
     if call.excinfo is not None and call.when == "call":
         exception_msg = str(call.excinfo.value)
+        exception_type = str(type(call.excinfo.value).__name__)
         # Check if this is an EADDRINUSE error from distributed training
-        if "EADDRINUSE" in exception_msg or "address already in use" in exception_msg.lower():
+        # Catch both direct EADDRINUSE errors and DistNetworkError which wraps them
+        if (
+            "EADDRINUSE" in exception_msg
+            or "address already in use" in exception_msg.lower()
+            or "DistNetworkError" in exception_type
+        ):
             # Get the retry count from the test node
             retry_count = getattr(item, "_port_retry_count", 0)
             max_retries = 3

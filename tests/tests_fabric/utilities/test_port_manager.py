@@ -753,3 +753,24 @@ def test_port_manager_reserve_clears_recently_released():
     assert port in manager._allocated_ports
 
     manager.release_port(port)
+
+
+def test_port_manager_high_queue_utilization_warning(caplog):
+    """Test that warning is logged when queue utilization exceeds 80%."""
+    import logging
+
+    manager = PortManager()
+
+    # Fill queue to >80% (821/1024 = 80.2%)
+    for _ in range(821):
+        port = manager.allocate_port()
+        manager.release_port(port)
+
+    # Next allocation should trigger warning
+    with caplog.at_level(logging.WARNING):
+        port = manager.allocate_port()
+        manager.release_port(port)
+
+    # Verify warning was logged
+    assert any("Port queue utilization high" in record.message for record in caplog.records)
+    assert any("80." in record.message for record in caplog.records)  # Should show 80.x%
