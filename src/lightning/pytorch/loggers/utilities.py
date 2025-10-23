@@ -125,17 +125,17 @@ class _ListMap(list[_T]):
         TypeError: If a Mapping is provided and any of its keys are not of type str.
 
     Example:
-        >>> listmap = _ListMap({'obj1': obj1, 'obj2': obj2})
+        >>> listmap = _ListMap({'obj1': 1, 'obj2': 2})
         >>> listmap['obj1']  # Access by name
-        obj1
+        1
         >>> listmap[0]  # Access by index
-        obj1
-        >>> listmap['obj2'] = obj3  # Set by name
+        1
+        >>> listmap['obj2'] = 3  # Set by name
         >>> listmap[1]  # Now returns obj3
-        obj3
-        >>> listmap.append(obj4)  # Append by index
+        3
+        >>> listmap.append(4)  # Append by index
         >>> listmap[2]
-        obj4
+        4
 
     """
 
