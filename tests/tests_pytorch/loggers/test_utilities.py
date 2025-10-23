@@ -120,6 +120,13 @@ def test_listmap_add():
     assert lm1["3"] == 3
     assert lm1["5"] == 5
 
+    lm3 = _ListMap({"3": 3, "5": 5})
+    lm4 = lm2 + lm3
+    assert len(lm4) == 4
+    assert lm4 == [3, 5, 3, 5]
+    assert lm4["3"] == 3
+    assert lm4["5"] == 5
+
 
 def test_listmap_remove():
     """Test removing items from the collection."""
