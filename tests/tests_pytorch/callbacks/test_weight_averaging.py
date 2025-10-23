@@ -415,6 +415,7 @@ def test_ema_weight_averaging_should_update(tmp_path):
 def test_ema_weight_averaging_checkpoint_save_load(tmp_path):
     """Test that EMAWeightAveraging correctly saves and loads checkpoints."""
     model = TestModel()
+    model.crash_on_epoch = 2
     dataset = RandomDataset(32, 32)
 
     callback = EMAWeightAveraging(decay=0.99, update_every_n_steps=2)
