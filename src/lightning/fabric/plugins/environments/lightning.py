@@ -15,16 +15,10 @@
 import os
 import socket
 
-from filelock import FileLock
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
-
-BASE_PORT = 10000
-MAX_PORT = 65000
-STEP = 20
-LOCK_FILE = "lightning_ports.lock"
 
 
 class LightningEnvironment(ClusterEnvironment):
@@ -111,57 +105,15 @@ class LightningEnvironment(ClusterEnvironment):
             del os.environ["WORLD_SIZE"]
 
 
-def find_free_network_port(base: int = BASE_PORT, step: int = STEP) -> int:
+def find_free_network_port() -> int:
     """Finds a free port on localhost.
 
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
 
     """
-    PL_FORCE_DETERMINISTIC_PORTS = os.environ.get("PL_FORCE_DETERMINISTIC_PORTS", "0")
-
-    if PL_FORCE_DETERMINISTIC_PORTS == "0":
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("", 0))
-        port = s.getsockname()[1]
-        s.close()
-        return port
-
-    # use the last assigned port + step strategy with a file lock to avoid race conditions
-    lock_path = os.path.join(os.getcwd(), LOCK_FILE)
-    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
-
-    with FileLock(lock_path + ".lock"):
-        # read used ports
-        if os.path.exists(lock_path):
-            with open(lock_path) as f:
-                used = [int(x.strip()) for x in f if x.strip()]
-        else:
-            used = []
-
-        candidate = base if not used else used[-1] + step
-        if candidate > MAX_PORT:
-            candidate = base
-
-        tries = 0
-        max_tries = (MAX_PORT - base) // step
-        while (not is_port_available(candidate) or candidate in used) and tries < max_tries:
-            candidate += step
-            if candidate > MAX_PORT:
-                candidate = base
-            tries += 1
-
-        if tries >= max_tries:
-            raise RuntimeError("No free port found in range")
-
-        # write the new port to the file
-        with open(lock_path, "a") as f:
-            f.write(f"{candidate}\n")
-
-    return candidate
-
-
-def is_port_available(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.connect_ex(("localhost", port)) != 0
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port

@@ -94,7 +94,6 @@ def restore_env_variables():
         "TF_CPP_MIN_LOG_LEVEL",
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
-        "PL_FORCE_DETERMINISTIC_PORTS",  # to force deterministic behavior in tests
         "TORCHINDUCTOR_CACHE_DIR",  # leaked by torch.compile
         # TensorFlow and TPU related variables
         "TF2_BEHAVIOR",
@@ -137,28 +136,6 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_lightning_ports():
-    """Delete Lightning deterministic port files after all tests."""
-    from lightning.fabric.plugins.environments.lightning import LOCK_FILE
-
-    # Ensure deterministic ports in tests
-    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
-
-    yield
-
-    files_to_remove = [
-        LOCK_FILE,  # the port storage file
-        LOCK_FILE + ".lock",  # the filelock lock file
-    ]
-    for f in files_to_remove:
-        try:
-            if os.path.exists(f):
-                os.remove(f)
-        except Exception as e:
-            print(f"Warning: failed to remove {f}: {e}")
 
 
 @pytest.fixture(autouse=True)
@@ -349,8 +326,6 @@ def leave_no_artifacts_behind():
     yield
     files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     difference = files_after - files_before
-    # ignore lightning port files
-    difference = {f for f in difference if not f.name.startswith("lightning_ports.lock")}
     difference = {str(f.relative_to(tests_root)) for f in difference}
     # ignore the .coverage files
     difference = {f for f in difference if not f.endswith(".coverage")}

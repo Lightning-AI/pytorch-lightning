@@ -66,7 +66,6 @@ def restore_env_variables():
         "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
-        "PL_FORCE_DETERMINISTIC_PORTS",  # to force deterministic behavior in tests
         # set by torchdynamo
         "TRITON_CACHE_DIR",
         "TORCHINDUCTOR_CACHE_DIR",
@@ -137,28 +136,6 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_lightning_ports():
-    """Delete Lightning deterministic port files after all tests."""
-    from lightning.fabric.plugins.environments.lightning import LOCK_FILE
-
-    # Ensure deterministic ports in tests
-    os.environ["PL_FORCE_DETERMINISTIC_PORTS"] = "1"
-
-    yield
-
-    files_to_remove = [
-        LOCK_FILE,  # the port storage file
-        LOCK_FILE + ".lock",  # the filelock lock file
-    ]
-    for f in files_to_remove:
-        try:
-            if os.path.exists(f):
-                os.remove(f)
-        except Exception as e:
-            print(f"Warning: failed to remove {f}: {e}")
-
-
 @pytest.fixture
 def reset_cudnn_benchmark():
     """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
@@ -221,8 +198,6 @@ def leave_no_artifacts_behind():
     yield
     files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     difference = files_after - files_before
-    # ignore lightning port files
-    difference = {f for f in difference if not f.name.startswith("lightning_ports.lock")}
     difference = {str(f.relative_to(tests_root)) for f in difference}
     # ignore the .coverage files
     difference = {f for f in difference if not f.endswith(".coverage")}
