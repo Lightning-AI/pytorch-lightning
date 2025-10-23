@@ -111,20 +111,46 @@ _T = TypeVar("_T")
 
 
 class _ListMap(list[_T]):
-    """A hybrid container for loggers allowing both index and name access."""
+    """A hybrid container allowing both index and name access.
 
-    def __init__(self, loggers: Union[Iterable[_T], Mapping[str, _T]] = None):
-        if isinstance(loggers, Mapping):
+    This class extends the built-in list to provide dictionary-like access to its elements
+    using string keys. It maintains an internal mapping of string keys to list indices,
+    allowing users to retrieve, set, and delete elements by their associated names.
+
+    Args:
+        __iterable (Union[Iterable[_T], Mapping[str, _T]], optional): An iterable of objects or a mapping
+            of string keys to __iterable to initialize the container.
+
+    Raises:
+        TypeError: If a Mapping is provided and any of its keys are not of type str.
+
+    Example:
+        >>> listmap = _ListMap({'obj1': obj1, 'obj2': obj2})
+        >>> listmap['obj1']  # Access by name
+        obj1
+        >>> listmap[0]  # Access by index
+        obj1
+        >>> listmap['obj2'] = obj3  # Set by name
+        >>> listmap[1]  # Now returns obj3
+        obj3
+        >>> listmap.append(obj4)  # Append by index
+        >>> listmap[2]
+        obj4
+
+    """
+
+    def __init__(self, __iterable: Union[Iterable[_T], Mapping[str, _T]] = None):
+        if isinstance(__iterable, Mapping):
             # super inits list with values
-            if any(not isinstance(x, str) for x in loggers):
+            if any(not isinstance(x, str) for x in __iterable):
                 raise TypeError("When providing a Mapping, all keys must be of type str.")
-            super().__init__(loggers.values())
-            self._dict = dict(zip(loggers.keys(), range(len(loggers))))
+            super().__init__(__iterable.values())
+            self._dict = dict(zip(__iterable.keys(), range(len(__iterable))))
         else:
             default_dict = {}
-            if isinstance(loggers, _ListMap):
-                default_dict = loggers._dict.copy()
-            super().__init__(() if loggers is None else loggers)
+            if isinstance(__iterable, _ListMap):
+                default_dict = __iterable._dict.copy()
+            super().__init__(() if __iterable is None else __iterable)
             self._dict: dict = default_dict
 
     def __eq__(self, other: Any) -> bool:
@@ -273,9 +299,6 @@ class _ListMap(list[_T]):
     def __repr__(self) -> str:
         ret = super().__repr__()
         return f"_ListMap({ret}, keys={list(self._dict.keys())})"
-
-    def __reversed__(self) -> Iterable[_T]:
-        return reversed(list(self))
 
     def reverse(self) -> None:
         for key, idx in self._dict.items():
