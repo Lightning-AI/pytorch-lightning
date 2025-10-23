@@ -242,3 +242,21 @@ def test_listmap_get():
     assert lm.get("b") == 2
     assert lm.get("d") is None
     assert lm.get("d", 10) == 10
+
+
+def test_listmap_setitem_append():
+    lm = _ListMap({"a": 1, "b": 2})
+    lm.append(3)
+    lm["c"] = 3
+
+    assert lm == [1, 2, 3, 3]
+    assert lm["c"] == 3
+
+    lm.remove(3)
+    assert lm == [1, 2, 3]
+    assert lm["c"] == 3
+
+    lm.remove(3)
+    assert lm == [1, 2]
+    with pytest.raises(KeyError):
+        lm["c"]  # "c" was removed
