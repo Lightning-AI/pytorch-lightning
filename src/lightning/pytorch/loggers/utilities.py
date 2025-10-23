@@ -139,7 +139,7 @@ class _ListMap(list[_T]):
 
     """
 
-    def __init__(self, __iterable: Union[Iterable[_T], Mapping[str, _T]] = None):
+    def __init__(self, __iterable: Union[Mapping[str, _T], Iterable[_T]] = None):
         if isinstance(__iterable, Mapping):
             # super inits list with values
             if any(not isinstance(x, str) for x in __iterable):
@@ -268,15 +268,18 @@ class _ListMap(list[_T]):
 
     def __delitem__(self, key: Union[int, slice, str]) -> None:
         if isinstance(key, (int, slice)):
-            loggers = list.__getitem__(self, key)
-            super(list, self).__delitem__(key)
-            for logger in loggers if isinstance(key, slice) else [loggers]:
-                name = getattr(logger, "name", None)
-                if name:
-                    self._dict.pop(name, None)
+            list.__delitem__(self, key)
+            for _key in key.indices(len(self)) if isinstance(key, slice) else [key]:
+                # update indices in the dict
+                for str_key, idx in list(self._dict.items()):
+                    if idx == _key:
+                        self._dict.pop(str_key)
+                    elif idx > _key:
+                        self._dict[str_key] = idx - 1
         elif isinstance(key, str):
-            logger = self._dict.pop(key)
-            self.remove(logger)
+            if key not in self._dict:
+                raise KeyError(f"Key '{key}' not found.")
+            self.__delitem__(self._dict[key])
         else:
             raise TypeError("Key must be int or str")
 

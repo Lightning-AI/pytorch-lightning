@@ -153,6 +153,27 @@ def test_listmap_clear():
     assert len(lm.keys()) == 0
 
 
+def test_listmap_delitem():
+    """Test deleting items from the collection."""
+    lm = _ListMap({"a": 1, "b": 2, "c": 3})
+    lm.extend([3, 4, 5])
+    del lm["b"]
+    assert len(lm) == 5
+    assert "b" not in lm
+    del lm[0]
+    assert len(lm) == 4
+    assert "a" not in lm
+    assert lm == [3, 3, 4, 5]
+
+    del lm[-1]
+    assert len(lm) == 3
+    assert lm == [3, 3, 4]
+
+    del lm[-2:]
+    assert len(lm) == 1
+    assert lm == [3]
+
+
 # Dict type properties tests
 def test_listmap_keys():
     lm = _ListMap({
