@@ -261,11 +261,16 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
                 manager = get_port_manager()
                 manager.release_all()
 
+                # Clear MASTER_PORT so cluster environment allocates a fresh port on retry
+                import os
+
+                os.environ.pop("MASTER_PORT", None)
+
                 # Re-run the test by raising Rerun exception
                 # Note: This requires pytest-rerunfailures plugin
                 import time
 
-                time.sleep(0.5)  # Brief delay to let ports settle
+                time.sleep(1.0)  # Wait for OS to release ports from TIME_WAIT state
 
                 # If pytest-rerunfailures is available, use it
                 try:
