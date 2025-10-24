@@ -165,6 +165,11 @@ By setting ``workers=True`` in :func:`~lightning.pytorch.seed_everything`, Light
 unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
+.. note::
+
+    If your project depends on NumPy for randomness (e.g. for data
+    augmentation), it is recommended to use version 2.5.0 or higher.
+
 -------
 
 .. _trainer_flags:
