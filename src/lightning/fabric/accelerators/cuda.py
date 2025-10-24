@@ -20,6 +20,7 @@ from typing_extensions import override
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.rank_zero import rank_zero_info
+from lightning.fabric.utilities.throughput import get_float32_matmul_precision_compat
 
 
 class CUDAAccelerator(Accelerator):
@@ -162,7 +163,7 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
         return
     # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
     # `set_float32_matmul_precision`
-    if torch.get_float32_matmul_precision() == "highest":  # default
+    if get_float32_matmul_precision_compat() == "highest":  # default
         rank_zero_info(
             f"You are using a CUDA device ({torch.cuda.get_device_name(device)!r}) that has Tensor Cores. To properly"
             " utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off"
