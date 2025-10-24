@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, SupportsIndex, TypeVar, Union
 
 from torch import Tensor
-from typing_extensions import Self
+from typing_extensions import Self, overload
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
@@ -108,6 +108,7 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
 
 
 _T = TypeVar("_T")
+_PT = TypeVar("_PT")
 
 
 class _ListMap(list[_T]):
@@ -139,19 +140,20 @@ class _ListMap(list[_T]):
 
     """
 
-    def __init__(self, __iterable: Union[Mapping[str, _T], Iterable[_T]] = None):
+    def __init__(self, __iterable: Optional[Union[Mapping[str, _T], Iterable[_T]]] = None):
         if isinstance(__iterable, Mapping):
             # super inits list with values
             if any(not isinstance(x, str) for x in __iterable):
                 raise TypeError("When providing a Mapping, all keys must be of type str.")
             super().__init__(__iterable.values())
-            self._dict = dict(zip(__iterable.keys(), range(len(__iterable))))
+            _dict = dict(zip(__iterable.keys(), range(len(__iterable))))
         else:
             default_dict = {}
             if isinstance(__iterable, _ListMap):
                 default_dict = __iterable._dict.copy()
             super().__init__(() if __iterable is None else __iterable)
-            self._dict: dict = default_dict
+            _dict: dict = default_dict
+        self._dict = _dict
 
     def __eq__(self, other: Any) -> bool:
         list_eq = list.__eq__(self, other)
@@ -159,7 +161,7 @@ class _ListMap(list[_T]):
             return list_eq and self._dict == other._dict
         return list_eq
 
-    def copy(self):
+    def copy(self) -> Self:
         new_listmap = _ListMap(self)
         new_listmap._dict = self._dict.copy()
         return new_listmap
@@ -171,7 +173,16 @@ class _ListMap(list[_T]):
                 self._dict[key] = idx + offset
         super().extend(__iterable)
 
-    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[Any] = None) -> _T:
+    @overload
+    def pop(self, key: SupportsIndex = -1, /) -> _T: ...
+
+    @overload
+    def pop(self, key: str, /, default: _T) -> _T: ...
+
+    @overload
+    def pop(self, key: str, default: _PT, /) -> Union[_T, _PT]: ...
+
+    def pop(self, key=-1, default=None):
         if isinstance(key, int):
             ret = list.pop(self, key)
             for str_key, idx in list(self._dict.items()):
@@ -211,7 +222,7 @@ class _ListMap(list[_T]):
         reverse: bool = False,
     ) -> None:
         # Create a mapping from item to its name(s)
-        item_to_names = {}
+        item_to_names: dict[_T, list[int]] = {}
         for name, idx in self._dict.items():
             item = self[idx]
             item_to_names.setdefault(item, []).append(name)
@@ -225,8 +236,13 @@ class _ListMap(list[_T]):
                     new_dict[name] = idx
         self._dict = new_dict
 
-    # --- List-like interface ---
-    def __getitem__(self, key: Union[int, slice, str]) -> _T:
+    @overload
+    def __getitem__(self, key: Union[SupportsIndex, str], /) -> _T: ...
+
+    @overload
+    def __getitem__(self, key: slice, /) -> list[_T]: ...
+
+    def __getitem__(self, key, /):
         if isinstance(key, str):
             return self[self._dict[key]]
         return list.__getitem__(self, key)
@@ -245,7 +261,13 @@ class _ListMap(list[_T]):
 
         return super().__iadd__(other)
 
-    def __setitem__(self, key: Union[SupportsIndex, slice, str], value: _T) -> None:
+    @overload
+    def __setitem__(self, key: Union[SupportsIndex, str], value: _T, /) -> None: ...
+
+    @overload
+    def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
+
+    def __setitem__(self, key, value, /) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
             return list.__setitem__(self, key, value)
@@ -259,14 +281,14 @@ class _ListMap(list[_T]):
             return None
         raise TypeError("Key must be int or str")
 
-    def __contains__(self, item: Union[_T, str]) -> bool:
+    def __contains__(self, item: Union[object, str]) -> bool:
         if isinstance(item, str):
             return item in self._dict
         return list.__contains__(self, item)
 
     # --- Dict-like interface ---
 
-    def __delitem__(self, key: Union[int, slice, str]) -> None:
+    def __delitem__(self, key: Union[SupportsIndex, slice, str]) -> None:
         if isinstance(key, (int, slice)):
             list.__delitem__(self, key)
             for _key in key.indices(len(self)) if isinstance(key, slice) else [key]:
@@ -294,7 +316,13 @@ class _ListMap(list[_T]):
         d = {k: self[v] for k, v in self._dict.items()}
         return d.items()
 
-    def get(self, __key: str, default: Optional[Any] = None) -> _T:
+    @overload
+    def get(self, __key: str) -> Optional[_T]: ...
+
+    @overload
+    def get(self, __key: str, default: _PT) -> Union[_T, _PT]: ...
+
+    def get(self, __key: str, default=None):
         if __key in self._dict:
             return self[self._dict[__key]]
         return default
@@ -308,6 +336,6 @@ class _ListMap(list[_T]):
             self._dict[key] = len(self) - 1 - idx
         list.reverse(self)
 
-    def clear(self):
+    def clear(self) -> None:
         self._dict.clear()
         list.clear(self)

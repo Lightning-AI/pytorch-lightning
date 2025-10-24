@@ -87,6 +87,8 @@ def test_listmap_getitem():
     lm = _ListMap([1, 2])
     assert lm[0] == 1
     assert lm[1] == 2
+    assert lm[-1] == 2
+    assert lm[0:2] == [1, 2]
 
 
 def test_listmap_setitem():

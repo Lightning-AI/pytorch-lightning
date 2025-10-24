@@ -1643,7 +1643,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger]]]) -> None:
+    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger], _ListMap[Logger]]]) -> None:
         self._loggers = _ListMap(loggers)
 
     @property
