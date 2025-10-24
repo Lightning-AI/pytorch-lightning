@@ -161,7 +161,7 @@ class _ListMap(list[_T]):
             return list_eq and self._dict == other._dict
         return list_eq
 
-    def copy(self):
+    def copy(self) -> Self:
         new_listmap = _ListMap(self)
         new_listmap._dict = self._dict.copy()
         return new_listmap
@@ -173,7 +173,7 @@ class _ListMap(list[_T]):
                 self._dict[key] = idx + offset
         super().extend(__iterable)
 
-    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[_PT] = None) -> Union[_T, _PT]:
+    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[_T, _PT] = None) -> Optional[Union[_T, _PT]]:
         if isinstance(key, int):
             ret = list.pop(self, key)
             for str_key, idx in list(self._dict.items()):
@@ -279,7 +279,7 @@ class _ListMap(list[_T]):
 
     # --- Dict-like interface ---
 
-    def __delitem__(self, key: Union[int, slice, str]) -> None:
+    def __delitem__(self, key: Union[SupportsIndex, slice, str]) -> None:
         if isinstance(key, (int, slice)):
             list.__delitem__(self, key)
             for _key in key.indices(len(self)) if isinstance(key, slice) else [key]:
@@ -307,7 +307,13 @@ class _ListMap(list[_T]):
         d = {k: self[v] for k, v in self._dict.items()}
         return d.items()
 
-    def get(self, __key: str, default: Optional[Any] = None) -> _T:
+    @overload
+    def get(self, __key: str) -> Optional[_T]: ...
+
+    @overload
+    def get(self, __key: str, default: _PT) -> Union[_T, _PT]: ...
+
+    def get(self, __key: str, default=None):
         if __key in self._dict:
             return self[self._dict[__key]]
         return default
@@ -321,6 +327,6 @@ class _ListMap(list[_T]):
             self._dict[key] = len(self) - 1 - idx
         list.reverse(self)
 
-    def clear(self):
+    def clear(self) -> None:
         self._dict.clear()
         list.clear(self)
