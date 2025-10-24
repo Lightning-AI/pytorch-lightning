@@ -161,7 +161,7 @@ class _ListMap(list[_T]):
             return list_eq and self._dict == other._dict
         return list_eq
 
-    def copy(self) -> Self:
+    def copy(self) -> "_ListMap":
         new_listmap = _ListMap(self)
         new_listmap._dict = self._dict.copy()
         return new_listmap
@@ -184,7 +184,7 @@ class _ListMap(list[_T]):
 
     def pop(self, key=-1, default=None):
         if isinstance(key, int):
-            ret = list.pop(self, key)
+            ret = super().pop(key)
             for str_key, idx in list(self._dict.items()):
                 if idx == key:
                     self._dict.pop(str_key)
@@ -201,7 +201,7 @@ class _ListMap(list[_T]):
         for key, idx in self._dict.items():
             if idx >= index:
                 self._dict[key] = idx + 1
-        list.insert(self, index, __object)
+        super().insert(index, __object)
 
     def remove(self, __object: _T) -> None:
         idx = self.index(__object)
@@ -213,7 +213,7 @@ class _ListMap(list[_T]):
                 self._dict[key] = val - 1
         if name:
             self._dict.pop(name, None)
-        list.remove(self, __object)
+        super().remove(__object)
 
     def sort(
         self,
@@ -227,7 +227,7 @@ class _ListMap(list[_T]):
             item = self[idx]
             item_to_names.setdefault(item, []).append(name)
         # Sort the list
-        list.sort(self, key=key, reverse=reverse)
+        super().sort(key=key, reverse=reverse)
         # Update _dict with new indices
         new_dict = {}
         for idx, item in enumerate(self):
@@ -270,11 +270,11 @@ class _ListMap(list[_T]):
     def __setitem__(self, key, value, /) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
-            return list.__setitem__(self, key, value)
+            return super().__setitem__(key, value)
         if isinstance(key, str):
             # replace or insert by name
             if key in self._dict:
-                list.__setitem__(self, self._dict[key], value)
+                super().__setitem__(self._dict[key], value)
             else:
                 self.append(value)
                 self._dict[key] = len(self) - 1
@@ -284,13 +284,18 @@ class _ListMap(list[_T]):
     def __contains__(self, item: Union[object, str]) -> bool:
         if isinstance(item, str):
             return item in self._dict
-        return list.__contains__(self, item)
+        return super().__contains__(item)
 
     # --- Dict-like interface ---
 
     def __delitem__(self, key: Union[SupportsIndex, slice, str]) -> None:
+        if isinstance(key, str):
+            if key not in self._dict:
+                raise KeyError(f"Key '{key}' not found.")
+            key: int = self._dict[key]
+
         if isinstance(key, (int, slice)):
-            list.__delitem__(self, key)
+            super().__delitem__(key)
             for _key in key.indices(len(self)) if isinstance(key, slice) else [key]:
                 # update indices in the dict
                 for str_key, idx in list(self._dict.items()):
@@ -298,10 +303,6 @@ class _ListMap(list[_T]):
                         self._dict.pop(str_key)
                     elif idx > _key:
                         self._dict[str_key] = idx - 1
-        elif isinstance(key, str):
-            if key not in self._dict:
-                raise KeyError(f"Key '{key}' not found.")
-            self.__delitem__(self._dict[key])
         else:
             raise TypeError("Key must be int or str")
 
