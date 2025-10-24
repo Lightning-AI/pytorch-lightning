@@ -383,12 +383,6 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
                         yellow=True,
                     )
 
-                # Clear the port manager's state to get fresh ports
-                from lightning.fabric.utilities.port_manager import get_port_manager
-
-                manager = get_port_manager()
-                manager.release_all()
-
                 # Clear MASTER_PORT so cluster environment allocates a fresh port on retry
                 import os
 

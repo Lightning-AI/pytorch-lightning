@@ -20,8 +20,10 @@ import threading
 from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
+from multiprocessing import Lock
 from typing import Optional
 
+lock = Lock()
 log = logging.getLogger(__name__)
 
 # Size of the recently released ports queue
@@ -31,7 +33,7 @@ _RECENTLY_RELEASED_PORTS_MAXLEN = 1024
 
 
 class PortManager:
-    """Thread-safe port manager to prevent EADDRINUSE errors.
+    """Process-safe port manager to prevent EADDRINUSE errors.
 
     This manager maintains a global registry of allocated ports to ensure that multiple concurrent tests don't try to
     use the same port. While this doesn't completely eliminate the race condition with external processes, it prevents
@@ -40,7 +42,6 @@ class PortManager:
     """
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
         self._allocated_ports: set[int] = set()
         # Recently released ports are kept in a queue to avoid immediate reuse
         self._recently_released: deque[int] = deque(maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN)
@@ -61,7 +62,7 @@ class PortManager:
             RuntimeError: If unable to find a free port after max_attempts
 
         """
-        with self._lock:
+        with lock:
             # If a preferred port is specified and available, use it
             if (
                 preferred_port is not None
@@ -113,7 +114,7 @@ class PortManager:
             port: Port number to release
 
         """
-        with self._lock:
+        with lock:
             if port in self._allocated_ports:
                 self._allocated_ports.remove(port)
                 # Add to the back of the queue; oldest will be evicted when queue is full
@@ -121,7 +122,7 @@ class PortManager:
 
     def release_all(self) -> None:
         """Release all allocated ports."""
-        with self._lock:
+        with lock:
             self._allocated_ports.clear()
             self._recently_released.clear()
 
@@ -138,7 +139,7 @@ class PortManager:
         if port <= 0 or port > 65535:
             return False
 
-        with self._lock:
+        with lock:
             if port in self._allocated_ports:
                 return True
 
