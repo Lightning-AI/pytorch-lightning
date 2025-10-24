@@ -173,7 +173,16 @@ class _ListMap(list[_T]):
                 self._dict[key] = idx + offset
         super().extend(__iterable)
 
-    def pop(self, key: Union[SupportsIndex, str] = -1, default: Optional[_T, _PT] = None) -> Optional[Union[_T, _PT]]:
+    @overload
+    def pop(self, key: SupportsIndex = -1, /) -> _T: ...
+
+    @overload
+    def pop(self, key: str, /, default: _T) -> _T: ...
+
+    @overload
+    def pop(self, key: str, default: _PT, /) -> Union[_T, _PT]: ...
+
+    def pop(self, key=-1, default=None):
         if isinstance(key, int):
             ret = list.pop(self, key)
             for str_key, idx in list(self._dict.items()):
