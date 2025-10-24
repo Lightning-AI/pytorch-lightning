@@ -13,6 +13,7 @@
 # limitations under the License.
 import glob
 import logging
+import math
 import os
 from copy import deepcopy
 from unittest.mock import patch
@@ -69,7 +70,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmp_path, model_bs, dm
 
     tuner = Tuner(trainer)
     new_batch_size = tuner.scale_batch_size(model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule)
-    assert new_batch_size == 8
+    assert new_batch_size == 7  # applied margin of 5% on 8 -> int(8 * 0.95) = 7
 
     if model_bs is not None:
         assert model.batch_size == new_batch_size
@@ -317,7 +318,12 @@ def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, 
     # With our fix, when max_trials is reached, we don't try the doubled batch size, so we get max_trials - 1 messages
     expected_tries = max_trials - 1 if init_batch_size < dataset_len and max_trials > 0 else 0
     assert caplog.text.count("trying batch size") == expected_tries
-    assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
+
+    # Determine the largest batch size that was actually tested.
+    # For "power" this is the final found size; for "binsearch" we applied a 5% margin
+    # when storing the final value, so the largest tested value is the one before applying margin.
+    largest_tested_batch_size = new_batch_size if scale_method == "power" else int(math.ceil(new_batch_size * 100 / 95))
+    assert caplog.text.count("greater or equal than the length") == int(largest_tested_batch_size >= dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
     assert trainer.val_dataloaders.batch_size == new_batch_size
@@ -453,7 +459,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmp_path):
         tuner.scale_batch_size(model, method="validate")
 
 
-@pytest.mark.parametrize(("scale_method", "expected_batch_size"), [("power", 62), ("binsearch", 100)])
+@pytest.mark.parametrize(("scale_method", "expected_batch_size"), [("power", 62), ("binsearch", 95)])
 @patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmp_path, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):
@@ -491,6 +497,51 @@ def test_batch_size_finder_callback_val_batches(tmp_path):
 
     assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
     assert trainer.num_val_batches[0] != steps_per_trial
+
+
+@pytest.mark.parametrize("margin", [0.0, 0.1, 0.2])
+def test_scale_batch_size_margin_and_max_val(tmp_path, margin):
+    """Test margin feature for batch size scaling by comparing results with and without margin."""
+    # First, find the batch size without margin
+    model1 = BatchSizeModel(batch_size=2)
+    trainer1 = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner1 = Tuner(trainer1)
+
+    result_without_margin = tuner1.scale_batch_size(
+        model1, mode="binsearch", max_trials=2, steps_per_trial=1, margin=0.0
+    )
+
+    model2 = BatchSizeModel(batch_size=2)
+    trainer2 = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner2 = Tuner(trainer2)
+
+    result_with_margin = tuner2.scale_batch_size(
+        model2, mode="binsearch", max_trials=2, steps_per_trial=1, margin=margin
+    )
+
+    assert result_without_margin is not None
+    assert result_with_margin is not None
+
+    if margin == 0.0:
+        assert result_with_margin == result_without_margin
+    else:
+        expected_with_margin = max(1, int(result_without_margin * (1 - margin)))
+        assert result_with_margin == expected_with_margin
+        assert result_with_margin <= result_without_margin
+
+
+@pytest.mark.parametrize("mode", ["power", "binsearch"])
+def test_scale_batch_size_max_val_limit(tmp_path, mode):
+    """Test that max_val limits the batch size for both power and binsearch modes."""
+    model = BatchSizeModel(batch_size=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
+    tuner = Tuner(trainer)
+
+    max_val = 8  # Set a low max value
+    result = tuner.scale_batch_size(model, mode=mode, max_trials=5, steps_per_trial=1, max_val=max_val)
+
+    assert result is not None
+    assert result <= max_val
 
 
 def test_scale_batch_size_checkpoint_cleanup_on_error(tmp_path):
@@ -566,7 +617,7 @@ class FailsAtBatchSizeBoringModel(BoringModel):
     ("max_trials", "mode", "init_val", "expected"),
     [
         (3, "power", 2, 8),
-        (3, "binsearch", 2, 8),
+        (3, "binsearch", 2, 7),  # applied margin of 5% on 8 -> int(8 * 0.95) = 7
         (1, "power", 4, 4),
         (0, "power", 2, 2),
     ],
