@@ -17,7 +17,7 @@ import errno
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Union
+from typing import IO, Any, Optional, Union
 
 import fsspec
 import fsspec.utils
@@ -34,13 +34,18 @@ log = logging.getLogger(__name__)
 def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
-    weights_only: bool = False,
+    weights_only: Optional[bool] = None,
 ) -> Any:
     """Loads a checkpoint.
 
     Args:
         path_or_url: Path or URL of the checkpoint.
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+        weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other primitive
+            types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+            ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+            ``weights_only=True``. For more information, please refer to the
+            `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
     """
     if not isinstance(path_or_url, (str, Path)):
@@ -51,6 +56,13 @@ def _load(
             weights_only=weights_only,
         )
     if str(path_or_url).startswith("http"):
+        if weights_only is None:
+            weights_only = False
+            log.debug(
+                f"Defaulting to `weights_only=False` for remote checkpoint: {path_or_url}."
+                f" If loading a checkpoint from an untrustted source, we recommend using `weights_only=True`."
+            )
+
         return torch.hub.load_state_dict_from_url(
             str(path_or_url),
             map_location=map_location,  # type: ignore[arg-type]
@@ -70,7 +82,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(checkpoint: dict[str, Any], filepath: Union[str, Path]) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:

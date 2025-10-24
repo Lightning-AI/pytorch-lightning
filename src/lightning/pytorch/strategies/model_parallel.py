@@ -329,7 +329,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
         state = {
@@ -342,6 +342,7 @@ class ModelParallelStrategy(ParallelStrategy):
             state=state,
             strict=self.lightning_module.strict_loading,
             optimizer_states_from_list=True,
+            weights_only=weights_only,
         )
 
     def _setup_distributed(self) -> None:
