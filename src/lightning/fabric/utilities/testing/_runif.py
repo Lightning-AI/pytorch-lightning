@@ -113,7 +113,7 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not (_DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4):
+    if deepspeed and not (_DEEPSPEED_AVAILABLE and _TORCH_GREATER_EQUAL_2_4):
         reasons.append("Deepspeed")
 
     if dynamo:
