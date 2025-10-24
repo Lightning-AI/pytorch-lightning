@@ -426,9 +426,9 @@ def test_ema_weight_averaging_checkpoint_save_load(tmp_path):
     # Resume from checkpoint
     model2 = TestModel()
     callback2 = EMAWeightAveraging(decay=0.99, update_every_n_steps=2)
-    checkpoint_path = str(tmp_path / "lightning_logs" / "version_0" / "checkpoints" / "*.ckpt")
-
-    _train(model2, dataset, tmp_path, callback2, checkpoint_path=checkpoint_path)
+    import glob   # should be at the top
+    _train(model2, dataset, tmp_path, callback2,
+           checkpoint_path=glob.glob((tmp_path / "checkpoints" / "*.ckpt").as_posix())[0])
 
     assert callback2._average_model is not None
 
