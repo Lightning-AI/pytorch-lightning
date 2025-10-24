@@ -327,6 +327,7 @@ class ModelParallelStrategy(ParallelStrategy):
             if _is_sharded_checkpoint(path):
                 shutil.rmtree(path)
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
+        return None
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
