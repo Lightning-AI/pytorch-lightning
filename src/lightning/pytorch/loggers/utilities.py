@@ -141,6 +141,7 @@ class _ListMap(list[_T]):
     """
 
     def __init__(self, __iterable: Optional[Union[Mapping[str, _T], Iterable[_T]]] = None):
+        _dict: dict[str, int]
         if isinstance(__iterable, Mapping):
             # super inits list with values
             if any(not isinstance(x, str) for x in __iterable):
@@ -177,7 +178,7 @@ class _ListMap(list[_T]):
     def pop(self, key: SupportsIndex = -1, /) -> _T: ...
 
     @overload
-    def pop(self, key: str, /, default: _T) -> _T: ...
+    def pop(self, key: Union[str, SupportsIndex], default: _T, /) -> _T: ...
 
     @overload
     def pop(self, key: str, default: _PT, /) -> Union[_T, _PT]: ...
@@ -222,14 +223,14 @@ class _ListMap(list[_T]):
         reverse: bool = False,
     ) -> None:
         # Create a mapping from item to its name(s)
-        item_to_names: dict[_T, list[int]] = {}
+        item_to_names: dict[_T, list[str]] = {}
         for name, idx in self._dict.items():
             item = self[idx]
             item_to_names.setdefault(item, []).append(name)
         # Sort the list
         super().sort(key=key, reverse=reverse)
         # Update _dict with new indices
-        new_dict = {}
+        new_dict: dict[str, int] = {}
         for idx, item in enumerate(self):
             if item in item_to_names:
                 for name in item_to_names[item]:
@@ -242,12 +243,12 @@ class _ListMap(list[_T]):
     @overload
     def __getitem__(self, key: slice, /) -> list[_T]: ...
 
-    def __getitem__(self, key, /):
+    def __getitem__(self, key):
         if isinstance(key, str):
             return self[self._dict[key]]
         return list.__getitem__(self, key)
 
-    def __add__(self, other: Union[list[_T], Self]) -> Self:
+    def __add__(self, other: Union[list[_T], "_ListMap[_T]"]) -> "_ListMap[_T]":
         new_listmap = self.copy()
         new_listmap += other
         return new_listmap
@@ -267,7 +268,7 @@ class _ListMap(list[_T]):
     @overload
     def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
 
-    def __setitem__(self, key, value, /) -> None:
+    def __setitem__(self, key, value):
         if isinstance(key, (int, slice)):
             # replace element by index
             return super().__setitem__(key, value)
@@ -289,14 +290,17 @@ class _ListMap(list[_T]):
     # --- Dict-like interface ---
 
     def __delitem__(self, key: Union[SupportsIndex, slice, str]) -> None:
+        index: Union[SupportsIndex, slice]
         if isinstance(key, str):
             if key not in self._dict:
                 raise KeyError(f"Key '{key}' not found.")
-            key: int = self._dict[key]
+            index = self._dict[key]
+        else:
+            index = key
 
-        if isinstance(key, (int, slice)):
-            super().__delitem__(key)
-            for _key in key.indices(len(self)) if isinstance(key, slice) else [key]:
+        if isinstance(index, (int, slice)):
+            super().__delitem__(index)
+            for _key in index.indices(len(self)) if isinstance(index, slice) else [index]:
                 # update indices in the dict
                 for str_key, idx in list(self._dict.items()):
                     if idx == _key:
@@ -310,12 +314,10 @@ class _ListMap(list[_T]):
         return self._dict.keys()
 
     def values(self) -> ValuesView[_T]:
-        d = {k: self[v] for k, v in self._dict.items()}
-        return d.values()
+        return {k: self[v] for k, v in self._dict.items()}.values()
 
     def items(self) -> ItemsView[str, _T]:
-        d = {k: self[v] for k, v in self._dict.items()}
-        return d.items()
+        return {k: self[v] for k, v in self._dict.items()}.items()
 
     @overload
     def get(self, __key: str) -> Optional[_T]: ...
@@ -323,7 +325,7 @@ class _ListMap(list[_T]):
     @overload
     def get(self, __key: str, default: _PT) -> Union[_T, _PT]: ...
 
-    def get(self, __key: str, default=None):
+    def get(self, __key, default=None):
         if __key in self._dict:
             return self[self._dict[__key]]
         return default
