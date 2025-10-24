@@ -111,6 +111,8 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path)
         assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
 
+    assert trainer.is_last_batch
+
 
 def test_should_stop_mid_epoch(tmp_path):
     """Test that training correctly stops mid epoch and that validation is still called at the right time."""
@@ -305,3 +307,26 @@ def test_eval_mode_warning(tmp_path, warn):
                 w for w in warning_list if issubclass(w.category, PossibleUserWarning) and "eval mode" in str(w.message)
             ]
             assert len(eval_warnings) == 0, "Expected no eval mode warnings"
+
+
+@pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8)])
+def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs, batch_idx_):
+    """Test that when the rest of the epoch is skipped, due to on_train_batch_start returning -1, the learning rate is
+    still updated when it should, at the end of the epoch."""
+
+    class TestModel(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx):
+            if batch_idx == batch_idx_:
+                return -1
+            return super().on_train_batch_start(batch, batch_idx)
+
+    model = TestModel()
+    init_lr = 0.1
+    trainer = Trainer(default_root_dir=tmp_path, limit_train_batches=10, max_epochs=max_epochs)
+    trainer.fit(model)
+
+    adjusted_lr = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
+
+    assert len(trainer.lr_scheduler_configs) == 1
+    assert all(a == adjusted_lr[0] for a in adjusted_lr)
+    assert init_lr * 0.1**max_epochs == adjusted_lr[0]
