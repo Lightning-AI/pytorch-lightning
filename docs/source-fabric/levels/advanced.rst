@@ -6,6 +6,7 @@
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
     <../advanced/compile>
+    <../advanced/port_manager_design>
     <../advanced/model_parallel/fsdp>
     <../guide/checkpoint/distributed_checkpoint>
 
@@ -55,6 +56,14 @@ Advanced skills
     :header: Train models with billions of parameters
     :description: Train the largest models with FSDP/TP across multiple GPUs and machines
     :button_link: ../advanced/model_parallel/index.html
+    :col_css: col-md-4
+    :height: 170
+    :tag: advanced
+
+.. displayitem::
+    :header: Coordinate distributed ports safely
+    :description: Learn how Lightning Fabric manages process-safe port allocation with file-backed state
+    :button_link: ../advanced/port_manager_design.html
     :col_css: col-md-4
     :height: 170
     :tag: advanced

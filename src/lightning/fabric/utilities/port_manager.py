@@ -11,16 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Port allocation manager to prevent race conditions in distributed training."""
+"""Process-safe port allocation manager to prevent race conditions in distributed training."""
 
 import atexit
+import json
 import logging
+import os
 import socket
+import tempfile
 import threading
 from collections import deque
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
+from pathlib import Path
 from typing import Optional
+
+from lightning.fabric.utilities.file_lock import create_file_lock
+from lightning.fabric.utilities.port_state import PortState
 
 log = logging.getLogger(__name__)
 
@@ -30,25 +37,172 @@ log = logging.getLogger(__name__)
 _RECENTLY_RELEASED_PORTS_MAXLEN = 1024
 
 
-class PortManager:
-    """Thread-safe port manager to prevent EADDRINUSE errors.
+def _get_lock_dir() -> Path:
+    """Get directory for lock files, creating if needed.
 
-    This manager maintains a global registry of allocated ports to ensure that multiple concurrent tests don't try to
-    use the same port. While this doesn't completely eliminate the race condition with external processes, it prevents
-    internal collisions within the test suite.
+    Uses LIGHTNING_PORT_LOCK_DIR environment variable if set, otherwise uses system temp directory.
+
+    Returns:
+        Path to lock directory
+
+    Raises:
+        RuntimeError: If directory is not writable
+
+    """
+    lock_dir = os.getenv("LIGHTNING_PORT_LOCK_DIR", tempfile.gettempdir())
+    lock_path = Path(lock_dir)
+    lock_path.mkdir(parents=True, exist_ok=True)
+
+    # Validate directory is writable by creating and deleting a unique temp file
+    try:
+        fd, temp_name = tempfile.mkstemp(prefix=".lightning_port_manager_write_test_", dir=lock_path)
+    except (OSError, PermissionError) as e:
+        raise RuntimeError(
+            f"Port manager lock directory is not writable: {lock_path}. "
+            f"Please ensure the directory exists and has write permissions, "
+            f"or set LIGHTNING_PORT_LOCK_DIR to a writable location."
+        ) from e
+
+    test_file = Path(temp_name)
+    with suppress(OSError):
+        os.close(fd)
+
+    with suppress(FileNotFoundError):
+        try:
+            test_file.unlink()
+            return lock_path
+        except PermissionError:
+            log.debug("Port manager probe file could not be removed due to permission issues; scheduling cleanup")
+        except OSError as e:
+            log.debug(f"Port manager probe file removal failed with {e}; scheduling cleanup")
+
+    atexit.register(lambda p=test_file: p.unlink(missing_ok=True))
+
+    return lock_path
+
+
+def _get_lock_file() -> Path:
+    """Get path to the port manager lock file.
+
+    Returns:
+        Path to lock file
+
+    """
+    return _get_lock_dir() / "lightning_port_manager.lock"
+
+
+def _get_state_file() -> Path:
+    """Get path to the port manager state file.
+
+    Returns:
+        Path to state file
+
+    """
+    return _get_lock_dir() / "lightning_port_manager_state.json"
+
+
+class PortManager:
+    """Process-safe port manager to prevent EADDRINUSE errors across multiple processes.
+
+    This manager uses file-based locking to coordinate port allocation across multiple
+    concurrent processes (e.g., pytest-xdist workers). It maintains shared state in a
+    JSON file and uses platform-specific file locking for atomic operations.
+
+    The manager maintains both thread-safety (for in-process coordination) and process-safety
+    (for cross-process coordination), making it suitable for highly parallel test execution.
+
+    Attributes:
+        _lock: Thread-level lock for in-process synchronization
+        _file_lock: File-level lock for cross-process synchronization
+        _state_file: Path to shared state file
+        _allocated_ports: In-memory cache of allocated ports
+        _recently_released: In-memory cache of recently released ports
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, lock_file: Optional[Path] = None, state_file: Optional[Path] = None) -> None:
+        """Initialize the port manager.
+
+        Args:
+            lock_file: Optional path to lock file (defaults to system temp directory)
+            state_file: Optional path to state file (defaults to system temp directory)
+
+        """
+        # Thread-level synchronization
         self._lock = threading.Lock()
+
+        # File-based synchronization for process safety
+        self._lock_file_path = lock_file or _get_lock_file()
+        self._state_file = state_file or _get_state_file()
+        self._file_lock = create_file_lock(self._lock_file_path)
+
+        # In-memory cache for performance (process-local)
         self._allocated_ports: set[int] = set()
-        # Recently released ports are kept in a queue to avoid immediate reuse
         self._recently_released: deque[int] = deque(maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN)
+
         # Register cleanup to release all ports on exit
         atexit.register(self.release_all)
 
+        log.debug(f"PortManager initialized with lock_dir={self._lock_file_path.parent}, pid={os.getpid()}")
+
+    def _read_state(self) -> PortState:
+        """Read state from file, cleaning stale entries.
+
+        Low-level primitive - does NOT acquire lock.
+        IMPORTANT: Caller must hold self._file_lock before calling.
+
+        Returns:
+            PortState instance with current state
+
+        """
+        if not self._state_file.exists():
+            return PortState()  # Empty state
+
+        try:
+            with open(self._state_file) as f:
+                data = json.load(f)
+            state = PortState.from_dict(data)
+            # Clean up stale entries on read
+            state.cleanup_stale_entries()
+            return state
+        except (json.JSONDecodeError, OSError) as e:
+            # Corrupted state, start fresh
+            log.warning(f"Corrupted state file detected ({e}), starting with clean state")
+            return PortState()
+
+    def _write_state(self, state: PortState) -> None:
+        """Atomically write state to file.
+
+        Low-level primitive - does NOT acquire lock.
+        IMPORTANT: Caller must hold self._file_lock before calling.
+
+        Uses atomic write pattern: write to temp file, then rename.
+
+        Args:
+            state: PortState to write
+
+        """
+        temp_file = self._state_file.with_suffix(".tmp")
+
+        try:
+            # Ensure directory exists
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write to temp file
+            with open(temp_file, "w") as f:
+                json.dump(state.to_dict(), f, indent=2)
+
+            # Atomic rename (platform-safe)
+            temp_file.replace(self._state_file)
+        except Exception as e:
+            log.error(f"Failed to write state file: {e}")
+            raise
+        finally:
+            # Clean up temp file if it still exists
+            temp_file.unlink(missing_ok=True)
+
     def allocate_port(self, preferred_port: Optional[int] = None, max_attempts: int = 1000) -> int:
-        """Allocate a free port, ensuring it's not already reserved.
+        """Allocate a free port with process-safe coordination.
 
         Args:
             preferred_port: If provided, try to allocate this specific port first
@@ -61,69 +215,185 @@ class PortManager:
             RuntimeError: If unable to find a free port after max_attempts
 
         """
-        with self._lock:
-            # If a preferred port is specified and available, use it
-            if (
-                preferred_port is not None
-                and preferred_port not in self._allocated_ports
-                and preferred_port not in self._recently_released
-                and self._is_port_free(preferred_port)
-            ):
-                self._allocated_ports.add(preferred_port)
-                return preferred_port
+        with self._lock:  # Thread-safety
+            try:
+                with self._file_lock:  # Process-safety
+                    # Read current state from file
+                    state = self._read_state()
 
-            # Let the OS choose a free port, but verify it's not in our tracking structures
-            # The OS naturally avoids ports in TIME_WAIT (without SO_REUSEADDR)
-            for attempt in range(max_attempts):
-                port = self._find_free_port()
+                    # Try preferred port if specified
+                    if preferred_port is not None and self._is_port_available(preferred_port, state):
+                        port = preferred_port
+                    else:
+                        # Find a free port
+                        port = None
+                        for _ in range(max_attempts):
+                            candidate = self._find_free_port()
+                            if self._is_port_available(candidate, state):
+                                port = candidate
+                                break
 
-                # Skip if already allocated by us or recently released
-                # This prevents race conditions within our process
-                if port not in self._allocated_ports and port not in self._recently_released:
+                        if port is None:
+                            # Provide detailed diagnostics
+                            allocated_count = len(state.allocated_ports)
+                            queue_count = len(state.recently_released)
+                            raise RuntimeError(
+                                f"Failed to allocate a free port after {max_attempts} attempts. "
+                                f"Diagnostics: allocated={allocated_count}, recently_released={queue_count}"
+                            )
+
+                    # Allocate in shared state
+                    state.allocate_port(port, pid=os.getpid())
+                    self._write_state(state)
+
+                    # Update in-memory cache
                     self._allocated_ports.add(port)
 
                     # Log diagnostics if queue utilization is high
-                    queue_count = len(self._recently_released)
-                    if queue_count > _RECENTLY_RELEASED_PORTS_MAXLEN * 0.8:  # >80% full
+                    queue_count = len(state.recently_released)
+                    if queue_count > 800:  # >78% of typical 1024 capacity
                         log.warning(
-                            f"Port queue utilization high: {queue_count}/{_RECENTLY_RELEASED_PORTS_MAXLEN} "
-                            f"({queue_count / _RECENTLY_RELEASED_PORTS_MAXLEN * 100:.1f}% full). "
-                            f"Allocated port {port}. Active allocations: {len(self._allocated_ports)}"
+                            f"Port queue utilization high: {queue_count} entries. "
+                            f"Allocated port {port}. Active allocations: {len(state.allocated_ports)}"
                         )
 
+                    log.debug(f"Allocated port {port} for pid={os.getpid()}")
                     return port
 
-            # Provide detailed diagnostics to understand allocation failures
-            allocated_count = len(self._allocated_ports)
-            queue_count = len(self._recently_released)
-            queue_capacity = _RECENTLY_RELEASED_PORTS_MAXLEN
-            queue_utilization = (queue_count / queue_capacity * 100) if queue_capacity > 0 else 0
+            except TimeoutError as e:
+                # File lock timeout - fail fast to prevent state divergence
+                log.error(
+                    "Failed to acquire file lock for port allocation. "
+                    "Remediation: (1) Retry the operation after a short delay, "
+                    "(2) Check if another process is deadlocked holding the lock, "
+                    "(3) Verify LIGHTNING_PORT_LOCK_DIR is accessible and not on a network filesystem."
+                )
+                raise RuntimeError(
+                    "Unable to acquire file lock for port allocation. "
+                    "This prevents process-safe coordination. "
+                    "Check if another process is holding the lock or if the lock file is inaccessible."
+                ) from e
 
-            raise RuntimeError(
-                f"Failed to allocate a free port after {max_attempts} attempts. "
-                f"Diagnostics: allocated={allocated_count}, "
-                f"recently_released={queue_count}/{queue_capacity} ({queue_utilization:.1f}% full). "
-                f"If queue is near capacity, consider increasing _RECENTLY_RELEASED_PORTS_MAXLEN."
-            )
+    def _is_port_available(self, port: int, state: PortState) -> bool:
+        """Check if a port is available for allocation.
+
+        Args:
+            port: Port to check
+            state: Current port state
+
+        Returns:
+            True if port is available
+
+        """
+        # Check if already allocated in shared state
+        if state.is_port_allocated(port):
+            return False
+
+        # Check if recently released
+        if state.is_port_recently_released(port):
+            return False
+
+        # Check if OS reports it as free
+        return self._is_port_free(port)
 
     def release_port(self, port: int) -> None:
-        """Release a previously allocated port.
+        """Release a previously allocated port with process-safe coordination.
 
         Args:
             port: Port number to release
 
         """
-        with self._lock:
-            if port in self._allocated_ports:
+        with self._lock:  # Thread-safety
+            release_succeeded = False
+            try:
+                with self._file_lock:  # Process-safety
+                    state = self._read_state()
+                    state.release_port(port)
+                    self._write_state(state)
+                    release_succeeded = True
+            except TimeoutError:
+                log.error(
+                    f"Failed to acquire file lock when releasing port {port}. "
+                    f"Port will remain allocated in shared state until process exits or stale cleanup (>2 hours). "
+                    f"This may cause port exhaustion if it happens frequently. "
+                    f"Keeping port in local cache to reflect true allocation state. "
+                    f"Remediation: (1) Retry release_port() after a short delay, "
+                    f"(2) Call cleanup_stale_entries() to force cleanup, "
+                    f"(3) If deadlocked, restart affected processes."
+                )
+
+            # Only update in-memory cache if we successfully updated shared state
+            # This prevents state divergence where local cache says "free" but shared state says "allocated"
+            if release_succeeded and port in self._allocated_ports:
                 self._allocated_ports.remove(port)
-                # Add to the back of the queue; oldest will be evicted when queue is full
                 self._recently_released.append(port)
 
     def release_all(self) -> None:
-        """Release all allocated ports."""
-        with self._lock:
-            self._allocated_ports.clear()
-            self._recently_released.clear()
+        """Release all ports allocated by this process."""
+        with self._lock:  # Thread-safety
+            release_succeeded = False
+            try:
+                with self._file_lock:  # Process-safety
+                    state = self._read_state()
+                    current_pid = os.getpid()
+
+                    # Release ports owned by this PID
+                    ports_to_release = state.get_ports_for_pid(current_pid)
+
+                    for port in ports_to_release:
+                        state.release_port(port)
+
+                    if ports_to_release:
+                        self._write_state(state)
+                        log.debug(f"Released {len(ports_to_release)} port(s) for pid={current_pid}")
+
+                    release_succeeded = True
+
+            except TimeoutError:
+                log.error(
+                    "Failed to acquire file lock during release_all. "
+                    "Ports will remain allocated in shared state until process exits or stale cleanup (>2 hours). "
+                    "This may cause port exhaustion if it happens frequently. "
+                    "Keeping ports in local cache to reflect true allocation state. "
+                    "Remediation: (1) Retry release_all() after a short delay, "
+                    "(2) Call cleanup_stale_entries() to force cleanup, "
+                    "(3) If deadlocked, restart affected processes."
+                )
+
+            # Only clear in-memory cache if we successfully updated shared state
+            # This prevents state divergence where local cache says "free" but shared state says "allocated"
+            if release_succeeded:
+                self._allocated_ports.clear()
+                self._recently_released.clear()
+
+    def cleanup_stale_entries(self) -> int:
+        """Clean up stale port allocations from dead processes.
+
+        Returns:
+            Number of stale entries cleaned up
+
+        """
+        with self._lock:  # Thread-safety
+            try:
+                with self._file_lock:  # Process-safety
+                    state = self._read_state()
+                    stale_count = state.cleanup_stale_entries()
+
+                    if stale_count > 0:
+                        self._write_state(state)
+                        log.info(f"Cleaned up {stale_count} stale port(s) from previous runs")
+
+                    return stale_count
+
+            except TimeoutError:
+                log.warning(
+                    "Failed to acquire file lock during cleanup. "
+                    "Stale entries were not cleaned up. "
+                    "Remediation: (1) Retry cleanup_stale_entries() after a short delay, "
+                    "(2) Cleanup will occur automatically on next successful operation, "
+                    "(3) Check for deadlocked processes holding the lock."
+                )
+                return 0
 
     def reserve_existing_port(self, port: int) -> bool:
         """Reserve a port that was allocated externally.
@@ -139,18 +409,40 @@ class PortManager:
             return False
 
         with self._lock:
-            if port in self._allocated_ports:
-                return True
+            try:
+                with self._file_lock:
+                    state = self._read_state()
 
-            # Remove from recently released queue if present (we're explicitly reserving it)
-            if port in self._recently_released:
-                # Create a new deque without this port
-                self._recently_released = deque(
-                    (p for p in self._recently_released if p != port), maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN
+                    # If already allocated, that's fine
+                    if state.is_port_allocated(port):
+                        # Update in-memory cache
+                        self._allocated_ports.add(port)
+                        return True
+
+                    # Allocate it
+                    state.allocate_port(port, pid=os.getpid())
+                    self._write_state(state)
+
+                    # Update in-memory cache
+                    self._allocated_ports.add(port)
+                    # Remove from recently released if present
+                    if port in self._recently_released:
+                        self._recently_released = deque(
+                            (p for p in self._recently_released if p != port), maxlen=_RECENTLY_RELEASED_PORTS_MAXLEN
+                        )
+
+                    return True
+
+            except TimeoutError:
+                log.error(
+                    f"Failed to acquire file lock when reserving port {port}. "
+                    "Cannot guarantee process-safe reservation. Returning False. "
+                    "Remediation: (1) Retry reserve_existing_port() after a short delay, "
+                    "(2) Use allocate_port() instead to let the manager choose a safe port, "
+                    "(3) Check for lock contention or deadlocks."
                 )
-
-            self._allocated_ports.add(port)
-            return True
+                # Do NOT update in-memory cache or claim success - this would create state divergence
+                return False
 
     @contextmanager
     def allocated_port(self, preferred_port: Optional[int] = None) -> Iterator[int]:
@@ -174,6 +466,24 @@ class PortManager:
             yield port
         finally:
             self.release_port(port)
+
+    def __enter__(self) -> "PortManager":
+        """Enter context manager - returns self for manager-level usage.
+
+        Usage:
+            with get_port_manager() as manager:
+                port1 = manager.allocate_port()
+                port2 = manager.allocate_port()
+                # ... use ports
+            # All ports from this process automatically released
+
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """Exit context manager - cleanup ports from this process."""
+        self.release_all()
+        return False  # Don't suppress exceptions
 
     @staticmethod
     def _find_free_port() -> int:
