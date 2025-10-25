@@ -335,3 +335,30 @@ def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.C
     )
     for item in items:
         item.add_marker(deprecation_error)
+
+
+def pytest_sessionstart(session):
+    """Clean stale port allocations at the start of the test session.
+
+    This ensures that ports from crashed or incomplete previous test runs are cleaned up before starting new tests.
+
+    """
+    from lightning.fabric.utilities.port_manager import get_port_manager
+
+    manager = get_port_manager()
+    stale_count = manager.cleanup_stale_entries()
+
+    if stale_count > 0:
+        print(f"\nCleaned up {stale_count} stale port(s) from previous test runs")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Final cleanup at the end of the test session.
+
+    This performs a final cleanup of any stale entries that may have accumulated during the test session.
+
+    """
+    from lightning.fabric.utilities.port_manager import get_port_manager
+
+    manager = get_port_manager()
+    manager.cleanup_stale_entries()
