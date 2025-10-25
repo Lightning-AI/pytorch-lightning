@@ -13,15 +13,23 @@
 # limitations under the License.
 """Tests for the PortManager utility and port allocation integration."""
 
+import collections
 import os
 import socket
 import threading
-from collections import Counter
 
 import pytest
 
-from lightning.fabric.plugins.environments.lightning import find_free_network_port
-from lightning.fabric.utilities.port_manager import PortManager, get_port_manager
+import lightning.fabric.utilities.port_manager as port_manager_module
+import lightning.fabric.utilities.port_state as port_state_module
+from lightning.fabric.plugins.environments.lightning import (
+    find_free_network_port as env_find_free_network_port,
+)
+from lightning.fabric.utilities.port_manager import (
+    PortManager,
+    find_free_network_port,
+    get_port_manager,
+)
 
 # =============================================================================
 # Fixtures
@@ -143,7 +151,7 @@ def test_port_manager_thread_safety():
     assert len(set(ports)) == 100, f"Expected 100 unique ports, got {len(set(ports))}"
 
     # Check for any duplicates
-    counts = Counter(ports)
+    counts = collections.Counter(ports)
     duplicates = {port: count for port, count in counts.items() if count > 1}
     assert not duplicates, f"Found duplicate ports: {duplicates}"
 
@@ -495,6 +503,20 @@ def test_find_free_network_port_thread_safety():
         manager.release_port(port)
 
 
+def test_find_free_network_port_alias(monkeypatch):
+    """Legacy environment alias should reuse the port manager backed implementation."""
+
+    manager = get_port_manager()
+    manager.release_all()
+
+    port = env_find_free_network_port()
+
+    try:
+        assert port in manager._allocated_ports
+    finally:
+        manager.release_port(port)
+
+
 def test_port_allocation_simulates_distributed_test_lifecycle():
     """Simulate the lifecycle of a distributed test with port allocation and release."""
     manager = get_port_manager()
@@ -714,9 +736,14 @@ def test_port_manager_recently_released_prevents_immediate_reuse():
     manager.release_port(new_port)
 
 
-def test_port_manager_recently_released_queue_cycles():
+def _set_recently_released_limit(monkeypatch, value: int) -> None:
+    monkeypatch.setattr(port_manager_module, "_RECENTLY_RELEASED_PORTS_MAXLEN", value, raising=True)
+    monkeypatch.setattr(port_state_module, "_RECENTLY_RELEASED_MAX_LEN", value, raising=True)
+
+
+def test_port_manager_recently_released_queue_cycles(monkeypatch):
     """Test that recently_released queue cycles after maxlen allocations."""
-    from lightning.fabric.utilities.port_manager import _RECENTLY_RELEASED_PORTS_MAXLEN
+    _set_recently_released_limit(monkeypatch, 64)
 
     manager = PortManager()
 
@@ -727,8 +754,10 @@ def test_port_manager_recently_released_queue_cycles():
     # Port should be in recently_released queue
     assert first_port in manager._recently_released
 
+    queue_limit = port_manager_module._RECENTLY_RELEASED_PORTS_MAXLEN
+
     # Allocate and release many ports to fill the queue beyond maxlen
-    for _ in range(_RECENTLY_RELEASED_PORTS_MAXLEN + 10):
+    for _ in range(queue_limit + 10):
         port = manager.allocate_port()
         manager.release_port(port)
 
@@ -755,14 +784,20 @@ def test_port_manager_reserve_clears_recently_released():
     manager.release_port(port)
 
 
-def test_port_manager_high_queue_utilization_warning(caplog):
+def test_port_manager_high_queue_utilization_warning(monkeypatch, caplog):
     """Test that warning is logged when queue utilization exceeds 80%."""
     import logging
 
+    _set_recently_released_limit(monkeypatch, 64)
+
+    queue_limit = port_manager_module._RECENTLY_RELEASED_PORTS_MAXLEN
+    trigger_count = int(queue_limit * 0.8) + 1  # Just over 80%
+    expected_pct = (trigger_count / queue_limit) * 100
+
     manager = PortManager()
 
-    # Fill queue to >80% (821/1024 = 80.2%)
-    for _ in range(821):
+    # Fill queue to just over 80%
+    for _ in range(trigger_count):
         port = manager.allocate_port()
         manager.release_port(port)
 
@@ -773,4 +808,4 @@ def test_port_manager_high_queue_utilization_warning(caplog):
 
     # Verify warning was logged
     assert any("Port queue utilization high" in record.message for record in caplog.records)
-    assert any("80." in record.message for record in caplog.records)  # Should show 80.x%
+    assert any(f"{expected_pct:.1f}%" in record.message for record in caplog.records)

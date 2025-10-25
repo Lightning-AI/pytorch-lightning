@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pytest
 
+import lightning.fabric.utilities.port_manager as port_manager_module
 from lightning.fabric.utilities.file_lock import UnixFileLock, WindowsFileLock, create_file_lock
 from lightning.fabric.utilities.port_manager import PortManager, _get_lock_dir, _get_lock_file
 from lightning.fabric.utilities.port_state import PortAllocation, PortState
@@ -104,6 +105,43 @@ def test_file_lock_context_manager_timeout(tmpdir):
         pass
 
     lock1.release()
+
+
+def test_get_lock_dir_handles_permission_error(monkeypatch, tmp_path):
+    """_get_lock_dir should tolerate probe unlink permission errors and register cleanup."""
+
+    monkeypatch.setenv("LIGHTNING_PORT_LOCK_DIR", str(tmp_path))
+
+    registered_calls = []
+
+    def fake_register(func, *args, **kwargs):
+        registered_calls.append((func, args, kwargs))
+        return func
+
+    monkeypatch.setattr(port_manager_module.atexit, "register", fake_register)
+
+    original_unlink = Path.unlink
+    call_state = {"count": 0}
+
+    def fake_unlink(self, *args, **kwargs):
+        if self.name.startswith(".lightning_port_manager_write_test_") and call_state["count"] == 0:
+            call_state["count"] += 1
+            raise PermissionError("locked")
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fake_unlink)
+
+    lock_dir = _get_lock_dir()
+    assert Path(lock_dir) == tmp_path
+    assert registered_calls, "Cleanup should be registered when unlink fails"
+
+    cleanup_func, args, kwargs = registered_calls[0]
+    probe_path = args[0]
+    assert isinstance(probe_path, Path)
+    assert probe_path.exists()
+
+    cleanup_func(*args, **kwargs)
+    assert not probe_path.exists()
 
 
 # =============================================================================

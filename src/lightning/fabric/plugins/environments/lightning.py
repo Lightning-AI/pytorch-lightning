@@ -17,7 +17,12 @@ import os
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.utilities.port_manager import get_port_manager
+from lightning.fabric.utilities.port_manager import (
+    find_free_network_port as _pm_find_free_network_port,
+)
+from lightning.fabric.utilities.port_manager import (
+    get_port_manager,
+)
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 
@@ -64,7 +69,7 @@ class LightningEnvironment(ClusterEnvironment):
     def main_port(self) -> int:
         if self._main_port == -1:
             self._main_port = (
-                int(os.environ["MASTER_PORT"]) if "MASTER_PORT" in os.environ else find_free_network_port()
+                int(os.environ["MASTER_PORT"]) if "MASTER_PORT" in os.environ else _pm_find_free_network_port()
             )
         return self._main_port
 
@@ -115,27 +120,8 @@ class LightningEnvironment(ClusterEnvironment):
 def find_free_network_port() -> int:
     """Finds a free port on localhost.
 
-    It is useful in single-node training when we don't want to connect to a real main node but have to set the
-    `MASTER_PORT` environment variable.
-
-    The allocated port is reserved and won't be returned by subsequent calls until it's explicitly released.
-
-    Returns:
-        A port number that is reserved and free at the time of allocation
+    Deprecated alias. Use :func:`lightning.fabric.utilities.port_manager.find_free_network_port` instead.
 
     """
-    # If an external launcher already specified a MASTER_PORT (for example, torch.distributed.spawn or
-    # multiprocessing helpers), reserve it through the port manager so no other test reuses the same number.
-    if "MASTER_PORT" in os.environ:
-        master_port_str = os.environ["MASTER_PORT"]
-        try:
-            existing_port = int(master_port_str)
-        except ValueError:
-            pass
-        else:
-            port_manager = get_port_manager()
-            if port_manager.reserve_existing_port(existing_port):
-                return existing_port
 
-    port_manager = get_port_manager()
-    return port_manager.allocate_port()
+    return _pm_find_free_network_port()

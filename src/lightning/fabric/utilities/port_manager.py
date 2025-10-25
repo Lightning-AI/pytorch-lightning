@@ -233,8 +233,9 @@ class PortManager:
 
                     queue_count = len(state.recently_released)
                     if queue_count > 800:  # >78% of typical 1024 capacity
+                        utilization_pct = (queue_count / _RECENTLY_RELEASED_PORTS_MAXLEN) * 100
                         log.warning(
-                            f"Port queue utilization high: {queue_count} entries. "
+                            f"Port queue utilization high: {queue_count} entries ({utilization_pct:.1f}% of capacity). "
                             f"Allocated port {port}. Active allocations: {len(state.allocated_ports)}"
                         )
 
@@ -550,3 +551,26 @@ def get_port_manager() -> PortManager:
             if _port_manager is None:
                 _port_manager = PortManager()
     return _port_manager
+
+
+def find_free_network_port() -> int:
+    """Find and reserve a free network port using the global port manager.
+
+    Returns:
+        A port number that is reserved and free at the time of allocation.
+
+    """
+
+    if "MASTER_PORT" in os.environ:
+        master_port_str = os.environ["MASTER_PORT"]
+        try:
+            existing_port = int(master_port_str)
+        except ValueError:
+            pass
+        else:
+            port_manager = get_port_manager()
+            if port_manager.reserve_existing_port(existing_port):
+                return existing_port
+
+    port_manager = get_port_manager()
+    return port_manager.allocate_port()
