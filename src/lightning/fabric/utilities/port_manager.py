@@ -24,7 +24,8 @@ from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
-from typing import Optional
+from types import TracebackType
+from typing import Literal, Optional
 
 from lightning.fabric.utilities.file_lock import create_file_lock
 from lightning.fabric.utilities.port_state import PortState
@@ -76,9 +77,14 @@ def _get_lock_dir() -> Path:
         except OSError as e:
             log.debug(f"Port manager probe file removal failed with {e}; scheduling cleanup")
 
-    atexit.register(lambda p=test_file: p.unlink(missing_ok=True))
+    atexit.register(_cleanup_probe_file, test_file)
 
     return lock_path
+
+
+def _cleanup_probe_file(path: Path) -> None:
+    """Best-effort removal of a temporary probe file at exit."""
+    path.unlink(missing_ok=True)
 
 
 def _get_lock_file() -> Path:
@@ -218,38 +224,13 @@ class PortManager:
         with self._lock:  # Thread-safety
             try:
                 with self._file_lock:  # Process-safety
-                    # Read current state from file
                     state = self._read_state()
-
-                    # Try preferred port if specified
-                    if preferred_port is not None and self._is_port_available(preferred_port, state):
-                        port = preferred_port
-                    else:
-                        # Find a free port
-                        port = None
-                        for _ in range(max_attempts):
-                            candidate = self._find_free_port()
-                            if self._is_port_available(candidate, state):
-                                port = candidate
-                                break
-
-                        if port is None:
-                            # Provide detailed diagnostics
-                            allocated_count = len(state.allocated_ports)
-                            queue_count = len(state.recently_released)
-                            raise RuntimeError(
-                                f"Failed to allocate a free port after {max_attempts} attempts. "
-                                f"Diagnostics: allocated={allocated_count}, recently_released={queue_count}"
-                            )
-
-                    # Allocate in shared state
+                    port = self._select_port(state, preferred_port, max_attempts)
                     state.allocate_port(port, pid=os.getpid())
                     self._write_state(state)
 
-                    # Update in-memory cache
                     self._allocated_ports.add(port)
 
-                    # Log diagnostics if queue utilization is high
                     queue_count = len(state.recently_released)
                     if queue_count > 800:  # >78% of typical 1024 capacity
                         log.warning(
@@ -261,7 +242,6 @@ class PortManager:
                     return port
 
             except TimeoutError as e:
-                # File lock timeout - fail fast to prevent state divergence
                 log.error(
                     "Failed to acquire file lock for port allocation. "
                     "Remediation: (1) Retry the operation after a short delay, "
@@ -273,6 +253,30 @@ class PortManager:
                     "This prevents process-safe coordination. "
                     "Check if another process is holding the lock or if the lock file is inaccessible."
                 ) from e
+
+        raise RuntimeError("Unexpected error allocating port")
+
+    def _select_port(
+        self,
+        state: PortState,
+        preferred_port: Optional[int],
+        max_attempts: int,
+    ) -> int:
+        """Choose an available port based on preference and state."""
+        if preferred_port is not None and self._is_port_available(preferred_port, state):
+            return preferred_port
+
+        for _ in range(max_attempts):
+            candidate = self._find_free_port()
+            if self._is_port_available(candidate, state):
+                return candidate
+
+        allocated_count = len(state.allocated_ports)
+        queue_count = len(state.recently_released)
+        raise RuntimeError(
+            f"Failed to allocate a free port after {max_attempts} attempts. "
+            f"Diagnostics: allocated={allocated_count}, recently_released={queue_count}"
+        )
 
     def _is_port_available(self, port: int, state: PortState) -> bool:
         """Check if a port is available for allocation.
@@ -480,7 +484,12 @@ class PortManager:
         """
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Literal[False]:
         """Exit context manager - cleanup ports from this process."""
         self.release_all()
         return False  # Don't suppress exceptions

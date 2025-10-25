@@ -27,6 +27,9 @@ _STALE_PORT_AGE_SECONDS = 7200
 # Maximum age for recently released entries (2 hours)
 _RECENTLY_RELEASED_MAX_AGE_SECONDS = 7200
 
+# Maximum number of recently released entries to retain
+_RECENTLY_RELEASED_MAX_LEN = 1024
+
 
 @dataclass
 class PortAllocation:
@@ -179,6 +182,7 @@ class PortState:
                 pid=allocation.pid,
             )
             self.recently_released.append(entry)
+            self._trim_recently_released()
             # Remove from allocated
             del self.allocated_ports[port_str]
 
@@ -239,6 +243,9 @@ class PortState:
         # Clean up stale recently released entries
         original_count = len(self.recently_released)
         self.recently_released = [entry for entry in self.recently_released if not entry.is_stale(current_time)]
+        if len(self.recently_released) > _RECENTLY_RELEASED_MAX_LEN:
+            # Keep only the most recent entries if stale cleanup still exceeds max length
+            self.recently_released = self.recently_released[-_RECENTLY_RELEASED_MAX_LEN:]
         stale_count += original_count - len(self.recently_released)
 
         return stale_count
@@ -288,11 +295,21 @@ class PortState:
             RecentlyReleasedEntry.from_dict(entry_data) for entry_data in data.get("recently_released", [])
         ]
 
-        return cls(
+        state = cls(
             version=data.get("version", "1.0"),
             allocated_ports=allocated_ports,
             recently_released=recently_released,
         )
+
+        state._trim_recently_released()
+        return state
+
+    def _trim_recently_released(self) -> None:
+        """Ensure recently released queue stays within configured bound."""
+        if len(self.recently_released) > _RECENTLY_RELEASED_MAX_LEN:
+            excess = len(self.recently_released) - _RECENTLY_RELEASED_MAX_LEN
+            # Remove the oldest entries (front of the list)
+            self.recently_released = self.recently_released[excess:]
 
 
 def _is_pid_alive(pid: int) -> bool:

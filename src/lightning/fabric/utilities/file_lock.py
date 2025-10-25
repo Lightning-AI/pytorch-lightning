@@ -20,7 +20,8 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import suppress
 from pathlib import Path
-from typing import Optional
+from types import TracebackType
+from typing import Literal, Optional
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +76,12 @@ class FileLock(ABC):
             raise TimeoutError(f"Failed to acquire lock on {self._lock_file} within timeout")
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Literal[False]:
         """Exit context manager - release lock."""
         self.release()
         return False  # Don't suppress exceptions
