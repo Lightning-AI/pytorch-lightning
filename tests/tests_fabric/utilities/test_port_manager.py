@@ -784,9 +784,10 @@ def test_port_manager_reserve_clears_recently_released():
     manager.release_port(port)
 
 
-def test_port_manager_high_queue_utilization_warning(monkeypatch, caplog):
+def test_port_manager_high_queue_utilization_warning(monkeypatch, caplog, tmpdir):
     """Test that warning is logged when queue utilization exceeds 80%."""
     import logging
+    from pathlib import Path
 
     _set_recently_released_limit(monkeypatch, 64)
 
@@ -794,7 +795,10 @@ def test_port_manager_high_queue_utilization_warning(monkeypatch, caplog):
     trigger_count = int(queue_limit * 0.8) + 1  # Just over 80%
     expected_pct = (trigger_count / queue_limit) * 100
 
-    manager = PortManager()
+    # Use isolated state to avoid contamination from other tests
+    lock_file = Path(tmpdir) / "test.lock"
+    state_file = Path(tmpdir) / "test_state.json"
+    manager = PortManager(lock_file=lock_file, state_file=state_file)
 
     # Fill queue to just over 80%
     for _ in range(trigger_count):

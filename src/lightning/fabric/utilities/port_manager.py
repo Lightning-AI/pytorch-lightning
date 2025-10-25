@@ -231,8 +231,10 @@ class PortManager:
 
                     self._allocated_ports.add(port)
 
+                    # Log diagnostics if queue utilization is high (>78%)
                     queue_count = len(state.recently_released)
-                    if queue_count > 800:  # >78% of typical 1024 capacity
+                    threshold = int(_RECENTLY_RELEASED_PORTS_MAXLEN * 0.78)
+                    if queue_count > threshold:
                         utilization_pct = (queue_count / _RECENTLY_RELEASED_PORTS_MAXLEN) * 100
                         log.warning(
                             f"Port queue utilization high: {queue_count} entries ({utilization_pct:.1f}% of capacity). "
