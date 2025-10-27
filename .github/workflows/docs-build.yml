@@ -171,7 +171,7 @@ jobs:
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
