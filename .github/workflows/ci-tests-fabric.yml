@@ -130,15 +130,6 @@ jobs:
             --find-links="${TORCH_URL}"
           uv pip list
 
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
-
       - name: Adjust tests
         if: ${{ matrix.config.pkg-name != 'lightning' }}
         run: |
