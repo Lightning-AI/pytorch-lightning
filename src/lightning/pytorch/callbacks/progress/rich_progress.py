@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+import time
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
+from threading import Event, Thread
 from typing import Any, Optional, Union, cast
 
 import torch
@@ -22,6 +24,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -29,6 +32,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
     from rich.console import Console, RenderableType
+    from rich.live import Live
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar as _RichProgressBar
     from rich.style import Style
@@ -66,8 +70,45 @@ if _RICH_AVAILABLE:
         def time_remaining(self) -> Optional[float]:
             return None
 
+    class _RefreshThread(Thread):
+        def __init__(
+            self,
+            live: Live,
+        ) -> None:
+            self.live = live
+            self.refresh_cond = False
+            self.done = Event()
+            super().__init__(daemon=True)
+
+        def run(self) -> None:
+            while not self.done.is_set():
+                if self.refresh_cond:
+                    with self.live._lock:
+                        self.live.refresh()
+                    self.refresh_cond = False
+                time.sleep(0.001)
+
+        def stop(self) -> None:
+            self.done.set()
+
     class CustomProgress(Progress):
         """Overrides ``Progress`` to support adding tasks that have an infinite total size."""
+
+        def start(self) -> None:
+            if self.live.auto_refresh:
+                self.live._refresh_thread = _RefreshThread(self.live)
+                self.live.auto_refresh = False
+            super().start()
+            if self.live._refresh_thread:
+                self.live.auto_refresh = True
+                self.live._refresh_thread.start()
+
+        def refresh(self) -> None:
+            if self.live.auto_refresh:
+                self.live._refresh_thread.refresh_cond = True
+            if _IS_INTERACTIVE:
+                return super().refresh()
+            return None
 
         def add_task(
             self,
@@ -356,7 +397,7 @@ class RichProgressBar(ProgressBar):
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
                 self._metric_component,
-                auto_refresh=False,
+                auto_refresh=True,
                 disable=self.is_disabled,
                 console=self._console,
             )
