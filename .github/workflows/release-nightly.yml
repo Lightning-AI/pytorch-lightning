@@ -54,7 +54,7 @@ jobs:
       PKG_NAME: "lightning"
     steps:
       - uses: actions/checkout@v5 # needed to use local composite action
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: nightly-packages-${{ github.sha }}
           path: dist
