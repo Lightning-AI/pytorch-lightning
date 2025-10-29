@@ -448,3 +448,50 @@ def test_incorrect_ddp_script_spawning(tmp_path):
         RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
     ):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+@pytest.mark.parametrize("automatic_optimization", [True, False])
+@pytest.mark.parametrize("static_graph", [True, False])
+def test_ddp_gradients_synced(tmp_path, automatic_optimization, static_graph):
+    """Ensure gradients are synchronized across ranks for both optimization modes and static_graph settings."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = automatic_optimization
+
+        def training_step(self, batch, batch_idx):
+            if self.automatic_optimization:
+                return super().training_step(batch, batch_idx)
+
+            # manual optimization path
+            opt = self.optimizers()
+            opt.zero_grad()
+            out = super().training_step(batch, batch_idx)
+            loss = out["loss"]
+            self.manual_backward(loss)
+            opt.step()
+            return out
+
+        def on_train_batch_end(self, *args, **kwargs):
+            # record grad sum for sync check
+            grad_sum = self.layer.bias.grad.detach().sum()
+            self.log("grad_sum_min", grad_sum, sync_dist=True, reduce_fx="min")
+            self.log("grad_sum_max", grad_sum, sync_dist=True, reduce_fx="max")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPStrategy(static_graph=static_graph),
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(TestModel(), datamodule=BoringDataModule())
+
+    # assert all ranks saw identical grads
+    gmin = trainer.callback_metrics["grad_sum_min"]
+    gmax = trainer.callback_metrics["grad_sum_max"]
+    assert torch.allclose(gmin, gmax)
