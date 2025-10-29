@@ -397,6 +397,7 @@ class CometLogger(Logger):
         # Don't create an experiment if we don't have one
         if self._experiment is not None:
             return self._experiment.get_key()
+        return None
 
     def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()

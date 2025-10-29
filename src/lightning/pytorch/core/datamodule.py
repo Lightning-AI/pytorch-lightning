@@ -315,5 +315,4 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         # Retrieve information for each dataloader method
         dataloader_info = extract_loader_info(datamodule_loader_methods)
         # Format the information
-        dataloader_str = format_loader_info(dataloader_info)
-        return dataloader_str
+        return format_loader_info(dataloader_info)
