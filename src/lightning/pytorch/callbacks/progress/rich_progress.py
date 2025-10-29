@@ -103,6 +103,14 @@ if _RICH_AVAILABLE:
                 self.live.auto_refresh = True
                 self.live._refresh_thread.start()
 
+        def stop(self) -> None:
+            refresh_thread = self.live._refresh_thread
+            self.live.auto_refresh = refresh_thread is not None
+            super().stop()
+            if refresh_thread:
+                refresh_thread.stop()
+                refresh_thread.join()
+
         def refresh(self) -> None:
             if self.live.auto_refresh:
                 self.live._refresh_thread.refresh_cond = True

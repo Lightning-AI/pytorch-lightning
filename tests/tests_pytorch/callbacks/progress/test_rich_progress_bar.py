@@ -131,6 +131,8 @@ def test_rich_progress_bar_custom_theme():
         _, kwargs = mocks["ProcessingSpeedColumn"].call_args
         assert kwargs["style"] == theme.processing_speed
 
+        progress_bar.progress.live._refresh_thread.stop()
+
 
 @RunIf(rich=True)
 def test_rich_progress_bar_keyboard_interrupt(tmp_path):
@@ -175,6 +177,8 @@ def test_rich_progress_bar_configure_columns():
 
     assert progress_bar.progress.columns[0] == custom_column
     assert len(progress_bar.progress.columns) == 2
+
+    progress_bar.progress.stop()
 
 
 @RunIf(rich=True)
