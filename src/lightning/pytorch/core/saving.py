@@ -56,11 +56,13 @@ def _load_from_checkpoint(
     map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
+    weights_only: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     map_location = map_location or _default_map_location
+
     with pl_legacy_patch():
-        checkpoint = pl_load(checkpoint_path, map_location=map_location)
+        checkpoint = pl_load(checkpoint_path, map_location=map_location, weights_only=weights_only)
 
     # convert legacy checkpoints to the new format
     checkpoint = _pl_migrate_checkpoint(

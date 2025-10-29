@@ -473,6 +473,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -498,7 +499,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
-            return super().load_checkpoint(path=path, state=state, strict=strict)
+            return super().load_checkpoint(path=path, state=state, strict=strict, weights_only=weights_only)
 
         if not state:
             raise ValueError(
