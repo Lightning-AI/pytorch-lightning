@@ -132,6 +132,7 @@ def test_rich_progress_bar_custom_theme():
         assert kwargs["style"] == theme.processing_speed
 
         progress_bar.progress.live._refresh_thread.stop()
+        progress_bar.progress.live._refresh_thread.join()
 
 
 @RunIf(rich=True)
