@@ -40,7 +40,7 @@ jobs:
           nb-dirs: ${{ env.NB_DIRS }}
           allow-local-changes: "true"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: nightly-packages-${{ github.sha }}
           path: dist

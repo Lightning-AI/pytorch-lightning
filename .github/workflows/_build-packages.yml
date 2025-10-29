@@ -41,7 +41,7 @@ jobs:
           mkdir -p pypi/${{ matrix.pkg-name }}
           cp dist/* pypi/${{ matrix.pkg-name }}/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
           path: pypi
@@ -62,7 +62,7 @@ jobs:
 
       - name: Keep artifact
         run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
