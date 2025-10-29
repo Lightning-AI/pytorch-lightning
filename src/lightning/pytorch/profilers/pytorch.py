@@ -282,7 +282,8 @@ class PyTorchProfiler(Profiler):
 
             table_kwargs: Dictionary with keyword arguments for the summary table.
 
-            \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
+            \**profiler_kwargs: Keyword arguments for the :class:`Pytorch profiler <torch.profiler.profile>`.
+                The exact available options depend on your PyTorch version.
 
         Raises:
             MisconfigurationException:
