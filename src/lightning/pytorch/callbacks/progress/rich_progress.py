@@ -111,12 +111,9 @@ if _RICH_AVAILABLE:
                 refresh_thread.stop()
                 refresh_thread.join()
 
-        def refresh(self) -> None:
+        def soft_refresh(self) -> None:
             if self.live.auto_refresh:
                 self.live._refresh_thread.refresh_cond = True
-            if _IS_INTERACTIVE:
-                return super().refresh()
-            return None
 
         def add_task(
             self,
@@ -413,9 +410,12 @@ class RichProgressBar(ProgressBar):
             # progress has started
             self._progress_stopped = False
 
-    def refresh(self) -> None:
+    def refresh(self, hard=False) -> None:
         if self.progress:
-            self.progress.refresh()
+            if hard or _IS_INTERACTIVE:
+                self.progress.refresh()
+            else:
+                self.progress.soft_refresh()
 
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
