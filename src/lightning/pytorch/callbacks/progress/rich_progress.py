@@ -86,7 +86,7 @@ if _RICH_AVAILABLE:
                     with self.live._lock:
                         self.live.refresh()
                     self.refresh_cond = False
-                time.sleep(0.001)
+                time.sleep(0.005)
 
         def stop(self) -> None:
             self.done.set()
