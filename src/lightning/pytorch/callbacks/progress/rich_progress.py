@@ -16,7 +16,6 @@ import time
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
-from threading import Event, Thread
 from typing import Any, Optional, Union, cast
 
 import torch
@@ -32,7 +31,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
     from rich.console import Console, RenderableType
-    from rich.live import Live
+    from rich.live import _RefreshThread as _RichRefreshThread
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar as _RichProgressBar
     from rich.style import Style
@@ -70,15 +69,10 @@ if _RICH_AVAILABLE:
         def time_remaining(self) -> Optional[float]:
             return None
 
-    class _RefreshThread(Thread):
-        def __init__(
-            self,
-            live: Live,
-        ) -> None:
-            self.live = live
+    class _RefreshThread(_RichRefreshThread):
+        def __init__(self, *args, **kwargs) -> None:
             self.refresh_cond = False
-            self.done = Event()
-            super().__init__(daemon=True)
+            super().__init__(*args, **kwargs)
 
         def run(self) -> None:
             while not self.done.is_set():
@@ -88,15 +82,19 @@ if _RICH_AVAILABLE:
                     self.refresh_cond = False
                 time.sleep(0.005)
 
-        def stop(self) -> None:
-            self.done.set()
-
     class CustomProgress(Progress):
         """Overrides ``Progress`` to support adding tasks that have an infinite total size."""
 
         def start(self) -> None:
+            """Starts the progress display.
+
+            Notes
+            -----
+                This override is needed to support the custom refresh thread.
+
+            """
             if self.live.auto_refresh:
-                self.live._refresh_thread = _RefreshThread(self.live)
+                self.live._refresh_thread = _RefreshThread(self.live, self.live.refresh_per_second)
                 self.live.auto_refresh = False
             super().start()
             if self.live._refresh_thread:
@@ -105,7 +103,6 @@ if _RICH_AVAILABLE:
 
         def stop(self) -> None:
             refresh_thread = self.live._refresh_thread
-            self.live.auto_refresh = refresh_thread is not None
             super().stop()
             if refresh_thread:
                 refresh_thread.stop()
