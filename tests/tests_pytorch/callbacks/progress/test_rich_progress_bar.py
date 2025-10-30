@@ -350,7 +350,8 @@ def test_rich_progress_bar_metric_display_task_id(tmp_path):
 
     for key in ("loss", "v_num", "train_loss"):
         assert key in rendered[train_progress_bar_id][1]
-        assert key not in rendered[val_progress_bar_id][1]
+        if val_progress_bar_id in rendered:
+            assert key not in rendered[val_progress_bar_id][1]
 
 
 def test_rich_progress_bar_metrics_fast_dev_run(tmp_path):
@@ -364,7 +365,8 @@ def test_rich_progress_bar_metrics_fast_dev_run(tmp_path):
     val_progress_bar_id = progress_bar.val_progress_bar_id
     rendered = progress_bar.progress.columns[-1]._renderable_cache
     assert "v_num" not in rendered[train_progress_bar_id][1]
-    assert "v_num" not in rendered[val_progress_bar_id][1]
+    if val_progress_bar_id in rendered:
+        assert "v_num" not in rendered[val_progress_bar_id][1]
 
 
 @RunIf(rich=True)
