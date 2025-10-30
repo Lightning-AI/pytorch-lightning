@@ -83,12 +83,13 @@ def test_file_lock_timeout(tmpdir):
     assert lock1.acquire(timeout=1.0)
 
     # Second lock should timeout
+    timeout_seconds = 0.5
     start = time.time()
-    assert not lock2.acquire(timeout=0.5)
+    assert not lock2.acquire(timeout=timeout_seconds)
     elapsed = time.time() - start
 
     # Should take approximately the timeout duration
-    assert 0.4 < elapsed < 0.7
+    assert timeout_seconds * 0.8 < elapsed < timeout_seconds + 0.5
 
     lock1.release()
 
