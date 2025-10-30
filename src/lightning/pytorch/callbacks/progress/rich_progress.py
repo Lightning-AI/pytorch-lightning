@@ -70,7 +70,7 @@ if _RICH_AVAILABLE:
             return None
 
     class _RefreshThread(_RichRefreshThread):
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             self.refresh_cond = False
             super().__init__(*args, **kwargs)
 
@@ -407,7 +407,7 @@ class RichProgressBar(ProgressBar):
             # progress has started
             self._progress_stopped = False
 
-    def refresh(self, hard=False) -> None:
+    def refresh(self, hard: bool = False) -> None:
         if self.progress:
             if hard or _IS_INTERACTIVE:
                 self.progress.refresh()
