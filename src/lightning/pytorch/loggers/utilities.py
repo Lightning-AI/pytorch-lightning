@@ -253,7 +253,7 @@ class _ListMap(list[_T]):
         new_listmap += other
         return new_listmap
 
-    def __iadd__(self, other: Union[list[_T], Self]) -> Self:
+    def __iadd__(self, other: Iterable[_T]) -> Self:
         if isinstance(other, _ListMap):
             offset = len(self)
             for key, idx in other._dict.items():
@@ -268,7 +268,7 @@ class _ListMap(list[_T]):
     @overload
     def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Union[SupportsIndex, str, slice], value: Union[_T, Iterable[_T]], /) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
             return super().__setitem__(key, value)
@@ -325,7 +325,7 @@ class _ListMap(list[_T]):
     @overload
     def get(self, __key: str, default: _PT) -> Union[_T, _PT]: ...
 
-    def get(self, __key, default=None):
+    def get(self, __key: str, default: Optional[_PT] = None) -> Optional[Union[_T, _PT]]:
         if __key in self._dict:
             return self[self._dict[__key]]
         return default
@@ -337,8 +337,8 @@ class _ListMap(list[_T]):
     def reverse(self) -> None:
         for key, idx in self._dict.items():
             self._dict[key] = len(self) - 1 - idx
-        list.reverse(self)
+        return super().reverse()
 
     def clear(self) -> None:
         self._dict.clear()
-        list.clear(self)
+        return super().clear()
