@@ -282,8 +282,9 @@ class TQDMProgressBar(ProgressBar):
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        metrics = self.get_metrics(trainer, pl_module)
         if not self.train_progress_bar.disable:
-            self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
+            self.train_progress_bar.set_postfix(metrics)
         if self._leave:
             self.train_progress_bar.close()
 

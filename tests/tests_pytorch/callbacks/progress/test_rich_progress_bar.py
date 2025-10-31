@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
 import pickle
 from collections import defaultdict
 from unittest import mock
-from unittest.mock import DEFAULT, Mock
+from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 from tests_pytorch.helpers.runif import RunIf
@@ -26,6 +27,7 @@ from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTh
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.logger import DummyLogger
+from lightning.pytorch.strategies import DDPStrategy
 
 
 @RunIf(rich=True)
@@ -605,3 +607,55 @@ def test_rich_progress_bar_empty_val_dataloader_model(tmp_path):
 
     # This should not raise an AssertionError
     trainer.fit(model)
+
+
+def test_rich_progress_bar_ddp_deadlock(tmp_path):
+    """Tests that RichProgressBar doesn't deadlock when using DDP on train epoch end.
+
+    We used to have a bug where metrics were synced only on the rank 0 process. See
+    https://github.com/Lightning-AI/pytorch-lightning/issues/21264
+    for more details.
+
+    """
+    RichProgressBar()
+
+    # We need a LightningModule that logs a metric with on_epoch=True, sync_dist=True
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)["loss"]
+            self.log("loss", loss, on_step=False, on_epoch=True, sync_dist=True)
+            return {"loss": loss}
+
+    model = MyModel()
+
+    # We need to mock these logger connector hooks, since these also attempt to sync metrics
+    # and can "save" otherwise incorrect implementations of TQDMProgressBar.on_train_epoch_end.
+    def mock_on_epoch_end(self):
+        pass
+
+    def mock_update_train_epoch_metrics(self):
+        pass
+
+    with (
+        patch("lightning.pytorch.trainer.connectors.logger_connector._LoggerConnector.on_epoch_end", mock_on_epoch_end),
+        patch(
+            "lightning.pytorch.trainer.connectors.logger_connector._LoggerConnector.update_train_epoch_metrics",
+            mock_update_train_epoch_metrics,
+        ),
+    ):
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            num_sanity_val_steps=0,
+            max_epochs=1,
+            val_check_interval=1,
+            accelerator="cpu",
+            devices=2,
+            strategy=DDPStrategy(
+                process_group_backend="gloo",  # run on CPU
+                timeout=datetime.timedelta(seconds=5),  # timeout quickly for the test to fail
+            ),
+            enable_progress_bar=True,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+        )
+        trainer.fit(model)
