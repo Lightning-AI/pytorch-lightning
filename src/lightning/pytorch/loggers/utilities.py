@@ -250,12 +250,12 @@ class _ListMap(list[_T]):
             return self[self._dict[key]]
         return super().__getitem__(key)
 
-    def __add__(self, other: Union[list[_T], "_ListMap[_T]"]) -> "_ListMap[_T]":
+    def __add__(self, other: Union[list[_T], "_ListMap[_T]"]) -> "_ListMap[_T]":  # type: ignore[override]
         new_listmap = self.copy()
         new_listmap += other
         return new_listmap
 
-    def __iadd__(self, other: Iterable[_T]) -> Self:
+    def __iadd__(self, other: Iterable[_T]) -> Self:  # type: ignore[override]
         if isinstance(other, _ListMap):
             offset = len(self)
             for key, idx in other._dict.items():
