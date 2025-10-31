@@ -109,7 +109,7 @@ if _RICH_AVAILABLE:
                 refresh_thread.join()
 
         def soft_refresh(self) -> None:
-            if self.live.auto_refresh:
+            if self.live.auto_refresh and isinstance(self.live._refresh_thread, _RefreshThread):
                 self.live._refresh_thread.refresh_cond = True
 
         def add_task(
