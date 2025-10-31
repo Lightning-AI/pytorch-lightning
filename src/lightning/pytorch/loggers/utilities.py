@@ -245,10 +245,10 @@ class _ListMap(list[_T]):
     @overload
     def __getitem__(self, key: slice, /) -> list[_T]: ...
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[SupportsIndex, str, slice], /) -> Union[_T, list[_T]]:
         if isinstance(key, str):
             return self[self._dict[key]]
-        return list.__getitem__(self, key)
+        return super().__getitem__(key)
 
     def __add__(self, other: Union[list[_T], "_ListMap[_T]"]) -> "_ListMap[_T]":
         new_listmap = self.copy()
@@ -270,7 +270,7 @@ class _ListMap(list[_T]):
     @overload
     def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
 
-    def __setitem__(self, key: Union[SupportsIndex, str, slice], value: Union[_T, Iterable[_T]], /) -> None:
+    def __setitem__(self, key: Union[SupportsIndex, str, slice], value: Any, /) -> None:
         if isinstance(key, (int, slice)):
             # replace element by index
             return super().__setitem__(key, value)
