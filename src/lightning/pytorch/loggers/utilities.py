@@ -149,11 +149,11 @@ class _ListMap(list[_T]):
             super().__init__(__iterable.values())
             _dict = dict(zip(__iterable.keys(), range(len(__iterable))))
         else:
-            default_dict = {}
+            default_dict: dict[str, int] = {}
             if isinstance(__iterable, _ListMap):
                 default_dict = __iterable._dict.copy()
             super().__init__(() if __iterable is None else __iterable)
-            _dict: dict = default_dict
+            _dict = default_dict
         self._dict = _dict
 
     def __eq__(self, other: Any) -> bool:
@@ -183,7 +183,7 @@ class _ListMap(list[_T]):
     @overload
     def pop(self, key: str, default: _PT, /) -> Union[_T, _PT]: ...
 
-    def pop(self, key=-1, default=None):
+    def pop(self, key: int = -1, default: Optional = None) -> _T:
         if isinstance(key, int):
             ret = super().pop(key)
             for str_key, idx in list(self._dict.items()):
