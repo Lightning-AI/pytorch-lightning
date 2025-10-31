@@ -140,8 +140,9 @@ class _ListMap(list[_T]):
 
     """
 
+    _dict: dict[str, int]
+
     def __init__(self, __iterable: Optional[Union[Mapping[str, _T], Iterable[_T]]] = None):
-        _dict: dict[str, int]
         if isinstance(__iterable, Mapping):
             # super inits list with values
             if any(not isinstance(x, str) for x in __iterable):
@@ -183,7 +184,7 @@ class _ListMap(list[_T]):
     @overload
     def pop(self, key: str, default: _PT, /) -> Union[_T, _PT]: ...
 
-    def pop(self, key: int = -1, default: Optional = None) -> _T:
+    def pop(self, key: Union[SupportsIndex, str] = -1, default: Any = None) -> _T:
         if isinstance(key, int):
             ret = super().pop(key)
             for str_key, idx in list(self._dict.items()):
@@ -199,10 +200,11 @@ class _ListMap(list[_T]):
         raise TypeError("Key must be int or str")
 
     def insert(self, index: SupportsIndex, __object: _T) -> None:
+        idx_int = int(index)
         for key, idx in self._dict.items():
-            if idx >= index:
+            if idx >= idx_int:
                 self._dict[key] = idx + 1
-        super().insert(index, __object)
+        return super().insert(index, __object)
 
     def remove(self, __object: _T) -> None:
         idx = self.index(__object)
@@ -275,7 +277,7 @@ class _ListMap(list[_T]):
         if isinstance(key, str):
             # replace or insert by name
             if key in self._dict:
-                super().__setitem__(self._dict[key], value)
+                self[self._dict[key]] = value
             else:
                 self.append(value)
                 self._dict[key] = len(self) - 1
