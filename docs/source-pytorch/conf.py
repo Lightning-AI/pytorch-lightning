@@ -430,6 +430,7 @@ nitpick_ignore = [
     ("py:func", "lightning.pytorch.callbacks.RichProgressBar.configure_columns"),
     ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint"),
     ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint"),
+    ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_checkpoint_write_end"),
     ("py:class", "lightning.pytorch.callbacks.checkpoint.Checkpoint"),
     ("py:meth", "lightning.pytorch.callbacks.progress.progress_bar.ProgressBar.get_metrics"),
     ("py:class", "lightning.pytorch.callbacks.progress.rich_progress.RichProgressBarTheme"),

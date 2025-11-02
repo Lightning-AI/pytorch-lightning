@@ -1413,6 +1413,8 @@ class Trainer:
             self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
             self.strategy.barrier("Trainer.save_checkpoint")
 
+        call._call_callbacks_on_checkpoint_write_end(self, filepath)
+
     """
     State properties
     """

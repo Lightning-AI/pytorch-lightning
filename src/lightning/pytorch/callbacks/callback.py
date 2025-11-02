@@ -271,6 +271,18 @@ class Callback:
 
         """
 
+    def on_checkpoint_write_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", filepath: str) -> None:
+        r"""Called after a checkpoint file has been fully written to disk.
+
+        Use this hook to perform any post-save actions such as logging, uploading, or cleanup.
+
+        Args:
+            trainer: the current :class:`~pytorch_lightning.trainer.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.LightningModule` instance.
+            filepath: The path to the checkpoint file that was written.
+
+        """
+
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: Tensor) -> None:
         """Called before ``loss.backward()``."""
 

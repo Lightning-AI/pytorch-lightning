@@ -54,6 +54,7 @@ def test_fx_validator():
         "on_sanity_check_start",
         "state_dict",
         "on_save_checkpoint",
+        "on_checkpoint_write_end",
         "on_test_batch_end",
         "on_test_batch_start",
         "on_test_end",

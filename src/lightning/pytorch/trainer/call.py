@@ -295,6 +295,29 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: dict[s
         pl_module._current_fx_name = prev_fx_name
 
 
+def _call_callbacks_on_checkpoint_write_end(trainer: "pl.Trainer", filepath: str) -> None:
+    """Called after a checkpoint file is written, calls every callback's `on_checkpoint_write_end` hook."""
+
+    pl_module = trainer.lightning_module
+    if pl_module:
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = "on_checkpoint_write_end"
+
+    for callback in trainer.callbacks:
+        try:
+            with trainer.profiler.profile(f"[Callback]{callback.state_key}.on_checkpoint_write_end"):
+                callback.on_checkpoint_write_end(trainer, trainer.lightning_module, filepath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            rank_zero_warn(
+                f"Exception raised in `on_checkpoint_write_end` of callback `{callback.__class__.__name__}`: {e}",
+            )
+
+    if pl_module:
+        pl_module._current_fx_name = prev_fx_name
+
+
 def _call_callbacks_load_state_dict(trainer: "pl.Trainer", checkpoint: dict[str, Any]) -> None:
     """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
     callback_states: Optional[dict[Union[type, str], dict]] = checkpoint.get("callbacks")
