@@ -418,4 +418,4 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
         if is_port_error and not hasattr(item, "_port_conflict_retried"):
             setattr(item, "_port_conflict_retried", True)
             # Mark test for automatic retry with small delay
-            item.add_marker(pytest.mark.flaky(reruns=2, reruns_delay=0.5))
+            item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=30))
