@@ -558,6 +558,7 @@ class _AcceleratorConnector:
             ModelParallelStrategy,
             XLAStrategy,
         ]
+
         if isinstance(self.strategy, tuple(distributed_strategies)):
             return True
         if hasattr(self.strategy, "is_distributed"):
