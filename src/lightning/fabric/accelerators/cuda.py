@@ -18,7 +18,6 @@ import torch
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
