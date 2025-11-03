@@ -257,38 +257,3 @@ def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.C
     )
     for item in items:
         item.add_marker(deprecation_error)
-
-
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
-    """Auto-retry tests that fail with port allocation errors.
-
-    This handles transient EADDRINUSE errors that can occur when:
-    - Tests run in parallel and compete for ports
-    - Ports are in TIME_WAIT state after previous test runs
-    - Multiple pytest workers allocate ports simultaneously
-
-    """
-    if call.excinfo is not None and call.when == "call":
-        exc_str = str(call.excinfo.value)
-        exc_type = type(call.excinfo.value).__name__
-
-        # Check for port-related errors
-        is_port_error = (
-            any(
-                error_pattern in exc_str
-                for error_pattern in [
-                    "EADDRINUSE",
-                    "address already in use",
-                    "Address already in use",
-                    "failed to bind",
-                    "failed to listen",
-                ]
-            )
-            or exc_type == "DistNetworkError"
-        )
-
-        # Only retry if port error detected and haven't already retried
-        if is_port_error and not hasattr(item, "_port_conflict_retried"):
-            setattr(item, "_port_conflict_retried", True)
-            # Mark test for automatic retry with small delay
-            item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=30))

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import socket
 
 from typing_extensions import override
 
@@ -106,14 +105,15 @@ class LightningEnvironment(ClusterEnvironment):
 
 
 def find_free_network_port() -> int:
-    """Finds a free port on localhost.
+    """Finds a free port on localhost with cross-process coordination.
 
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
 
+    Uses file-based locking on Unix systems to prevent port conflicts between parallel pytest workers.
+    Falls back to simple OS allocation on Windows.
+
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+    from lightning.fabric.utilities.port_manager import allocate_port_with_lock
+
+    return allocate_port_with_lock()
