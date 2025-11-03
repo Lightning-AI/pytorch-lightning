@@ -505,16 +505,6 @@ class _AcceleratorConnector:
                 f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_flag!r})`."
                 f" Choose a different precision among: {', '.join(mp_precision_supported)}."
             )
-            from lightning_habana import HPUAccelerator
-
-            if isinstance(self.accelerator, HPUAccelerator) and self._precision_flag not in (
-                "16-mixed",
-                "bf16-mixed",
-                "32-true",
-            ):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
-                )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
