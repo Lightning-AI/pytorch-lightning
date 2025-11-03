@@ -17,7 +17,6 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cpu import _parse_cpu_cores
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator

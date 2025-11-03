@@ -16,7 +16,6 @@ from typing import Any, Optional, Union
 import torch
 from typing_extensions import override
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
