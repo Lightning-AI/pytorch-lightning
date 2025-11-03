@@ -63,4 +63,5 @@ class Accelerator(ABC):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register(cls.name(), cls, description=cls.__name__)
+        """Register the accelerator with the registry."""
+        pass
