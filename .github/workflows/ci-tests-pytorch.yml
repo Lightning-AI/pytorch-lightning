@@ -129,8 +129,8 @@ jobs:
         run: |
           uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
-            -r requirements/_integrations/accelerators.txt \
-            --find-links="${TORCH_URL}"
+            --find-links="${TORCH_URL}" \
+            --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           uv pip list
 
       - name: Drop LAI from extensions
