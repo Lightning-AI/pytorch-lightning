@@ -49,7 +49,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
             "avg. peak memory (MB)": peak_memory,
         }
 
-    @classmethod
+    @staticmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__name__)
+    def name() -> str:
+        return "tpu"

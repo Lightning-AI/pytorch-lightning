@@ -104,14 +104,10 @@ class CUDAAccelerator(Accelerator):
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
-    @classmethod
+    @staticmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register(
-            "cuda",
-            cls,
-            description=cls.__name__,
-        )
+    def name() -> str:
+        return "cuda"
 
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:  # pragma: no-cover

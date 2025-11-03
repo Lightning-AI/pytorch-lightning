@@ -78,14 +78,10 @@ class MPSAccelerator(Accelerator):
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         return _MPSAccelerator.is_available()
 
-    @classmethod
+    @staticmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register(
-            "mps",
-            cls,
-            description=cls.__name__,
-        )
+    def name() -> str:
+        return "mps"
 
 
 # device metrics
