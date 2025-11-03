@@ -62,14 +62,10 @@ class CPUAccelerator(Accelerator):
         """CPU is always available for execution."""
         return True
 
-    @classmethod
+    @staticmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register(
-            "cpu",
-            cls,
-            description=cls.__name__,
-        )
+    def name() -> str:
+        return "cpu"
 
 
 def _parse_cpu_cores(cpu_cores: Union[int, str]) -> int:

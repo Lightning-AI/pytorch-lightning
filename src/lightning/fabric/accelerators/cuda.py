@@ -66,14 +66,10 @@ class CUDAAccelerator(Accelerator):
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
-    @classmethod
+    @staticmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register(
-            "cuda",
-            cls,
-            description=cls.__name__,
-        )
+    def name() -> str:
+        return "cuda"
 
 
 def find_usable_cuda_devices(num_devices: int = -1) -> list[int]:
