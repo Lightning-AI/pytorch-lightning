@@ -52,3 +52,12 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     @override
     def name() -> str:
         return "tpu"
+
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )

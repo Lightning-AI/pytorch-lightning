@@ -19,6 +19,7 @@ from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.device_parser import _check_data_type
 
 
@@ -96,6 +97,15 @@ class XLAAccelerator(Accelerator):
     @override
     def name() -> str:
         return "tpu"
+
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
 
 
 # PJRT support requires this minimum version

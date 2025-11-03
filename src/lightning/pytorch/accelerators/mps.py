@@ -82,6 +82,15 @@ class MPSAccelerator(Accelerator):
     def name() -> str:
         return "mps"
 
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
+
 
 # device metrics
 _VM_PERCENT = "M1_vm_percent"

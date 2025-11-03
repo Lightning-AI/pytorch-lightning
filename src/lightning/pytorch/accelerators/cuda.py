@@ -108,6 +108,15 @@ class CUDAAccelerator(Accelerator):
     def name() -> str:
         return "cuda"
 
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
+
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.

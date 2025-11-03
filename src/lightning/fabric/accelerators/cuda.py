@@ -18,6 +18,7 @@ import torch
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
@@ -69,6 +70,15 @@ class CUDAAccelerator(Accelerator):
     @override
     def name() -> str:
         return "cuda"
+
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
 
 
 def find_usable_cuda_devices(num_devices: int = -1) -> list[int]:

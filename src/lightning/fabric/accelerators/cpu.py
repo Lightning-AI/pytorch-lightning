@@ -17,6 +17,7 @@ import torch
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 
 
 class CPUAccelerator(Accelerator):
@@ -65,6 +66,15 @@ class CPUAccelerator(Accelerator):
     @override
     def name() -> str:
         return "cpu"
+
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
 
 
 def _parse_cpu_cores(cpu_cores: Union[int, str]) -> int:

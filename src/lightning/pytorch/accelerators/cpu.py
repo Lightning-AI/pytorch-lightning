@@ -75,6 +75,15 @@ class CPUAccelerator(Accelerator):
     def name() -> str:
         return "cpu"
 
+    @classmethod
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
+
 
 # CPU device metrics
 _CPU_VM_PERCENT = "cpu_vm_percent"
