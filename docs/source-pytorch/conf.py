@@ -360,7 +360,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
-    "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
@@ -468,10 +467,6 @@ nitpick_ignore = [
     ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfigType"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerConfig"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
-    ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
-    ("py:class", "lightning_habana.pytorch.strategies.HPUDDPStrategy"),
-    ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
-    ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
     ("py:obj", "logger.experiment"),
     ("py:class", "mlflow.tracking.MlflowClient"),
     ("py:attr", "model"),
@@ -648,7 +643,6 @@ linkcheck_ignore = [
     r"^../common/trainer.html#trainer-flags$",
     "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
-    "https://developer.habana.ai", # returns 403 error but redirects to intel.com documentation
     "https://www.supermicro.com", # returns 403 error
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
