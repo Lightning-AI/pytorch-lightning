@@ -400,6 +400,7 @@ class _AcceleratorConnector:
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "hpu":
             raise MisconfigurationException("HPU is currently not supported. Please contact developer@lightning.ai")
+
         if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
