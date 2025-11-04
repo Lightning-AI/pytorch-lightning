@@ -67,6 +67,7 @@ class LambdaCallback(Callback):
         on_exception: Optional[Callable] = None,
         on_save_checkpoint: Optional[Callable] = None,
         on_load_checkpoint: Optional[Callable] = None,
+        on_checkpoint_write_end: Optional[Callable] = None,
         on_before_backward: Optional[Callable] = None,
         on_after_backward: Optional[Callable] = None,
         on_before_optimizer_step: Optional[Callable] = None,
