@@ -158,7 +158,7 @@ class _ListMap(list[_T]):
         self._dict = _dict
 
     def __eq__(self, other: Any) -> bool:
-        list_eq = list.__eq__(self, other)
+        list_eq = super().__eq__(other)
         if isinstance(other, _ListMap):
             return list_eq and self._dict == other._dict
         return list_eq
