@@ -46,7 +46,7 @@ on:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
         default: |
           {
-            "os": ["ubuntu-22.04", "macos-13", "windows-2022"],
+            "os": ["ubuntu-22.04", "macos-latest", "windows-2022"],
             "python-version": ["3.9", "3.13"]
           }
       env-vars:
