@@ -279,7 +279,7 @@ class WandbLogger(Logger):
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
         add_file_policy: If "mutable", copies file to tempdirectory before upload.
-        oin_char: Separator character used to format metric keys before logging.
+        join_char: Separator character used to format metric keys before logging.
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
