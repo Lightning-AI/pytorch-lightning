@@ -709,3 +709,27 @@ class CheckpointHooks:
             There is no need for you to store anything about training.
 
         """
+
+    def on_checkpoint_write_end(self, filepath: str) -> None:
+        r"""Called after a checkpoint file has been fully written to disk.
+
+        This hook is triggered after the checkpoint saving process completes,
+        ensuring the file exists and is readable. Unlike :meth:`on_save_checkpoint`,
+        which is called before the checkpoint is written, this hook guarantees
+        the file is available on disk.
+
+        Args:
+            filepath: Path to the checkpoint file that was written.
+
+        Example::
+
+            class MyModel(LightningModule):
+                def on_checkpoint_write_end(self, filepath):
+                    print(f"Checkpoint saved at: {filepath}")
+                    upload_to_s3(filepath)
+
+        Note:
+            In distributed training, this hook is called on all ranks after
+            the barrier synchronization completes.
+
+        """

@@ -88,6 +88,7 @@ def test_fx_validator():
         "on_fit_start",
         "on_exception",
         "on_load_checkpoint",
+        "on_checkpoint_write_end",
         "load_state_dict",
         "on_sanity_check_end",
         "on_sanity_check_start",
