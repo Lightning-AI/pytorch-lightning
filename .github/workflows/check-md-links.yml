@@ -27,7 +27,8 @@ jobs:
       CONFIG_FILE: ${{ inputs.config-file }}
       MODIFIED_ONLY: "no"
     steps:
-      - uses: actions/checkout@master
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Create local version of config
         if: ${{ inputs.config-file == '' }}
@@ -53,14 +54,16 @@ jobs:
           }' > 'markdown.links.config.json'
           echo "CONFIG_FILE=markdown.links.config.json" >> $GITHUB_ENV
           cat 'markdown.links.config.json'
+
       - name: Show config
         run: cat ${{ env.CONFIG_FILE }}
 
       - name: narrow scope for PR
         if: startsWith(github.event_name, 'pull_request') && inputs.force-check-all == ''
         run: echo "MODIFIED_ONLY=yes" >> $GITHUB_ENV
+
       - name: Checking markdown link
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        uses: tcort/github-action-markdown-link-check@v1
         with:
           base-branch: ${{ inputs.base-branch }}
           use-quiet-mode: "yes"
