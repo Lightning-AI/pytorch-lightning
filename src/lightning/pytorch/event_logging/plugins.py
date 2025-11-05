@@ -13,7 +13,6 @@ from __future__ import annotations
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Protocol
 
 from .types import EventRecord
@@ -23,6 +22,7 @@ class BaseEventPlugin:
     """Base class for event-logging plugins.
 
     Subclass this and implement :meth:`on_event` to receive :class:`EventRecord` instances.
+
     """
 
     def on_event(self, event: EventRecord) -> None:  # pragma: no cover - default no-op

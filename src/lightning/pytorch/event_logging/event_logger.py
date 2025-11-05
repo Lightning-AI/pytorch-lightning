@@ -17,11 +17,11 @@ from __future__ import annotations
 import logging
 import time
 import warnings
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from lightning.pytorch.callbacks.callback import Callback
 
-from .plugins import BaseEventPlugin, SupportsOnEvent
+from .plugins import SupportsOnEvent
 from .types import EventRecord
 
 log = logging.getLogger(__name__)
@@ -33,17 +33,18 @@ class EventLogger(Callback):
     Args:
         plugins: A sequence (list or tuple) of plugin instances to receive events in the exact given order.
         dry_run: If True, events are dropped and plugins are not invoked.
+
     """
 
-    def __init__(self, *, plugins: Optional[Sequence[SupportsOnEvent]] = None, dry_run: bool = False) -> None:
+    def __init__(self, *, plugins: Sequence[SupportsOnEvent] | None = None, dry_run: bool = False) -> None:
         super().__init__()
         # normalize to list and preserve order
-        self._plugins: List[SupportsOnEvent] = list(plugins) if plugins is not None else []
+        self._plugins: list[SupportsOnEvent] = list(plugins) if plugins is not None else []
         self._dry_run = bool(dry_run)
         self._quarantined: set[int] = set()  # indices of plugins removed due to failures
 
     # -------------- internal helpers --------------
-    def _emit(self, type_: str, metadata: Optional[dict] = None, duration: Optional[float] = None) -> None:
+    def _emit(self, type_: str, metadata: dict | None = None, duration: float | None = None) -> None:
         if self._dry_run or not self._plugins:
             return
         event = EventRecord(type=type_, timestamp=time.time(), metadata=metadata or {}, duration=duration)
@@ -53,7 +54,7 @@ class EventLogger(Callback):
                 continue
             try:
                 plugin.on_event(event)
-            except Exception as ex:  # noqa: BLE001 - isolate faults
+            except Exception as ex:
                 # quarantine this plugin for the rest of the run and warn
                 self._quarantined.add(idx)
                 msg = f"EventLogger: quarantining plugin {type(plugin).__name__} after exception: {ex}"
@@ -81,7 +82,9 @@ class EventLogger(Callback):
         )
 
     # -------------- validation hooks (metrics proxy) --------------
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx: int, dataloader_idx: int = 0) -> None:  # type: ignore[override]
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:  # type: ignore[override]
         # Use validation batch end as a proxy for metric emission.
         # Emit only when validation was explicitly requested (e.g., via limit_val_batches) or checkpointing is enabled.
         limit_val_batches = getattr(trainer, "limit_val_batches", 1.0)

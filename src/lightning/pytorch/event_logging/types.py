@@ -13,9 +13,8 @@ from __future__ import annotations
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -27,9 +26,10 @@ class EventRecord:
         timestamp: Event creation time (seconds since epoch, float).
         metadata: Arbitrary key-value metadata for the event. Kept minimal to avoid perf overhead.
         duration: Optional duration in seconds if applicable; may be None.
+
     """
 
     type: str
     timestamp: float
-    metadata: Dict[str, Any]
-    duration: Optional[float] = None
+    metadata: dict[str, Any]
+    duration: float | None = None

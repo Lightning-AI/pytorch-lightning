@@ -226,7 +226,7 @@ index 5768c507e..513bf5086 100644
          max_epochs: Optional[int] = None,
          min_epochs: Optional[int] = None,
 @@ -444,8 +445,16 @@ class Trainer:
- 
+
          # init callbacks
          # Declare attributes to be set in _callback_connector on_trainer_init
 +        # Normalize callbacks argument and append event_logger if provided
