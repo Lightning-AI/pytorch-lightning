@@ -158,7 +158,7 @@ run: |
   echo "Testing: fabric standalone"
   export PL_USE_MOCKED_MNIST=1
   export PL_RUN_STANDALONE_TESTS=1
-  python -m wget https://github.com/deependujha/utilities/blob/feat/specify-standalone-port/scripts/run_standalone_tests.sh
+  python -m wget https://raw.githubusercontent.com/deependujha/utilities/refs/heads/feat/specify-standalone-port/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_pytorch"
   export PL_RUN_STANDALONE_TESTS=0
 
