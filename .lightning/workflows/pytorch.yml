@@ -1,8 +1,8 @@
 trigger:
   push:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
 
 timeout: "60" # minutes
 machine: "L4_X_2"
@@ -27,6 +27,7 @@ env:
   DEBIAN_FRONTEND: "noninteractive"
   CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
   MKL_THREADING_LAYER: "GNU"
+  CUDA_LAUNCH_BLOCKING: "1"
   NCCL_DEBUG: "INFO"
   TORCHDYNAMO_VERBOSE: "1"
   FREEZE_REQUIREMENTS: "1"
@@ -49,8 +50,7 @@ run: |
         openmpi-bin \
         ninja-build \
         libnccl2 \
-        libnccl-dev \
-        unzip
+        libnccl-dev
 
   echo "Install Python ${python_version} and UV"
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
@@ -74,34 +74,35 @@ run: |
   whereis nvidia
   nvidia-smi
   python --version
-  pip --version
-  pip install -q fire wget packaging
-  pip list
+  uv --version
+  uv pip list
   set -ex
 
-  CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
+  # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-runtime-ubuntu22.04"
+  IMAGE_TAG="${image##*:}"  # "12.6.3-runtime-ubuntu22.04"
+  CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
   echo "Using CUDA version: ${CUDA_VERSION}"
   CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
   export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
-  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="pytorch_lightning").get(n, n))')
+  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="pytorch_lightning").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
-  TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
-  if [ "${TORCH_VER}" == "2.1" ]; then
+  uv pip install -q fire wget packaging "lightning-utilities[cli]"
+  if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    pip uninstall -y deepspeed
-    pip install -U "lightning-utilities[cli]"
     cd requirements/pytorch
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
-    pip install "cython<3.0" wheel  # for compatibility
+    uv pip install "cython<3.0" wheel  # for compatibility
   fi
 
+  echo "Install the base so we can adjust other packages"
+  uv pip install .
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  pip install -q wget packaging
+  uv pip install -q wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -109,7 +110,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     echo "Adjust PL imports"
-    pip install -U -q -r .actions/requirements.txt
+    uv pip install --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_pytorch" \
       --source_import="lightning.fabric,lightning.pytorch" \
       --target_import="lightning_fabric,pytorch_lightning"
@@ -119,15 +120,16 @@ run: |
   fi
 
   echo "Install package"
-  extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
+  extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
   uv pip install -e ".[${extra}dev]" --upgrade
 
+  echo "Ensure only a single package is installed"
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     echo "uninstall lightning to have just single package"
-    pip uninstall -y lightning
+    uv pip uninstall lightning
   elif [ "${PACKAGE_NAME}" == "lightning" ]; then
     echo "uninstall PL to have just single package"
-    pip uninstall -y pytorch-lightning
+    uv pip uninstall pytorch-lightning
   fi
 
   python requirements/collect_env_details.py
@@ -156,7 +158,7 @@ run: |
   echo "Testing: fabric standalone"
   export PL_USE_MOCKED_MNIST=1
   export PL_RUN_STANDALONE_TESTS=1
-  wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+  python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_pytorch"
   export PL_RUN_STANDALONE_TESTS=0
 
