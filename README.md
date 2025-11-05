@@ -64,6 +64,7 @@ Over 340,000 developers use [Lightning Cloud](https://lightning.ai/?utm_source=p
 - [Notebooks](https://lightning.ai/notebooks?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): Persistent GPU workspaces where AI helps you code and analyze.
 - [Inference](https://lightning.ai/deploy?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): Deploy models as inference APIs.   
 
+<a id="why-pytorch-lightning"></a>
 # Why PyTorch Lightning?   
 
 Training models in plain PyTorch is tedious and error-prone - you have to manually handle things like backprop, mixed precision, multi-GPU, and distributed training, often rewriting code for every new project. PyTorch Lightning organizes PyTorch code to automate those complexities so you can focus on your model and data, while keeping full control and scaling from CPU to multi-node without changing your core code. But if you want control of those things, you can still opt into [expert-level control](#lightning-fabric-expert-control).   
