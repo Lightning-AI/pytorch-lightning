@@ -98,6 +98,7 @@ class Trainer:
         precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
         callbacks: Optional[Union[list[Callback], Callback]] = None,
+        event_logger: Optional[object] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
@@ -444,8 +445,16 @@ class Trainer:
 
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
+        # Normalize callbacks argument and append event_logger if provided
+        _callbacks_arg = callbacks
+        _callbacks_list: list[Callback] = (
+            _callbacks_arg if isinstance(_callbacks_arg, list) else ([_callbacks_arg] if _callbacks_arg else [])
+        )
+        if isinstance(event_logger, Callback):
+            _callbacks_list.append(event_logger)
+
         self._callback_connector.on_trainer_init(
-            callbacks,
+            _callbacks_list or None,
             enable_checkpointing,
             enable_progress_bar,
             default_root_dir,

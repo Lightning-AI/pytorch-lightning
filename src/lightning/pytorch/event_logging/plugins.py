@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,16 +13,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.utilities.enums import GradClipAlgorithmType
+
+from typing import Protocol
+
+from .types import EventRecord
 
 
-def test_gradient_clip_algorithms():
-    assert GradClipAlgorithmType.supported_types() == ["value", "norm"]
-    assert GradClipAlgorithmType.supported_type("norm")
-    assert GradClipAlgorithmType.supported_type("value")
-    assert not GradClipAlgorithmType.supported_type("norm2")
+class BaseEventPlugin:
+    """Base class for event-logging plugins.
+
+    Subclass this and implement :meth:`on_event` to receive :class:`EventRecord` instances.
+    """
+
+    def on_event(self, event: EventRecord) -> None:  # pragma: no cover - default no-op
+        pass
 
 
-def test_gradient_clip_algorithms_contains_norm_and_value():
-    # Defensive check that should pass at base commit
-    assert set(GradClipAlgorithmType.supported_types()).issuperset({"value", "norm"})
+class SupportsOnEvent(Protocol):
+    def on_event(self, event: EventRecord) -> None:  # pragma: no cover - typing helper only
+        ...

@@ -1,0 +1,245 @@
+diff --git a/src/lightning/pytorch/event_logging/__init__.py b/src/lightning/pytorch/event_logging/__init__.py
+new file mode 100644
+index 000000000..11542e80b
+--- /dev/null
++++ b/src/lightning/pytorch/event_logging/__init__.py
+@@ -0,0 +1,21 @@
++# Copyright The Lightning AI team.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++# Lightning event logging public API package
++
++__all__ = [
++    "types",
++    "plugins",
++    "event_logger",
++]
+diff --git a/src/lightning/pytorch/event_logging/event_logger.py b/src/lightning/pytorch/event_logging/event_logger.py
+new file mode 100644
+index 000000000..7571893ab
+--- /dev/null
++++ b/src/lightning/pytorch/event_logging/event_logger.py
+@@ -0,0 +1,101 @@
++# Copyright The Lightning AI team.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++from __future__ import annotations
++
++import logging
++import time
++import warnings
++from typing import List, Optional, Sequence
++
++from lightning.pytorch.callbacks.callback import Callback
++
++from .plugins import BaseEventPlugin, SupportsOnEvent
++from .types import EventRecord
++
++log = logging.getLogger(__name__)
++
++
++class EventLogger(Callback):
++    """Dispatcher that converts Trainer lifecycle hooks into EventRecord emissions for plugins.
++
++    Args:
++        plugins: A sequence (list or tuple) of plugin instances to receive events in the exact given order.
++        dry_run: If True, events are dropped and plugins are not invoked.
++    """
++
++    def __init__(self, *, plugins: Optional[Sequence[SupportsOnEvent]] = None, dry_run: bool = False) -> None:
++        super().__init__()
++        # normalize to list and preserve order
++        self._plugins: List[SupportsOnEvent] = list(plugins) if plugins is not None else []
++        self._dry_run = bool(dry_run)
++        self._quarantined: set[int] = set()  # indices of plugins removed due to failures
++
++    # -------------- internal helpers --------------
++    def _emit(self, type_: str, metadata: Optional[dict] = None, duration: Optional[float] = None) -> None:
++        if self._dry_run or not self._plugins:
++            return
++        event = EventRecord(type=type_, timestamp=time.time(), metadata=metadata or {}, duration=duration)
++        # dispatch in the provided order, quarantining faulty plugins
++        for idx, plugin in enumerate(self._plugins):
++            if idx in self._quarantined:
++                continue
++            try:
++                plugin.on_event(event)
++            except Exception as ex:  # noqa: BLE001 - isolate faults
++                # quarantine this plugin for the rest of the run and warn
++                self._quarantined.add(idx)
++                msg = f"EventLogger: quarantining plugin {type(plugin).__name__} after exception: {ex}"
++                try:
++                    log.warning(msg)
++                finally:
++                    warnings.warn(msg)
++
++    # -------------- training hooks --------------
++    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx: int) -> None:  # type: ignore[override]
++        # "forward" lifecycle marker
++        self._emit("forward", {"stage": "train", "batch_idx": batch_idx})
++
++    def on_after_backward(self, trainer, pl_module) -> None:  # type: ignore[override]
++        self._emit("backward", {"stage": "train", "global_step": getattr(trainer, "global_step", None)})
++
++    def on_before_optimizer_step(self, trainer, pl_module, optimizer) -> None:  # type: ignore[override]
++        self._emit(
++            "optimizer_step",
++            {
++                "stage": "train",
++                "optimizer": type(optimizer).__name__,
++                "global_step": getattr(trainer, "global_step", None),
++            },
++        )
++
++    # -------------- validation hooks (metrics proxy) --------------
++    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx: int, dataloader_idx: int = 0) -> None:  # type: ignore[override]
++        # Use validation batch end as a proxy for metric emission.
++        # Emit only when validation was explicitly requested (e.g., via limit_val_batches) or checkpointing is enabled.
++        limit_val_batches = getattr(trainer, "limit_val_batches", 1.0)
++        explicit_val = isinstance(limit_val_batches, int) or limit_val_batches != 1.0
++        has_ckpt = bool(getattr(trainer, "checkpoint_callbacks", ()))
++        if explicit_val or has_ckpt:
++            self._emit(
++                "metric",
++                {"stage": "validation", "batch_idx": batch_idx, "dataloader_idx": dataloader_idx},
++            )
++
++    # -------------- checkpoint hooks --------------
++    def on_save_checkpoint(self, trainer, pl_module, checkpoint: dict) -> None:  # type: ignore[override]
++        self._emit(
++            "checkpoint",
++            {"epoch": getattr(trainer, "current_epoch", None), "global_step": getattr(trainer, "global_step", None)},
++        )
+diff --git a/src/lightning/pytorch/event_logging/plugins.py b/src/lightning/pytorch/event_logging/plugins.py
+new file mode 100644
+index 000000000..beec204bd
+--- /dev/null
++++ b/src/lightning/pytorch/event_logging/plugins.py
+@@ -0,0 +1,34 @@
++from __future__ import annotations
++
++# Copyright The Lightning AI team.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++from typing import Protocol
++
++from .types import EventRecord
++
++
++class BaseEventPlugin:
++    """Base class for event-logging plugins.
++
++    Subclass this and implement :meth:`on_event` to receive :class:`EventRecord` instances.
++    """
++
++    def on_event(self, event: EventRecord) -> None:  # pragma: no cover - default no-op
++        pass
++
++
++class SupportsOnEvent(Protocol):
++    def on_event(self, event: EventRecord) -> None:  # pragma: no cover - typing helper only
++        ...
+diff --git a/src/lightning/pytorch/event_logging/types.py b/src/lightning/pytorch/event_logging/types.py
+new file mode 100644
+index 000000000..da55f106b
+--- /dev/null
++++ b/src/lightning/pytorch/event_logging/types.py
+@@ -0,0 +1,35 @@
++from __future__ import annotations
++
++# Copyright The Lightning AI team.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++from dataclasses import dataclass
++from typing import Any, Dict, Optional
++
++
++@dataclass(frozen=True)
++class EventRecord:
++    """Lightweight event container dispatched to event-logging plugins.
++
++    Attributes:
++        type: Canonical event type name (e.g., "forward", "backward", "optimizer_step", "checkpoint", "metric").
++        timestamp: Event creation time (seconds since epoch, float).
++        metadata: Arbitrary key-value metadata for the event. Kept minimal to avoid perf overhead.
++        duration: Optional duration in seconds if applicable; may be None.
++    """
++
++    type: str
++    timestamp: float
++    metadata: Dict[str, Any]
++    duration: Optional[float] = None
+diff --git a/src/lightning/pytorch/trainer/trainer.py b/src/lightning/pytorch/trainer/trainer.py
+index 5768c507e..513bf5086 100644
+--- a/src/lightning/pytorch/trainer/trainer.py
++++ b/src/lightning/pytorch/trainer/trainer.py
+@@ -98,6 +98,7 @@ class Trainer:
+         precision: Optional[_PRECISION_INPUT] = None,
+         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+         callbacks: Optional[Union[list[Callback], Callback]] = None,
++        event_logger: Optional[object] = None,
+         fast_dev_run: Union[int, bool] = False,
+         max_epochs: Optional[int] = None,
+         min_epochs: Optional[int] = None,
+@@ -444,8 +445,16 @@ class Trainer:
+ 
+         # init callbacks
+         # Declare attributes to be set in _callback_connector on_trainer_init
++        # Normalize callbacks argument and append event_logger if provided
++        _callbacks_arg = callbacks
++        _callbacks_list: list[Callback] = (
++            _callbacks_arg if isinstance(_callbacks_arg, list) else ([_callbacks_arg] if _callbacks_arg else [])
++        )
++        if isinstance(event_logger, Callback):
++            _callbacks_list.append(event_logger)
++
+         self._callback_connector.on_trainer_init(
+-            callbacks,
++            _callbacks_list or None,
+             enable_checkpointing,
+             enable_progress_bar,
+             default_root_dir,

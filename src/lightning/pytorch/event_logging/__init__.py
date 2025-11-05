@@ -11,16 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.utilities.enums import GradClipAlgorithmType
 
+# Lightning event logging public API package
 
-def test_gradient_clip_algorithms():
-    assert GradClipAlgorithmType.supported_types() == ["value", "norm"]
-    assert GradClipAlgorithmType.supported_type("norm")
-    assert GradClipAlgorithmType.supported_type("value")
-    assert not GradClipAlgorithmType.supported_type("norm2")
-
-
-def test_gradient_clip_algorithms_contains_norm_and_value():
-    # Defensive check that should pass at base commit
-    assert set(GradClipAlgorithmType.supported_types()).issuperset({"value", "norm"})
+__all__ = [
+    "types",
+    "plugins",
+    "event_logger",
+]
