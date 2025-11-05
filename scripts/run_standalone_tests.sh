@@ -29,6 +29,13 @@ test_dir=$1 # parse the first argument
 # It can be set through the env variable TEST_TIMEOUT and defaults to 1200 seconds.
 test_timeout="${TEST_TIMEOUT:-1200}"
 
+# Base port to start assigning from (default: 12000)
+last_used_port="${BASE_PORT:-12000}"
+
+# Port spacing between attempts (default: 20)
+port_margin="${PORT_MARGIN:-20}"
+
+
 # Temporary file to store the collected tests
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
@@ -96,6 +103,43 @@ report=() # final report
 pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
 failed_tests=() # array of failed tests
+used_ports=() # array of used ports
+
+# --- helper functions ---
+
+get_available_port() {
+    preferred_port="$1"
+
+    # Check the preferred port first
+    if nc -z localhost "$preferred_port" 2>/dev/null; then
+        # Preferred port is busy, grab an ephemeral one
+        port=$(python3 -c "import socket as s; sock=s.socket(); sock.bind(('',0)); print(sock.getsockname()[1]); sock.close()")
+        echo "$port"
+    else
+        # Preferred port is free
+        echo "$preferred_port"
+    fi
+}
+
+contains() {
+    local element="$1"
+    shift
+    local array=("$@")
+
+    for item in "${array[@]}"; do
+        if [[ "$item" == "$element" ]]; then
+            echo "true"
+            return 0
+        fi
+    done
+
+    echo "false"
+    return 1
+}
+
+
+# --- Start running tests in parallel batches ---
+
 printf "Running $test_count tests in batches of $test_batch_size:\n"
 for i in "${!tests[@]}"; do
   test=${tests[$i]}
@@ -108,12 +152,28 @@ for i in "${!tests[@]}"; do
   # add the pytest cli to the test command
   cli_test="${cli_test} ${cli_pytest}"
 
-  printf "\e[95m* Running test $((i+1))/$test_count: $cli_test $test\e[0m\n"
+  # get the next available unique port based on last_used_port and port_margin
+  ((last_used_port+=port_margin))
+  available_port=$(get_available_port $last_used_port)
+
+  # ensure the port is unique among used ports
+  while [[ $(contains $available_port "${used_ports[@]}") == "true" ]]; do
+    # get the next available unique port
+    ((last_used_port+=port_margin))
+    available_port=$(get_available_port $last_used_port)
+  done
+
+  # mark the port as used
+  used_ports+=($available_port)
+
+  test_command="env STANDALONE_PORT=${available_port} ${cli_test} $test"
+
+  printf "\e[95m* Running test $((i+1))/$test_count: $test_command\e[0m\n"
 
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background,
   # we cannot let them output to std{out,err} because the outputs would be garbled together
-  ${cli_test} "$test" &> "parallel_test_output-$i.txt" &
+  $test_command &> "parallel_test_output-$i.txt" &
   test_ids+=($i) # save the test's id in an array with running tests
   pids+=($!) # save the PID in an array with running tests
 
