@@ -85,7 +85,7 @@ run: |
   CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
   export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
+  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
   uv pip install fire wget packaging "lightning-utilities[cli]"
@@ -120,7 +120,7 @@ run: |
   fi
 
   echo "Install package with [${PACKAGE_NAME}] extras"
-  extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
+  extra=$(python -c "print({'lightning': 'fabric-'}.get('${PACKAGE_NAME}', ''))")
   uv pip install ".[${extra}dev]" --upgrade
 
   python requirements/collect_env_details.py
