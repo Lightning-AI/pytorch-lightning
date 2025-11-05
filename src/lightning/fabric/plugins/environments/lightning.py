@@ -126,10 +126,14 @@ def find_free_network_port() -> int:
     """
     # If an external launcher already specified a MASTER_PORT (for example, torch.distributed.spawn or
     # multiprocessing helpers), reserve it through the port manager so no other test reuses the same number.
+    _port = None
+    if "STANDALONE_PORT" in os.environ:
+        _port = os.environ["STANDALONE_PORT"]
     if "MASTER_PORT" in os.environ:
-        master_port_str = os.environ["MASTER_PORT"]
+        _port = os.environ["MASTER_PORT"]
+    if _port is not None:
         try:
-            existing_port = int(master_port_str)
+            existing_port = int(_port)
         except ValueError:
             pass
         else:
