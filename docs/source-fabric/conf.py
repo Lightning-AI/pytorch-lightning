@@ -272,6 +272,7 @@ nitpicky = True
 
 nitpick_ignore_regex = [
     ("py:class", "typing.Self"),
+    ("py:data", "typing.Union"),
     # these are not generated with docs API ref
     ("py:class", "lightning.fabric.utilities.types.Optimizable"),
     ("py:class", "lightning.fabric.utilities.types.Steppable"),
