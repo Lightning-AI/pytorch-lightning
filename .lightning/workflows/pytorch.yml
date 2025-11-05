@@ -23,10 +23,54 @@ parametrize:
   exclude: []
 
 env:
+  TZ: "Etc/UTC"
+  DEBIAN_FRONTEND: "noninteractive"
+  CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
+  MKL_THREADING_LAYER: "GNU"
+  NCCL_DEBUG: "INFO"
+  TORCHDYNAMO_VERBOSE: "1"
   FREEZE_REQUIREMENTS: "1"
   RUN_ONLY_CUDA_TESTS: "1"
 
 run: |
+  echo "Installing dependencies"
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  apt-get install -q -y software-properties-common curl
+  echo "Add deadsnakes PPA for newer Python versions if needed"
+  add-apt-repository ppa:deadsnakes/ppa -y
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  echo "Install Python ${python_version} and other dependencies"
+  apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
+        build-essential \
+        pkg-config \
+        cmake \
+        ca-certificates \
+        libopenmpi-dev \
+        openmpi-bin \
+        ninja-build \
+        libnccl2 \
+        libnccl-dev \
+        unzip
+
+  echo "Install Python ${python_version} and UV"
+  apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
+  ln -sf /usr/bin/python${python_version} /usr/bin/python
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  echo "Source the environment and ensure UV is in PATH"
+  [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
+  source $HOME/.cargo/env 2>/dev/null || true
+  export PATH="$HOME/.cargo/bin:$PATH"
+
+  echo "Verify UV installation"
+  command -v uv || (echo "UV not found in PATH" && exit 1)
+  # Create and activate a local uv virtual environment
+  uv venv .venv -p "/usr/bin/python${python_version}" || uv venv .venv -p "python${python_version}" || uv venv .venv
+  . .venv/bin/activate
+  hash -r
+
+  echo "Show system information"
   whereis nvidia
   nvidia-smi
   python --version
@@ -37,11 +81,10 @@ run: |
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
   echo "Using CUDA version: ${CUDA_VERSION}"
-  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
-  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
-  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo "Torch URL: ${TORCH_URL}"
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="pytorch_lightning").get(n, n))')
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
+  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="pytorch_lightning").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
   TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
@@ -75,8 +118,9 @@ run: |
       --target_import="lightning_fabric,pytorch_lightning"
   fi
 
-  extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
-  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+  echo "Install package"
+  extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
+  uv pip install -e ".[${extra}dev]" --upgrade
 
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
     echo "uninstall lightning to have just single package"

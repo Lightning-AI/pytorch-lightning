@@ -37,11 +37,10 @@ run: |
 
   CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
   echo "Using CUDA version: ${CUDA_VERSION}"
-  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
-  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
-  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo "Torch URL: ${TORCH_URL}"
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
+  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
   TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
@@ -75,8 +74,9 @@ run: |
       --target_import="lightning_fabric"
   fi
 
-  extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+  echo "Install package with [${PACKAGE_NAME}] extras"
+  extra=$(python -c "print({'lightning': 'fabric-'}.get('${PACKAGE_NAME}', ''))")
+  uv pip install ".[${extra}dev]" --upgrade
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
