@@ -417,8 +417,7 @@ def _raw_checkpoint_path(trainer) -> str:
     raw_checkpoint_paths = [x for x in raw_checkpoint_paths if ".ckpt" in x]
     assert raw_checkpoint_paths
     raw_checkpoint_path = raw_checkpoint_paths[0]
-    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
-    return raw_checkpoint_path
+    return os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
 
 
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
