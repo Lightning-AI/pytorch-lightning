@@ -18,13 +18,14 @@ TensorBoard Logger
 
 import os
 from argparse import Namespace
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning.fabric.loggers.logger import rank_zero_experiment
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
 from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.logger import _convert_params
@@ -34,6 +35,14 @@ from lightning.pytorch.core.saving import save_hparams_to_yaml
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
+if TYPE_CHECKING:
+    # assumes at least one will be installed when type checking
+    if _TENSORBOARD_AVAILABLE:
+        from torch.utils.tensorboard import SummaryWriter
+    else:
+        from tensorboardX import SummaryWriter  # type: ignore[no-redef]
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
@@ -260,3 +269,26 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             return 0
 
         return max(existing_versions) + 1
+
+    @property
+    @override
+    @rank_zero_experiment
+    def experiment(self) -> "SummaryWriter":
+        """Returns the underlying TensorBoard summary writer object.
+
+        Allows you to use TensorBoard logging features directly in your
+        :class:`~lightning.pytorch.core.LightningModule` or anywhere else in your code with:
+
+        `logger.experiment.some_tensorboard_function()`
+
+        Example::
+
+            class LitModel(LightningModule):
+                def training_step(self, batch, batch_idx):
+                    # log a image
+                    self.logger.experiment.add_image('my_image', batch['image'], self.global_step)
+                    # log a histogram
+                    self.logger.experiment.add_histogram('my_histogram', batch['data'], self.global_step)
+
+        """
+        return super().experiment
