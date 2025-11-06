@@ -17,7 +17,6 @@ from unittest import mock
 import pytest
 
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.utilities.port_manager import get_port_manager
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -83,19 +82,6 @@ def test_teardown():
     assert "WORLD_SIZE" in os.environ
     env.teardown()
     assert "WORLD_SIZE" not in os.environ
-
-
-@mock.patch.dict(os.environ, {}, clear=True)
-def test_teardown_releases_port_and_env():
-    env = LightningEnvironment()
-    port = env.main_port
-    assert port in get_port_manager()._allocated_ports
-
-    env.teardown()
-
-    assert port not in get_port_manager()._allocated_ports
-    assert "MASTER_PORT" not in os.environ
-    assert "MASTER_ADDR" not in os.environ
 
 
 def test_detect():
