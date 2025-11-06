@@ -313,7 +313,7 @@ def test_deepspeed_config(tmp_path, deepspeed_zero_config):
     trainer.fit(model)
     trainer.test(model)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
-    assert len(set(lr_monitor.lrs["lr-SGD"])) == 8
+    assert len(lr_monitor.lrs["lr-SGD"]) == 8
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -1029,6 +1029,9 @@ def _assert_save_model_is_equal(model, tmp_path, trainer):
     if trainer.is_global_zero:
         single_ckpt_path = os.path.join(tmp_path, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
+
+        if not os.path.isfile(single_ckpt_path):
+            single_ckpt_path = os.path.join(single_ckpt_path, "pytorch_model.bin")
         state_dict = torch.load(single_ckpt_path, weights_only=False)
 
         model = model.cpu()

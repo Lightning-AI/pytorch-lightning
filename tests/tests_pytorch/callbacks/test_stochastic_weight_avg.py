@@ -266,8 +266,7 @@ def test_swa_multiple_lrs(tmp_path):
 
         def forward(self, x):
             x = self.layer1(x)
-            x = self.layer2(x)
-            return x
+            return self.layer2(x)
 
         def configure_optimizers(self):
             params = [{"params": self.layer1.parameters(), "lr": 0.1}, {"params": self.layer2.parameters(), "lr": 0.2}]
