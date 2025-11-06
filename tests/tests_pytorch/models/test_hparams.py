@@ -341,6 +341,20 @@ class UnconventionalArgsBoringModel(CustomBoringModel):
         obj.save_hyperparameters()
 
 
+class _MetaType(type):
+    def __call__(cls, *args, **kwargs):
+        instance = super().__call__(*args, **kwargs)  # Create the instance
+        if hasattr(instance, "_after_init"):
+            instance._after_init(**kwargs)  # Call the method if defined
+        return instance
+
+
+class MetaTypeBoringModel(CustomBoringModel, metaclass=_MetaType):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
 if _OMEGACONF_AVAILABLE:
 
     class DictConfSubClassBoringModel(SubClassBoringModel):
@@ -365,6 +379,7 @@ else:
         pytest.param(DictConfSubClassBoringModel, marks=RunIf(omegaconf=True)),
         BoringModelWithMixin,
         BoringModelWithMixinAndInit,
+        MetaTypeBoringModel,
     ],
 )
 def test_collect_init_arguments(tmp_path, cls):
@@ -417,8 +432,22 @@ def _raw_checkpoint_path(trainer) -> str:
     raw_checkpoint_paths = [x for x in raw_checkpoint_paths if ".ckpt" in x]
     assert raw_checkpoint_paths
     raw_checkpoint_path = raw_checkpoint_paths[0]
-    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
-    return raw_checkpoint_path
+    return os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+
+
+def test_collect_init_arguments_in_other_methods():
+    class _ABCModelCreator:
+        def init(self, model, **kwargs) -> LightningModule:
+            self.model = model
+            return self.model
+
+    class ConcreteModelCreator(_ABCModelCreator):
+        def init(self, model=None, **kwargs) -> LightningModule:
+            return super().init(model=model or CustomBoringModel(**kwargs))
+
+    model_creator = ConcreteModelCreator()
+    model = model_creator.init(batch_size=123)
+    assert model.hparams.batch_size == 123
 
 
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])

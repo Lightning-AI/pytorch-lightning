@@ -108,12 +108,14 @@ class BaseFinetuning(Callback):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
-            named_parameters = dict(pl_module.named_parameters())
-            for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self._apply_mapping_to_param_groups(
-                    self._internal_optimizer_metadata[opt_idx], named_parameters
-                )
-                optimizer.param_groups = param_groups
+            if self._internal_optimizer_metadata:
+                named_parameters = dict(pl_module.named_parameters())
+                for opt_idx, optimizer in enumerate(trainer.optimizers):
+                    if opt_idx in self._internal_optimizer_metadata:
+                        param_groups = self._apply_mapping_to_param_groups(
+                            self._internal_optimizer_metadata[opt_idx], named_parameters
+                        )
+                        optimizer.param_groups = param_groups
             self._restarting = False
 
     @staticmethod
