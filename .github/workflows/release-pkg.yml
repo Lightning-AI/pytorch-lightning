@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -140,7 +140,7 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v5 # needed for local action below
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -165,7 +165,7 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v5 # needed for local action below
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
