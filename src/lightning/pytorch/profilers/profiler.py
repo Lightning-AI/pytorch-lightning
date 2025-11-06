@@ -77,7 +77,10 @@ class Profiler(ABC):
             log.info(*args, **kwargs)
 
     def _prepare_filename(
-        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
+        self,
+        action_name: Optional[str] = None,
+        extension: str = ".txt",
+        split_token: str = "-",  # noqa: S107
     ) -> str:
         args = []
         if self._stage is not None:
