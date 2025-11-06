@@ -1,7 +1,7 @@
 :orphan:
 
 ##################################################
-Level 20: Train models with billions of parameters
+Level 19: Train models with billions of parameters
 ##################################################
 
 Scale to billions of parameters with multiple distributed strategies.
