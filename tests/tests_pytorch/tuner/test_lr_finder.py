@@ -653,8 +653,7 @@ def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
             x, y = batch
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = F.mse_loss(x_hat, y)
-            return loss
+            return F.mse_loss(x_hat, y)
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
