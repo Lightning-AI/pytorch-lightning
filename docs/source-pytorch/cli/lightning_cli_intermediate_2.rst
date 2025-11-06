@@ -201,9 +201,10 @@ If the scheduler you want needs other arguments, add them via the CLI (no need t
 
 .. code:: bash
 
-    python main.py fit --optimizer=Adam --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
+    python main.py fit --optimizer=Adam --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=train_loss
 
-Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can be used as learning rate scheduler:
+(assuming you have a ``train_loss`` metric logged). Furthermore, any custom subclass of
+``torch.optim.lr_scheduler.LRScheduler`` can be used as learning rate scheduler:
 
 .. code:: python
 
@@ -211,7 +212,6 @@ Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can
     import torch
     from lightning.pytorch.cli import LightningCLI
     from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
-
 
     class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
         def step(self):
