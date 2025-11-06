@@ -221,7 +221,6 @@ class RichProgressBarTheme:
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
-
     def __init__(self) -> None:
         pass
 
