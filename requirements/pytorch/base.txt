@@ -4,7 +4,7 @@
 torch >=2.1.0, <2.9.0
 tqdm >=4.57.0, <4.68.0
 PyYAML >5.4, <6.1.0
-fsspec[http] >=2022.5.0, <2025.10.0
+fsspec[http] >=2022.5.0, <2025.11.0
 torchmetrics >0.7.0, <1.9.0
 packaging >=20.0, <=25.0
 typing-extensions >4.5.0, <4.16.0
