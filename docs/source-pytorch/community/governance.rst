@@ -20,6 +20,7 @@ Maintainers
 -----------
 - Luca Antiga (`lantiga <https://github.com/lantiga>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
+- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 
 
 Emeritus Maintainers
