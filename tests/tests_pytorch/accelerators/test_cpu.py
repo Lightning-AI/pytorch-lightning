@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -53,7 +53,7 @@ def test_restore_checkpoint_after_pre_setup(tmp_path, restore_after_pre_setup):
         def restore_checkpoint_after_setup(self) -> bool:
             return restore_after_pre_setup
 
-        def load_checkpoint(self, checkpoint_path: Union[str, Path], weights_only: bool) -> dict[str, Any]:
+        def load_checkpoint(self, checkpoint_path: str | Path, weights_only: bool) -> dict[str, Any]:
             assert self.setup_called == restore_after_pre_setup
             return super().load_checkpoint(checkpoint_path, weights_only)
 

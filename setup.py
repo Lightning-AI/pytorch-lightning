@@ -48,7 +48,6 @@ import tempfile
 from collections.abc import Generator, Mapping
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Optional
 
 import setuptools
 import setuptools.command.egg_info
@@ -76,7 +75,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _named_temporary_file(directory: Optional[str] = None) -> str:
+def _named_temporary_file(directory: str | None = None) -> str:
     # `tempfile.NamedTemporaryFile` has issues in Windows
     # https://github.com/deepchem/deepchem/issues/707#issuecomment-556002823
     if directory is None:

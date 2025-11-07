@@ -14,11 +14,11 @@ import os
 import pickle
 import warnings
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -102,7 +102,7 @@ class _NotYetLoadedTensor:
         stride: tuple,
         requires_grad: bool,
         backward_hooks: OrderedDict,
-        metadata: Optional[Any] = None,
+        metadata: Any | None = None,
         *,
         archiveinfo: "_LazyLoadingUnpickler",
     ) -> "_NotYetLoadedTensor":
@@ -136,7 +136,7 @@ class _NotYetLoadedTensor:
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[dict] = None,
+        kwargs: dict | None = None,
     ) -> Any:
         kwargs = kwargs or {}
         loaded_args = [(arg._load_tensor() if isinstance(arg, _NotYetLoadedTensor) else arg) for arg in args]
@@ -221,7 +221,7 @@ def _materialize_tensors(collection: Any) -> Any:
 
 
 def _move_state_into(
-    source: dict[str, Any], destination: dict[str, Union[Any, _Stateful]], keys: Optional[set[str]] = None
+    source: dict[str, Any], destination: dict[str, Any | _Stateful], keys: set[str] | None = None
 ) -> None:
     """Takes the state from the source destination and moves it into the destination dictionary.
 

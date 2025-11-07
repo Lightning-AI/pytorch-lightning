@@ -22,7 +22,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 import itertools
 from collections import defaultdict
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -93,7 +93,7 @@ class LearningRateMonitor(Callback):
 
     def __init__(
         self,
-        logging_interval: Optional[Literal["step", "epoch"]] = None,
+        logging_interval: Literal["step", "epoch"] | None = None,
         log_momentum: bool = False,
         log_weight_decay: bool = False,
     ) -> None:
@@ -105,8 +105,8 @@ class LearningRateMonitor(Callback):
         self.log_weight_decay = log_weight_decay
 
         self.lrs: dict[str, list[float]] = {}
-        self.last_momentum_values: dict[str, Optional[list[float]]] = {}
-        self.last_weight_decay_values: dict[str, Optional[list[float]]] = {}
+        self.last_momentum_values: dict[str, list[float] | None] = {}
+        self.last_weight_decay_values: dict[str, list[float] | None] = {}
 
     @override
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
@@ -344,7 +344,7 @@ class LearningRateMonitor(Callback):
         name: str,
         seen_optimizers: list[Optimizer],
         seen_optimizer_types: defaultdict[type[Optimizer], int],
-        lr_scheduler_config: Optional[LRSchedulerConfig],
+        lr_scheduler_config: LRSchedulerConfig | None,
     ) -> list[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)

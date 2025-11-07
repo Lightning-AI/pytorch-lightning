@@ -20,8 +20,9 @@ Monitor a metric and stop training when it stops improving.
 """
 
 import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -120,9 +121,9 @@ class EarlyStopping(Callback):
         mode: str = "min",
         strict: bool = True,
         check_finite: bool = True,
-        stopping_threshold: Optional[float] = None,
-        divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: Optional[bool] = None,
+        stopping_threshold: float | None = None,
+        divergence_threshold: float | None = None,
+        check_on_train_epoch_end: bool | None = None,
         log_rank_zero_only: bool = False,
     ):
         super().__init__()
@@ -138,7 +139,7 @@ class EarlyStopping(Callback):
         self.wait_count = 0
         self.stopped_epoch = 0
         self.stopping_reason = EarlyStoppingReason.NOT_STOPPED
-        self.stopping_reason_message: Optional[str] = None
+        self.stopping_reason_message: str | None = None
         self._check_on_train_epoch_end = check_on_train_epoch_end
         self.log_rank_zero_only = log_rank_zero_only
 
@@ -243,7 +244,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason, self.log_rank_zero_only)
 
-    def _evaluate_stopping_criteria(self, current: Tensor) -> tuple[bool, Optional[str]]:
+    def _evaluate_stopping_criteria(self, current: Tensor) -> tuple[bool, str | None]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

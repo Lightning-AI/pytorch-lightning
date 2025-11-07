@@ -1,5 +1,5 @@
 import time
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 import torch
@@ -10,15 +10,15 @@ from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 
 class _CaptureCheckpointIO(CheckpointIO):
     def __init__(self) -> None:
-        self.saved: Optional[dict[str, Any]] = None
+        self.saved: dict[str, Any] | None = None
 
-    def save_checkpoint(self, checkpoint: dict[str, Any], path: str, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: str, storage_options: Any | None = None) -> None:
         # Simulate some delay to increase race window
         time.sleep(0.05)
         # Store the received checkpoint object (not a deep copy) to inspect tensor values
         self.saved = checkpoint
 
-    def load_checkpoint(self, path: str, map_location: Optional[Any] = None) -> dict[str, Any]:
+    def load_checkpoint(self, path: str, map_location: Any | None = None) -> dict[str, Any]:
         raise NotImplementedError
 
     def remove_checkpoint(self, path: str) -> None:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -87,7 +87,7 @@ class Precision:
         """
         return data
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
+    def pre_backward(self, tensor: Tensor, module: Module | None) -> Any:
         """Runs before precision plugin executes backward.
 
         Args:
@@ -96,7 +96,7 @@ class Precision:
 
         """
 
-    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: Module | None, *args: Any, **kwargs: Any) -> None:
         """Performs the actual backpropagation.
 
         Args:
@@ -106,7 +106,7 @@ class Precision:
         """
         tensor.backward(*args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
+    def post_backward(self, tensor: Tensor, module: Module | None) -> Any:
         """Runs after precision plugin executes backward.
 
         Args:

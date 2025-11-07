@@ -14,10 +14,9 @@
 import os
 from collections import Counter
 from collections.abc import Iterable
-from typing import Any, Optional, Union, cast
+from typing import Any, Union, cast, get_args
 
 import torch
-from typing_extensions import get_args
 
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -98,12 +97,12 @@ class _Connector:
 
     def __init__(
         self,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        devices: Union[list[int], str, int] = "auto",
+        accelerator: str | Accelerator = "auto",
+        strategy: str | Strategy = "auto",
+        devices: list[int] | str | int = "auto",
         num_nodes: int = 1,
-        precision: Optional[_PRECISION_INPUT] = None,
-        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
+        precision: _PRECISION_INPUT | None = None,
+        plugins: _PLUGIN_INPUT | Iterable[_PLUGIN_INPUT] | None = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
@@ -120,13 +119,13 @@ class _Connector:
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, etc. to the accelerator flag and devices flag
-        self._strategy_flag: Union[Strategy, str] = "auto"
-        self._accelerator_flag: Union[Accelerator, str] = "auto"
+        self._strategy_flag: Strategy | str = "auto"
+        self._accelerator_flag: Accelerator | str = "auto"
         self._precision_input: _PRECISION_INPUT_STR = "32-true"
-        self._precision_instance: Optional[Precision] = None
-        self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: list[Union[int, torch.device, str]] = []
-        self.checkpoint_io: Optional[CheckpointIO] = None
+        self._precision_instance: Precision | None = None
+        self._cluster_environment_flag: ClusterEnvironment | str | None = None
+        self._parallel_devices: list[int | torch.device | str] = []
+        self.checkpoint_io: CheckpointIO | None = None
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -163,10 +162,10 @@ class _Connector:
 
     def _check_config_and_set_final_flags(
         self,
-        strategy: Union[str, Strategy],
-        accelerator: Union[str, Accelerator],
-        precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
+        strategy: str | Strategy,
+        accelerator: str | Accelerator,
+        precision: _PRECISION_INPUT | None,
+        plugins: _PLUGIN_INPUT | Iterable[_PLUGIN_INPUT] | None,
     ) -> None:
         """This method checks:
 
@@ -295,7 +294,7 @@ class _Connector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: list[int] | str | int, num_nodes: int) -> None:
         if not isinstance(num_nodes, int) or num_nodes < 1:
             raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
 
@@ -391,7 +390,7 @@ class _Connector:
                 return env_type()
         return LightningEnvironment()
 
-    def _choose_strategy(self) -> Union[Strategy, str]:
+    def _choose_strategy(self) -> Strategy | str:
         if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return "xla"
@@ -540,7 +539,7 @@ class _Connector:
 
     @staticmethod
     def _argument_from_env(name: str, current: Any, default: Any) -> Any:
-        env_value: Optional[str] = os.environ.get("LT_" + name.upper())
+        env_value: str | None = os.environ.get("LT_" + name.upper())
 
         if env_value is None:
             return current
@@ -554,7 +553,7 @@ class _Connector:
         return env_value
 
 
-def _convert_precision_to_unified_args(precision: Optional[_PRECISION_INPUT]) -> Optional[_PRECISION_INPUT_STR]:
+def _convert_precision_to_unified_args(precision: _PRECISION_INPUT | None) -> _PRECISION_INPUT_STR | None:
     if precision is None:
         return None
 

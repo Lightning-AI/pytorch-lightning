@@ -16,8 +16,9 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 
+from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Callable, Literal, Optional, Union, cast
+from typing import Any, Literal, cast
 
 import torch
 from torch import Tensor, nn
@@ -39,12 +40,12 @@ _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]
 class StochasticWeightAveraging(Callback):
     def __init__(
         self,
-        swa_lrs: Union[float, list[float]],
-        swa_epoch_start: Union[int, float] = 0.8,
+        swa_lrs: float | list[float],
+        swa_epoch_start: int | float = 0.8,
         annealing_epochs: int = 10,
         annealing_strategy: Literal["cos", "linear"] = "cos",
-        avg_fn: Optional[_AVG_FN] = None,
-        device: Optional[Union[torch.device, str]] = torch.device("cpu"),
+        avg_fn: _AVG_FN | None = None,
+        device: torch.device | str | None = torch.device("cpu"),
     ):
         r"""Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
@@ -115,21 +116,21 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
-        self.n_averaged: Optional[Tensor] = None
+        self.n_averaged: Tensor | None = None
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
-        self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: Optional[pl.LightningModule] = None
+        self._model_contains_batch_norm: bool | None = None
+        self._average_model: pl.LightningModule | None = None
         self._initialized = False
-        self._swa_scheduler: Optional[LRScheduler] = None
-        self._scheduler_state: Optional[dict] = None
+        self._swa_scheduler: LRScheduler | None = None
+        self._scheduler_state: dict | None = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
-        self.momenta: dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
+        self.momenta: dict[nn.modules.batchnorm._BatchNorm, float | None] = {}
         self._max_epochs: int
 
     @property

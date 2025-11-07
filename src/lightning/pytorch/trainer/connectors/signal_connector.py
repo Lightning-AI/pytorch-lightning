@@ -3,9 +3,10 @@ import os
 import re
 import signal
 import threading
+from collections.abc import Callable
 from subprocess import call
 from types import FrameType
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 import torch
 import torch.distributed as dist
@@ -23,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 class _HandlersCompose:
-    def __init__(self, signal_handlers: Union[list[_HANDLER], _HANDLER]) -> None:
+    def __init__(self, signal_handlers: list[_HANDLER] | _HANDLER) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers

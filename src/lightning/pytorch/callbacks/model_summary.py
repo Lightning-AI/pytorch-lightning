@@ -23,7 +23,7 @@ the name, type and number of parameters for each layer.
 """
 
 import logging
-from typing import Any, Union
+from typing import Any
 
 from typing_extensions import override
 
@@ -82,7 +82,7 @@ class ModelSummary(Callback):
                 **self._summarize_kwargs,
             )
 
-    def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Union[DeepSpeedSummary, Summary]:
+    def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> DeepSpeedSummary | Summary:
         from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 
         if isinstance(trainer.strategy, DeepSpeedStrategy) and trainer.strategy.zero_stage_3:

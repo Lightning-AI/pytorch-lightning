@@ -18,7 +18,6 @@ To run: python backbone_image_classifier.py --trainer.max_epochs=50
 """
 
 from os import path
-from typing import Optional
 
 import torch
 from torch.nn import functional as F
@@ -63,7 +62,7 @@ class LitClassifier(LightningModule):
     )
     """
 
-    def __init__(self, backbone: Optional[Backbone] = None, learning_rate: float = 0.0001):
+    def __init__(self, backbone: Backbone | None = None, learning_rate: float = 0.0001):
         super().__init__()
         self.save_hyperparameters(ignore=["backbone"])
         if backbone is None:

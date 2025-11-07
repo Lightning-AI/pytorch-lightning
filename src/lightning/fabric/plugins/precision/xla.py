@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 import torch
-from typing_extensions import get_args, override
+from typing_extensions import override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision

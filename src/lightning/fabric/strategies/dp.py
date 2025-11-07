@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -34,10 +34,10 @@ class DataParallelStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision: Precision | None = None,
     ):
         super().__init__(
             accelerator=accelerator,
@@ -68,13 +68,13 @@ class DataParallelStrategy(ParallelStrategy):
         module.to(self.root_device)
 
     @override
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def batch_to_device(self, batch: Any, device: torch.device | None = None) -> Any:
         # DataParallel handles the transfer of batch to the device
         return batch
 
     @override
     def all_reduce(
-        self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+        self, collection: TReduce, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean"
     ) -> TReduce:
         def mean(t: Tensor) -> Tensor:
             original_dtype = t.dtype
@@ -95,15 +95,13 @@ class DataParallelStrategy(ParallelStrategy):
         return decision
 
     @override
-    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Any | Tensor]:
         if isinstance(module, DataParallel):
             module = module.module
         return super().get_module_state_dict(module)
 
     @override
-    def load_module_state_dict(
-        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
-    ) -> None:
+    def load_module_state_dict(self, module: Module, state_dict: dict[str, Any | Tensor], strict: bool = True) -> None:
         if isinstance(module, DataParallel):
             module = module.module
         super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)

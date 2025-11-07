@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Optional, Union, overload
+from typing import Any, Union, overload
 from weakref import proxy
 
 import torch
@@ -48,7 +48,7 @@ class LightningOptimizer:
 
     def __init__(self, optimizer: Optimizer):
         self._optimizer = optimizer
-        self._strategy: Optional[pl.strategies.Strategy] = None
+        self._strategy: pl.strategies.Strategy | None = None
         # to inject logic around the optimizer step, particularly useful with manual optimization
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
@@ -82,7 +82,7 @@ class LightningOptimizer:
             yield
             lightning_module.untoggle_optimizer(self)
 
-    def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
+    def step(self, closure: Callable[[], Any] | None = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
 
         Args:
@@ -198,8 +198,8 @@ def _init_optimizers_and_lr_schedulers(
 
 
 def _configure_optimizers(
-    optim_conf: Union[dict[str, Any], list, Optimizer, tuple],
-) -> tuple[list, list, Optional[str]]:
+    optim_conf: dict[str, Any] | list | Optimizer | tuple,
+) -> tuple[list, list, str | None]:
     optimizers, lr_schedulers = [], []
     monitor = None
 
@@ -247,7 +247,7 @@ def _configure_optimizers(
     return optimizers, lr_schedulers, monitor
 
 
-def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> list[LRSchedulerConfig]:
+def _configure_schedulers_automatic_opt(schedulers: list, monitor: str | None) -> list[LRSchedulerConfig]:
     """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic optimization."""
     lr_scheduler_configs = []
     for scheduler in schedulers:
@@ -406,12 +406,12 @@ class _MockOptimizer(Optimizer):
     def step(self, closure: Callable[[], float]) -> float: ...
 
     @override
-    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+    def step(self, closure: Callable[[], float] | None = None) -> float | None:
         if closure is not None:
             return closure()
 
     @override
-    def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
+    def zero_grad(self, set_to_none: bool | None = True) -> None:
         pass  # Do Nothing
 
     @override

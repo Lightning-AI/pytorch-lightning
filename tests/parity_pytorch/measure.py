@@ -1,6 +1,6 @@
 import gc
 import time
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 from tqdm import tqdm

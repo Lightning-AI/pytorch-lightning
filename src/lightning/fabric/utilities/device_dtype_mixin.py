@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from torch.nn import Module
@@ -26,17 +26,17 @@ class _DeviceDtypeModuleMixin(Module):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
+        self._dtype: str | torch.dtype = torch.get_default_dtype()
         # Workarounds from the original pytorch issue:
         # https://github.com/pytorch/pytorch/issues/115333#issuecomment-1848449687
         self._device = torch.get_default_device() if _TORCH_GREATER_EQUAL_2_3 else torch.empty(0).device
 
     @property
-    def dtype(self) -> Union[str, torch.dtype]:
+    def dtype(self) -> str | torch.dtype:
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: Union[str, torch.dtype]) -> None:
+    def dtype(self, new_dtype: str | torch.dtype) -> None:
         # necessary to avoid infinite recursion
         raise RuntimeError("Cannot set the dtype explicitly. Please use module.to(new_dtype).")
 
@@ -59,7 +59,7 @@ class _DeviceDtypeModuleMixin(Module):
         return super().to(*args, **kwargs)
 
     @override
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
+    def cuda(self, device: torch.device | int | None = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU while
         being optimized.
@@ -86,7 +86,7 @@ class _DeviceDtypeModuleMixin(Module):
         return super().cpu()
 
     @override
-    def type(self, dst_type: Union[str, torch.dtype]) -> Self:
+    def type(self, dst_type: str | torch.dtype) -> Self:
         """See :meth:`torch.nn.Module.type`."""
         _update_properties(self, dtype=dst_type)
         return super().type(dst_type=dst_type)
@@ -111,7 +111,7 @@ class _DeviceDtypeModuleMixin(Module):
 
 
 def _update_properties(
-    root: torch.nn.Module, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
+    root: torch.nn.Module, device: torch.device | None = None, dtype: str | torch.dtype | None = None
 ) -> None:
     for module in root.modules():
         if not isinstance(module, _DeviceDtypeModuleMixin):

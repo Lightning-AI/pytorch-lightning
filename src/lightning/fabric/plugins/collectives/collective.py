@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from torch import Tensor
 from typing_extensions import Self
@@ -17,7 +17,7 @@ class Collective(ABC):
     """
 
     def __init__(self) -> None:
-        self._group: Optional[CollectibleGroup] = None
+        self._group: CollectibleGroup | None = None
 
     @property
     @abstractmethod
@@ -65,10 +65,10 @@ class Collective(ABC):
     def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None: ...
 
     @abstractmethod
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor: ...
+    def recv(self, tensor: Tensor, src: int | None = None, tag: int = 0) -> Tensor: ...
 
     @abstractmethod
-    def barrier(self, device_ids: Optional[list[int]] = None) -> None: ...
+    def barrier(self, device_ids: list[int] | None = None) -> None: ...
 
     @classmethod
     @abstractmethod

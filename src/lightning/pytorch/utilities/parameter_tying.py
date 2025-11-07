@@ -18,8 +18,6 @@ Reference:
 
 """
 
-from typing import Optional
-
 from torch import nn
 
 
@@ -28,7 +26,7 @@ def find_shared_parameters(module: nn.Module) -> list[str]:
     return _find_shared_parameters(module)
 
 
-def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[dict] = None, prefix: str = "") -> list[str]:
+def _find_shared_parameters(module: nn.Module, tied_parameters: dict | None = None, prefix: str = "") -> list[str]:
     if tied_parameters is None:
         tied_parameters = {}
     for name, param in module._parameters.items():

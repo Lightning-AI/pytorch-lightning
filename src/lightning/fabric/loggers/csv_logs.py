@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Optional, Union
+from typing import Any
 
 from torch import Tensor
 from typing_extensions import override
@@ -61,8 +61,8 @@ class CSVLogger(Logger):
     def __init__(
         self,
         root_dir: _PATH,
-        name: Optional[str] = "lightning_logs",
-        version: Optional[Union[int, str]] = None,
+        name: str | None = "lightning_logs",
+        version: int | str | None = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
     ):
@@ -73,7 +73,7 @@ class CSVLogger(Logger):
         self._version = version
         self._prefix = prefix
         self._fs = get_filesystem(root_dir)
-        self._experiment: Optional[_ExperimentWriter] = None
+        self._experiment: _ExperimentWriter | None = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
@@ -89,7 +89,7 @@ class CSVLogger(Logger):
 
     @property
     @override
-    def version(self) -> Union[int, str]:
+    def version(self) -> int | str:
         """Gets the version of the experiment.
 
         Returns:
@@ -138,13 +138,13 @@ class CSVLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
-        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
+        self, metrics: dict[str, Tensor | float], step: int | None = None
     ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is None:
@@ -210,10 +210,10 @@ class _ExperimentWriter:
         self._check_log_dir_exists()
         self._fs.makedirs(self.log_dir, exist_ok=True)
 
-    def log_metrics(self, metrics_dict: dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics_dict: dict[str, float], step: int | None = None) -> None:
         """Record metrics."""
 
-        def _handle_value(value: Union[Tensor, Any]) -> Any:
+        def _handle_value(value: Tensor | Any) -> Any:
             if isinstance(value, Tensor):
                 return value.item()
             return value

@@ -17,7 +17,7 @@ import errno
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Optional, Union
+from typing import IO, Any
 
 import fsspec
 import fsspec.utils
@@ -32,9 +32,9 @@ log = logging.getLogger(__name__)
 
 
 def _load(
-    path_or_url: Union[IO, _PATH],
+    path_or_url: IO | _PATH,
     map_location: _MAP_LOCATION_TYPE = None,
-    weights_only: Optional[bool] = None,
+    weights_only: bool | None = None,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -131,7 +131,7 @@ def _is_object_storage(fs: AbstractFileSystem) -> bool:
     return False
 
 
-def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False) -> bool:
+def _is_dir(fs: AbstractFileSystem, path: str | Path, strict: bool = False) -> bool:
     """Check if a path is directory-like.
 
     This function determines if a given path is considered directory-like, taking into account the behavior

@@ -16,9 +16,10 @@ import logging
 import os
 import queue
 import tempfile
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, NamedTuple, Optional, Union
+from typing import Any, Literal, NamedTuple, Optional
 
 import torch
 import torch.backends.cudnn
@@ -159,7 +160,7 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
+        return_queue: mp.SimpleQueue | queue.Queue,
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
@@ -272,8 +273,8 @@ class _MultiProcessingLauncher(_Launcher):
 
 
 class _WorkerOutput(NamedTuple):
-    best_model_path: Optional[_PATH]
-    weights_path: Optional[_PATH]
+    best_model_path: _PATH | None
+    weights_path: _PATH | None
     trainer_state: TrainerState
     trainer_results: Any
     extra: dict[str, Any]

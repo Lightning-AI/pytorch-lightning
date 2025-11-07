@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
 
 import torch
 from typing_extensions import override
@@ -39,13 +38,13 @@ class CPUAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str]) -> int:
+    def parse_devices(devices: int | str) -> int:
         """Accelerator device parsing logic."""
         return _parse_cpu_cores(devices)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str]) -> list[torch.device]:
+    def get_parallel_devices(devices: int | str) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
@@ -77,7 +76,7 @@ class CPUAccelerator(Accelerator):
         )
 
 
-def _parse_cpu_cores(cpu_cores: Union[int, str]) -> int:
+def _parse_cpu_cores(cpu_cores: int | str) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
     :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 

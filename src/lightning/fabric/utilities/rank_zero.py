@@ -15,7 +15,6 @@
 
 import logging
 import os
-from typing import Optional
 
 import lightning_utilities.core.rank_zero as rank_zero_module
 
@@ -32,7 +31,7 @@ from lightning_utilities.core.rank_zero import (  # noqa: F401
 rank_zero_module.log = logging.getLogger(__name__)
 
 
-def _get_rank() -> Optional[int]:
+def _get_rank() -> int | None:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
     rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")

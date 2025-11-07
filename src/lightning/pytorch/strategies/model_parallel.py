@@ -16,7 +16,7 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -80,11 +80,11 @@ class ModelParallelStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        data_parallel_size: Union[Literal["auto"], int] = "auto",
-        tensor_parallel_size: Union[Literal["auto"], int] = "auto",
+        data_parallel_size: Literal["auto"] | int = "auto",
+        tensor_parallel_size: Literal["auto"] | int = "auto",
         save_distributed_checkpoint: bool = True,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
     ) -> None:
         super().__init__()
         if not _TORCH_GREATER_EQUAL_2_4:
@@ -92,9 +92,9 @@ class ModelParallelStrategy(ParallelStrategy):
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
         self._save_distributed_checkpoint = save_distributed_checkpoint
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
-        self._device_mesh: Optional[DeviceMesh] = None
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
+        self._device_mesh: DeviceMesh | None = None
         self.num_nodes = 1
 
     @property
@@ -121,7 +121,7 @@ class ModelParallelStrategy(ParallelStrategy):
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @property
@@ -203,14 +203,14 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @contextmanager
     @override
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def tensor_init_context(self, empty_init: bool | None = None) -> Generator[None, None, None]:
         # Materializaton happens in `setup()`
         empty_init_context = torch.device("meta") if empty_init else nullcontext()
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
     @override
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
@@ -230,9 +230,9 @@ class ModelParallelStrategy(ParallelStrategy):
     @override
     def reduce(
         self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+        tensor: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
     ) -> Tensor:
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
@@ -296,9 +296,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def save_checkpoint(
-        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Any | None = None) -> None:
         if storage_options is not None:
             raise TypeError(
                 f"`{type(self).__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
@@ -329,7 +327,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: bool | None = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
         state = {

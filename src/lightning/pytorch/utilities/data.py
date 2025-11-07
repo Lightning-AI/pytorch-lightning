@@ -14,13 +14,12 @@
 import inspect
 from collections.abc import Generator, Iterable, Mapping, Sized
 from dataclasses import fields
-from typing import Any, Optional, Union
+from typing import Any, TypeGuard, Union
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
-from typing_extensions import TypeGuard
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import (
@@ -40,7 +39,7 @@ BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
+def _extract_batch_size(batch: BType) -> Generator[int | None, None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -130,7 +129,7 @@ def has_len_all_ranks(
 
 
 def _update_dataloader(
-    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Sampler | Iterable, mode: RunningStage | None = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
     return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
@@ -138,8 +137,8 @@ def _update_dataloader(
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    sampler: Sampler | Iterable,
+    mode: RunningStage | None = None,
 ) -> tuple[tuple[Any], dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -232,8 +231,8 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    sampler: Sampler | Iterable,
+    mode: RunningStage | None = None,
 ) -> dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation.

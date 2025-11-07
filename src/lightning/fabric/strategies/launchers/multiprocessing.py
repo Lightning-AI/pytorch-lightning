@@ -13,10 +13,11 @@
 # limitations under the License.
 import itertools
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 import torch.backends.cudnn

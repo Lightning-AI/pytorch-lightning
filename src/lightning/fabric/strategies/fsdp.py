@@ -13,7 +13,7 @@
 # limitations under the License.
 import shutil
 import warnings
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     Optional,
+    TypeGuard,
     Union,
 )
 
@@ -33,7 +33,7 @@ from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from typing_extensions import TypeGuard, override
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -137,20 +137,20 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        precision: Precision | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         auto_wrap_policy: Optional["_POLICY"] = None,
-        activation_checkpointing: Optional[Union[type[Module], list[type[Module]]]] = None,
+        activation_checkpointing: type[Module] | list[type[Module]] | None = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
-        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
+        device_mesh: Union[tuple[int], "DeviceMesh"] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -160,8 +160,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             precision=precision,
         )
         self._num_nodes = 1
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
         self._fsdp_kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
 
@@ -215,7 +215,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @property
@@ -238,7 +238,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[Precision]) -> None:
+    def precision(self, precision: Precision | None) -> None:
         if precision is not None and not isinstance(precision, FSDPPrecision):
             raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")
         self._precision = precision
@@ -335,7 +335,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
@@ -363,9 +363,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
     @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def all_reduce(self, tensor: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean") -> Tensor:
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
@@ -393,8 +391,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self,
         module: Module,
         optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
+        max_norm: float | int,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
@@ -414,9 +412,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state to a checkpoint on disk.
 
@@ -514,9 +512,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -682,7 +680,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
 
 def _activation_checkpointing_kwargs(
-    activation_checkpointing: Optional[Union[type[Module], list[type[Module]]]],
+    activation_checkpointing: type[Module] | list[type[Module]] | None,
     activation_checkpointing_policy: Optional["_POLICY"],
 ) -> dict:
     if activation_checkpointing is None and activation_checkpointing_policy is None:
@@ -761,7 +759,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
         return module.no_sync()
 
 
-def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUOffload":
+def _init_cpu_offload(cpu_offload: Union[bool, "CPUOffload"] | None) -> "CPUOffload":
     from torch.distributed.fsdp import CPUOffload
 
     return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=bool(cpu_offload))

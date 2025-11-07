@@ -13,7 +13,8 @@
 # limitations under the License.
 import queue
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Union
 
 import torch.multiprocessing as mp
 from typing_extensions import override
@@ -68,7 +69,7 @@ class _XLALauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
-        return_queue: Union[queue.Queue, mp.SimpleQueue]
+        return_queue: queue.Queue | mp.SimpleQueue
         return_queue = mp.Manager().Queue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
@@ -96,8 +97,8 @@ class _XLALauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
-        global_states: Optional[_GlobalStateSnapshot] = None,
+        return_queue: mp.SimpleQueue | queue.Queue,
+        global_states: _GlobalStateSnapshot | None = None,
     ) -> None:
         import torch_xla.core.xla_model as xm
 

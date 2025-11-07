@@ -18,7 +18,7 @@ from argparse import Namespace
 from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Optional, Union
+from typing import Any
 
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.pytorch.utilities.parsing import save_hyperparameters
@@ -51,8 +51,8 @@ class HyperparametersMixin:
     def save_hyperparameters(
         self,
         *args: Any,
-        ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None,
+        ignore: Sequence[str] | str | None = None,
+        frame: types.FrameType | None = None,
         logger: bool = True,
     ) -> None:
         """Save arguments to ``hparams`` attribute.
@@ -130,7 +130,7 @@ class HyperparametersMixin:
                 frame = current_frame.f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame, given_hparams=given_hparams)
 
-    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
+    def _set_hparams(self, hp: MutableMapping | Namespace | str) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -139,7 +139,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
+    def _to_hparams_dict(hp: MutableMapping | Namespace | str) -> MutableMapping | AttributeDict:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -151,7 +151,7 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, MutableMapping]:
+    def hparams(self) -> AttributeDict | MutableMapping:
         """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For
         the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 

@@ -15,7 +15,7 @@
 import os
 from argparse import Namespace
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -82,11 +82,11 @@ class TensorBoardLogger(Logger):
     def __init__(
         self,
         root_dir: _PATH,
-        name: Optional[str] = "lightning_logs",
-        version: Optional[Union[int, str]] = None,
+        name: str | None = "lightning_logs",
+        version: int | str | None = None,
         default_hp_metric: bool = True,
         prefix: str = "",
-        sub_dir: Optional[_PATH] = None,
+        sub_dir: _PATH | None = None,
         **kwargs: Any,
     ):
         if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
@@ -105,7 +105,7 @@ class TensorBoardLogger(Logger):
         self._prefix = prefix
         self._fs = get_filesystem(root_dir)
 
-        self._experiment: Optional[SummaryWriter] = None
+        self._experiment: SummaryWriter | None = None
         self._kwargs = kwargs
 
     @property
@@ -121,7 +121,7 @@ class TensorBoardLogger(Logger):
 
     @property
     @override
-    def version(self) -> Union[int, str]:
+    def version(self) -> int | str:
         """Get the experiment version.
 
         Returns:
@@ -161,7 +161,7 @@ class TensorBoardLogger(Logger):
         return log_dir
 
     @property
-    def sub_dir(self) -> Optional[str]:
+    def sub_dir(self) -> str | None:
         """Gets the sub directory where the TensorBoard experiments are saved.
 
         Returns:
@@ -197,7 +197,7 @@ class TensorBoardLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -221,9 +221,9 @@ class TensorBoardLogger(Logger):
     @rank_zero_only
     def log_hyperparams(
         self,
-        params: Union[dict[str, Any], Namespace],
-        metrics: Optional[dict[str, Any]] = None,
-        step: Optional[int] = None,
+        params: dict[str, Any] | Namespace,
+        metrics: dict[str, Any] | None = None,
+        step: int | None = None,
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
@@ -263,7 +263,7 @@ class TensorBoardLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
         model = _unwrap_objects(model)

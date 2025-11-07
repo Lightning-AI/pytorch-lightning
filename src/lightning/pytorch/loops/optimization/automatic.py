@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -46,8 +46,8 @@ class ClosureResult(OutputResult):
 
     """
 
-    closure_loss: Optional[Tensor]
-    loss: Optional[Tensor] = field(init=False, default=None)
+    closure_loss: Tensor | None
+    loss: Tensor | None = field(init=False, default=None)
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -117,8 +117,8 @@ class Closure(AbstractClosure[ClosureResult]):
     def __init__(
         self,
         step_fn: Callable[[], ClosureResult],
-        backward_fn: Optional[Callable[[Tensor], None]] = None,
-        zero_grad_fn: Optional[Callable[[], None]] = None,
+        backward_fn: Callable[[Tensor], None] | None = None,
+        zero_grad_fn: Callable[[], None] | None = None,
     ):
         super().__init__()
         self._step_fn = step_fn
@@ -142,7 +142,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return step_output
 
     @override
-    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Tensor | None:
         self._result = self.closure(*args, **kwargs)
         return self._result.loss
 
@@ -208,7 +208,7 @@ class _AutomaticOptimization(_Loop):
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, kwargs)
 
-    def _make_zero_grad_fn(self, batch_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
+    def _make_zero_grad_fn(self, batch_idx: int, optimizer: Optimizer) -> Callable[[], None] | None:
         """Build a `zero_grad` function that zeroes the gradients before back-propagation.
 
         Returns ``None`` in the case backward needs to be skipped.
@@ -227,7 +227,7 @@ class _AutomaticOptimization(_Loop):
 
         return zero_grad_fn
 
-    def _make_backward_fn(self, optimizer: Optimizer) -> Optional[Callable[[Tensor], None]]:
+    def _make_backward_fn(self, optimizer: Optimizer) -> Callable[[Tensor], None] | None:
         """Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function.
 
@@ -245,7 +245,7 @@ class _AutomaticOptimization(_Loop):
     def _optimizer_step(
         self,
         batch_idx: int,
-        train_step_and_backward_closure: Callable[[], Optional[Tensor]],
+        train_step_and_backward_closure: Callable[[], Tensor | None],
     ) -> None:
         """Performs the optimizer step and some sanity checking.
 

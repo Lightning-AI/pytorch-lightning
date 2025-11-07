@@ -21,10 +21,10 @@ import os
 import re
 import tempfile
 from argparse import Namespace
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -116,15 +116,15 @@ class MLFlowLogger(Logger):
     def __init__(
         self,
         experiment_name: str = "lightning_logs",
-        run_name: Optional[str] = None,
-        tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
-        tags: Optional[dict[str, Any]] = None,
-        save_dir: Optional[str] = "./mlruns",
+        run_name: str | None = None,
+        tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI"),
+        tags: dict[str, Any] | None = None,
+        save_dir: str | None = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
-        artifact_location: Optional[str] = None,
-        run_id: Optional[str] = None,
-        synchronous: Optional[bool] = None,
+        artifact_location: str | None = None,
+        run_id: str | None = None,
+        synchronous: bool | None = None,
     ):
         if not _MLFLOW_AVAILABLE:
             raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
@@ -135,14 +135,14 @@ class MLFlowLogger(Logger):
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
-        self._experiment_id: Optional[str] = None
+        self._experiment_id: str | None = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
         self.tags = tags
         self._log_model = log_model
         self._logged_model_time: dict[str, float] = {}
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._checkpoint_callback: ModelCheckpoint | None = None
         self._prefix = prefix
         self._artifact_location = artifact_location
         self._log_batch_kwargs = {} if synchronous is None else {"synchronous": synchronous}
@@ -205,7 +205,7 @@ class MLFlowLogger(Logger):
         return self._mlflow_client
 
     @property
-    def run_id(self) -> Optional[str]:
+    def run_id(self) -> str | None:
         """Create the experiment if it does not exist to get the run id.
 
         Returns:
@@ -216,7 +216,7 @@ class MLFlowLogger(Logger):
         return self._run_id
 
     @property
-    def experiment_id(self) -> Optional[str]:
+    def experiment_id(self) -> str | None:
         """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
@@ -228,7 +228,7 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
@@ -244,7 +244,7 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         from mlflow.entities import Metric
@@ -291,7 +291,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """The root file directory in which MLflow experiments are saved.
 
         Return:
@@ -305,7 +305,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Get the experiment id.
 
         Returns:
@@ -316,7 +316,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Get the run id.
 
         Returns:

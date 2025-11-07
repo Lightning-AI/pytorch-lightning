@@ -1,7 +1,7 @@
 import argparse
 import math
 import os
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import gymnasium as gym
 import torch
@@ -160,7 +160,7 @@ def linear_annealing(optimizer: torch.optim.Optimizer, update: int, num_updates:
         pg["lr"] = lrnow
 
 
-def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Optional[str] = None, prefix: str = ""):
+def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: str | None = None, prefix: str = ""):
     def thunk():
         env = gym.make(env_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)

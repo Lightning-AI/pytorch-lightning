@@ -40,7 +40,7 @@ from lightning.fabric.utilities.types import ProcessGroup
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-STEP_OUTPUT = Optional[Union[Tensor, Mapping[str, Any]]]
+STEP_OUTPUT = Optional[Tensor | Mapping[str, Any]]
 _EVALUATE_OUTPUT = list[Mapping[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[list[Any], list[list[Any]]]
 TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
@@ -54,11 +54,11 @@ class DistributedDataParallel(Protocol):
     def __init__(
         self,
         module: torch.nn.Module,
-        device_ids: Optional[list[Union[int, torch.device]]] = None,
-        output_device: Optional[Union[int, torch.device]] = None,
+        device_ids: list[int | torch.device] | None = None,
+        output_device: int | torch.device | None = None,
         dim: int = 0,
         broadcast_buffers: bool = True,
-        process_group: Optional[ProcessGroup] = None,
+        process_group: ProcessGroup | None = None,
         bucket_cap_mb: int = 25,
         find_unused_parameters: bool = False,
         check_reduction: bool = False,
@@ -79,9 +79,9 @@ LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 @dataclass
 class LRSchedulerConfig:
-    scheduler: Union[LRScheduler, ReduceLROnPlateau]
+    scheduler: LRScheduler | ReduceLROnPlateau
     # no custom name
-    name: Optional[str] = None
+    name: str | None = None
     # after epoch is over
     interval: str = "epoch"
     # every epoch/batch
@@ -89,18 +89,18 @@ class LRSchedulerConfig:
     # most often not ReduceLROnPlateau scheduler
     reduce_on_plateau: bool = False
     # value to monitor for ReduceLROnPlateau
-    monitor: Optional[str] = None
+    monitor: str | None = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
 
 
 class LRSchedulerConfigType(TypedDict, total=False):
     scheduler: Required[LRSchedulerTypeUnion]
-    name: Optional[str]
+    name: str | None
     interval: str
     frequency: int
     reduce_on_plateau: bool
-    monitor: Optional[str]
+    monitor: str | None
     strict: bool
 
 
@@ -110,20 +110,18 @@ class OptimizerConfig(TypedDict):
 
 class OptimizerLRSchedulerConfig(TypedDict):
     optimizer: Optimizer
-    lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfigType]
+    lr_scheduler: LRSchedulerTypeUnion | LRSchedulerConfigType
     monitor: NotRequired[str]
 
 
 OptimizerLRScheduler = Optional[
-    Union[
-        Optimizer,
-        Sequence[Optimizer],
-        tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
-        OptimizerConfig,
-        OptimizerLRSchedulerConfig,
-        Sequence[OptimizerConfig],
-        Sequence[OptimizerLRSchedulerConfig],
-    ]
+    Optimizer
+    | Sequence[Optimizer]
+    | tuple[Sequence[Optimizer], Sequence[LRSchedulerTypeUnion | LRSchedulerConfig]]
+    | OptimizerConfig
+    | OptimizerLRSchedulerConfig
+    | Sequence[OptimizerConfig]
+    | Sequence[OptimizerLRSchedulerConfig]
 ]
 
 

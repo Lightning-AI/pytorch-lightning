@@ -14,7 +14,6 @@
 import re
 from collections import OrderedDict
 from logging import INFO
-from typing import Union
 
 import pytest
 import torch
@@ -151,7 +150,7 @@ def test_pruning_callback(
     tmp_path,
     use_global_unstructured: bool,
     parameters_to_prune: bool,
-    pruning_fn: Union[str, pytorch_prune.BasePruningMethod],
+    pruning_fn: str | pytorch_prune.BasePruningMethod,
     use_lottery_ticket_hypothesis: bool,
 ):
     train_with_pruning_callback(

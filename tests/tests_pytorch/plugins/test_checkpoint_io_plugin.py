@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -29,11 +29,11 @@ from lightning.pytorch.strategies import SingleDeviceStrategy
 
 
 class CustomCheckpointIO(CheckpointIO):
-    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Any | None = None) -> None:
         torch.save(checkpoint, path)
 
     def load_checkpoint(
-        self, path: _PATH, storage_options: Optional[Any] = None, weights_only: bool = True
+        self, path: _PATH, storage_options: Any | None = None, weights_only: bool = True
     ) -> dict[str, Any]:
         return torch.load(path, weights_only=True)
 

@@ -118,7 +118,7 @@ class _LRFinder:
 
     def plot(
         self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None
-    ) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
+    ) -> Union["plt.Figure", "plt.SubFigure"] | None:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -136,7 +136,7 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig: Optional[Union[plt.Figure, plt.SubFigure]]
+        fig: plt.Figure | plt.SubFigure | None
         if ax is None:
             fig, ax = plt.subplots()
         else:
@@ -159,7 +159,7 @@ class _LRFinder:
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> float | None:
         """This will propose a suggestion for an initial learning rate based on the point with the steepest negative
         gradient.
 
@@ -203,10 +203,10 @@ def _lr_find(
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = "exponential",
-    early_stop_threshold: Optional[float] = 4.0,
+    early_stop_threshold: float | None = 4.0,
     update_attr: bool = False,
     attr_name: str = "",
-) -> Optional[_LRFinder]:
+) -> _LRFinder | None:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in picking
     a good starting learning rate.
 
@@ -320,7 +320,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> dict[str, Any]:
     }
 
 
-def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: Optional[float]) -> None:
+def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float | None) -> None:
     from lightning.pytorch.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
@@ -367,7 +367,7 @@ class _LRCallback(Callback):
     def __init__(
         self,
         num_training: int,
-        early_stop_threshold: Optional[float] = 4.0,
+        early_stop_threshold: float | None = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
     ):
@@ -473,7 +473,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> float | list[float]:
         return self._lr
 
 
@@ -510,7 +510,7 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> float | list[float]:
         return self._lr
 
 

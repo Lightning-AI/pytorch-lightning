@@ -19,7 +19,7 @@ Monitors and logs device stats during training.
 
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from typing_extensions import override
 
@@ -115,7 +115,7 @@ class DeviceStatsMonitor(Callback):
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
+    def __init__(self, cpu_stats: bool | None = None) -> None:
         self._cpu_stats = cpu_stats
 
     @override
