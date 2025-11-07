@@ -31,7 +31,7 @@ jobs:
       - name: Create 📦 package
         uses: ./.github/actions/pkg-create
       - name: Upload 📤 packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist

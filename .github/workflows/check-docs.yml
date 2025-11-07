@@ -117,7 +117,7 @@ jobs:
         if: startsWith(github.event_name, 'pull_request')
         run: echo "KEEP_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docs-${{ matrix.target }}-${{ github.sha }}
           path: ${{ inputs.docs-dir }}/build/

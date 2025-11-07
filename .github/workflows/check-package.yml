@@ -99,7 +99,7 @@ jobs:
         uses: ./.cicd/.github/actions/pkg-create
       - name: Upload 📤 packages
         if: ${{ inputs.artifact-name != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.artifact-name }}-build-${{ strategy.job-index }}
           path: dist
@@ -131,7 +131,7 @@ jobs:
           ls -lh dist/
           twine check dist/*
       - name: Upload 📤
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.artifact-name }}
           path: dist
