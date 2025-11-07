@@ -171,6 +171,7 @@ filterwarnings = [
     # "error::DeprecationWarning",
     "error::FutureWarning",
     "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
+    "ignore:You are using `torch.load` with `weights_only=False`.*:FutureWarning",
 ]
 xfail_strict = true
 junit_duration_report = "call"

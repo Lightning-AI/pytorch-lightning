@@ -584,7 +584,7 @@ class FSDPStrategy(ParallelStrategy):
         return None
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 
@@ -625,7 +625,7 @@ class FSDPStrategy(ParallelStrategy):
                         optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
-            return torch.load(path / _METADATA_FILENAME)
+            return torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path)
