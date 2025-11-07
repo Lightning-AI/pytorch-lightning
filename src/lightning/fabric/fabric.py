@@ -1004,9 +1004,6 @@ class Fabric:
 
         filtered_kwargs = {}
         for name, param in sig.parameters.items():
-            # Skip 'self' parameter for instance methods
-            if name == "self":
-                continue
             # If the method accepts **kwargs, pass all original kwargs directly
             if param.kind == inspect.Parameter.VAR_KEYWORD:
                 return kwargs
