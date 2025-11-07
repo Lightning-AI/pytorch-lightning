@@ -29,8 +29,7 @@ class IdentityModule(LightningModule):
         if curr_loss_val is None:
             curr_loss_val = batch_idx
 
-        loss = self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
-        return loss
+        return self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-3)

@@ -91,7 +91,7 @@ def get_init_args(frame: types.FrameType) -> dict[str, Any]:  # pragma: no-cover
 
 def _get_init_args(frame: types.FrameType) -> tuple[Optional[Any], dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if "__class__" not in local_vars:
+    if "__class__" not in local_vars or frame.f_code.co_name != "__init__":
         return None, {}
     cls = local_vars["__class__"]
     init_parameters = inspect.signature(cls.__init__).parameters

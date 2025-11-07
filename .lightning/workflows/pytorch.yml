@@ -27,7 +27,6 @@ env:
   DEBIAN_FRONTEND: "noninteractive"
   CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
   MKL_THREADING_LAYER: "GNU"
-  CUDA_LAUNCH_BLOCKING: "1"
   NCCL_DEBUG: "INFO"
   TORCHDYNAMO_VERBOSE: "1"
   FREEZE_REQUIREMENTS: "1"
@@ -50,7 +49,8 @@ run: |
         openmpi-bin \
         ninja-build \
         libnccl2 \
-        libnccl-dev
+        libnccl-dev \
+        unzip
 
   echo "Install Python ${python_version} and UV"
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
@@ -85,7 +85,7 @@ run: |
   CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
   CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
   export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="pytorch_lightning").get(n, n))')
+  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="pytorch_lightning").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
 
   uv pip install -q fire wget packaging "lightning-utilities[cli]"
@@ -120,7 +120,7 @@ run: |
   fi
 
   echo "Install package"
-  extra=$(python -c "print({'lightning': 'pytorch-'}.get('$(PACKAGE_NAME)', ''))")
+  extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
   uv pip install -e ".[${extra}dev]" --upgrade
 
   echo "Ensure only a single package is installed"
