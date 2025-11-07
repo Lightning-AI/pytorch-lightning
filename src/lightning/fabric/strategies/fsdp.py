@@ -73,8 +73,8 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
     from torch.optim.lr_scheduler import _LRScheduler
 
-    _POLICY = Union[set[type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
-    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
+    _POLICY = set[type[Module]] | Callable[[Module, bool, int], bool] | ModuleWrapPolicy
+    _SHARDING_STRATEGY = ShardingStrategy | Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]
 
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")

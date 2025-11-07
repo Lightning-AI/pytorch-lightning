@@ -14,7 +14,7 @@
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -32,7 +32,7 @@ from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
-_VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
+_VALUE = Metric | Tensor  # Do not include scalars as they were converted to tensors
 _OUT_DICT = dict[str, Tensor]
 _PBAR_DICT = dict[str, float]
 

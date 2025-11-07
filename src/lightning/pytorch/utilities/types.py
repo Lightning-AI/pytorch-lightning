@@ -22,10 +22,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
     Any,
-    Optional,
     Protocol,
     TypedDict,
-    Union,
     runtime_checkable,
 )
 
@@ -38,11 +36,11 @@ from typing_extensions import NotRequired, Required
 
 from lightning.fabric.utilities.types import ProcessGroup
 
-_NUMBER = Union[int, float]
-_METRIC = Union[Metric, Tensor, _NUMBER]
-STEP_OUTPUT = Optional[Tensor | Mapping[str, Any]]
+_NUMBER = int | float
+_METRIC = Metric | Tensor | _NUMBER
+STEP_OUTPUT = Tensor | Mapping[str, Any] | None
 _EVALUATE_OUTPUT = list[Mapping[str, float]]  # 1 dict per DataLoader
-_PREDICT_OUTPUT = Union[list[Any], list[list[Any]]]
+_PREDICT_OUTPUT = list[Any] | list[list[Any]]
 TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
 EVAL_DATALOADERS = Any  # any iterable or collection of iterables
 
@@ -72,9 +70,9 @@ class DistributedDataParallel(Protocol):
 
 # todo: improve LRSchedulerType naming/typing
 LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[type[LRScheduler], type[ReduceLROnPlateau]]
-LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
+LRSchedulerTypeUnion = LRScheduler | ReduceLROnPlateau
+LRSchedulerType = type[LRScheduler] | type[ReduceLROnPlateau]
+LRSchedulerPLType = LRScheduler | ReduceLROnPlateau
 
 
 @dataclass
@@ -114,7 +112,7 @@ class OptimizerLRSchedulerConfig(TypedDict):
     monitor: NotRequired[str]
 
 
-OptimizerLRScheduler = Optional[
+OptimizerLRScheduler = (
     Optimizer
     | Sequence[Optimizer]
     | tuple[Sequence[Optimizer], Sequence[LRSchedulerTypeUnion | LRSchedulerConfig]]
@@ -122,7 +120,8 @@ OptimizerLRScheduler = Optional[
     | OptimizerLRSchedulerConfig
     | Sequence[OptimizerConfig]
     | Sequence[OptimizerLRSchedulerConfig]
-]
+    | None
+)
 
 
 class _SizedIterable(Protocol):

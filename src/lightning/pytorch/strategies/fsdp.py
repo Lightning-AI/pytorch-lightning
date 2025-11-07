@@ -22,7 +22,6 @@ from typing import (
     Any,
     Literal,
     Optional,
-    Union,
 )
 
 import torch
@@ -81,8 +80,8 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    _POLICY = Union[set[type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
-    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
+    _POLICY = set[type[Module]] | Callable[[Module, bool, int], bool] | ModuleWrapPolicy
+    _SHARDING_STRATEGY = ShardingStrategy | Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]
 
 
 log = logging.getLogger(__name__)
@@ -152,14 +151,14 @@ class FSDPStrategy(ParallelStrategy):
         precision_plugin: Precision | None = None,
         process_group_backend: str | None = None,
         timeout: timedelta | None = default_pg_timeout,
-        cpu_offload: Union[bool, "CPUOffload", None] = None,
+        cpu_offload: bool | "CPUOffload" | None = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         auto_wrap_policy: Optional["_POLICY"] = None,
         activation_checkpointing: type[Module] | list[type[Module]] | None = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
-        device_mesh: Union[tuple[int], "DeviceMesh"] | None = None,
+        device_mesh: tuple[int] | "DeviceMesh" | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(

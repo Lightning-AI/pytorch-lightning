@@ -14,7 +14,7 @@
 import os
 from collections import Counter
 from collections.abc import Iterable
-from typing import Any, Union, cast, get_args
+from typing import Any, cast, get_args
 
 import torch
 
@@ -67,7 +67,7 @@ from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 
-_PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO]
+_PLUGIN_INPUT = Precision | ClusterEnvironment | CheckpointIO
 
 
 class _Connector:

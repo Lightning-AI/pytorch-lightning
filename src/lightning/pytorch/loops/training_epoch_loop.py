@@ -16,7 +16,7 @@ import math
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from typing_extensions import override
@@ -38,7 +38,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException, SI
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
-_BATCH_OUTPUTS_TYPE = Optional[_OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE]
+_BATCH_OUTPUTS_TYPE = _OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE | None
 
 
 @dataclass

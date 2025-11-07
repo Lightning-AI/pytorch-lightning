@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from torch import Tensor
 from torch.nn import Module
@@ -33,7 +33,7 @@ _PRECISION_INPUT_STR = Literal[
     "32-true",
     "64-true",
 ]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS]
+_PRECISION_INPUT = _PRECISION_INPUT_INT | _PRECISION_INPUT_STR | _PRECISION_INPUT_STR_ALIAS
 
 
 class Precision:

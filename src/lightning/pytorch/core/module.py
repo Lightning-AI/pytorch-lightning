@@ -27,7 +27,6 @@ from typing import (
     Any,
     Literal,
     Optional,
-    Union,
     cast,
     overload,
 )
@@ -89,9 +88,14 @@ if TYPE_CHECKING:
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
-MODULE_OPTIMIZERS = Union[
-    Optimizer, LightningOptimizer, _FabricOptimizer, list[Optimizer], list[LightningOptimizer], list[_FabricOptimizer]
-]
+MODULE_OPTIMIZERS = (
+    Optimizer
+    | LightningOptimizer
+    | _FabricOptimizer
+    | list[Optimizer]
+    | list[LightningOptimizer]
+    | list[_FabricOptimizer]
+)
 
 
 class LightningModule(

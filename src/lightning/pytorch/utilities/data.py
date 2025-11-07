@@ -14,7 +14,7 @@
 import inspect
 from collections.abc import Generator, Iterable, Mapping, Sized
 from dataclasses import fields
-from typing import Any, TypeGuard, Union
+from typing import Any, TypeGuard
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
@@ -34,7 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+BType = Tensor | str | Mapping[Any, "BType"] | Iterable["BType"]
 
 warning_cache = WarningCache()
 

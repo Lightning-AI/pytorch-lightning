@@ -16,7 +16,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 from torch import Tensor
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 _POLICY_SET = set[type[Module]]
-_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
+_POLICY = _POLICY_SET | Callable[[Module, bool, int], bool]
 
 
 class XLAFSDPStrategy(ParallelStrategy, _Sharded):

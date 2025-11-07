@@ -16,11 +16,9 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import (
     Any,
-    Optional,
     Protocol,
     TypeAlias,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
@@ -30,9 +28,9 @@ from typing_extensions import overload
 
 UntypedStorage: TypeAlias = torch.UntypedStorage
 
-_PATH = Union[str, Path]
-_DEVICE = Union[torch.device, str, int]
-_MAP_LOCATION_TYPE = Optional[_DEVICE | Callable[[UntypedStorage, str], UntypedStorage | None] | dict[_DEVICE, _DEVICE]]
+_PATH = str | Path
+_DEVICE = torch.device | str | int
+_MAP_LOCATION_TYPE = _DEVICE | Callable[[UntypedStorage, str], UntypedStorage | None] | dict[_DEVICE, _DEVICE] | None
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 if torch.distributed.is_available():

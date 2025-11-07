@@ -6,7 +6,7 @@ import threading
 from collections.abc import Callable
 from subprocess import call
 from types import FrameType
-from typing import Any, Union
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -17,8 +17,8 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_zero_info
 
 # copied from signal.pyi
-_SIGNUM = Union[int, signal.Signals]
-_HANDLER = Union[Callable[[_SIGNUM, FrameType], Any], int, signal.Handlers, None]
+_SIGNUM = int | signal.Signals
+_HANDLER = Callable[[_SIGNUM, FrameType], Any] | int | signal.Handlers, None
 
 log = logging.getLogger(__name__)
 

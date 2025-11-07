@@ -18,7 +18,7 @@ from collections.abc import Callable, Iterable
 from functools import partial, update_wrapper
 from pathlib import Path
 from types import MethodType
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 import torch
 import yaml
@@ -80,12 +80,12 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
 LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[type[LRScheduler], type[ReduceLROnPlateau]]
+LRSchedulerTypeUnion = LRScheduler | ReduceLROnPlateau
+LRSchedulerType = type[LRScheduler] | type[ReduceLROnPlateau]
 
 
 # Type aliases intended for convenience of CLI developers
-ArgsType = Optional[list[str] | dict[str, Any] | Namespace]
+ArgsType = list[str] | dict[str, Any] | Namespace | None
 OptimizerCallable = Callable[[Iterable], Optimizer]
 LRSchedulerCallable = Callable[[Optimizer], LRScheduler | ReduceLROnPlateau]
 
@@ -448,7 +448,7 @@ class LightningCLI:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
-            type=Union[bool, int],
+            type=bool | int,
             default=self.seed_everything_default,
             help=(
                 "Set to an int to run seed_everything with this value before classes instantiation."

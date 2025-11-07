@@ -20,7 +20,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import torch
 from torch import Tensor, nn
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_PROFILER = torch.profiler.profile | torch.autograd.profiler.profile | torch.autograd.profiler.emit_nvtx
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 
