@@ -369,7 +369,7 @@ class BackboneFinetuning(BaseFinetuning):
         ...     def __init__(self, num_classes=10):
         ...         super().__init__()
         ...         # REQUIRED: Your model must have a 'backbone' attribute
-        ...         self.backbone = models.resnet50(weights="DEFAULT")
+        ...         self.backbone = models.resnet50(weights=None)
         ...         # Remove the final classification layer from backbone
         ...         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
         ...
