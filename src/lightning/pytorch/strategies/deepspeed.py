@@ -674,12 +674,12 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
-            return super().load_checkpoint(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path, weights_only)
 
         _validate_checkpoint_directory(checkpoint_path)
 
