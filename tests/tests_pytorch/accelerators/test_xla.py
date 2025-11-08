@@ -327,6 +327,11 @@ def test_tpu_device_name_exception(tpu_available, monkeypatch):
         "get_tpu_env",
         side_effect=HTTPError("Could not fetch TPU device name"),
     )
+    mock.patch(
+        "torch_xla.experimental.tpu",
+        "get_tpu_env",
+        side_effect=HTTPError("Could not fetch TPU device name"),
+    )
 
     assert XLAAccelerator.device_name() == "True"
 
