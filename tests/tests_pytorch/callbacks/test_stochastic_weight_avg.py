@@ -25,6 +25,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
@@ -173,8 +174,9 @@ def train_with_swa(
         devices=devices,
     )
 
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
     with _backward_patch(trainer):
-        trainer.fit(model)
+        trainer.fit(model, weights_only=weights_only)
 
     # check the model is the expected
     assert trainer.lightning_module == model
@@ -306,8 +308,9 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
     }
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
     with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
-        trainer.fit(model)
+        trainer.fit(model, weights_only=weights_only)
 
     checkpoint_dir = Path(tmp_path) / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
@@ -317,7 +320,7 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
     with _backward_patch(trainer):
-        trainer.fit(resume_model, ckpt_path=ckpt_path)
+        trainer.fit(resume_model, ckpt_path=ckpt_path, weights_only=weights_only)
 
 
 class CustomSchedulerModel(SwaTestModel):

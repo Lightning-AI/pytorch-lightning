@@ -310,6 +310,7 @@ class Strategy(ABC):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -330,7 +331,7 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path)
+        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
         if not state:
             return checkpoint
 
