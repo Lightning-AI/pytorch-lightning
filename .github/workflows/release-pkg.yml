@@ -24,7 +24,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: 1
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
-  PYTHON_VER: "3.9"
+  PYTHON_VER: "3.10"
 
 jobs:
   build-packages:
