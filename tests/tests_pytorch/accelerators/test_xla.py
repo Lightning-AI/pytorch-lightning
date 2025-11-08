@@ -317,7 +317,7 @@ def test_tpu_device_name_exception(tpu_available, monkeypatch):
     from requests.exceptions import HTTPError
 
     monkeypatch.delattr(
-        lightning.pytorch.accelerators.xla.XLAAccelerator,
+        XLAAccelerator,
         "device_name",
         raising=False,
     )
