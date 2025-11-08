@@ -313,6 +313,24 @@ def test_tpu_device_name():
     assert XLAAccelerator.device_name() == tpu.get_tpu_env()[xenv.ACCELERATOR_TYPE]
 
 
+def test_tpu_device_name_exception(tpu_available, monkeypatch):
+    from requests.exceptions import HTTPError
+
+    monkeypatch.delattr(
+        lightning.pytorch.accelerators.xla.XLAAccelerator,
+        "device_name",
+        raising=False,
+    )
+
+    mock.patch(
+        "torch_xla._internal.tpu",
+        "get_tpu_env",
+        side_effect=HTTPError("Could not fetch TPU device name"),
+    )
+
+    assert XLAAccelerator.device_name() == "True"
+
+
 @pytest.mark.parametrize(
     ("devices", "expected_device_ids"),
     [
