@@ -1,7 +1,8 @@
-coverage ==7.10.7
+coverage ==7.11.0; python_version >= "3.10"
+coverage ==7.10.7; python_version < "3.10"
 numpy >=1.21.0, <1.27.0
 pytest ==8.4.2
-pytest-cov ==6.3.0
+pytest-cov ==7.0.0
 pytest-timeout ==2.4.0
 pytest-rerunfailures ==16.0.1; python_version < "3.10"
 pytest-rerunfailures ==16.1; python_version >= "3.10"
