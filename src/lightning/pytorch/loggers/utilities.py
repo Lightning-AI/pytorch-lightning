@@ -271,9 +271,6 @@ class _ListMap(list[_T]):
     def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
 
     def __setitem__(self, key: Union[SupportsIndex, str, slice], value: Any, /) -> None:
-        if isinstance(key, (int, slice)):
-            # replace element by index
-            return super().__setitem__(key, value)
         if isinstance(key, str):
             # replace or insert by name
             if key in self._dict:
@@ -282,7 +279,7 @@ class _ListMap(list[_T]):
                 self.append(value)
                 self._dict[key] = len(self) - 1
             return None
-        raise TypeError("Key must be int or str")
+        return super().__setitem__(key, value)
 
     def __contains__(self, item: Union[object, str]) -> bool:
         if isinstance(item, str):
