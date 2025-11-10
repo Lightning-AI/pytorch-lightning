@@ -123,7 +123,9 @@ run: |
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
 
   # Use find-links to prefer CUDA-specific packages from PyTorch index
-  uv pip install -e ".[${extra}dev]" --upgrade
+  uv pip install -e ".[${extra}dev]" --upgrade \
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
+  uv pip list
 
   echo "Ensure only a single package is installed"
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
