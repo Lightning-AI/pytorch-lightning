@@ -16,13 +16,11 @@ MLflow Logger
 -------------
 """
 
-import logging
 import os
 from argparse import Namespace
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
@@ -32,11 +30,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from mlflow.tracking import MlflowClient
-
-log = logging.getLogger(__name__)
-LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
-_MLFLOW_SYNCHRONOUS_AVAILABLE = RequirementCache("mlflow>=2.8.0", "mlflow")
 
 
 class MLFlowLogger(Logger):
