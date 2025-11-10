@@ -121,7 +121,7 @@ run: |
 
   echo "Install package"
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
-  uv pip install -e ".[${extra}dev]" --upgrade
+  uv pip install -e ".[${extra}dev]" --upgrade --extra-index-url https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}
 
   echo "Ensure only a single package is installed"
   if [ "${PACKAGE_NAME}" == "pytorch" ]; then
