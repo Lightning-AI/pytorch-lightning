@@ -14,7 +14,6 @@
 
 import logging
 import os
-import re
 import shutil
 import signal
 import sys
@@ -23,7 +22,7 @@ from typing import Optional
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _raise_enterprise_not_available
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 
@@ -46,57 +45,27 @@ class SLURMEnvironment(ClusterEnvironment):
 
     def __init__(self, auto_requeue: bool = True, requeue_signal: Optional[signal.Signals] = None) -> None:
         super().__init__()
-        self.auto_requeue = auto_requeue
-        if requeue_signal is None and not _IS_WINDOWS:
-            requeue_signal = signal.SIGUSR1
-        self.requeue_signal = requeue_signal
-        self._validate_srun_used()
-        self._validate_srun_variables()
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+            SLURMEnvironment as EnterpriseSLURMEnvironment,
+        )
+
+        self.slurm_impl = EnterpriseSLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)
 
     @property
     @override
     def creates_processes_externally(self) -> bool:
-        return True
+        return self.slurm_impl.creates_processes_externally
 
     @property
     @override
     def main_address(self) -> str:
-        root_node = os.environ.get("MASTER_ADDR")
-        if root_node is None:
-            nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
-            root_node = self.resolve_root_node_address(nodelist)
-            os.environ["MASTER_ADDR"] = root_node
-
-        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        return root_node
+        return self.slurm_impl.main_address
 
     @property
     @override
     def main_port(self) -> int:
-        # -----------------------
-        # SLURM JOB = PORT number
-        # -----------------------
-        # this way every process knows what port to use
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id is not None:
-            # use the last 4 numbers in the job id as the id
-            default_port = job_id[-4:]
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
-        else:
-            default_port = 12910
-
-        # -----------------------
-        # PORT NUMBER = MASTER_PORT
-        # -----------------------
-        # in case the user passed it in
-        if "MASTER_PORT" in os.environ:
-            default_port = int(os.environ["MASTER_PORT"])
-        else:
-            os.environ["MASTER_PORT"] = str(default_port)
-
-        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-        return default_port
+        return self.slurm_impl.main_port
 
     @staticmethod
     @override
@@ -118,58 +87,40 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @staticmethod
     def job_id() -> Optional[int]:
-        # in interactive mode, don't make logs use the same job id
-        if _is_slurm_interactive_mode():
-            return None
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+            SLURMEnvironment as EnterpriseSLURMEnvironment,
+        )
 
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id is None:
-            return None
-        try:
-            return int(job_id)
-        except ValueError:
-            return None
+        return EnterpriseSLURMEnvironment.job_id()
 
     @override
     def world_size(self) -> int:
-        return int(os.environ["SLURM_NTASKS"])
+        return self.slurm_impl.world_size()
 
     @override
     def set_world_size(self, size: int) -> None:
-        log.debug("SLURMEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+        return self.slurm_impl.set_world_size(size)
 
     @override
     def global_rank(self) -> int:
-        return int(os.environ["SLURM_PROCID"])
+        return self.slurm_impl.global_rank()
 
     @override
     def set_global_rank(self, rank: int) -> None:
-        log.debug("SLURMEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
+        return self.slurm_impl.set_global_rank(rank)
 
     @override
     def local_rank(self) -> int:
-        return int(os.environ["SLURM_LOCALID"])
+        return self.slurm_impl.local_rank()
 
     @override
     def node_rank(self) -> int:
-        return int(os.environ["SLURM_NODEID"])
+        return self.slurm_impl.node_rank()
 
     @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
-        if _is_slurm_interactive_mode():
-            return
-        ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE")
-        if ntasks_per_node is not None and int(ntasks_per_node) != num_devices:
-            raise ValueError(
-                f"You set `devices={num_devices}` in Lightning, but the number of tasks per node configured in SLURM"
-                f" `--ntasks-per-node={ntasks_per_node}` does not match. HINT: Set `devices={ntasks_per_node}`."
-            )
-        nnodes = os.environ.get("SLURM_NNODES")
-        if nnodes is not None and int(nnodes) != num_nodes:
-            raise ValueError(
-                f"You set `num_nodes={num_nodes}` in Lightning, but the number of nodes configured in SLURM"
-                f" `--nodes={nnodes}` does not match. HINT: Set `num_nodes={nnodes}`."
-            )
+        return self.slurm_impl.validate_settings(num_devices, num_nodes)
 
     @staticmethod
     def resolve_root_node_address(nodes: str) -> str:
@@ -182,9 +133,12 @@ class SLURMEnvironment(ClusterEnvironment):
         - the range notation with brackets, e.g., 'host[5-9]' yields 'host5' as the root
 
         """
-        nodes = re.sub(r"\[(.*?)[,-].*\]", "\\1", nodes)  # Take the first node of every node range
-        nodes = re.sub(r"\[(.*?)\]", "\\1", nodes)  # handle special case where node range is single number
-        return nodes.split(" ")[0].split(",")[0]
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+            SLURMEnvironment as EnterpriseSLURMEnvironment,
+        )
+
+        return EnterpriseSLURMEnvironment.resolve_root_node_address(nodes)
 
     @staticmethod
     def _validate_srun_used() -> None:
@@ -216,12 +170,12 @@ class SLURMEnvironment(ClusterEnvironment):
         for a complete list of supported srun variables.
 
         """
-        ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
-        if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:
-            raise RuntimeError(
-                f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported."
-                f" HINT: Use `--ntasks-per-node={ntasks}` instead."
-            )
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+            SLURMEnvironment as EnterpriseSLURMEnvironment,
+        )
+
+        return EnterpriseSLURMEnvironment._validate_srun_variables()
 
 
 def _is_srun_used() -> bool:
