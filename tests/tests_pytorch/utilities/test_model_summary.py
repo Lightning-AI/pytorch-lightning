@@ -81,8 +81,7 @@ class UnorderedModel(LightningModule):
         out1 = self.layer1(x)
         out2 = self.layer2(y)
         out = self.relu(torch.cat((out1, out2), 1))
-        out = self.combine(out)
-        return out
+        return self.combine(out)
 
 
 class MixedDtypeModel(LightningModule):
