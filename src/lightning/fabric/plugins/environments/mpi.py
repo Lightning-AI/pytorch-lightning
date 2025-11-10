@@ -73,7 +73,10 @@ class MPIEnvironment(ClusterEnvironment):
         if not _MPI4PY_AVAILABLE:
             return False
 
-        from mpi4py import MPI
+        try:
+            from mpi4py import MPI
+        except ImportError:
+            return False
 
         return MPI.COMM_WORLD.Get_size() > 1
 
