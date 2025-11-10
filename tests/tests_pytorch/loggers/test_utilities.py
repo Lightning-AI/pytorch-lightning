@@ -54,6 +54,11 @@ def test_listmap_init(args):
         assert lm == args
 
 
+def test_listmap_init_wrong_type():
+    with pytest.raises(TypeError):
+        _ListMap({1: 2, 3: 4})
+
+
 def test_listmap_append():
     """Test appending loggers to the collection."""
     lm = _ListMap()
@@ -69,6 +74,34 @@ def test_listmap_extend():
     lm.extend([1, 2, 3])
     assert len(lm) == 5
     assert lm == [1, 2, 1, 2, 3]
+
+    lm2 = _ListMap({"a": 1, "b": 2})
+    lm.extend(lm2)
+    assert len(lm) == 7
+    assert lm == [1, 2, 1, 2, 3, 1, 2]
+    assert lm["a"] == 1
+    assert lm["b"] == 2
+
+
+def test_listmap_insert():
+    lm = _ListMap({"a": 1, "b": 2})
+    lm.insert(1, 3)
+    assert len(lm) == 3
+    assert lm == [1, 3, 2]
+    assert lm["a"] == 1
+    assert lm["b"] == 2
+
+    lm.insert(-1, 5)
+    assert len(lm) == 4
+    assert lm == [1, 3, 5, 2]
+    assert lm["a"] == 1
+    assert lm["b"] == 2
+
+    lm.insert(-2, 10)
+    assert len(lm) == 5
+    assert lm == [1, 3, 10, 5, 2]
+    assert lm["a"] == 1
+    assert lm["b"] == 2
 
 
 def test_listmap_pop():
@@ -290,3 +323,10 @@ def test_listmap_setitem_append():
     assert lm == [1, 2]
     with pytest.raises(KeyError):
         lm["c"]  # "c" was removed
+
+
+def test_listmap_repr():
+    lm = _ListMap({"a": 1, "b": 2})
+    lm.append(3)
+    repr_str = repr(lm)
+    assert repr_str == "_ListMap([1, 2, 3], keys=['a', 'b'])"

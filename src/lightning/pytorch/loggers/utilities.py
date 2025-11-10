@@ -201,6 +201,9 @@ class _ListMap(list[_T]):
 
     def insert(self, index: SupportsIndex, __object: _T) -> None:
         idx_int = int(index)
+        # Check for negative indices
+        if idx_int < 0:
+            idx_int += len(self)
         for key, idx in self._dict.items():
             if idx >= idx_int:
                 self._dict[key] = idx + 1
