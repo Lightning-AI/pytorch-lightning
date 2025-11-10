@@ -78,7 +78,7 @@ jobs:
       - name: Install uv and set Python version
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.config.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
