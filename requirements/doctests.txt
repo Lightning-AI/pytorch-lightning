@@ -1,2 +1,2 @@
-pytest ==8.4.2
+pytest ==9.0.0
 pytest-doctestplus ==1.5.0
