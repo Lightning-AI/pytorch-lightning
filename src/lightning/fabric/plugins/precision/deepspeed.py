@@ -45,10 +45,10 @@ class DeepSpeedPrecision(Precision):
         super().__init__()
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.fabric.plugins.precision.deepspeed import (
-            DeepSpeedPrecision as EnterpriseDeepSpeedPrecision,
+            DeepSpeedPrecisionFabric as EnterpriseDeepSpeedPrecision,
         )
 
-        self.deepspeed_impl = EnterpriseDeepSpeedPrecision(precision)
+        self.deepspeed_impl = EnterpriseDeepSpeedPrecision(precision=precision)
 
     @override
     def convert_module(self, module: Module) -> Module:

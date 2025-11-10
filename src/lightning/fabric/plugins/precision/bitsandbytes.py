@@ -57,7 +57,7 @@ class BitsandbytesPrecision(Precision):
             BitsandbytesPrecision as EnterpriseBitsandbytesPrecision,
         )
 
-        self.bitsandbytes_impl = EnterpriseBitsandbytesPrecision(mode, dtype, ignore_modules)
+        self.bitsandbytes_impl = EnterpriseBitsandbytesPrecision(mode=mode, dtype=dtype, ignore_modules=ignore_modules)
 
     @override
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
