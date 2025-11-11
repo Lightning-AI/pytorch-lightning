@@ -25,7 +25,7 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import _Accelera
 
 
 def test_transformer_engine_precision_plugin(monkeypatch):
-    module = lightning.fabric.plugins.precision.transformer_engine
+    module = lightning.fabric.utilities.imports
     if module._TRANSFORMER_ENGINE_AVAILABLE:
         pytest.skip("Assumes transformer_engine is unavailable")
     monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)

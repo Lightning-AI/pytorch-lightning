@@ -50,6 +50,7 @@ _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_16 = RequirementCache("deepspeed>=0.16.0")
 _ENTERPRISE_AVAILABLE = RequirementCache("pytorch_lightning_enterprise")
+_TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
 
 
 def _raise_enterprise_not_available() -> None:

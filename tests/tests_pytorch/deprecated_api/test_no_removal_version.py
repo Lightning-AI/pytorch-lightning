@@ -2,6 +2,7 @@ import sys
 from unittest.mock import Mock
 
 import pytest
+import pytorch_lightning_enterprise.utils.imports
 import torch.nn
 
 import lightning.fabric
@@ -62,6 +63,7 @@ def test_fsdp_precision_plugin():
 
 def test_bitsandbytes_precision_plugin(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_BITSANDBYTES_AVAILABLE", True)
     bitsandbytes_mock = Mock()
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
 
@@ -107,7 +109,8 @@ def test_precision_plugin():
 
 
 def test_transformer_engine_precision_plugin(monkeypatch):
-    monkeypatch.setattr(lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.utilities.imports, "_TRANSFORMER_ENGINE_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_TRANSFORMER_ENGINE_AVAILABLE", True)
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
     monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
