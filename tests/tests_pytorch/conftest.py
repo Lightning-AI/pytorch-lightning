@@ -22,6 +22,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+import pytorch_lightning_enterprise.utils.imports
 import torch.distributed
 from tqdm import TMonitor
 
@@ -220,14 +221,9 @@ def mps_count_1(monkeypatch):
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_5", value)
 
 
 @pytest.fixture
