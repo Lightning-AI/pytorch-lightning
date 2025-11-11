@@ -38,8 +38,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException, SI
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
-_BATCH_OUTPUTS_TYPE = _OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE | None
-
 
 @dataclass
 class RestartStage:
@@ -324,7 +322,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch)
 
-        batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
+        batch_output: _OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE | None = None  # for mypy
         if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
