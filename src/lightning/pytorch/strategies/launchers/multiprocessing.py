@@ -26,6 +26,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -160,7 +161,7 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: mp.SimpleQueue | queue.Queue,
+        return_queue: SimpleQueue | queue.Queue,
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:

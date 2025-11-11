@@ -17,6 +17,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Optional
 
 import torch.multiprocessing as mp
+from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
@@ -127,7 +128,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: mp.SimpleQueue | queue.Queue,
+        return_queue: SimpleQueue | queue.Queue,
         global_states: _GlobalStateSnapshot | None = None,
     ) -> None:
         import torch_xla.core.xla_model as xm
