@@ -18,13 +18,13 @@ from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_ze
 
 # copied from signal.pyi
 _SIGNUM = int | signal.Signals
-_HANDLER = Callable[[_SIGNUM, FrameType], Any] | int | signal.Handlers, None
+_HANDLER = Callable[[_SIGNUM, FrameType], Any] | int | signal.Handlers | None
 
 log = logging.getLogger(__name__)
 
 
 class _HandlersCompose:
-    def __init__(self, signal_handlers: list[_HANDLER] | _HANDLER) -> None:
+    def __init__(self, signal_handlers: _HANDLER | list[_HANDLER]) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
