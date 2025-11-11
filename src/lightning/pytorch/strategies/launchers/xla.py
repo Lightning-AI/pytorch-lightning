@@ -17,12 +17,12 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch.multiprocessing as mp
 from typing_extensions import override
 
+from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 from lightning.pytorch.strategies.launchers.multiprocessing import (
     _GlobalStateSnapshot,
     _MultiProcessingLauncher,
     _WorkerOutput,
 )
-from lightning.pytorch.utilities.imports import _raise_if_not_enterprise_not_available
 
 if TYPE_CHECKING:
     import lightning.pytorch as pl
@@ -47,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
         super().__init__(strategy)
-        _raise_if_not_enterprise_not_available()
+        _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.strategies.xla.launcher import _XLALauncherTrainer as EnterpriseXLALauncher
 
         self.xla_launcher_impl = EnterpriseXLALauncher(strategy)
