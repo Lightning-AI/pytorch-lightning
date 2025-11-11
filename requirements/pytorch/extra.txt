@@ -6,6 +6,6 @@ matplotlib>3.1, <3.11.0
 omegaconf >=2.2.3, <2.4.0
 hydra-core >=1.2.0, <1.4.0
 jsonargparse[signatures,jsonnet] >=4.39.0, <4.43.0
-rich >=12.3.0, <14.2.0
+rich >=12.3.0, <14.3.0
 tensorboardX >=2.2, <2.7.0  # min version is set by torch.onnx missing attribute
 bitsandbytes >=0.45.2,<0.47.0; platform_system != "Darwin"
