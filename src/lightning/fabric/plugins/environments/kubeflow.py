@@ -35,7 +35,7 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     def __init__(self) -> None:
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.kubeflow import (
+        from pytorch_lightning_enterprise.plugins.environments.kubeflow import (
             KubeflowEnvironment as EnterpriseKubeflowEnvironment,
         )
 

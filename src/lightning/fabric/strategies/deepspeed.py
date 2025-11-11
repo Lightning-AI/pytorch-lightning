@@ -222,7 +222,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
 
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.strategies.deepspeed import (
+        from pytorch_lightning_enterprise.strategies.deepspeed import (
             DeepSpeedStrategyFabric as EnterpriseDeepSpeedStrategy,
         )
 

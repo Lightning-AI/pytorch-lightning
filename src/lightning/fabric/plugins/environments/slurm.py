@@ -46,7 +46,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def __init__(self, auto_requeue: bool = True, requeue_signal: Optional[signal.Signals] = None) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+        from pytorch_lightning_enterprise.plugins.environments.slurm import (
             SLURMEnvironment as EnterpriseSLURMEnvironment,
         )
 
@@ -88,7 +88,7 @@ class SLURMEnvironment(ClusterEnvironment):
     @staticmethod
     def job_id() -> Optional[int]:
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+        from pytorch_lightning_enterprise.plugins.environments.slurm import (
             SLURMEnvironment as EnterpriseSLURMEnvironment,
         )
 
@@ -134,7 +134,7 @@ class SLURMEnvironment(ClusterEnvironment):
 
         """
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+        from pytorch_lightning_enterprise.plugins.environments.slurm import (
             SLURMEnvironment as EnterpriseSLURMEnvironment,
         )
 
@@ -171,7 +171,7 @@ class SLURMEnvironment(ClusterEnvironment):
 
         """
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.slurm import (
+        from pytorch_lightning_enterprise.plugins.environments.slurm import (
             SLURMEnvironment as EnterpriseSLURMEnvironment,
         )
 

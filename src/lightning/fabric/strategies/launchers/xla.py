@@ -42,7 +42,7 @@ class _XLALauncher(_Launcher):
     def __init__(self, strategy: Union["XLAStrategy", "XLAFSDPStrategy"]) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.strategies.launchers.xla import _XLALauncher as EnterpriseXLALauncher
+        from pytorch_lightning_enterprise.strategies.launchers.xla import _XLALauncher as EnterpriseXLALauncher
 
         self.xla_impl = EnterpriseXLALauncher(strategy=strategy)
 

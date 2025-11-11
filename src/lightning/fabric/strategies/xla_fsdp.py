@@ -92,7 +92,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             precision=precision,
         )
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.strategies.xla.fsdp import (
+        from pytorch_lightning_enterprise.strategies.xla.fsdp import (
             XLAFSDPStrategyFabric as EnterpriseXLAFSDPStrategy,
         )
 

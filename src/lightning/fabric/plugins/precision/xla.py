@@ -37,7 +37,7 @@ class XLAPrecision(Precision):
     def __init__(self, precision: _PRECISION_INPUT) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.precision.xla import XLAPrecision as EnterpriseXLAPrecision
+        from pytorch_lightning_enterprise.plugins.precision.xla import XLAPrecision as EnterpriseXLAPrecision
 
         self.xla_impl = EnterpriseXLAPrecision(precision=precision)
 

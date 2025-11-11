@@ -33,7 +33,7 @@ class XLACheckpointIO(TorchCheckpointIO):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.io.xla import XLACheckpointIO as EnterpriseXLACheckpointIO
+        from pytorch_lightning_enterprise.plugins.io.xla import XLACheckpointIO as EnterpriseXLACheckpointIO
 
         self.xla_impl = EnterpriseXLACheckpointIO(*args, **kwargs)
 

@@ -53,7 +53,7 @@ class BitsandbytesPrecision(Precision):
     ) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.precision.bitsandbytes import (
+        from pytorch_lightning_enterprise.plugins.precision.bitsandbytes import (
             BitsandbytesPrecision as EnterpriseBitsandbytesPrecision,
         )
 

@@ -29,7 +29,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
     def __init__(self) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.torchelastic import (
+        from pytorch_lightning_enterprise.plugins.environments.torchelastic import (
             TorchElasticEnvironment as EnterpriseTorchElasticEnvironment,
         )
 

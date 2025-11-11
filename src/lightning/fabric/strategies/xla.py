@@ -54,7 +54,7 @@ class XLAStrategy(ParallelStrategy):
             precision=precision,
         )
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.strategies.xla.ddp import XLAStrategyFabric as EnterpriseXLAStrategy
+        from pytorch_lightning_enterprise.strategies.xla.ddp import XLAStrategyFabric as EnterpriseXLAStrategy
 
         self.xla_strategy_impl = EnterpriseXLAStrategy(outer_object=self, sync_module_states=sync_module_states)
 

@@ -35,7 +35,7 @@ class XLAEnvironment(ClusterEnvironment):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.xla import (
+        from pytorch_lightning_enterprise.plugins.environments.xla import (
             XLAEnvironment as EnterpriseXLAEnvironment,
         )
 

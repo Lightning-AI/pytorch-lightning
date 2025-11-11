@@ -62,7 +62,7 @@ class TransformerEnginePrecision(Precision):
     ) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.precision.transformer_engine import (
+        from pytorch_lightning_enterprise.plugins.precision.transformer_engine import (
             TransformerEnginePrecision as EnterpriseTransformerEnginePrecision,
         )
 

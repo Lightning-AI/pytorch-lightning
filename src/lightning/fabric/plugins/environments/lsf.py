@@ -51,7 +51,7 @@ class LSFEnvironment(ClusterEnvironment):
         super().__init__()
 
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.plugins.environments.lsf import (
+        from pytorch_lightning_enterprise.plugins.environments.lsf import (
             LSFEnvironment as EnterpriseLSFEnvironment,
         )
 

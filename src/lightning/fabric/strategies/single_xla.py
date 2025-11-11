@@ -35,7 +35,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         precision: Optional[XLAPrecision] = None,
     ):
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.fabric.strategies.xla.single import validate_xla_strategy
+        from pytorch_lightning_enterprise.strategies.xla.single import validate_xla_strategy
 
         super().__init__(
             accelerator=accelerator,
