@@ -19,7 +19,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-import pytorch_lightning_enterprise
+import pytorch_lightning_enterprise.utils.imports
 import torch.distributed
 
 import lightning.fabric
