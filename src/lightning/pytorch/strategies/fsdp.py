@@ -17,12 +17,7 @@ from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Optional,
-)
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -151,14 +146,14 @@ class FSDPStrategy(ParallelStrategy):
         precision_plugin: Precision | None = None,
         process_group_backend: str | None = None,
         timeout: timedelta | None = default_pg_timeout,
-        cpu_offload: bool | "CPUOffload" | None = None,
+        cpu_offload: Union[bool, "CPUOffload"] | None = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         auto_wrap_policy: Optional["_POLICY"] = None,
         activation_checkpointing: type[Module] | list[type[Module]] | None = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
-        device_mesh: tuple[int] | "DeviceMesh" | None = None,
+        device_mesh: Union[tuple[int], "DeviceMesh"] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
