@@ -15,10 +15,13 @@ from contextlib import AbstractContextManager
 from typing import Any, Literal, Optional
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes")
 
 
 class BitsandbytesPrecision(Precision):
