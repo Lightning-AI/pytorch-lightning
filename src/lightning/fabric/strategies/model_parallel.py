@@ -275,6 +275,7 @@ class ModelParallelStrategy(ParallelStrategy):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -295,7 +296,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f"Loading a single optimizer object from a checkpoint is not supported yet with {type(self).__name__}."
             )
 
-        return _load_checkpoint(path=path, state=state, strict=strict)
+        return _load_checkpoint(path=path, state=state, strict=strict, weights_only=weights_only)
 
     def _setup_distributed(self) -> None:
         reset_seed()
@@ -411,6 +412,7 @@ def _load_checkpoint(
     state: dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
+    weights_only: Optional[bool] = None,
 ) -> dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,
@@ -449,7 +451,7 @@ def _load_checkpoint(
             set_optimizer_state_dict(module, optim, optim_state_dict=optim_state[optim_key], options=state_dict_options)
 
         # Load metadata (anything not a module or optimizer)
-        metadata = torch.load(path / _METADATA_FILENAME)
+        metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
         for key in requested_metadata_keys:
@@ -461,7 +463,7 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(
