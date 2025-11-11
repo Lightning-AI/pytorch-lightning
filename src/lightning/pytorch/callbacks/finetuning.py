@@ -31,7 +31,12 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+
+if not _TORCHVISION_AVAILABLE:
+    __doctest_skip__ = ["BackboneFinetuning"]
+
 
 log = logging.getLogger(__name__)
 
@@ -108,12 +113,14 @@ class BaseFinetuning(Callback):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
-            named_parameters = dict(pl_module.named_parameters())
-            for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self._apply_mapping_to_param_groups(
-                    self._internal_optimizer_metadata[opt_idx], named_parameters
-                )
-                optimizer.param_groups = param_groups
+            if self._internal_optimizer_metadata:
+                named_parameters = dict(pl_module.named_parameters())
+                for opt_idx, optimizer in enumerate(trainer.optimizers):
+                    if opt_idx in self._internal_optimizer_metadata:
+                        param_groups = self._apply_mapping_to_param_groups(
+                            self._internal_optimizer_metadata[opt_idx], named_parameters
+                        )
+                        optimizer.param_groups = param_groups
             self._restarting = False
 
     @staticmethod
@@ -354,10 +361,46 @@ class BackboneFinetuning(BaseFinetuning):
 
     Example::
 
-        >>> from lightning.pytorch import Trainer
+        >>> import torch
+        >>> import torch.nn as nn
+        >>> from lightning.pytorch import LightningModule, Trainer
         >>> from lightning.pytorch.callbacks import BackboneFinetuning
+        >>> import torchvision.models as models
+        >>>
+        >>> class TransferLearningModel(LightningModule):
+        ...     def __init__(self, num_classes=10):
+        ...         super().__init__()
+        ...         # REQUIRED: Your model must have a 'backbone' attribute
+        ...         self.backbone = models.resnet50(weights=None)
+        ...         # Remove the final classification layer from backbone
+        ...         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
+        ...
+        ...         # Add your task-specific head
+        ...         self.head = nn.Sequential(
+        ...             nn.Flatten(),
+        ...             nn.Linear(2048, 512),
+        ...             nn.ReLU(),
+        ...             nn.Linear(512, num_classes)
+        ...         )
+        ...
+        ...     def forward(self, x):
+        ...         # Extract features with backbone
+        ...         features = self.backbone(x)
+        ...         # Classify with head
+        ...         return self.head(features)
+        ...
+        ...     def configure_optimizers(self):
+        ...         # Initially only optimize the head - backbone will be added by callback
+        ...         return torch.optim.Adam(self.head.parameters(), lr=1e-3)
+        ...
+        >>> # Setup the callback
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
+        >>> backbone_finetuning = BackboneFinetuning(
+        ...     unfreeze_backbone_at_epoch=10,  # Start unfreezing at epoch 10
+        ...     lambda_func=multiplicative,     # Gradually increase backbone LR
+        ...     backbone_initial_ratio_lr=0.1,  # Start backbone at 10% of head LR
+        ... )
+        >>> model = TransferLearningModel()
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
 
     """

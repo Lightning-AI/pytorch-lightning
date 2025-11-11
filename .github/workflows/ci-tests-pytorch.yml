@@ -76,9 +76,9 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.config.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
@@ -133,7 +133,6 @@ jobs:
         run: |
           uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
-            -r requirements/_integrations/accelerators.txt \
             --find-links="${TORCH_URL}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           uv pip list
@@ -146,15 +145,6 @@ jobs:
       - name: Drop PL for LAI
         if: ${{ matrix.config.pkg-name == 'lightning' }}
         run: uv pip uninstall pytorch-lightning
-
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
 
       - name: Cache datasets
         uses: actions/cache@v4
