@@ -43,7 +43,7 @@ class DeepSpeedPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
-        super().__init__(precision)
+        super().__init__()
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.plugins.precision.deepspeed import (
             DeepSpeedPrecisionTrainer as EnterpriseDeepSpeedPrecision,

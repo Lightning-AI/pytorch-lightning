@@ -17,12 +17,11 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+from lightning.fabric.utilities.imports import _MLFLOW_AVAILABLE
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.mlflow import (
-    _MLFLOW_AVAILABLE,
     MLFlowLogger,
-    _get_resolve_tags,
 )
 
 
@@ -96,6 +95,7 @@ def test_mlflow_run_name_setting(tmp_path):
         pytest.skip("test for explicit file creation requires mlflow dependency to be installed.")
 
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
+    from pytorch_lightning_enterprise.loggers.mlflow import _get_resolve_tags
 
     resolve_tags = _get_resolve_tags()
     tags = resolve_tags({MLFLOW_RUN_NAME: "run-name-1"})
