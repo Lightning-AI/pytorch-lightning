@@ -16,11 +16,14 @@ import warnings
 from typing import Any, Union
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+
+_XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 
 
 class XLAAccelerator(Accelerator):
