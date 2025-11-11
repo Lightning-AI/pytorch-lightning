@@ -14,6 +14,7 @@
 from contextlib import AbstractContextManager
 from typing import TYPE_CHECKING, Any, Literal
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from typing_extensions import override
@@ -81,3 +82,19 @@ class DeepSpeedPrecision(Precision):
         **kwargs: Any,
     ) -> Any:
         return self.deepspeed_impl.optimizer_step(optimizer, **kwargs)
+
+    @property
+    def precision(self) -> _PRECISION_INPUT:
+        return self.deepspeed_impl.precision
+
+    @precision.setter
+    def precision(self, precision: _PRECISION_INPUT) -> None:
+        self.deepspeed_impl.precision = precision
+
+    @property
+    def _desired_dtype(self) -> torch.dtype:
+        return self.deepspeed_impl._desired_dtype
+
+    @_desired_dtype.setter
+    def _desired_dtype(self, dtype: torch.dtype) -> None:
+        self.deepspeed_impl._desired_dtype = dtype

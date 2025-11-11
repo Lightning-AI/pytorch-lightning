@@ -53,6 +53,10 @@ class SLURMEnvironment(ClusterEnvironment):
         self.slurm_impl = EnterpriseSLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)
 
     @property
+    def auto_requeue(self) -> bool:
+        return self.slurm_impl.auto_requeue
+
+    @property
     @override
     def creates_processes_externally(self) -> bool:
         return self.slurm_impl.creates_processes_externally

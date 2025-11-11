@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Literal
 
+import torch
 from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
@@ -52,3 +53,19 @@ class XLAPrecision(Precision):
     @override
     def teardown(self) -> None:
         return self.xla_impl.teardown()
+
+    @property
+    def _desired_dtype(self) -> torch.dtype:
+        return self.xla_impl._desired_dtype
+
+    @_desired_dtype.setter
+    def _desired_dtype(self, dtype: torch.dtype) -> None:
+        self.xla_impl._desired_dtype = dtype
+
+    @property
+    def precision(self) -> _PRECISION_INPUT:
+        return self.xla_impl.precision
+
+    @precision.setter
+    def precision(self, precision: _PRECISION_INPUT) -> None:
+        self.xla_impl.precision = precision

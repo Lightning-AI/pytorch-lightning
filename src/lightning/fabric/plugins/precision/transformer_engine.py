@@ -128,3 +128,11 @@ class TransformerEnginePrecision(Precision):
     @override
     def convert_output(self, data: Any) -> Any:
         return self.transformer_engine_impl.convert_output(data)
+
+    @property
+    def _desired_dtype(self) -> torch.dtype:
+        return self.transformer_engine_impl._desired_dtype
+
+    @_desired_dtype.setter
+    def _desired_dtype(self, dtype: torch.dtype) -> None:
+        self.transformer_engine_impl._desired_dtype = dtype

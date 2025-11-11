@@ -395,7 +395,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 not in the expected DeepSpeed format.
 
         """
-        return self.deepspeed_impl.load_checkpoint(path=path, state=state, strict=strict, weights_only=weights_only)
+        return self.deepspeed_impl.load_checkpoint(path=path, state=state, strict=strict)
 
     @override
     def clip_gradients_norm(
@@ -468,3 +468,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     @override
     def _setup_distributed(self) -> None:
         return self.deepspeed_impl._setup_distributed()
+
+    @property
+    def config(self) -> dict[str, Any]:
+        return self.deepspeed_impl.config
+
+    @config.setter
+    def config(self, config: dict[str, Any]) -> None:
+        self.deepspeed_impl.config = config
