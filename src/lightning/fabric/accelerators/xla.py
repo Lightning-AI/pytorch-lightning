@@ -24,6 +24,8 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
+_XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
+_XLA_GREATER_EQUAL_2_5 = RequirementCache("torch_xla>=2.5")
 
 
 class XLAAccelerator(Accelerator):
