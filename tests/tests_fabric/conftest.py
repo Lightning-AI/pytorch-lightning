@@ -153,6 +153,8 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla._internal", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla._internal.tpu", Mock())
 
     # Then patch the _XLA_AVAILABLE flags in various modules
     monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_AVAILABLE", value)
@@ -161,6 +163,12 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_1", value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_5", value)
+    # Patch in the modules where they're used after import
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_5", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", value)
 
 
 @pytest.fixture
@@ -172,6 +180,11 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     mock_xla_available(monkeypatch, value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    # Also mock the enterprise XLAAccelerator methods
+    import pytorch_lightning_enterprise.accelerators.xla
+
+    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
 
 
 @pytest.fixture

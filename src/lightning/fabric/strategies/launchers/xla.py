@@ -42,14 +42,14 @@ class _XLALauncher(_Launcher):
     def __init__(self, strategy: Union["XLAStrategy", "XLAFSDPStrategy"]) -> None:
         super().__init__()
         _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.strategies.launchers.xla import _XLALauncher as EnterpriseXLALauncher
+        from pytorch_lightning_enterprise.strategies.xla.launcher import XLALauncherFabric as EnterpriseXLALauncher
 
         self.xla_impl = EnterpriseXLALauncher(strategy=strategy)
 
     @property
     @override
     def is_interactive_compatible(self) -> bool:
-        return self.xla_impl.is_interactive_compatible()
+        return self.xla_impl.is_interactive_compatible
 
     @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -65,3 +65,11 @@ class _XLALauncher(_Launcher):
 
         """
         return self.xla_impl.launch(function=function, *args, **kwargs)
+
+    @property
+    def _start_method(self) -> str:
+        return self.xla_impl._start_method
+
+    @_start_method.setter
+    def _start_method(self, start_method: str) -> None:
+        self.xla_impl._start_method = start_method
