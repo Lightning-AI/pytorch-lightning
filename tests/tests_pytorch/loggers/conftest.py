@@ -109,7 +109,7 @@ def comet_mock(monkeypatch):
     comet.start = Mock(name="comet_ml.start", return_value=comet.Experiment())
     comet.config = Mock()
 
-    monkeypatch.setattr("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._COMET_AVAILABLE", True)
     return comet
 
 
