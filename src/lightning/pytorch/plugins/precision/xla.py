@@ -53,10 +53,6 @@ class XLAPrecision(Precision):
     ) -> Any:
         return self.xla_impl.optimizer_step(optimizer, model, closure, **kwargs)
 
-    @override
-    def teardown(self) -> None:
-        return self.xla_impl.teardown()
-
     @property
     def precision(self) -> _PRECISION_INPUT:
         return self.xla_impl.precision
@@ -72,3 +68,7 @@ class XLAPrecision(Precision):
     @_desired_dtype.setter
     def _desired_dtype(self, dtype: torch.dtype) -> None:
         self.xla_impl._desired_dtype = dtype
+
+    @override
+    def teardown(self) -> None:
+        return self.xla_impl.teardown()
