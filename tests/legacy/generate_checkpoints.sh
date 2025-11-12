@@ -36,7 +36,6 @@ do
   source $ENV_PATH/bin/activate
 
   uv pip install "pytorch_lightning==$pl_ver" \
-    -r $LEGACY_FOLDER/requirements.txt \
     -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
@@ -52,7 +51,6 @@ if [[ -z "$@" ]]; then
   printf "\n\n processing local version\n"
 
   uv pip install \
-    -r $LEGACY_FOLDER/requirements.txt \
     -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html
   pl_ver="local"
