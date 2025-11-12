@@ -55,7 +55,7 @@ class _XLALauncher(_MultiProcessingLauncher):
     @property
     @override
     def is_interactive_compatible(self) -> bool:
-        return self.xla_launcher_impl.is_interactive_compatible()
+        return self.xla_launcher_impl.is_interactive_compatible
 
     @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:

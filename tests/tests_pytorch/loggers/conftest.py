@@ -38,8 +38,8 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True)
-    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._MLFLOW_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
     return mlflow
 
 
@@ -86,7 +86,7 @@ def wandb_mock(monkeypatch):
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
 
-    monkeypatch.setattr("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._WANDB_AVAILABLE", True)
     return wandb
 
 
@@ -153,5 +153,5 @@ def neptune_mock(monkeypatch):
     neptune.types = neptune_types
     neptune.utils = neptune_utils
 
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._NEPTUNE_AVAILABLE", True)
     return neptune

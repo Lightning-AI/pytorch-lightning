@@ -242,7 +242,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.strategies.deepspeed import (
-            DeepSpeedStrategyFabric as EnterpriseDeepSpeedStrategy,
+            DeepSpeedStrategyTrainer as EnterpriseDeepSpeedStrategy,
         )
 
         self.deepspeed_strategy_impl = EnterpriseDeepSpeedStrategy(
@@ -441,3 +441,7 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    @property
+    def config(self) -> dict[str, Any]:
+        return self.deepspeed_strategy_impl.config

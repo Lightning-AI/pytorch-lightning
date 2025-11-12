@@ -14,6 +14,7 @@
 from contextlib import AbstractContextManager
 from typing import Any, Callable, Optional, Union
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -108,3 +109,19 @@ class DeepSpeedPrecision(Precision):
         return self.deepspeed_precision_impl.clip_gradients(
             optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
+
+    @property
+    def precision(self) -> str:
+        return self.deepspeed_precision_impl.precision
+
+    @precision.setter
+    def precision(self, value: str) -> None:
+        self.deepspeed_precision_impl.precision = value
+
+    @property
+    def _desired_dtype(self) -> torch.dtype:
+        return self.deepspeed_precision_impl._desired_dtype
+
+    @_desired_dtype.setter
+    def _desired_dtype(self, value: torch.dtype) -> None:
+        self.deepspeed_precision_impl._desired_dtype = value
