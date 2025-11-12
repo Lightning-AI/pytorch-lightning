@@ -291,6 +291,7 @@ class ModelCheckpoint(Checkpoint):
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
+        self.best_model_metrics: Optional[dict[str, Tensor]] = {}
         self.best_k_models: dict[str, Tensor] = {}
         self.kth_best_model_path = ""
         self.best_model_score: Optional[Tensor] = None
@@ -973,6 +974,9 @@ class ModelCheckpoint(Checkpoint):
         _op = min if self.mode == "min" else max
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore[arg-type]
         self.best_model_score = self.best_k_models[self.best_model_path]
+
+        if self.best_model_path == filepath:
+            self.best_model_metrics = dict(monitor_candidates)
 
         if self.verbose:
             epoch = monitor_candidates["epoch"]
