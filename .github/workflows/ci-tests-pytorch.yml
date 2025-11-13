@@ -59,6 +59,8 @@ jobs:
 
           # adding recently cut Torch 2.7 - FUTURE
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.14", pytorch-version: "2.8" }
 
           # "oldest" versions tests, only on minimum Python
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
