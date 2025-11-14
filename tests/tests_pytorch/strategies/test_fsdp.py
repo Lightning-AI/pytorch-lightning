@@ -77,15 +77,9 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
-        if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
-        elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self.trainer.precision == "16-true":
+        if self.trainer.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif self.trainer.precision == "bf16-true":
+        elif self.trainer.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise ValueError(f"Unknown precision {self.trainer.precision}")
@@ -138,15 +132,9 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
         assert isinstance(self.layer, torch.nn.Sequential)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
-        if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
-        elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self.trainer.precision == "16-true":
+        if self.trainer.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif self.trainer.precision == "bf16-true":
+        elif self.trainer.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise ValueError(f"Unknown precision {self.trainer.precision}")
