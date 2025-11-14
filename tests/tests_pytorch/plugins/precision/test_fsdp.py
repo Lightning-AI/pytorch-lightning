@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
@@ -32,12 +33,13 @@ from tests_pytorch.helpers.runif import RunIf
     ],
 )
 def test_fsdp_precision_config(precision, expected, expect_warn):
-    if expect_warn:
-        with pytest.warns(UserWarning, match="FSDPPrecision.*runs computations in reduced precision"):
-            plugin = FSDPPrecision(precision=precision)
-    else:
-        # No warning should be raised
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")  # capture all warnings
         plugin = FSDPPrecision(precision=precision)
+
+    # Check if the warning was (or wasn’t) logged
+    has_warn = any("FSDPPrecision" in str(warning.message) for warning in w)
+    assert has_warn == expect_warn, f"Unexpected warning state for {precision}"
 
     config = plugin.mixed_precision_config
 
