@@ -22,17 +22,23 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    ("precision", "expected"),
+    ("precision", "expected", "expect_warn"),
     [
-        ("16-true", (torch.float16, torch.float16, torch.float16)),
-        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
-        ("16-mixed", (torch.float16, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
-        ("32-true", (torch.float32, torch.float32, torch.float32)),
+        ("16-true", (torch.float16, torch.float16, torch.float16), True),
+        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16), True),
+        ("16-mixed", (torch.float16, torch.float16, torch.float16), True),
+        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16), True),
+        ("32-true", (torch.float32, torch.float32, torch.float32), False),
     ],
 )
-def test_fsdp_precision_config(precision, expected):
-    plugin = FSDPPrecision(precision=precision)
+def test_fsdp_precision_config(precision, expected, expect_warn):
+    if expect_warn:
+        with pytest.warns(UserWarning, match="FSDPPrecision.*runs computations in reduced precision"):
+            plugin = FSDPPrecision(precision=precision)
+    else:
+        # No warning should be raised
+        plugin = FSDPPrecision(precision=precision)
+
     config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
