@@ -21,7 +21,6 @@ from argparse import Namespace
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 from typing_extensions import override
@@ -34,7 +33,6 @@ if TYPE_CHECKING:
     from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = RequirementCache("comet-ml>=3.44.4", module="comet_ml")
 
 FRAMEWORK_NAME = "pytorch-lightning"
 comet_experiment = Union["Experiment", "ExistingExperiment", "OfflineExperiment"]
