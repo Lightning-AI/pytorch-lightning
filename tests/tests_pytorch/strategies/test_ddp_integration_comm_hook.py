@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
-from enum import member
 from unittest import mock
 
 import pytest
@@ -27,6 +26,8 @@ if torch.distributed.is_available():
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
     if sys.version_info >= (3, 13):
+        from enum import member
+
         post_localSGD = member(post_localSGD)
     from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
