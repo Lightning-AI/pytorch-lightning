@@ -26,8 +26,8 @@ from tests_pytorch.helpers.runif import RunIf
     [
         ("16-true", (torch.float16, torch.float16, torch.float16)),
         ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
-        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        ("16-mixed", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
         ("32-true", (torch.float32, torch.float32, torch.float32)),
     ],
 )

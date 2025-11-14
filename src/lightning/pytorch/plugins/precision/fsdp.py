@@ -63,7 +63,7 @@ class FSDPPrecision(Precision):
         if scaler is not None and self.precision != "16-mixed":
             raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
 
-        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.scaler = ShardedGradScaler() if scaler is None and precision in ("16-mixed", "16-true") else None
 
         if precision != "32-true":
             rank_zero_warn(
