@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for variable batch size in `ThroughputMonitor` ([#20236](https://github.com/Lightning-AI/pytorch-lightning/pull/20236))
 
 
+- Added `Callback.on_checkpoint_write_end` hook that triggers after checkpoint files are fully written to disk ([#XXXXX](https://github.com/Lightning-AI/pytorch-lightning/pull/XXXXX))
+
 ### Changed
 
 - Expose `weights_only` argument for `Trainer.{fit,validate,test,predict}` and let `torch` handle default value ([#21072](https://github.com/Lightning-AI/pytorch-lightning/pull/21072))
