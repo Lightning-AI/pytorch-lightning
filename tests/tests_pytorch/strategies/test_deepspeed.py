@@ -153,7 +153,7 @@ def test_deepspeed_precision_choice(cuda_count_1, tmp_path):
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
     with pytest.raises(
-        MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
+        FileNotFoundError, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
         DeepSpeedStrategy(config="invalid_path.json")
 
@@ -1004,7 +1004,7 @@ def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmp_path, 
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as mock_platform:
-        strategy._init_deepspeed_distributed()
+        strategy.deepspeed_strategy_impl._init_deepspeed_distributed()
     mock_deepspeed_distributed.assert_called()
     mock_platform.assert_called()
     if platform == "Windows":
@@ -1267,6 +1267,7 @@ def test_validate_parallel_devices_indices(device_indices):
 
     """
     accelerator = Mock(spec=CUDAAccelerator)
+    accelerator.name.return_value = "cuda"
     strategy = DeepSpeedStrategy(
         accelerator=accelerator, parallel_devices=[torch.device("cuda", i) for i in device_indices]
     )

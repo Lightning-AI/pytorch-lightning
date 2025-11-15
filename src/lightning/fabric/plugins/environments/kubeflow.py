@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import logging
-import os
 
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 
 log = logging.getLogger(__name__)
 
@@ -33,20 +33,28 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     """
 
+    def __init__(self) -> None:
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.plugins.environments.kubeflow import (
+            KubeflowEnvironment as EnterpriseKubeflowEnvironment,
+        )
+
+        self.kubeflow_impl = EnterpriseKubeflowEnvironment()
+
     @property
     @override
     def creates_processes_externally(self) -> bool:
-        return True
+        return self.kubeflow_impl.creates_processes_externally
 
     @property
     @override
     def main_address(self) -> str:
-        return os.environ["MASTER_ADDR"]
+        return self.kubeflow_impl.main_address
 
     @property
     @override
     def main_port(self) -> int:
-        return int(os.environ["MASTER_PORT"])
+        return self.kubeflow_impl.main_port
 
     @staticmethod
     @override
@@ -55,24 +63,24 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     @override
     def world_size(self) -> int:
-        return int(os.environ["WORLD_SIZE"])
+        return self.kubeflow_impl.world_size()
 
     @override
     def set_world_size(self, size: int) -> None:
-        log.debug("KubeflowEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+        return self.kubeflow_impl.set_world_size(size)
 
     @override
     def global_rank(self) -> int:
-        return int(os.environ["RANK"])
+        return self.kubeflow_impl.global_rank()
 
     @override
     def set_global_rank(self, rank: int) -> None:
-        log.debug("KubeflowEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
+        return self.kubeflow_impl.set_global_rank(rank)
 
     @override
     def local_rank(self) -> int:
-        return 0
+        return self.kubeflow_impl.local_rank()
 
     @override
     def node_rank(self) -> int:
-        return self.global_rank()
+        return self.kubeflow_impl.node_rank()

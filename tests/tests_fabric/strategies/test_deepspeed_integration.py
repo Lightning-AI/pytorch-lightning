@@ -251,7 +251,7 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     strategy = fabric._strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as platform_mock:
-        strategy._init_deepspeed_distributed()
+        strategy.deepspeed_impl._init_deepspeed_distributed()
     deepspeed_dist_mock.assert_called()
     platform_mock.assert_called()
     if platform == "Windows":

@@ -70,7 +70,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path, monkeypatch):
     """Verify that basic functionality of all loggers."""
@@ -335,7 +335,7 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     """Test that the default logger name is lightning_logs."""
     # CSV
