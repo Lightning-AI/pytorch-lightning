@@ -221,6 +221,9 @@ class RichProgressBarTheme:
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
+    def __init__(self) -> None:
+        pass
+
 
 class RichProgressBar(ProgressBar):
     """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
