@@ -20,7 +20,7 @@ import logging
 import os
 from argparse import Namespace
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -199,13 +199,13 @@ class CometLogger(Logger):
     def __init__(
         self,
         *,
-        api_key: Optional[str] = None,
-        workspace: Optional[str] = None,
-        project: Optional[str] = None,
-        experiment_key: Optional[str] = None,
-        mode: Optional[Literal["get_or_create", "get", "create"]] = None,
-        online: Optional[bool] = None,
-        prefix: Optional[str] = None,
+        api_key: str | None = None,
+        workspace: str | None = None,
+        project: str | None = None,
+        experiment_key: str | None = None,
+        mode: Literal["get_or_create", "get", "create"] | None = None,
+        online: bool | None = None,
+        prefix: str | None = None,
         **kwargs: Any,
     ):
         if not _COMET_AVAILABLE:
@@ -254,14 +254,14 @@ class CometLogger(Logger):
                 )
         ##################################################
 
-        self._api_key: Optional[str] = api_key
-        self._experiment: Optional[comet_experiment] = None
-        self._workspace: Optional[str] = workspace
-        self._mode: Optional[Literal["get_or_create", "get", "create"]] = mode
-        self._online: Optional[bool] = online
-        self._project_name: Optional[str] = project
-        self._experiment_key: Optional[str] = experiment_key
-        self._prefix: Optional[str] = prefix
+        self._api_key: str | None = api_key
+        self._experiment: comet_experiment | None = None
+        self._workspace: str | None = workspace
+        self._mode: Literal["get_or_create", "get", "create"] | None = mode
+        self._online: bool | None = online
+        self._project_name: str | None = project
+        self._experiment_key: str | None = experiment_key
+        self._prefix: str | None = prefix
         self._kwargs: dict[str, Any] = kwargs
 
         # needs to be set before the first `comet_ml` import
@@ -322,7 +322,7 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         self.experiment.__internal_api__log_parameters__(
             parameters=params,
@@ -333,7 +333,7 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
         # Comet.com expects metrics to be a dictionary of detached tensors on CPU
         metrics_without_epoch = metrics.copy()
@@ -365,7 +365,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory.
 
         Returns:
@@ -376,7 +376,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Gets the project name.
 
         Returns:
@@ -387,7 +387,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Gets the version.
 
         Returns:
@@ -413,7 +413,7 @@ class CometLogger(Logger):
         return state
 
     @override
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         if self._experiment is not None:
             self._experiment.__internal_api__set_model_graph__(
                 graph=model,

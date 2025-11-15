@@ -5,7 +5,6 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from re import escape
-from typing import Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
@@ -34,7 +33,7 @@ from tests_pytorch.helpers.runif import RunIf
 class TestFSDPModel(BoringModel):
     def __init__(self):
         super().__init__()
-        self.layer: Optional[nn.Module] = None
+        self.layer: nn.Module | None = None
 
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -162,7 +161,7 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
             assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
-def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
+def _run_multiple_stages(trainer, model, model_path: str | None = None):
     trainer.fit(model)
     trainer.test(model)
 

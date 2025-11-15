@@ -1,7 +1,7 @@
 import json
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
 
@@ -40,9 +40,9 @@ class SpikeDetection:
         mode: Literal["min", "max"] = "min",
         window: int = 10,
         warmup: int = 1,
-        atol: Optional[float] = None,
-        rtol: Optional[float] = 2.0,
-        exclude_batches_path: Optional[_PATH] = None,
+        atol: float | None = None,
+        rtol: float | None = 2.0,
+        exclude_batches_path: _PATH | None = None,
         finite_only: bool = True,
     ):
         if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
@@ -52,7 +52,7 @@ class SpikeDetection:
             raise RuntimeError("SpikeDetection requires `torchmetrics>=1.0.0` Please upgrade your version.")
         super().__init__()
 
-        self.last_val: Union[torch.Tensor, float] = 0.0
+        self.last_val: torch.Tensor | float = 0.0
         # spike detection happens individually on each machine
         self.running_mean = Running(MeanMetric(dist_sync_on_step=False, sync_on_compute=False), window=window)
         # workaround for https://github.com/Lightning-AI/torchmetrics/issues/1899
@@ -125,10 +125,10 @@ class SpikeDetection:
 
         raise TrainingSpikeException(batch_idx=batch_idx)
 
-    def _check_atol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
+    def _check_atol(self, val_a: float | torch.Tensor, val_b: float | torch.Tensor) -> bool:
         return (self.atol is None) or bool(abs(val_a - val_b) >= abs(self.atol))
 
-    def _check_rtol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
+    def _check_rtol(self, val_a: float | torch.Tensor, val_b: float | torch.Tensor) -> bool:
         return (self.rtol is None) or bool(abs(val_a - val_b) >= abs(self.rtol * val_b))
 
     def _is_better(self, diff_val: torch.Tensor) -> bool:

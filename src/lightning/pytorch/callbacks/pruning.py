@@ -18,10 +18,10 @@ ModelPruning
 
 import inspect
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -65,17 +65,17 @@ class ModelPruning(Callback):
 
     def __init__(
         self,
-        pruning_fn: Union[Callable, str],
+        pruning_fn: Callable | str,
         parameters_to_prune: _PARAM_LIST = (),
-        parameter_names: Optional[list[str]] = None,
+        parameter_names: list[str] | None = None,
         use_global_unstructured: bool = True,
-        amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
-        apply_pruning: Union[bool, Callable[[int], bool]] = True,
+        amount: int | float | Callable[[int], int | float] = 0.5,
+        apply_pruning: bool | Callable[[int], bool] = True,
         make_pruning_permanent: bool = True,
-        use_lottery_ticket_hypothesis: Union[bool, Callable[[int], bool]] = True,
+        use_lottery_ticket_hypothesis: bool | Callable[[int], bool] = True,
         resample_parameters: bool = False,
-        pruning_dim: Optional[int] = None,
-        pruning_norm: Optional[int] = None,
+        pruning_dim: int | None = None,
+        pruning_norm: int | None = None,
         verbose: int = 0,
         prune_on_train_epoch_end: bool = True,
     ) -> None:
@@ -167,8 +167,8 @@ class ModelPruning(Callback):
         self._prune_on_train_epoch_end = prune_on_train_epoch_end
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs: dict[str, Any] = {}
-        self._original_layers: Optional[dict[int, _LayerRef]] = None
-        self._pruning_method_name: Optional[str] = None
+        self._original_layers: dict[int, _LayerRef] | None = None
+        self._pruning_method_name: str | None = None
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
@@ -236,7 +236,7 @@ class ModelPruning(Callback):
         """This function can be overridden to control which module to prune."""
         return parameters_to_prune
 
-    def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Union[Callable, pytorch_prune.BasePruningMethod]:
+    def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Callable | pytorch_prune.BasePruningMethod:
         """This function takes `pruning_fn`, a function name.
 
         IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
@@ -331,7 +331,7 @@ class ModelPruning(Callback):
         mask = getattr(module, attr)
         return (mask == 0).sum().item(), mask.numel()
 
-    def apply_pruning(self, amount: Union[int, float]) -> None:
+    def apply_pruning(self, amount: int | float) -> None:
         """Applies pruning to ``parameters_to_prune``."""
         if self._verbose:
             prev_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
@@ -347,7 +347,7 @@ class ModelPruning(Callback):
 
     @rank_zero_only
     def _log_sparsity_stats(
-        self, prev: list[tuple[int, int]], curr: list[tuple[int, int]], amount: Union[int, float] = 0
+        self, prev: list[tuple[int, int]], curr: list[tuple[int, int]], amount: int | float = 0
     ) -> None:
         total_params = sum(total for _, total in curr)
         prev_total_zeros = sum(zeros for zeros, _ in prev)

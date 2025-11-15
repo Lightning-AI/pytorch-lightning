@@ -16,10 +16,10 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Optional, TextIO, Union
+from typing import Any, TextIO
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
 
@@ -31,16 +31,16 @@ class Profiler(ABC):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
 
-        self._output_file: Optional[TextIO] = None
-        self._write_stream: Optional[Callable] = None
-        self._local_rank: Optional[int] = None
-        self._stage: Optional[str] = None
+        self._output_file: TextIO | None = None
+        self._write_stream: Callable | None = None
+        self._local_rank: int | None = None
+        self._stage: str | None = None
 
     @abstractmethod
     def start(self, action_name: str) -> None:
@@ -78,7 +78,7 @@ class Profiler(ABC):
 
     def _prepare_filename(
         self,
-        action_name: Optional[str] = None,
+        action_name: str | None = None,
         extension: str = ".txt",
         split_token: str = "-",  # noqa: S107
     ) -> str:
@@ -130,13 +130,13 @@ class Profiler(ABC):
             output.append(value)
         return os.linesep.join(output)
 
-    def setup(self, stage: str, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+    def setup(self, stage: str, local_rank: int | None = None, log_dir: str | None = None) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: Optional[str]) -> None:
+    def teardown(self, stage: str | None) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.

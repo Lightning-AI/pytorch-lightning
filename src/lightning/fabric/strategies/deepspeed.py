@@ -16,12 +16,12 @@ import json
 import logging
 import os
 import platform
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -57,10 +57,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Accelerator | None = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: Optional[str] = None,
+        remote_device: str | None = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -84,11 +84,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Optional[int] = None,
-        config: Optional[Union[_PATH, dict[str, Any]]] = None,
+        logging_batch_size_per_gpu: int | None = None,
+        config: _PATH | dict[str, Any] | None = None,
         logging_level: int = logging.WARN,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -99,9 +99,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        precision: Precision | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -262,7 +262,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             process_group_backend=process_group_backend,
         )
         self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
-        self._timeout: Optional[timedelta] = timeout
+        self._timeout: timedelta | None = timeout
 
         self.config = self._load_config(config)
         if self.config is None:
@@ -316,7 +316,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._deepspeed_engine: Optional[DeepSpeedEngine] = None
+        self._deepspeed_engine: DeepSpeedEngine | None = None
 
     @property
     def zero_stage_3(self) -> bool:
@@ -374,7 +374,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
@@ -404,9 +404,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
@@ -471,9 +471,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -554,8 +554,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         module: "DeepSpeedEngine",
         optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
+        max_norm: float | int,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
     ) -> torch.Tensor:
         raise NotImplementedError(
@@ -564,9 +564,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @override
-    def clip_gradients_value(
-        self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: float | int) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
             "Make sure to set the `gradient_clipping` value in your Config."
@@ -614,7 +612,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     def _initialize_engine(
-        self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional["_LRScheduler"] = None
+        self, model: Module, optimizer: Optimizer | None = None, scheduler: Optional["_LRScheduler"] = None
     ) -> tuple["DeepSpeedEngine", Optimizer, Any]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -716,7 +714,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
-        logging_batch_size_per_gpu: Optional[int],
+        logging_batch_size_per_gpu: int | None,
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -825,7 +823,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         load(module, prefix="")
 
-    def _load_config(self, config: Optional[Union[_PATH, dict[str, Any]]]) -> Optional[dict[str, Any]]:
+    def _load_config(self, config: _PATH | dict[str, Any] | None) -> dict[str, Any] | None:
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]

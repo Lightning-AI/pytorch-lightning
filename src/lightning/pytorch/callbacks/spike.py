@@ -1,6 +1,6 @@
 import os
 from collections.abc import Mapping
-from typing import Any, Union
+from typing import Any
 
 import torch
 
@@ -15,7 +15,7 @@ class SpikeDetection(FabricSpikeDetection, Callback):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Union[torch.Tensor, Mapping[str, torch.Tensor]],
+        outputs: torch.Tensor | Mapping[str, torch.Tensor],
         batch: Any,
         batch_idx: int,
     ) -> None:

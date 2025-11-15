@@ -20,7 +20,6 @@ from argparse import Namespace
 from datetime import timedelta
 from inspect import signature
 from pathlib import Path
-from typing import Union
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
@@ -335,7 +334,7 @@ def test_model_checkpoint_to_yaml(tmp_path, save_top_k: int):
 @pytest.mark.parametrize(
     ("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")]
 )
-def test_model_checkpoint_path(tmp_path, logger_version: Union[None, int, str], expected: str):
+def test_model_checkpoint_path(tmp_path, logger_version: None | int | str, expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
     logger = TensorBoardLogger(tmp_path, version=logger_version)

@@ -20,7 +20,7 @@ import logging
 import re
 import time
 from datetime import timedelta
-from typing import Any, Optional, Union
+from typing import Any
 
 from typing_extensions import override
 
@@ -83,7 +83,7 @@ class Timer(Callback):
 
     def __init__(
         self,
-        duration: Optional[Union[str, timedelta, dict[str, int]]] = None,
+        duration: str | timedelta | dict[str, int] | None = None,
         interval: str = Interval.step,
         verbose: bool = True,
     ) -> None:
@@ -111,16 +111,16 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
-        self._end_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
+        self._start_time: dict[RunningStage, float | None] = dict.fromkeys(RunningStage)
+        self._end_time: dict[RunningStage, float | None] = dict.fromkeys(RunningStage)
         self._offset = 0
 
-    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+    def start_time(self, stage: str = RunningStage.TRAINING) -> float | None:
         """Return the start time of a particular stage (in seconds)"""
         stage = RunningStage(stage)
         return self._start_time[stage]
 
-    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+    def end_time(self, stage: str = RunningStage.TRAINING) -> float | None:
         """Return the end time of a particular stage (in seconds)"""
         stage = RunningStage(stage)
         return self._end_time[stage]
@@ -136,7 +136,7 @@ class Timer(Callback):
             return time.monotonic() - start + offset
         return end - start + offset
 
-    def time_remaining(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+    def time_remaining(self, stage: str = RunningStage.TRAINING) -> float | None:
         """Return the time remaining for a particular stage (in seconds)"""
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)

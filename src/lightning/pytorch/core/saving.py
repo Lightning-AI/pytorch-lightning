@@ -19,10 +19,11 @@ import inspect
 import logging
 import os
 from argparse import Namespace
+from collections.abc import Callable
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -51,12 +52,12 @@ CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
 def _load_from_checkpoint(
-    cls: Union[type["pl.LightningModule"], type["pl.LightningDataModule"]],
-    checkpoint_path: Union[_PATH, IO],
+    cls: type["pl.LightningModule"] | type["pl.LightningDataModule"],
+    checkpoint_path: _PATH | IO,
     map_location: _MAP_LOCATION_TYPE = None,
-    hparams_file: Optional[_PATH] = None,
-    strict: Optional[bool] = None,
-    weights_only: Optional[bool] = None,
+    hparams_file: _PATH | None = None,
+    strict: bool | None = None,
+    weights_only: bool | None = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     map_location = map_location or _default_map_location
@@ -117,9 +118,9 @@ def _default_map_location(storage: "UntypedStorage", location: str) -> Optional[
 
 
 def _load_state(
-    cls: Union[type["pl.LightningModule"], type["pl.LightningDataModule"]],
+    cls: type["pl.LightningModule"] | type["pl.LightningDataModule"],
     checkpoint: dict[str, Any],
-    strict: Optional[bool] = None,
+    strict: bool | None = None,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
@@ -201,9 +202,7 @@ def _load_state(
     return obj
 
 
-def _convert_loaded_hparams(
-    model_args: dict[str, Any], hparams_type: Optional[Union[Callable, str]] = None
-) -> dict[str, Any]:
+def _convert_loaded_hparams(model_args: dict[str, Any], hparams_type: Callable | str | None = None) -> dict[str, Any]:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:
@@ -267,7 +266,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> dict[str, Any]:
         return {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
 
-def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
+def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: dict | Namespace) -> None:
     fs = get_filesystem(tags_csv)
     if not _is_dir(fs, os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
@@ -317,7 +316,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> di
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
+def save_hparams_to_yaml(config_yaml: _PATH, hparams: dict | Namespace, use_omegaconf: bool = True) -> None:
     """
     Args:
         config_yaml: path to new YAML file
@@ -372,7 +371,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
         yaml.dump(hparams_allowed, fp)
 
 
-def convert(val: str) -> Union[int, float, bool, str]:
+def convert(val: str) -> int | float | bool | str:
     try:
         return ast.literal_eval(val)
     except (ValueError, SyntaxError) as err:

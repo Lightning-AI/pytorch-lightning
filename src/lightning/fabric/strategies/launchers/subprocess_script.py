@@ -18,8 +18,8 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Sequence
-from typing import Any, Callable, Optional
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -131,7 +131,7 @@ class _SubprocessScriptLauncher(_Launcher):
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
             hydra_in_use = False
-            cwd: Optional[str] = None
+            cwd: str | None = None
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 

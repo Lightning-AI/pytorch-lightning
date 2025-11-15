@@ -13,9 +13,9 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager, ExitStack
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 import torch
 from torch import Tensor
@@ -47,17 +47,17 @@ class Strategy(ABC):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        accelerator: Accelerator | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision: Precision | None = None,
     ) -> None:
-        self._accelerator: Optional[Accelerator] = accelerator
-        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision: Optional[Precision] = None
+        self._accelerator: Accelerator | None = accelerator
+        self._checkpoint_io: CheckpointIO | None = checkpoint_io
+        self._precision: Precision | None = None
         # Call the precision setter for input validation
         self.precision = precision
-        self._launcher: Optional[_Launcher] = None
-        self._backward_sync_control: Optional[_BackwardSyncControl] = None
+        self._launcher: _Launcher | None = None
+        self._backward_sync_control: _BackwardSyncControl | None = None
 
     @property
     @abstractmethod
@@ -70,11 +70,11 @@ class Strategy(ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @property
-    def launcher(self) -> Optional[_Launcher]:
+    def launcher(self) -> _Launcher | None:
         return self._launcher
 
     @property
-    def accelerator(self) -> Optional[Accelerator]:
+    def accelerator(self) -> Accelerator | None:
         return self._accelerator
 
     @accelerator.setter
@@ -96,7 +96,7 @@ class Strategy(ABC):
         return self._precision if self._precision is not None else Precision()
 
     @precision.setter
-    def precision(self, precision: Optional[Precision]) -> None:
+    def precision(self, precision: Precision | None) -> None:
         self._precision = precision
 
     def _configure_launcher(self) -> None:
@@ -129,7 +129,7 @@ class Strategy(ABC):
         stack.enter_context(precision_init_ctx)
         return stack
 
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
@@ -172,7 +172,7 @@ class Strategy(ABC):
     def module_to_device(self, module: Module) -> None:
         """Moves the model to the correct device."""
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def batch_to_device(self, batch: Any, device: torch.device | None = None) -> Any:
         """Moves the batch to the correct device.
 
         The returned batch is of the same type as the input batch, just
@@ -186,7 +186,7 @@ class Strategy(ABC):
         device = device or self.root_device
         return move_data_to_device(batch, device)
 
-    def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, module: Module | None, *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
         self.precision.pre_backward(tensor, module)
         self.precision.backward(tensor, module, *args, **kwargs)
@@ -207,7 +207,7 @@ class Strategy(ABC):
         return self.precision.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform an all_gather on all processes.
 
         Args:
@@ -220,10 +220,10 @@ class Strategy(ABC):
     @abstractmethod
     def all_reduce(
         self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, Any]:
+        tensor: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
+    ) -> Tensor | Any:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
@@ -235,7 +235,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         """Synchronizes all processes which blocks processes until the whole group enters this function.
 
         Args:
@@ -260,9 +260,9 @@ class Strategy(ABC):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -280,13 +280,11 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
-    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Any | Tensor]:
         """Returns model state."""
         return module.state_dict()
 
-    def load_module_state_dict(
-        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
-    ) -> None:
+    def load_module_state_dict(self, module: Module, state_dict: dict[str, Any | Tensor], strict: bool = True) -> None:
         """Loads the given state into the model."""
         module.load_state_dict(state_dict, strict=strict)
 
@@ -308,9 +306,9 @@ class Strategy(ABC):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -371,8 +369,8 @@ class Strategy(ABC):
         self,
         module: torch.nn.Module,
         optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
+        max_norm: float | int,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
     ) -> torch.Tensor:
         """Clip gradients by norm."""
@@ -382,7 +380,7 @@ class Strategy(ABC):
             parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
         )
 
-    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
+    def clip_gradients_value(self, module: torch.nn.Module, optimizer: Optimizer, clip_val: float | int) -> None:
         """Clip gradients by value."""
         self.precision.unscale_gradients(optimizer)
         parameters = self.precision.main_params(optimizer)
@@ -399,7 +397,7 @@ class Strategy(ABC):
         )
 
     def _convert_stateful_objects_in_state(
-        self, state: dict[str, Union[Module, Optimizer, Any]], filter: dict[str, Callable[[str, Any], bool]]
+        self, state: dict[str, Module | Optimizer | Any], filter: dict[str, Callable[[str, Any], bool]]
     ) -> dict[str, Any]:
         converted_state: dict[str, Any] = {}
         for key, obj in state.items():

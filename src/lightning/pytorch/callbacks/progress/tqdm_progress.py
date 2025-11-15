@@ -15,7 +15,7 @@ import importlib
 import math
 import os
 import sys
-from typing import Any, Optional, Union
+from typing import Any
 
 from typing_extensions import override
 
@@ -44,7 +44,7 @@ class Tqdm(_tqdm):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def format_num(n: Union[int, float, str]) -> str:
+    def format_num(n: int | float | str) -> str:
         """Add additional padding to the formatted numbers."""
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
@@ -109,10 +109,10 @@ class TQDMProgressBar(ProgressBar):
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
         self._enabled = True
-        self._train_progress_bar: Optional[_tqdm] = None
-        self._val_progress_bar: Optional[_tqdm] = None
-        self._test_progress_bar: Optional[_tqdm] = None
-        self._predict_progress_bar: Optional[_tqdm] = None
+        self._train_progress_bar: _tqdm | None = None
+        self._val_progress_bar: _tqdm | None = None
+        self._test_progress_bar: _tqdm | None = None
+        self._predict_progress_bar: _tqdm | None = None
         self._leave = leave
 
     def __getstate__(self) -> dict:
@@ -450,7 +450,7 @@ class TQDMProgressBar(ProgressBar):
         return refresh_rate
 
 
-def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
+def convert_inf(x: int | float | None) -> int | float | None:
     """The tqdm doesn't support inf/nan values.
 
     We have to convert it to None.

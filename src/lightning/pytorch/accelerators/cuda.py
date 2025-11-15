@@ -15,7 +15,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from typing_extensions import override
@@ -83,7 +83,7 @@ class CUDAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_cuda=True)
 

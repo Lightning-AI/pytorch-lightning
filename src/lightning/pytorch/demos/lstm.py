@@ -6,7 +6,6 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 """
 
 from collections.abc import Iterator, Sized
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -73,7 +72,7 @@ class LightningLSTM(LightningModule):
     def __init__(self, vocab_size: int = 33278):
         super().__init__()
         self.model = SimpleLSTM(vocab_size=vocab_size)
-        self.hidden: Optional[tuple[Tensor, Tensor]] = None
+        self.hidden: tuple[Tensor, Tensor] | None = None
 
     def on_train_epoch_end(self) -> None:
         self.hidden = None

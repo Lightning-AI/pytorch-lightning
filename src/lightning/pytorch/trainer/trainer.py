@@ -26,7 +26,7 @@ import os
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from weakref import proxy
 
 import torch
@@ -91,47 +91,47 @@ class Trainer:
     def __init__(
         self,
         *,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        devices: Union[list[int], str, int] = "auto",
+        accelerator: str | Accelerator = "auto",
+        strategy: str | Strategy = "auto",
+        devices: list[int] | str | int = "auto",
         num_nodes: int = 1,
-        precision: Optional[_PRECISION_INPUT] = None,
-        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
-        callbacks: Optional[Union[list[Callback], Callback]] = None,
-        fast_dev_run: Union[int, bool] = False,
-        max_epochs: Optional[int] = None,
-        min_epochs: Optional[int] = None,
+        precision: _PRECISION_INPUT | None = None,
+        logger: Logger | Iterable[Logger] | bool | None = None,
+        callbacks: list[Callback] | Callback | None = None,
+        fast_dev_run: int | bool = False,
+        max_epochs: int | None = None,
+        min_epochs: int | None = None,
         max_steps: int = -1,
-        min_steps: Optional[int] = None,
-        max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
-        limit_train_batches: Optional[Union[int, float]] = None,
-        limit_val_batches: Optional[Union[int, float]] = None,
-        limit_test_batches: Optional[Union[int, float]] = None,
-        limit_predict_batches: Optional[Union[int, float]] = None,
-        overfit_batches: Union[int, float] = 0.0,
-        val_check_interval: Optional[Union[int, float, str, timedelta, dict[str, int]]] = None,
-        check_val_every_n_epoch: Optional[int] = 1,
-        num_sanity_val_steps: Optional[int] = None,
-        log_every_n_steps: Optional[int] = None,
-        enable_checkpointing: Optional[bool] = None,
-        enable_progress_bar: Optional[bool] = None,
-        enable_model_summary: Optional[bool] = None,
+        min_steps: int | None = None,
+        max_time: str | timedelta | dict[str, int] | None = None,
+        limit_train_batches: int | float | None = None,
+        limit_val_batches: int | float | None = None,
+        limit_test_batches: int | float | None = None,
+        limit_predict_batches: int | float | None = None,
+        overfit_batches: int | float = 0.0,
+        val_check_interval: int | float | str | timedelta | dict[str, int] | None = None,
+        check_val_every_n_epoch: int | None = 1,
+        num_sanity_val_steps: int | None = None,
+        log_every_n_steps: int | None = None,
+        enable_checkpointing: bool | None = None,
+        enable_progress_bar: bool | None = None,
+        enable_model_summary: bool | None = None,
         accumulate_grad_batches: int = 1,
-        gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[str] = None,
-        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
-        benchmark: Optional[bool] = None,
+        gradient_clip_val: int | float | None = None,
+        gradient_clip_algorithm: str | None = None,
+        deterministic: bool | _LITERAL_WARN | None = None,
+        benchmark: bool | None = None,
         inference_mode: bool = True,
         use_distributed_sampler: bool = True,
-        profiler: Optional[Union[Profiler, str]] = None,
+        profiler: Profiler | str | None = None,
         detect_anomaly: bool = False,
         barebones: bool = False,
-        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
+        plugins: _PLUGIN_INPUT | list[_PLUGIN_INPUT] | None = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        default_root_dir: Optional[_PATH] = None,
+        default_root_dir: _PATH | None = None,
         enable_autolog_hparams: bool = True,
-        model_registry: Optional[str] = None,
+        model_registry: str | None = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -454,7 +454,7 @@ class Trainer:
         )
 
         # init data flags
-        self.check_val_every_n_epoch: Optional[int]
+        self.check_val_every_n_epoch: int | None
         self._data_connector.on_trainer_init(
             val_check_interval,
             reload_dataloaders_every_n_epochs,
@@ -473,8 +473,8 @@ class Trainer:
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
 
-        self.gradient_clip_val: Optional[Union[int, float]] = gradient_clip_val
-        self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
+        self.gradient_clip_val: int | float | None = gradient_clip_val
+        self.gradient_clip_algorithm: GradClipAlgorithmType | None = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
 
@@ -498,13 +498,13 @@ class Trainer:
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
-        self.val_check_batch: Optional[Union[int, float]] = None
-        self.val_check_interval: Union[int, float]
-        self.num_sanity_val_steps: Union[int, float]
-        self.limit_train_batches: Union[int, float]
-        self.limit_val_batches: Union[int, float]
-        self.limit_test_batches: Union[int, float]
-        self.limit_predict_batches: Union[int, float]
+        self.val_check_batch: int | float | None = None
+        self.val_check_interval: int | float
+        self.num_sanity_val_steps: int | float
+        self.limit_train_batches: int | float
+        self.limit_val_batches: int | float
+        self.limit_test_batches: int | float
+        self.limit_predict_batches: int | float
         setup._init_debugging_flags(
             self,
             limit_train_batches,
@@ -522,11 +522,11 @@ class Trainer:
     def fit(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
+        train_dataloaders: TRAIN_DATALOADERS | LightningDataModule | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        datamodule: LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
+        weights_only: bool | None = None,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -593,11 +593,11 @@ class Trainer:
     def _fit_impl(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
+        train_dataloaders: TRAIN_DATALOADERS | LightningDataModule | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        datamodule: LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
+        weights_only: bool | None = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -634,11 +634,11 @@ class Trainer:
     def validate(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[_PATH] = None,
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        weights_only: Optional[bool] = None,
+        datamodule: LightningDataModule | None = None,
+        weights_only: bool | None = None,
     ) -> _EVALUATE_OUTPUT:
         r"""Perform one evaluation epoch over the validation set.
 
@@ -704,12 +704,12 @@ class Trainer:
     def _validate_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[_PATH] = None,
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        weights_only: Optional[bool] = None,
-    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        datamodule: LightningDataModule | None = None,
+        weights_only: bool | None = None,
+    ) -> _PREDICT_OUTPUT | _EVALUATE_OUTPUT | None:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -752,11 +752,11 @@ class Trainer:
     def test(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[_PATH] = None,
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        weights_only: Optional[bool] = None,
+        datamodule: LightningDataModule | None = None,
+        weights_only: bool | None = None,
     ) -> _EVALUATE_OUTPUT:
         r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on your
         test set until you want to.
@@ -823,12 +823,12 @@ class Trainer:
     def _test_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[_PATH] = None,
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        ckpt_path: _PATH | None = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        weights_only: Optional[bool] = None,
-    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+        datamodule: LightningDataModule | None = None,
+        weights_only: bool | None = None,
+    ) -> _PREDICT_OUTPUT | _EVALUATE_OUTPUT | None:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -871,12 +871,12 @@ class Trainer:
     def predict(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
-    ) -> Optional[_PREDICT_OUTPUT]:
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        datamodule: LightningDataModule | None = None,
+        return_predictions: bool | None = None,
+        ckpt_path: _PATH | None = None,
+        weights_only: bool | None = None,
+    ) -> _PREDICT_OUTPUT | None:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
 
@@ -950,12 +950,12 @@ class Trainer:
     def _predict_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
-    ) -> Optional[_PREDICT_OUTPUT]:
+        dataloaders: EVAL_DATALOADERS | LightningDataModule | None = None,
+        datamodule: LightningDataModule | None = None,
+        return_predictions: bool | None = None,
+        ckpt_path: _PATH | None = None,
+        weights_only: bool | None = None,
+    ) -> _PREDICT_OUTPUT | None:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -995,9 +995,9 @@ class Trainer:
     def _run(
         self,
         model: "pl.LightningModule",
-        ckpt_path: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
-    ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        ckpt_path: _PATH | None = None,
+        weights_only: bool | None = None,
+    ) -> _EVALUATE_OUTPUT | _PREDICT_OUTPUT | None:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
@@ -1105,7 +1105,7 @@ class Trainer:
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+    def _run_stage(self) -> _PREDICT_OUTPUT | _EVALUATE_OUTPUT | None:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
         self.lightning_module.zero_grad()
@@ -1167,7 +1167,7 @@ class Trainer:
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
     @contextmanager
-    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
+    def init_module(self, empty_init: bool | None = None) -> Generator:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
         the right data type depending on the precision setting in the Trainer.
 
@@ -1288,11 +1288,11 @@ class Trainer:
         return self.strategy.precision_plugin.precision
 
     @property
-    def scaler(self) -> Optional[Any]:
+    def scaler(self) -> Any | None:
         return getattr(self.precision_plugin, "scaler", None)
 
     @property
-    def model(self) -> Optional[torch.nn.Module]:
+    def model(self) -> torch.nn.Module | None:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use
@@ -1306,7 +1306,7 @@ class Trainer:
     """
 
     @property
-    def log_dir(self) -> Optional[str]:
+    def log_dir(self) -> str | None:
         """The directory for the current experiment. Use this to save images to, etc...
 
         .. note:: You must call this on all processes. Failing to do so will cause your program to stall forever.
@@ -1343,7 +1343,7 @@ class Trainer:
         return self.strategy.is_global_zero
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[dict[str, Any]]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any] | None:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
         return None
@@ -1369,7 +1369,7 @@ class Trainer:
         return self._default_root_dir
 
     @property
-    def early_stopping_callback(self) -> Optional[EarlyStopping]:
+    def early_stopping_callback(self) -> EarlyStopping | None:
         """The first :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.early_stopping_callbacks
@@ -1382,7 +1382,7 @@ class Trainer:
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
     @property
-    def checkpoint_callback(self) -> Optional[Checkpoint]:
+    def checkpoint_callback(self) -> Checkpoint | None:
         """The first :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.checkpoint_callbacks
@@ -1395,7 +1395,7 @@ class Trainer:
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBar]:
+    def progress_bar_callback(self) -> ProgressBar | None:
         """An instance of :class:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
@@ -1404,7 +1404,7 @@ class Trainer:
         return None
 
     @property
-    def ckpt_path(self) -> Optional[_PATH]:
+    def ckpt_path(self) -> _PATH | None:
         """Set to the path/URL of a checkpoint loaded via :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`,
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`,
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`, or
@@ -1416,7 +1416,7 @@ class Trainer:
         return self._checkpoint_connector._ckpt_path
 
     @ckpt_path.setter
-    def ckpt_path(self, ckpt_path: Optional[_PATH]) -> None:
+    def ckpt_path(self, ckpt_path: _PATH | None) -> None:
         """Allows you to manage which checkpoint is loaded statefully.
 
         .. code-block:: python
@@ -1435,7 +1435,7 @@ class Trainer:
         self._checkpoint_connector._user_managed = bool(ckpt_path)
 
     def save_checkpoint(
-        self, filepath: _PATH, weights_only: Optional[bool] = None, storage_options: Optional[Any] = None
+        self, filepath: _PATH, weights_only: bool | None = None, storage_options: Any | None = None
     ) -> None:
         r"""Runs routine to create a checkpoint.
 
@@ -1562,11 +1562,11 @@ class Trainer:
         return self.fit_loop.epoch_progress.current.completed
 
     @property
-    def max_epochs(self) -> Optional[int]:
+    def max_epochs(self) -> int | None:
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> Optional[int]:
+    def min_epochs(self) -> int | None:
         return self.fit_loop.min_epochs
 
     @property
@@ -1574,7 +1574,7 @@ class Trainer:
         return self.fit_loop.max_steps
 
     @property
-    def min_steps(self) -> Optional[int]:
+    def min_steps(self) -> int | None:
         return self.fit_loop.min_steps
 
     @property
@@ -1583,14 +1583,14 @@ class Trainer:
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
-    def train_dataloader(self) -> Optional[TRAIN_DATALOADERS]:
+    def train_dataloader(self) -> TRAIN_DATALOADERS | None:
         """The training dataloader(s) used during ``trainer.fit()``."""
         if (combined_loader := self.fit_loop._combined_loader) is not None:
             return combined_loader.iterables
         return None
 
     @property
-    def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+    def val_dataloaders(self) -> EVAL_DATALOADERS | None:
         """The validation dataloader(s) used during ``trainer.fit()`` or ``trainer.validate()``."""
         if (combined_loader := self.fit_loop.epoch_loop.val_loop._combined_loader) is not None or (
             combined_loader := self.validate_loop._combined_loader
@@ -1599,33 +1599,33 @@ class Trainer:
         return None
 
     @property
-    def test_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+    def test_dataloaders(self) -> EVAL_DATALOADERS | None:
         """The test dataloader(s) used during ``trainer.test()``."""
         if (combined_loader := self.test_loop._combined_loader) is not None:
             return combined_loader.iterables
         return None
 
     @property
-    def predict_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
+    def predict_dataloaders(self) -> EVAL_DATALOADERS | None:
         """The prediction dataloader(s) used during ``trainer.predict()``."""
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
         return None
 
     @property
-    def num_training_batches(self) -> Union[int, float]:
+    def num_training_batches(self) -> int | float:
         """The number of training batches that will be used during ``trainer.fit()``."""
         return self.fit_loop.max_batches
 
     @property
-    def num_sanity_val_batches(self) -> list[Union[int, float]]:
+    def num_sanity_val_batches(self) -> list[int | float]:
         """The number of validation batches that will be used during the sanity-checking part of ``trainer.fit()``."""
         max_batches = self.fit_loop.epoch_loop.val_loop.max_batches
         # re-compute the `min` in case this is called outside the sanity-checking stage
         return [min(self.num_sanity_val_steps, batches) for batches in max_batches]
 
     @property
-    def num_val_batches(self) -> list[Union[int, float]]:
+    def num_val_batches(self) -> list[int | float]:
         """The number of validation batches that will be used during ``trainer.fit()`` or ``trainer.validate()``."""
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop.max_batches
@@ -1634,12 +1634,12 @@ class Trainer:
         return self.fit_loop.epoch_loop.val_loop._max_batches
 
     @property
-    def num_test_batches(self) -> list[Union[int, float]]:
+    def num_test_batches(self) -> list[int | float]:
         """The number of test batches that will be used during ``trainer.test()``."""
         return self.test_loop.max_batches
 
     @property
-    def num_predict_batches(self) -> list[Union[int, float]]:
+    def num_predict_batches(self) -> list[int | float]:
         """The number of prediction batches that will be used during ``trainer.predict()``."""
         return self.predict_loop.max_batches
 
@@ -1654,7 +1654,7 @@ class Trainer:
         raise RuntimeError("The `Trainer._evaluation_loop` property isn't defined. Accessed outside of scope")
 
     @property
-    def _active_loop(self) -> Optional[Union[_FitLoop, _EvaluationLoop, _PredictionLoop]]:
+    def _active_loop(self) -> _FitLoop | _EvaluationLoop | _PredictionLoop | None:
         if self.training:
             return self.fit_loop
         if self.sanity_checking or self.evaluating:
@@ -1668,12 +1668,12 @@ class Trainer:
     """
 
     @property
-    def logger(self) -> Optional[Logger]:
+    def logger(self) -> Logger | None:
         """The first :class:`~lightning.pytorch.loggers.logger.Logger` being used."""
         return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
-    def logger(self, logger: Optional[Logger]) -> None:
+    def logger(self, logger: Logger | None) -> None:
         if not logger:
             self.loggers = []
         else:
@@ -1692,7 +1692,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[list[Logger]]) -> None:
+    def loggers(self, loggers: list[Logger] | None) -> None:
         self._loggers = loggers if loggers else []
 
     @property
@@ -1732,7 +1732,7 @@ class Trainer:
         return self._logger_connector.progress_bar_metrics
 
     @property
-    def _results(self) -> Optional[_ResultCollection]:
+    def _results(self) -> _ResultCollection | None:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
@@ -1743,7 +1743,7 @@ class Trainer:
     """
 
     @property
-    def estimated_stepping_batches(self) -> Union[int, float]:
+    def estimated_stepping_batches(self) -> int | float:
         r"""The estimated number of batches that will ``optimizer.step()`` during training.
 
         This accounts for gradient accumulation and the current trainer configuration. This might be used when setting

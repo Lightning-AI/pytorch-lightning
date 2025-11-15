@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import torch
 from torch import Tensor
@@ -42,10 +43,10 @@ class XLAStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
-        precision: Optional[XLAPrecision] = None,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        checkpoint_io: XLACheckpointIO | None = None,
+        precision: XLAPrecision | None = None,
         sync_module_states: bool = True,
     ) -> None:
         super().__init__(
@@ -83,7 +84,7 @@ class XLAStrategy(ParallelStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -99,7 +100,7 @@ class XLAStrategy(ParallelStrategy):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[Precision]) -> None:
+    def precision(self, precision: Precision | None) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
@@ -174,7 +175,7 @@ class XLAStrategy(ParallelStrategy):
         return dataloader
 
     @override
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
         Args:
@@ -205,7 +206,7 @@ class XLAStrategy(ParallelStrategy):
 
     @override
     def all_reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+        self, output: Tensor | Any, group: Any | None = None, reduce_op: ReduceOp | str | None = None
     ) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
@@ -227,7 +228,7 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
         import torch_xla.core.xla_model as xm
@@ -276,9 +277,9 @@ class XLAStrategy(ParallelStrategy):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 

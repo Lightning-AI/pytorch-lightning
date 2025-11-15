@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from typing_extensions import override
@@ -37,8 +37,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
-        precision_plugin: Optional[XLAPrecision] = None,
+        checkpoint_io: XLACheckpointIO | _WrappingCheckpointIO | None = None,
+        precision_plugin: XLAPrecision | None = None,
         debug: bool = False,
     ):
         if not _XLA_AVAILABLE:
@@ -58,7 +58,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @property
     @override
-    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+    def checkpoint_io(self) -> XLACheckpointIO | _WrappingCheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
             assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
@@ -67,7 +67,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -83,7 +83,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
+    def precision_plugin(self, precision_plugin: Precision | None) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
