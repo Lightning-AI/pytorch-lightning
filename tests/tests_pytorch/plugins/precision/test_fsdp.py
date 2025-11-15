@@ -22,8 +22,10 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from tests_pytorch.helpers.runif import RunIf
 
 
+# Pytest passes args/kwargs to the context manager used with `pytest.warns`.
+# `contextlib.nullcontext` doesn't accept them, so this no-op version does.
 @contextmanager
-def null_ctx_manager(*args, **kwargs):
+def null_ctx(*args, **kwargs):
     yield
 
 
@@ -40,7 +42,7 @@ def null_ctx_manager(*args, **kwargs):
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision)
 
-    warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx_manager
+    warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx
 
     with warning_ctx(UserWarning, match="enables mixed-precision execution"):
         config = plugin.mixed_precision_config
