@@ -64,14 +64,6 @@ class FSDPPrecision(Precision):
             raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
 
         self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
-
-        if precision != "32-true":
-            rank_zero_warn(
-                f"FSDPPrecision `{precision}` runs computations in reduced precision "
-                "(e.g., float16/bfloat16) while keeping model weights stored in full precision. "
-                "These modes are still experimental and may produce slightly different accuracy or stability "
-                "compared to full precision (`precision='32-true'`)."
-            )
         self.precision = precision
 
         precision_to_type = {
@@ -92,6 +84,13 @@ class FSDPPrecision(Precision):
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
+
+        if "true" in self.precision and self.precision != "32-true":
+            rank_zero_warn(
+                f"FSDPPrecision `{self.precision}` enables mixed-precision execution. "
+                "Model parameters remain in full precision `torch.float32`, while forward and backward passes "
+                f"run with reduced precision `{self._desired_input_dtype}` for speed and memory efficiency."
+            )
 
         if self.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
