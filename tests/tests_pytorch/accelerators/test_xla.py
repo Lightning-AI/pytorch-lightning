@@ -300,6 +300,42 @@ def test_warning_if_tpus_not_used(tpu_available):
         Trainer(accelerator="cpu")
 
 
+@RunIf(tpu=True)
+def test_tpu_device_name():
+    from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
+
+    if _XLA_GREATER_EQUAL_2_1:
+        from torch_xla._internal import tpu
+    else:
+        from torch_xla.experimental import tpu
+    import torch_xla.core.xla_env_vars as xenv
+
+    assert XLAAccelerator.device_name() == tpu.get_tpu_env()[xenv.ACCELERATOR_TYPE]
+
+
+def test_tpu_device_name_exception(tpu_available, monkeypatch):
+    from requests.exceptions import HTTPError
+
+    monkeypatch.delattr(
+        XLAAccelerator,
+        "device_name",
+        raising=False,
+    )
+
+    mock.patch(
+        "torch_xla._internal.tpu",
+        "get_tpu_env",
+        side_effect=HTTPError("Could not fetch TPU device name"),
+    )
+    mock.patch(
+        "torch_xla.experimental.tpu",
+        "get_tpu_env",
+        side_effect=HTTPError("Could not fetch TPU device name"),
+    )
+
+    assert XLAAccelerator.device_name() == "True"
+
+
 @pytest.mark.parametrize(
     ("devices", "expected_device_ids"),
     [
