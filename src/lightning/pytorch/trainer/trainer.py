@@ -569,7 +569,8 @@ class Trainer:
                 2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
-        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
+        .. note::
+            For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
         model = _maybe_unwrap_optimized(model)
