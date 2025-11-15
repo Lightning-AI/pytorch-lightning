@@ -82,11 +82,9 @@ jobs:
       - name: Append Env. vars for Linux
         if: ${{ runner.os == 'Linux' }}
         run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
-
       - name: Append Env. vars for MacOS
         if: ${{ runner.os == 'macOS' }}
         run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
-
       - name: Append Env. vars for Windows
         if: ${{ runner.os == 'windows' }}
         run: |
@@ -130,6 +128,20 @@ jobs:
             --upgrade \
             --find-links="${TORCH_URL}"
           uv pip list
+
+      - name: Patch NumPy for old Torch versions
+        if: ${{ startsWith(matrix.config.pytorch-version, '2.1') || startsWith(matrix.config.pytorch-version, '2.2') || startsWith(matrix.config.pytorch-version, '2.3') }}
+        # Patch numpy to avoid "RuntimeError: Numpy is not available"
+        run: uv pip install -U "numpy<1.24"
+
+      - name: Dump handy wheels
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        continue-on-error: true
+        uses: ./.github/actions/pip-wheels
+        with:
+          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+          torch-url: ${{ env.TORCH_URL }}
+          cache-key: "pypi_wheels"
 
       - name: Adjust tests
         if: ${{ matrix.config.pkg-name != 'lightning' }}
