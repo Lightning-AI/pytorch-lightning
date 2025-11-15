@@ -23,7 +23,7 @@
 import logging
 import math
 import os
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -43,7 +43,7 @@ from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.loggers.utilities import _log_hyperparams
+from lightning.pytorch.loggers.utilities import _ListMap, _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
@@ -494,7 +494,7 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: list[Logger]
+        self._loggers: _ListMap[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
@@ -1680,7 +1680,7 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> list[Logger]:
+    def loggers(self) -> _ListMap[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1692,8 +1692,8 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[list[Logger]]) -> None:
-        self._loggers = loggers if loggers else []
+    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger], _ListMap[Logger]]]) -> None:
+        self._loggers = _ListMap(loggers)
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
