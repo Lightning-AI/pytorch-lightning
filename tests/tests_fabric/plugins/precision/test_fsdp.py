@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import warnings
+from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
@@ -22,26 +22,28 @@ from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from tests_fabric.helpers.runif import RunIf
 
 
+@contextmanager
+def null_ctx_manager(*args, **kwargs):
+    yield
+
+
 @pytest.mark.parametrize(
-    ("precision", "expected", "expect_warn"),
+    ("precision", "expected"),
     [
-        ("16-true", (torch.float16, torch.float16, torch.float16), True),
-        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16), True),
-        ("16-mixed", (torch.float16, torch.float16, torch.float16), True),
-        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16), True),
-        ("32-true", (torch.float32, torch.float32, torch.float32), False),
+        ("16-true", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+        ("16-mixed", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+        ("32-true", (torch.float32, torch.float32, torch.float32)),
     ],
 )
-def test_fsdp_precision_config(precision, expected, expect_warn):
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")  # capture all warnings
-        plugin = FSDPPrecision(precision=precision)
+def test_fsdp_precision_config(precision, expected):
+    plugin = FSDPPrecision(precision=precision)
 
-    # Check if the warning was (or wasn’t) logged
-    has_warn = any("FSDPPrecision" in str(warning.message) for warning in w)
-    assert has_warn == expect_warn, f"Unexpected warning state for {precision}"
+    warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx_manager
 
-    config = plugin.mixed_precision_config
+    with warning_ctx(UserWarning, match="enables mixed-precision execution"):
+        config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
     assert config.buffer_dtype == expected[1]

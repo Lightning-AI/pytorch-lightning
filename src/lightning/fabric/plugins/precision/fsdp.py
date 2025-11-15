@@ -85,7 +85,7 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        if "true" in self.precision and self.precision != "32-true":
+        if self.precision in ("16-true", "bf16-true"):
             rank_zero_warn(
                 f"FSDPPrecision `{self.precision}` enables mixed-precision execution. "
                 "Model parameters remain in full precision `torch.float32`, while forward and backward passes "
