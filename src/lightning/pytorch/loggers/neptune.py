@@ -271,7 +271,9 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:

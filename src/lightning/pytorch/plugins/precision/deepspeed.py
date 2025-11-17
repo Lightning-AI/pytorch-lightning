@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision import Precision
@@ -111,11 +111,11 @@ class DeepSpeedPrecision(Precision):
         )
 
     @property
-    def precision(self) -> str:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.deepspeed_precision_impl.precision
 
     @precision.setter
-    def precision(self, value: str) -> None:
+    def precision(self, value: _PRECISION_INPUT_STR) -> None:
         self.deepspeed_precision_impl.precision = value
 
     @property

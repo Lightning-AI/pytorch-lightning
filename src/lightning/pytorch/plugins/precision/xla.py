@@ -17,7 +17,7 @@ import torch
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
@@ -54,11 +54,11 @@ class XLAPrecision(Precision):
         return self.xla_impl.optimizer_step(optimizer, model, closure, **kwargs)
 
     @property
-    def precision(self) -> _PRECISION_INPUT:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.xla_impl.precision
 
     @precision.setter
-    def precision(self, precision: _PRECISION_INPUT) -> None:
+    def precision(self, precision: _PRECISION_INPUT_STR) -> None:
         self.xla_impl.precision = precision
 
     @property

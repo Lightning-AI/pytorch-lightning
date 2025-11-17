@@ -16,7 +16,7 @@ from typing import Any, Literal
 import torch
 from typing_extensions import override
 
-from lightning.fabric.plugins.precision.precision import Precision
+from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, Precision
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 from lightning.fabric.utilities.types import Optimizable
 
@@ -63,9 +63,9 @@ class XLAPrecision(Precision):
         self.xla_impl._desired_dtype = dtype
 
     @property
-    def precision(self) -> _PRECISION_INPUT:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.xla_impl.precision
 
     @precision.setter
-    def precision(self, precision: _PRECISION_INPUT) -> None:
+    def precision(self, precision: _PRECISION_INPUT_STR) -> None:
         self.xla_impl.precision = precision
