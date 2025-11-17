@@ -11,4 +11,4 @@ click ==8.1.8; python_version < "3.11"
 click ==8.3.0; python_version > "3.10"
 tensorboardX >=2.6, <2.7.0  # todo: relax it back to `>=2.2` after fixing tests
 huggingface-hub
-torch_xla >=1.13
+torch_xla >=1.13; platform_system != "Windows"
