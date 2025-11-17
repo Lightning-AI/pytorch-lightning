@@ -346,7 +346,7 @@ class DeepSpeedStrategy(DDPStrategy):
     @property
     @override
     def distributed_sampler_kwargs(self) -> dict[str, int]:
-        return self.deepspeed_strategy_impl.distributed_sampler_kwargs()
+        return self.deepspeed_strategy_impl.distributed_sampler_kwargs
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:

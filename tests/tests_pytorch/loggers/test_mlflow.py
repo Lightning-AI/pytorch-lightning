@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
+import pytorch_lightning_enterprise.loggers  # noqa: F401
 from pytorch_lightning_enterprise.utils.imports import _MLFLOW_AVAILABLE
 
 from lightning.pytorch import Trainer
