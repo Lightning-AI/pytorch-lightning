@@ -16,11 +16,10 @@ onnxruntime >=1.12.0, <1.24.0
 onnxscript >= 0.1.0, < 0.6.0
 psutil <7.1.2 # for `DeviceStatsMonitor`
 pandas >2.0, <2.4.0  # needed in benchmarks
-fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
+fastapi >=0.111.0  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
 tensorboard >=2.11, <2.21.0  # for `TensorBoardLogger`
 
 torch-tensorrt; platform_system == "Linux" and python_version >= "3.12"
 huggingface-hub
-pytorch-lightning-enterprise >=0.0.1dev7

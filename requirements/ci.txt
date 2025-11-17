@@ -7,3 +7,4 @@ wget
 pkginfo ==1.12.1.2
 packaging <25.1
 tomlkit
+fastapi >=0.111.0  # to prevent `schema` error in `pydantic`
