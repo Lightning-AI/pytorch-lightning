@@ -287,7 +287,7 @@ def _test_logger_initialization(tmp_path, logger_class):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
