@@ -73,6 +73,8 @@ def restore_env_variables():
         # set by torchdynamo
         "TRITON_CACHE_DIR",
         "TORCHINDUCTOR_CACHE_DIR",
+        "TQDM_MININTERVAL",  # set by our platform
+        "TQDM_POSITION",  # set by our platform
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

@@ -102,6 +102,8 @@ def restore_env_variables():
         "TPU_ML_PLATFORM_VERSION",
         "LD_LIBRARY_PATH",
         "ENABLE_RUNTIME_UPTIME_TELEMETRY",
+        "TQDM_MININTERVAL",  # set by our platform
+        "TQDM_POSITION",  # set by our platform
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
