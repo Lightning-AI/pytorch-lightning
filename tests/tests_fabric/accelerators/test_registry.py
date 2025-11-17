@@ -49,6 +49,10 @@ class TestAccelerator(Accelerator):
     def is_available():
         return True
 
+    @staticmethod
+    def name():
+        return "test_accelerator"
+
 
 def test_accelerator_registry_with_new_accelerator():
     accelerator_name = "custom_accelerator"
@@ -84,6 +88,10 @@ def test_accelerator_registry_with_new_accelerator():
         @staticmethod
         def is_available():
             return True
+
+        @staticmethod
+        def name():
+            return "custom_accelerator"
 
     ACCELERATOR_REGISTRY.register(
         accelerator_name, CustomAccelerator, description=accelerator_description, param1="abc", param2=123

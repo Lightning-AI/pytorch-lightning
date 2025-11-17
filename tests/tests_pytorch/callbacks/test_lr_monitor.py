@@ -428,8 +428,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmp_path):
 
         def forward(self, x):
             x = self.linear_a(x)
-            x = self.linear_b(x)
-            return x
+            return self.linear_b(x)
 
         def configure_optimizers(self):
             param_groups = [
@@ -603,8 +602,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmp_path):
 
         def forward(self, x):
             x = self.linear_a(x)
-            x = self.linear_b(x)
-            return x
+            return self.linear_b(x)
 
         def configure_optimizers(self):
             param_groups = [

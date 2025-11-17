@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 
 import pytest
 import torch
@@ -35,6 +36,8 @@ class SimpleModel(nn.Module):
 def test_memory_sharing_disabled(strategy):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
+    if strategy == "ddp_fork" and sys.platform == "darwin":
+        pytest.skip("ddp_fork is unsafe / unsupported on macOS due to fork + ObjC runtime issues")
     tensor = torch.rand(4)
     model = SimpleModel()
     assert not tensor.is_shared()
