@@ -204,11 +204,11 @@ class ModelCheckpoint(Checkpoint):
         ... )
 
         # retrieve the best checkpoint after training
-        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        trainer = Trainer(callbacks=[checkpoint_callback])
-        model = ...
-        trainer.fit(model)
-        checkpoint_callback.best_model_path
+        >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+        >>> trainer = Trainer(callbacks=[checkpoint_callback])
+        >>> model = ...  # doctest: +SKIP
+        >>> trainer.fit(model)  # doctest: +SKIP
+        >>> print(checkpoint_callback.best_model_path)  # doctest: +SKIP
 
     .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
         following arguments:
@@ -380,7 +380,11 @@ class ModelCheckpoint(Checkpoint):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
-            self._save_last_checkpoint(trainer, monitor_candidates)
+            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
+            if self._last_global_step_saved == trainer.global_step or (
+                self.save_last == "link" and self._last_checkpoint_saved
+            ):
+                self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -397,7 +401,11 @@ class ModelCheckpoint(Checkpoint):
 
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
-            self._save_last_checkpoint(trainer, monitor_candidates)
+            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
+            if self._last_global_step_saved == trainer.global_step or (
+                self.save_last == "link" and self._last_checkpoint_saved
+            ):
+                self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
