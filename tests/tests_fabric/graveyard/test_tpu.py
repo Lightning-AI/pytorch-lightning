@@ -18,6 +18,10 @@ def test_graveyard_single_tpu(import_path, name, tpu_available):
     with pytest.deprecated_call(match="is deprecated"):
         cls(device)
 
+    # required to prevent env-var leakage
+    if hasattr(cls, "teardown"):
+        cls.teardown()
+
 
 @pytest.mark.parametrize(
     ("import_path", "name"),
@@ -39,3 +43,7 @@ def test_graveyard_no_device(import_path, name, tpu_available):
     cls = getattr(module, name)
     with pytest.deprecated_call(match="is deprecated"):
         cls()
+
+    # required to prevent env-var leakage
+    if hasattr(cls, "teardown"):
+        cls.teardown()
