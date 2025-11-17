@@ -589,7 +589,7 @@ class Trainer:
             self,
             self._fit_impl,
             model,
-            compile_kwargs, 
+            compile_kwargs,
             train_dataloaders,
             val_dataloaders,
             datamodule,
