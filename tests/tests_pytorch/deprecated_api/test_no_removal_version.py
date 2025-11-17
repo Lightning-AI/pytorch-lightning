@@ -109,8 +109,9 @@ def test_precision_plugin():
 
 
 def test_transformer_engine_precision_plugin(monkeypatch):
-    monkeypatch.setattr(lightning.fabric.utilities.imports, "_TRANSFORMER_ENGINE_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_TRANSFORMER_ENGINE_AVAILABLE", True)
+    monkeypatch.setattr(
+        pytorch_lightning_enterprise.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", True
+    )
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
     monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
