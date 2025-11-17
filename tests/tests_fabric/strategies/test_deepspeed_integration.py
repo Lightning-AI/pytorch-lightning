@@ -164,7 +164,7 @@ def test_deepspeed_custom_precision_params():
         devices=1,
     )
     fabric.launch()
-    assert fabric._strategy._config_initialized
+    assert fabric._strategy.deepspeed_impl._config_initialized
     assert fabric._strategy.config["fp16"]["loss_scale"] == 10
     assert fabric._strategy.config["fp16"]["initial_scale_power"] == 11
     assert fabric._strategy.config["fp16"]["loss_scale_window"] == 12
