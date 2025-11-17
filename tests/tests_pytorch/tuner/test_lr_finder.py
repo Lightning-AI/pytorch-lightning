@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import glob
 import logging
 import math
 import os
@@ -24,6 +25,7 @@ from lightning_utilities.test.warning import no_warning_call
 
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.tuner.lr_finder import _LRFinder
@@ -651,8 +653,7 @@ def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
             x, y = batch
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = F.mse_loss(x_hat, y)
-            return loss
+            return F.mse_loss(x_hat, y)
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -750,3 +751,96 @@ def test_exponential_vs_linear_mode_gradient_difference(tmp_path):
                 assert not torch.allclose(gradients, gradients_no_spacing, rtol=0.1), (
                     "Gradients should differ significantly in exponential mode when using proper spacing"
                 )
+
+
+def test_lr_finder_checkpoint_cleanup_on_error(tmp_path):
+    """Test that temporary checkpoint files are cleaned up even when an error occurs during lr finding."""
+
+    class FailingModel(BoringModel):
+        def __init__(self, fail_on_step=2):
+            super().__init__()
+            self.fail_on_step = fail_on_step
+            self.current_step = 0
+            self.learning_rate = 1e-3
+
+        def training_step(self, batch, batch_idx):
+            self.current_step += 1
+            if self.current_step >= self.fail_on_step:
+                raise RuntimeError("Intentional failure for testing cleanup")
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = FailingModel()
+    lr_finder = LearningRateFinder(num_training_steps=5)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        callbacks=[lr_finder],
+    )
+
+    # Check no lr_find checkpoint files exist initially
+    lr_find_checkpoints = glob.glob(os.path.join(tmp_path, ".lr_find_*.ckpt"))
+    assert len(lr_find_checkpoints) == 0, "No lr_find checkpoint files should exist initially"
+
+    # Run lr finder and expect it to fail
+    with pytest.raises(RuntimeError, match="Intentional failure for testing cleanup"):
+        trainer.fit(model)
+
+    # Check that no lr_find checkpoint files are left behind
+    lr_find_checkpoints = glob.glob(os.path.join(tmp_path, ".lr_find_*.ckpt"))
+    assert len(lr_find_checkpoints) == 0, (
+        f"lr_find checkpoint files should be cleaned up, but found: {lr_find_checkpoints}"
+    )
+
+
+def test_lr_finder_with_backbone_finetuning_callback(tmp_path):
+    """Test that lr_find works correctly with BackboneFinetuning callback."""
+
+    class ModelWithBackbone(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # Create a simple backbone-head architecture
+            self.backbone = torch.nn.Sequential(torch.nn.Linear(32, 16), torch.nn.ReLU(), torch.nn.Linear(16, 8))
+            self.head = torch.nn.Linear(8, 2)
+            self.learning_rate = 1e-3
+
+        def forward(self, x):
+            backbone_features = self.backbone(x)
+            return self.head(backbone_features)
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate)
+
+    model = ModelWithBackbone()
+    backbone_finetuning = BackboneFinetuning(unfreeze_backbone_at_epoch=1)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        callbacks=[backbone_finetuning],
+    )
+
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model, num_training=5)
+
+    assert lr_finder is not None
+    assert hasattr(lr_finder, "results")
+    assert len(lr_finder.results) > 0
+    trainer.fit(model)
+
+    # Check that backbone was unfrozen at the correct epoch
+    for param in model.backbone.parameters():
+        assert param.requires_grad, "Backbone parameters should be unfrozen after epoch 1"

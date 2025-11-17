@@ -35,10 +35,12 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
+    _DEEPSPEED_GREATER_EQUAL_0_16,
     _format_precision_config,
     _validate_checkpoint_directory,
     _validate_device_index_selection,
 )
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -122,16 +124,16 @@ class DeepSpeedStrategy(DDPStrategy):
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
-        billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
+        billion parameter models. *For more information:* :ref:`deepspeed_advanced`.
 
         .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
-        `For more information: https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training`.
+        *For more information:* https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training.
 
         Arguments:
 
@@ -253,11 +255,26 @@ class DeepSpeedStrategy(DDPStrategy):
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
 
+            exclude_frozen_parameters: Exclude frozen parameters when saving checkpoints.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
                 "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
                 " Install it by running `pip install -U deepspeed`."
+            )
+
+        if _TORCH_GREATER_EQUAL_2_6 and not _DEEPSPEED_GREATER_EQUAL_0_16:
+            # Starting with PyTorch 2.6, `torch.load` defaults to `weights_only=True` when loading full checkpoints.
+            # DeepSpeed added support for this behavior in version 0.16.0.
+            import deepspeed
+
+            deepspeed_version = deepspeed.__version__
+
+            raise ImportError(
+                f"PyTorch >= 2.6 requires DeepSpeed >= 0.16.0. "
+                f"Detected DeepSpeed version: {deepspeed_version}. "
+                "Please upgrade by running `pip install -U 'deepspeed>=0.16.0'`."
             )
 
         super().__init__(
@@ -311,6 +328,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.exclude_frozen_parameters = exclude_frozen_parameters
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -648,15 +666,20 @@ class DeepSpeedStrategy(DDPStrategy):
         # dump states as a checkpoint dictionary object
         _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
+        self.deepspeed_engine.save_checkpoint(
+            filepath,
+            client_state=checkpoint,
+            tag="checkpoint",
+            exclude_frozen_parameters=self.exclude_frozen_parameters,
+        )
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
-            return super().load_checkpoint(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path, weights_only)
 
         _validate_checkpoint_directory(checkpoint_path)
 

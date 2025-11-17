@@ -137,6 +137,8 @@ class ModelCheckpoint(Checkpoint):
             If ``True``, checkpoints are saved at the end of every training epoch.
             If ``False``, checkpoints are saved at the end of validation.
             If ``None`` (default), checkpointing behavior is determined based on training configuration.
+            If ``val_check_interval`` is a str, dict, or `timedelta` (time-based), checkpointing is performed after
+            validation.
             If ``check_val_every_n_epoch != 1``, checkpointing will not be performed at the end of
             every training epoch. If there are no validation batches of data, checkpointing will occur at the
             end of the training epoch. If there is a non-default number of validation runs per training epoch
@@ -202,11 +204,11 @@ class ModelCheckpoint(Checkpoint):
         ... )
 
         # retrieve the best checkpoint after training
-        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        trainer = Trainer(callbacks=[checkpoint_callback])
-        model = ...
-        trainer.fit(model)
-        checkpoint_callback.best_model_path
+        >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+        >>> trainer = Trainer(callbacks=[checkpoint_callback])
+        >>> model = ...  # doctest: +SKIP
+        >>> trainer.fit(model)  # doctest: +SKIP
+        >>> print(checkpoint_callback.best_model_path)  # doctest: +SKIP
 
     .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
         following arguments:
@@ -260,6 +262,9 @@ class ModelCheckpoint(Checkpoint):
         self.best_model_path = ""
         self.last_model_path = ""
         self._last_checkpoint_saved = ""
+        # When using step/time-based checkpointing with a validation-only monitored metric,
+        # defer the save until validation has produced the metric
+        self._defer_save_until_validation: bool = False
 
         self.kth_value: Tensor
         self.dirpath: Optional[_PATH]
@@ -306,14 +311,17 @@ class ModelCheckpoint(Checkpoint):
         batch_idx: int,
     ) -> None:
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
-        if self._should_skip_saving_checkpoint(trainer):
-            return
+        # Do not return early here because we may need to set deferral flags even
+        # if a save already happened at this global step. We'll enforce the skip
+        # just before actually saving below.
+        skip_due_to_state = self._should_skip_saving_checkpoint(trainer)
         skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
         train_time_interval = self._train_time_interval
         skip_time = True
         now = time.monotonic()
-        if train_time_interval:
+        # Important: allow zero timedelta as a valid interval
+        if train_time_interval is not None:
             prev_time_check = self._last_time_checked
             skip_time = prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds()
             # in case we have time differences across ranks
@@ -326,6 +334,42 @@ class ModelCheckpoint(Checkpoint):
             self._last_time_checked = now
 
         monitor_candidates = self._monitor_candidates(trainer)
+        # If monitoring a metric that is not yet available (e.g., validation-only),
+        # defer saving until validation end so the metric is present.
+        if self.monitor is not None and self.monitor not in monitor_candidates:
+            # Defer both top-k and last to avoid blocking with `_last_global_step_saved`
+            self._defer_save_until_validation = True
+            return
+
+        # Even if the monitored key exists, it could be stale from a previous validation.
+        # If validation is scheduled to run right after this batch (e.g., last batch of epoch)
+        # and we are not saving at train epoch end, defer to `on_validation_end` to use fresh metrics.
+        if (
+            self.monitor is not None
+            and not self._should_save_on_train_epoch_end(trainer)
+            and getattr(trainer.fit_loop.epoch_loop.batch_progress, "is_last_batch", False)
+        ):
+            # Only defer if a validation loop is expected to run after this batch.
+            will_run_val = False
+            if getattr(trainer, "enable_validation", False):
+                num_val_batches = (
+                    sum(trainer.num_val_batches)
+                    if isinstance(trainer.num_val_batches, list)
+                    else trainer.num_val_batches
+                )
+                if num_val_batches and num_val_batches > 0:
+                    cve = trainer.check_val_every_n_epoch
+                    if cve is None or ((trainer.current_epoch + 1) % cve == 0):
+                        will_run_val = True
+
+            if will_run_val:
+                self._defer_save_until_validation = True
+                return
+
+        # Only proceed to save if not skipping due to trainer/callback state
+        if skip_due_to_state:
+            return
+
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
 
@@ -336,16 +380,32 @@ class ModelCheckpoint(Checkpoint):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
-            self._save_last_checkpoint(trainer, monitor_candidates)
+            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
+            if self._last_global_step_saved == trainer.global_step or (
+                self.save_last == "link" and self._last_checkpoint_saved
+            ):
+                self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
         if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
+            # If a step/time-triggered save was deferred due to a missing monitored metric,
+            # perform the save now that validation metrics are available.
+            if self._defer_save_until_validation:
+                self._save_topk_checkpoint(trainer, monitor_candidates)
+                self._save_last_checkpoint(trainer, monitor_candidates)
+                self._defer_save_until_validation = False
+                return
+
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
-            self._save_last_checkpoint(trainer, monitor_candidates)
+            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
+            if self._last_global_step_saved == trainer.global_step or (
+                self.save_last == "link" and self._last_checkpoint_saved
+            ):
+                self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
@@ -432,7 +492,7 @@ class ModelCheckpoint(Checkpoint):
 
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
-        if trainer.is_global_zero:
+        if trainer.is_global_zero and os.path.abspath(filepath) != os.path.abspath(linkpath):
             if os.path.islink(linkpath) or os.path.isfile(linkpath):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
@@ -466,6 +526,10 @@ class ModelCheckpoint(Checkpoint):
     def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
         if self._save_on_train_epoch_end is not None:
             return self._save_on_train_epoch_end
+
+        # time-based validation: always defer saving to validation end
+        if getattr(trainer, "_val_check_time_interval", None) is not None:
+            return False
 
         # if `check_val_every_n_epoch != 1`, we can't say when the validation dataloader will be loaded
         # so let's not enforce saving at every training epoch end

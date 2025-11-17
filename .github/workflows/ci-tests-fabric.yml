@@ -38,123 +38,101 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # only run PyTorch latest
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
-          # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
-          # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-14", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "windows-2022", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
-          # "fabric" installs the standalone package
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
-          # adding recently cut Torch 2.7 - FUTURE
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
+        os: [macOS-14, ubuntu-22.04, windows-2022]
+        config:
+          # Test unified "lightning" package with PyTorch 2.1-2.5
+          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
+          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+
+          # Test "fabric" package with PyTorch 2.6-2.9
+          - { pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.9" }
+
+          # Test minimum supported versions (oldest)
+          - { pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
-      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-      PYPI_CACHE_DIR: "_pip-wheels"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
+      UV_TORCH_BACKEND: "cpu"
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
-      - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+      - name: Basic setup
+        run: uv pip install -q -r .actions/requirements.txt
 
-      - name: Set min. dependencies
-        if: ${{ matrix.requires == 'oldest' }}
-        run: |
-          cd requirements/fabric
-          pip install -U "lightning-utilities[cli]"
-          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
-          pip install "cython<3.0" wheel
-          pip install "pyyaml==5.4" --no-build-isolation
+      - name: Append Env. vars for Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
 
-      - name: Adjust PyTorch versions in requirements files
-        if: ${{ matrix.requires != 'oldest' }}
-        run: |
-          pip install -q -r requirements/ci.txt
-          python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
-          for fpath in `ls requirements/**/*.txt`; do \
-            python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
-          done
-
-      - name: pip wheels cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PYPI_CACHE_DIR }}
-          key: pypi_wheels
-      - run: |
-          mkdir -p $PYPI_CACHE_DIR
-          ls -lh $PYPI_CACHE_DIR
-
-      - name: Expand Env. variables
-        run: |
-          # Switch PyTorch URL between stable and test/future
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
-          # Switch coverage scope
-          python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
-          # if you install mono-package set dependency only for this subpackage
-          python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'fabric-'))" >> $GITHUB_ENV
       - name: Append Env. vars for MacOS
         if: ${{ runner.os == 'macOS' }}
-        run: |
-          # trying to avoid "gloo" issue with SIGABRT
-          echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
+        run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
+
       - name: Append Env. vars for Windows
         if: ${{ runner.os == 'windows' }}
         run: |
           # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
           echo "USE_LIBUV=0" >> $GITHUB_ENV
 
+      - name: Set min. dependencies
+        if: ${{ matrix.config.requires == 'oldest' }}
+        run: |
+          uv pip install -U "lightning-utilities[cli]"
+          python -m lightning_utilities.cli requirements set-oldest \
+            --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
+          uv pip install "cython<3.0" wheel
+          uv pip install "pyyaml==5.4" --no-build-isolation
+          # This script removes any line containing "error::FutureWarning" from pyproject.toml
+          uv pip install -r requirements/ci.txt
+          python .actions/assistant.py prune_pytest_as_errors
+
+      - name: Adjust PyTorch versions in requirements files
+        if: ${{ matrix.config.requires != 'oldest' }}
+        run: |
+          uv pip install -q -r requirements/ci.txt
+          python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
+          for fpath in `ls requirements/**/*.txt`; do \
+            python ./adjust-torch-versions.py $fpath ${{ matrix.config.pytorch-version }}; \
+          done
+
+      - name: Expand Env. variables
+        run: |
+          # Switch PyTorch URL between stable and test/future
+          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.config.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          # Switch coverage scope
+          python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.config.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
+          # if you install mono-package set dependency only for this subpackage
+          python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.config.pkg-name}}' != 'lightning' else 'fabric-'))" >> $GITHUB_ENV
+
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
-            -U --upgrade-strategy=eager --prefer-binary \
-            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
-          pip list
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
+          uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
+            --upgrade \
+            --find-links="${TORCH_URL}"
+          uv pip list
 
       - name: Adjust tests
-        if: ${{ matrix.pkg-name != 'lightning' }}
+        if: ${{ matrix.config.pkg-name != 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning.fabric" --target_import="lightning_fabric"
@@ -187,9 +165,12 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/tests_fabric/coverage.xml
-          flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest,python${{ matrix.python-version }}
+          flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest,python${{ matrix.config.python-version }}
           name: CPU-coverage
           fail_ci_if_error: false
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   fabric-cpu-guardian:
     runs-on: ubuntu-latest

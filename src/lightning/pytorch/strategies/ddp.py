@@ -36,7 +36,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
@@ -103,6 +103,7 @@ class DDPStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
+        self._pl_static_graph_delay_done = False
 
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
@@ -200,7 +201,10 @@ class DDPStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -315,6 +319,27 @@ class DDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
+
+    @override
+    def post_backward(self, closure_loss: Tensor) -> None:
+        # Only for first static-graph iteration with manual optimization
+        model = self.model
+        lm = self.lightning_module
+        if not isinstance(model, DistributedDataParallel):
+            return
+        if lm is None or lm.automatic_optimization:
+            return
+        if not getattr(model, "static_graph", False):
+            return
+        if self._pl_static_graph_delay_done:
+            return
+
+        # Call DDP's own first-iter static-graph flush.
+        # This is what actually launches the bucket all-reduces.
+        reducer = model.reducer
+        reducer._delay_all_reduce()
+
+        self._pl_static_graph_delay_done = True
 
     @override
     def model_to_device(self) -> None:

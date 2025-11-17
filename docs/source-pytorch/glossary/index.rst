@@ -20,7 +20,7 @@
    FSDP <../advanced/model_parallel/fsdp>
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
-   HPU <../integrations/hpu/index>
+   Hooks <../common/hooks>
    Inference <../deploy/production_intermediate>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
@@ -180,10 +180,10 @@ Glossary
    :height: 100
 
 .. displayitem::
-   :header: HPU
-   :description: Habana Gaudi AI Processor Unit for faster training
+   :header: Hooks
+   :description: How to customize the training, validation, and testing logic
    :col_css: col-md-12
-   :button_link: ../integrations/hpu/index.html
+   :button_link: ../common/hooks.html
    :height: 100
 
 .. displayitem::

@@ -86,12 +86,12 @@ def test_simple_profiler_overhead(simple_profiler):
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording an action*"):
         simple_profiler.stop(action)
 
     simple_profiler.start(action)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempted to start test*"):
         simple_profiler.start(action)
 
     simple_profiler.stop(action)
@@ -325,7 +325,7 @@ def test_advanced_profiler_dump_states(tmp_path):
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording*"):
         advanced_profiler.stop(action)
 
     advanced_profiler.start(action)
