@@ -304,7 +304,7 @@ def test_mlflow_logger_experiment_calls_with_synchronous(mlflow_mock, tmp_path, 
 
 
 @mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
-@mock.patch("pytorch_lightning_enterprise.utils.imports._MLFLOW_SYNCHRONOUS_AVAILABLE", False)
+@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", False)
 def test_mlflow_logger_no_synchronous_support(mlflow_mock, tmp_path):
     """Test that the logger does not support synchronous flag."""
     time = mlflow_mock.entities.time

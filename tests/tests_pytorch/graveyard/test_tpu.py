@@ -1,3 +1,4 @@
+import os
 from importlib import import_module
 
 import pytest
@@ -39,3 +40,9 @@ def test_graveyard_no_device(import_path, name):
     cls = getattr(module, name)
     with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
         cls()
+
+    # teardown
+    # ideally, we should call the plugin's teardown method, but since the class
+    # instantiation itself fails, we directly manipulate the env vars here
+    os.environ.pop("XLA_USE_BF16", None)
+    os.environ.pop("XLA_USE_F16", None)

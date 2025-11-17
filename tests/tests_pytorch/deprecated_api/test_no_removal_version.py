@@ -2,7 +2,7 @@ import sys
 from unittest.mock import Mock
 
 import pytest
-import pytorch_lightning_enterprise.utils.imports
+import pytorch_lightning_enterprise.plugins.precision.bitsandbytes
 import torch.nn
 
 import lightning.fabric
@@ -63,7 +63,7 @@ def test_fsdp_precision_plugin():
 
 def test_bitsandbytes_precision_plugin(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning_enterprise.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
     bitsandbytes_mock = Mock()
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
 
