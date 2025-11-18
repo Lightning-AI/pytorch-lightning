@@ -49,6 +49,8 @@ run: |
         libopenmpi-dev \
         openmpi-bin \
         ninja-build \
+        libnccl2 \
+        libnccl-dev
 
   echo "Install Python ${python_version} and UV"
   apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev

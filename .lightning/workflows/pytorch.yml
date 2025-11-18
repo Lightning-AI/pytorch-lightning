@@ -48,6 +48,8 @@ run: |
         libopenmpi-dev \
         openmpi-bin \
         ninja-build \
+        libnccl2 \
+        libnccl-dev \
         unzip
 
   echo "Install Python ${python_version} and UV"
