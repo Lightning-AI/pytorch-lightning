@@ -519,7 +519,6 @@ def test_tqdm_progress_bar_print_no_train(tqdm_write, tmp_path):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
-        devices=1,
     )
 
     trainer.validate(model)
