@@ -48,8 +48,6 @@ run: |
         libopenmpi-dev \
         openmpi-bin \
         ninja-build \
-        libnccl2=2.24.3-1+cuda12.6 \
-        libnccl-dev=2.24.3-1+cuda12.6 \
         unzip
 
   echo "Install Python ${python_version} and UV"
