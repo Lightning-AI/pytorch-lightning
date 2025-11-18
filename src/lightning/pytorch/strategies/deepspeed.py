@@ -445,3 +445,7 @@ class DeepSpeedStrategy(DDPStrategy):
     @property
     def config(self) -> dict[str, Any]:
         return self.deepspeed_strategy_impl.config
+
+    @property
+    def load_full_weights(self) -> bool:
+        return self.deepspeed_strategy_impl.load_full_weights

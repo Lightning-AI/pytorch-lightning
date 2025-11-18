@@ -476,3 +476,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     @config.setter
     def config(self, config: dict[str, Any]) -> None:
         self.deepspeed_impl.config = config
+
+    @property
+    def load_full_weights(self) -> bool:
+        return self.deepspeed_impl.load_full_weights

@@ -33,7 +33,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.plugins import DeepSpeedPrecision
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -1079,7 +1078,7 @@ def test_deepspeed_skip_backward_raises(tmp_path):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="returning `None` .* is not supported"):
+    with pytest.raises(ValueError, match="returning `None` .* is not supported"):
         trainer.fit(model)
 
 
@@ -1158,7 +1157,7 @@ def test_deepspeed_gradient_clip_by_value(tmp_path):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="does not support clipping gradients by value"):
+    with pytest.raises(ValueError, match="does not support clipping gradients by value"):
         trainer.fit(model)
 
 
