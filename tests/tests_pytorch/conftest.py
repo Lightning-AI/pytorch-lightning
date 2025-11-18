@@ -265,11 +265,6 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
 
-@pytest.fixture
-def xla_not_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    mock_xla_available(monkeypatch, False)
-
-
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
