@@ -48,7 +48,7 @@ run: |
         libopenmpi-dev \
         openmpi-bin \
         ninja-build \
-        libnccl2 \
+        libnccl2=2.28.7 \
         libnccl-dev=2.28.7 \
         unzip
 
