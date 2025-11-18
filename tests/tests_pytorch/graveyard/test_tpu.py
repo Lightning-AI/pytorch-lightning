@@ -35,7 +35,7 @@ def test_graveyard_single_tpu(import_path, name):
         ("lightning.pytorch.plugins.precision.xlabf16", "XLABf16PrecisionPlugin"),
     ],
 )
-def test_graveyard_no_device(import_path, name):
+def test_graveyard_no_device(import_path, name, xla_not_available):
     module = import_module(import_path)
     cls = getattr(module, name)
     with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
