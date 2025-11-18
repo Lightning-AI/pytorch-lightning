@@ -21,6 +21,5 @@ uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in
 
 tensorboard >=2.11, <2.21.0  # for `TensorBoardLogger`
 
-# TODO: resolve GPU test failures for TensorRT due to defaulting to cu13 installations
-torch-tensorrt<2.9.0; platform_system == "Linux" and python_version >= "3.12"
+torch-tensorrt; platform_system == "Linux" and python_version >= "3.12"
 huggingface-hub
