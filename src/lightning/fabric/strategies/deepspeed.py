@@ -294,7 +294,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     def model(self) -> "DeepSpeedEngine":
-        return self.deepspeed_impl.model
+        return self.deepspeed_impl._deepspeed_engine
 
     @override
     def setup_module_and_optimizers(
