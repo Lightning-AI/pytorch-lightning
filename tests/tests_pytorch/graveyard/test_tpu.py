@@ -5,6 +5,21 @@ import pytest
 import torch
 
 
+# mimics `lightning_utilites.RequirementCache`
+class MockXLAAvailable:
+    def __init__(self, available: bool, pkg_name: str = "torch_xla"):
+        self.available = available
+        self.pkg_name = pkg_name
+
+    def __bool__(self):
+        return self.available
+
+    def __str__(self):
+        if self.available:
+            return f"Requirement '{self.pkg_name}' met"
+        return f"Module not found: {self.pkg_name!r}. HINT: Try running `pip install -U {self.pkg_name}`"
+
+
 @pytest.mark.parametrize(
     ("import_path", "name"),
     [
@@ -35,7 +50,10 @@ def test_graveyard_single_tpu(import_path, name):
         ("lightning.pytorch.plugins.precision.xlabf16", "XLABf16PrecisionPlugin"),
     ],
 )
-def test_graveyard_no_device(import_path, name):
+def test_graveyard_no_device(import_path, name, monkeypatch):
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_AVAILABLE", MockXLAAvailable(False))
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.xla._XLA_AVAILABLE", MockXLAAvailable(False))
+
     module = import_module(import_path)
     cls = getattr(module, name)
     with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
