@@ -45,6 +45,7 @@ run: |
         build-essential \
         pkg-config \
         cmake \
+        git \
         ca-certificates \
         libopenmpi-dev \
         openmpi-bin \
