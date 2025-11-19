@@ -20,7 +20,6 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-import pytorch_lightning_enterprise.utils.imports
 import torch
 import torch.distributed
 from lightning_utilities.test.warning import no_warning_call
@@ -891,7 +890,7 @@ def test_precision_selection_model_parallel(_, precision, raises):
 
 
 def test_bitsandbytes_precision_cuda_required(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.bitsandbytes", "_BITSANDBYTES_AVAILABLE", True)
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _Connector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
