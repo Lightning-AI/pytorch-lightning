@@ -323,6 +323,8 @@ class _TrainingEpochLoop(loops._Loop):
         trainer._logger_connector.on_batch_start(batch)
 
         batch_output: _OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE | None = None  # for mypy
+        should_skip_rest_of_epoch = False
+
         if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
@@ -330,23 +332,24 @@ class _TrainingEpochLoop(loops._Loop):
             call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
             response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
-            if response == -1:
-                self.batch_progress.increment_processed()
-                raise StopIteration
+            should_skip_rest_of_epoch = response == -1
+            # Signal this is the last batch for the current epoch
+            if should_skip_rest_of_epoch:
+                self.batch_progress.increment_by(0, is_last_batch=True)
+            else:
+                self.batch_progress.increment_started()
 
-            self.batch_progress.increment_started()
-
-            kwargs = (
-                self._build_kwargs(OrderedDict(), batch, batch_idx)
-                if not using_dataloader_iter
-                else OrderedDict(any=dataloader_iter)
-            )
-            with trainer.profiler.profile("run_training_batch"):
-                if trainer.lightning_module.automatic_optimization:
-                    # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
-                else:
-                    batch_output = self.manual_optimization.run(kwargs)
+                kwargs = (
+                    self._build_kwargs(OrderedDict(), batch, batch_idx)
+                    if not using_dataloader_iter
+                    else OrderedDict(any=dataloader_iter)
+                )
+                with trainer.profiler.profile("run_training_batch"):
+                    if trainer.lightning_module.automatic_optimization:
+                        # in automatic optimization, there can only be one optimizer
+                        batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
+                    else:
+                        batch_output = self.manual_optimization.run(kwargs)
 
         self.batch_progress.increment_processed()
 
@@ -355,6 +358,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
+
+        if should_skip_rest_of_epoch:
+            # Only raise StopIteration now so that the training epoch loop can finish
+            raise StopIteration
 
         if using_dataloader_iter:
             # update the hook kwargs now that the step method might have consumed the iterator
