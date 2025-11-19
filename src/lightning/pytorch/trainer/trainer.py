@@ -563,14 +563,15 @@ class Trainer:
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
+
+        :rtype: :py:obj:`None`
+
         Raises:
             TypeError:
                 If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
                 2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
-
-        .. note::
-            For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
         model = _maybe_unwrap_optimized(model)
