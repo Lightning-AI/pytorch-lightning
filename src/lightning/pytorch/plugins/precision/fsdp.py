@@ -97,9 +97,8 @@ class FSDPPrecision(Precision):
 
         if self.precision in ("16-true", "bf16-true"):
             rank_zero_warn(
-                f"FSDPPrecision `{self.precision}` enables mixed-precision execution. "
-                "Model parameters remain in full precision `torch.float32`, while forward and backward passes "
-                f"run with reduced precision `{self._desired_input_dtype}` for speed and memory efficiency."
+                f"FSDP with `{self.precision}` enables computation in lower precision. "
+                "FSDP will always retain a full-precision copy of the model parameters for sharding."
             )
 
         if self.precision in ("16-true", "16-mixed"):
