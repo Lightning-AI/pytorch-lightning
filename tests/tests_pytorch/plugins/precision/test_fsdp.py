@@ -44,7 +44,7 @@ def test_fsdp_precision_config(precision, expected):
 
     warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx
 
-    with warning_ctx(UserWarning, match="enables mixed-precision execution"):
+    with warning_ctx(UserWarning, match="enables computation in lower precision"):
         config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
