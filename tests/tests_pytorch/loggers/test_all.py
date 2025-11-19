@@ -107,7 +107,6 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
-        # TODO: Verify with @justusschock if this is accepted approach to test experiment creation
         logger.logger_impl._comet_config.offline_directory = None
         logger.logger_impl._project_name = "bar"
         logger.experiment.get_key.return_value = "SOME_KEY"
@@ -359,7 +358,6 @@ def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     logger = _instantiate_logger(MLFlowLogger, save_dir=tmp_path)
 
     _ = logger.experiment
-    # TODO: Verify with @justusschock if this is accepted approach to test experiment creation
     logger.logger_impl._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
     # on MLFLowLogger `name` refers to the experiment id
     # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
