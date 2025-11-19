@@ -74,6 +74,7 @@ class MPIEnvironment(ClusterEnvironment):
             return False
 
         try:
+            # mpi4py may be installed without MPI being present
             from mpi4py import MPI
         except ImportError:
             return False
