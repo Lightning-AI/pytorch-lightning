@@ -368,12 +368,12 @@ class EMAWeightAveraging(WeightAveraging):
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, str, int]] = None,
+        device: torch.device | str | int | None = None,
         use_buffers: bool = True,
         decay: float = 0.999,
         update_every_n_steps: int = 1,
-        update_starting_at_step: Optional[int] = None,
-        update_starting_at_epoch: Optional[int] = None,
+        update_starting_at_step: int | None = None,
+        update_starting_at_epoch: int | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -387,7 +387,7 @@ class EMAWeightAveraging(WeightAveraging):
         self.update_starting_at_step = update_starting_at_step
         self.update_starting_at_epoch = update_starting_at_epoch
 
-    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+    def should_update(self, step_idx: int | None = None, epoch_idx: int | None = None) -> bool:
         """Decide when to update the model weights.
 
         Args:
