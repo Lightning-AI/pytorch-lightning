@@ -259,6 +259,11 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_AVAILABLE", value)
     monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", value)
     monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.single._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.fsdp._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.launcher._XLA_AVAILABLE", value)
 
 
 @pytest.fixture
