@@ -11,11 +11,11 @@ import torch
         ("lightning.fabric.strategies.single_tpu", "SingleTPUStrategy"),
     ],
 )
-def test_graveyard_single_tpu(import_path, name):
+def test_graveyard_single_tpu(import_path, name, tpu_available):
     module = import_module(import_path)
     cls = getattr(module, name)
     device = torch.device("cpu")
-    with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
+    with pytest.deprecated_call(match="is deprecated"):
         cls(device)
 
 
@@ -34,8 +34,12 @@ def test_graveyard_single_tpu(import_path, name):
         ("lightning.fabric.plugins.precision.xlabf16", "XLABf16Precision"),
     ],
 )
-def test_graveyard_no_device(import_path, name):
+def test_graveyard_no_device(import_path, name, tpu_available):
     module = import_module(import_path)
     cls = getattr(module, name)
-    with pytest.deprecated_call(match="is deprecated"), pytest.raises(ModuleNotFoundError, match="torch_xla"):
-        cls()
+    with pytest.deprecated_call(match="is deprecated"):
+        _instance = cls()
+
+    # required to prevent env-var leakage
+    if hasattr(cls, "teardown"):
+        cls.teardown(_instance)
