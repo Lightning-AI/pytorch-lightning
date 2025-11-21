@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+-
+
+
 ---
 
 ## [2.6.0] - 2025-11-21
