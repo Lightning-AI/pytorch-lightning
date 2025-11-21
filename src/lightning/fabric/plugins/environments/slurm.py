@@ -56,7 +56,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return self.slurm_impl.auto_requeue
 
     @property
-    def requeue_signal(self) -> Optional[signal.Signals]:
+    def requeue_signal(self) -> signal.Signals | None:
         return self.slurm_impl.requeue_signal
 
     @property
@@ -93,7 +93,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return os.environ.get("SLURM_JOB_NAME")
 
     @staticmethod
-    def job_id() -> Optional[int]:
+    def job_id() -> int | None:
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.plugins.environments.slurm import (
             SLURMEnvironment as EnterpriseSLURMEnvironment,

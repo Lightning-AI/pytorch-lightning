@@ -242,7 +242,7 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: int | None = None) -> None:
         return self.logger_impl.log_metrics(metrics, step)
 
     @override
@@ -287,5 +287,5 @@ class CometLogger(Logger):
         return self.logger_impl.version
 
     @override
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         return self.logger_impl.log_graph(model, input_array)
