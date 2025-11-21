@@ -1750,6 +1750,7 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
     def current_memory():
         # before measuring the memory force release any leftover allocations, including CUDA tensors
         gc.collect()
+        torch.cuda.empty_cache()
         return torch.cuda.memory_allocated(0)
 
     model = TestModel()
