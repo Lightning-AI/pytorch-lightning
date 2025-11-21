@@ -81,6 +81,8 @@ class TestFSDPModel(BoringModel):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "32-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Unknown precision {self.trainer.precision}")
 
@@ -215,7 +217,7 @@ def test_strategy_sync_batchnorm(tmp_path):
         accelerator="gpu",
         devices=2,
         strategy="fsdp",
-        precision="16-mixed",
+        precision="32-true",
         max_epochs=1,
         sync_batchnorm=True,
     )
@@ -255,7 +257,7 @@ def test_modules_without_parameters(tmp_path):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
+@pytest.mark.parametrize("precision", ["32-true", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
 def test_strategy_checkpoint(state_dict_type, precision, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
@@ -347,7 +349,7 @@ def test_checkpoint_multi_gpus(tmp_path, model, strategy, strategy_cfg):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        precision="16-mixed",
+        precision="32-true",
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,
