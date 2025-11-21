@@ -11,19 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import queue
-import time
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
-import torch.multiprocessing as mp
-from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.launcher import _Launcher
-from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot
-from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 
 if TYPE_CHECKING:
     from lightning.fabric.strategies import XLAFSDPStrategy, XLAStrategy
@@ -47,15 +40,16 @@ class _XLALauncher(_Launcher):
     """
 
     def __init__(self, strategy: Union["XLAStrategy", "XLAFSDPStrategy"]) -> None:
-        if not _XLA_AVAILABLE:
-            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        self._strategy = strategy
-        self._start_method = "fork"
+        super().__init__()
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.strategies.xla.launcher import XLALauncherFabric as EnterpriseXLALauncher
+
+        self.xla_impl = EnterpriseXLALauncher(strategy=strategy)
 
     @property
     @override
     def is_interactive_compatible(self) -> bool:
-        return True
+        return self.xla_impl.is_interactive_compatible
 
     @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -70,61 +64,12 @@ class _XLALauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
-        return_queue: queue.Queue | SimpleQueue
-        return_queue = mp.Manager().Queue()
+        return self.xla_impl.launch(function=function, *args, **kwargs)
 
-        import torch_xla.distributed.xla_multiprocessing as xmp
+    @property
+    def _start_method(self) -> str:
+        return self.xla_impl._start_method
 
-        spawn_kwargs = {}
-        nprocs = self._strategy.num_processes
-        if nprocs == 1:
-            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
-            # otherwise it will use all devices
-            spawn_kwargs["nprocs"] = nprocs
-
-        xmp.spawn(
-            self._wrapping_function,
-            args=(function, args, kwargs, return_queue),
-            start_method=self._start_method,
-            **spawn_kwargs,
-        )
-        return return_queue.get()
-
-    def _wrapping_function(
-        self,
-        # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
-        # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
-        process_idx: int,
-        function: Callable,
-        args: Any,
-        kwargs: Any,
-        return_queue: queue.Queue | SimpleQueue,
-        global_states: _GlobalStateSnapshot | None = None,
-    ) -> None:
-        import torch_xla.core.xla_model as xm
-
-        if len(xm.get_xla_supported_devices()) > 1:
-            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
-            # so when there's more than one (multithreading), objects need to be deep-copied
-            import copy
-
-            function, args, kwargs = copy.deepcopy((function, args, kwargs))
-
-        results = function(*args, **kwargs)
-
-        if self._strategy.local_rank == 0:
-            return_queue.put(move_data_to_device(results, "cpu"))
-
-        _rank_teardown(self._strategy.local_rank)
-
-
-def _rank_teardown(rank: int) -> None:
-    import torch_xla.core.xla_model as xm
-
-    # Make all processes wait for each other before joining
-    # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-    xm.rendezvous("end-process")
-    # Ensure that the rank 0 process is the one exiting last
-    # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-    if rank == 0:
-        time.sleep(1)
+    @_start_method.setter
+    def _start_method(self, start_method: str) -> None:
+        self.xla_impl._start_method = start_method
