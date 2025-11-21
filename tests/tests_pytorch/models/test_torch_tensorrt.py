@@ -136,7 +136,17 @@ def test_tensorrt_save_ir_type(ir, export_type):
 )
 @pytest.mark.parametrize(
     "ir",
-    ["default", "dynamo", "ts"],
+    [
+        "default",
+        "dynamo",
+        pytest.param(
+            "ts",
+            marks=pytest.mark.skipif(
+                _TORCH_EQUAL_2_9,
+                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9",
+            ),
+        ),
+    ],
 )
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_export_reload(output_format, ir, tmp_path):
