@@ -1,7 +1,7 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
-torch >=2.1.0, <2.9.0
+torch >=2.1.0, <2.10.0
 tqdm >=4.57.0, <4.68.0
 PyYAML >5.4, <6.1.0
 fsspec[http] >=2022.5.0, <2025.11.0
