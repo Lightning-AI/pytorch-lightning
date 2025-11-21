@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch.nn import Module
@@ -331,7 +332,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self.deepspeed_impl.setup_optimizer(optimizer=optimizer)
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         return self.deepspeed_impl.module_init_context(empty_init=empty_init)
 
     @override
@@ -415,9 +416,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @override
-    def clip_gradients_value(
-        self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: float | int) -> None:
         return self.deepspeed_impl.clip_gradients_value(module=module, optimizer=optimizer, clip_val=clip_val)
 
     @classmethod

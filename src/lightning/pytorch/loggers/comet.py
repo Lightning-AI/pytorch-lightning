@@ -237,12 +237,12 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: Optional[int] = None) -> None:
         return self.logger_impl.log_metrics(metrics, step)
 
     @override

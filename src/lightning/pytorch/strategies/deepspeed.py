@@ -17,7 +17,7 @@ from collections import OrderedDict
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch.nn import Module
@@ -333,7 +333,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @contextmanager
     @override
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def tensor_init_context(self, empty_init: bool | None = None) -> Generator[None, None, None]:
         with self.deepspeed_strategy_impl.tensor_init_context(empty_init=empty_init):
             yield
 
@@ -391,7 +391,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: bool | None = None) -> dict[str, Any]:
         return self.deepspeed_strategy_impl.load_checkpoint(checkpoint_path=checkpoint_path, weights_only=weights_only)
 
     @property

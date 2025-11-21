@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import torch
 from torch import Tensor
@@ -160,7 +161,7 @@ class XLAStrategy(ParallelStrategy):
         return self.xla_strategy_impl.all_reduce(output=output, group=group, reduce_op=reduce_op)
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         return self.xla_strategy_impl.barrier(name=name, *args, **kwargs)
 
     @override

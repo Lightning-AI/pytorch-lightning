@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 from torch import Tensor
@@ -188,7 +189,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def module_to_device(self, module: Module) -> None:
         return self.xla_fsdp_impl.module_to_device(module=module)
 
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         return self.xla_fsdp_impl.module_init_context(empty_init=empty_init)
 
     @override
@@ -251,7 +252,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         return self.xla_fsdp_impl.all_reduce(output=output, group=group, reduce_op=reduce_op)
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         return self.xla_fsdp_impl.barrier(name=name, *args, **kwargs)
 
     @override

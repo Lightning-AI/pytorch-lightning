@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch import Tensor
@@ -152,7 +152,7 @@ class XLAStrategy(DDPStrategy):
         return self.xla_strategy_impl.model_to_device()
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         return self.xla_strategy_impl.barrier(name=name, *args, **kwargs)
 
     @override
@@ -181,9 +181,7 @@ class XLAStrategy(DDPStrategy):
         return self.xla_strategy_impl.set_world_ranks()
 
     @override
-    def save_checkpoint(
-        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Any | None = None) -> None:
         return self.xla_strategy_impl.save_checkpoint(
             checkpoint=checkpoint, filepath=filepath, storage_options=storage_options
         )

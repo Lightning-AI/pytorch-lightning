@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import torch
 from lightning_utilities.core.imports import RequirementCache

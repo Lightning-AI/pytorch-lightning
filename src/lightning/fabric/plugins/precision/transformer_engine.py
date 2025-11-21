@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import torch
 from typing_extensions import override

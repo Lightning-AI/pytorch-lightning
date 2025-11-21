@@ -19,7 +19,7 @@ MLflow Logger
 import os
 from argparse import Namespace
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal
 
 from typing_extensions import override
 
@@ -164,12 +164,12 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         return self.logger_impl.log_metrics(metrics, step)
 
     @override

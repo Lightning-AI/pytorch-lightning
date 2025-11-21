@@ -18,7 +18,7 @@ Neptune Logger
 
 import logging
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -266,13 +266,13 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
-        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
+        self, metrics: dict[str, Tensor | float], step: int | None = None
     ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 

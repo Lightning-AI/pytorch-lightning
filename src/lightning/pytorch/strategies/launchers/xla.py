@@ -15,7 +15,6 @@ import queue
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Optional
 
-import torch.multiprocessing as mp
 from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 

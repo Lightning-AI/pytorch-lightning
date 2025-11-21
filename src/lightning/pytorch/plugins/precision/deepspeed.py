@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import torch
 from torch import Tensor
