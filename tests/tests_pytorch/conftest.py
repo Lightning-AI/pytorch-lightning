@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import os
 import signal
 import sys
@@ -23,6 +22,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+import pytorch_lightning_enterprise.utils.imports
 import torch.distributed
 from tqdm import TMonitor
 
@@ -102,6 +102,8 @@ def restore_env_variables():
         "TPU_ML_PLATFORM_VERSION",
         "LD_LIBRARY_PATH",
         "ENABLE_RUNTIME_UPTIME_TELEMETRY",
+        "TQDM_MININTERVAL",  # set by our platform
+        "TQDM_POSITION",  # set by our platform
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -128,24 +130,8 @@ def restore_signal_handlers():
 @pytest.fixture(autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
-    import os
-
-    from lightning.fabric.utilities.port_manager import get_port_manager
-
     yield
-
-    # Clean up distributed connection
     _destroy_dist_connection()
-
-    manager = get_port_manager()
-
-    # If a process group created or updated MASTER_PORT during the test, reserve it and then clear it
-    if "MASTER_PORT" in os.environ:
-        with contextlib.suppress(ValueError):
-            port = int(os.environ["MASTER_PORT"])
-            manager.reserve_existing_port(port)
-            manager.release_port(port)
-        os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture(autouse=True)
@@ -237,14 +223,47 @@ def mps_count_1(monkeypatch):
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    # First, mock torch_xla modules in sys.modules so imports succeed
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.functions", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_env_vars", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental.pjrt", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental.tpu", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.parallel_loader", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.xla_multiprocessing", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.runtime", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.utils", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.utils.utils", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.debug", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.debug.profiler", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla._internal", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla._internal.tpu", Mock())
+
+    # Then patch the _XLA_AVAILABLE flags in various modules
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_5", value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_5", value)
+    # Patch in the modules where they're used after import
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_5", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.xla._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.single._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_GREATER_EQUAL_2_1", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.fsdp._XLA_AVAILABLE", value)
+    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.launcher._XLA_AVAILABLE", value)
 
 
 @pytest.fixture
@@ -254,10 +273,14 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    # Also mock the enterprise XLAAccelerator methods
+    import pytorch_lightning_enterprise.accelerators.xla
+
+    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
@@ -347,67 +370,6 @@ def leave_no_artifacts_behind():
     # ignore the .coverage files
     difference = {f for f in difference if not f.endswith(".coverage")}
     assert not difference, f"Test left artifacts behind: {difference}"
-
-
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
-    """Retry tests that fail with EADDRINUSE errors.
-
-    This handles the race condition where a port might enter TIME_WAIT between our port allocation check and actual
-    binding by TCPStore.
-
-    """
-    if call.excinfo is not None and call.when == "call":
-        exception_msg = str(call.excinfo.value)
-        exception_type = str(type(call.excinfo.value).__name__)
-        # Check if this is an EADDRINUSE error from distributed training
-        # Catch both direct EADDRINUSE errors and DistNetworkError which wraps them
-        if (
-            "EADDRINUSE" in exception_msg
-            or "address already in use" in exception_msg.lower()
-            or "DistNetworkError" in exception_type
-        ):
-            # Get the retry count from the test node
-            retry_count = getattr(item, "_port_retry_count", 0)
-            max_retries = 3
-
-            if retry_count < max_retries:
-                # Increment retry counter
-                item._port_retry_count = retry_count + 1
-
-                # Log the retry
-                if hasattr(item.config, "get_terminal_writer"):
-                    writer = item.config.get_terminal_writer()
-                    writer.write(
-                        f"\n[Port conflict detected] Retrying test {item.name} "
-                        f"(attempt {retry_count + 2}/{max_retries + 1})...\n",
-                        yellow=True,
-                    )
-
-                # Clear the port manager's state to get fresh ports
-                from lightning.fabric.utilities.port_manager import get_port_manager
-
-                manager = get_port_manager()
-                manager.release_all()
-
-                # Clear MASTER_PORT so cluster environment allocates a fresh port on retry
-                import os
-
-                os.environ.pop("MASTER_PORT", None)
-
-                # Re-run the test by raising Rerun exception
-                # Note: This requires pytest-rerunfailures plugin
-                import time
-
-                time.sleep(1.0)  # Wait for OS to release ports from TIME_WAIT state
-
-                # If pytest-rerunfailures is available, use it
-                try:
-                    from pytest_rerunfailures import Rerun
-
-                    raise Rerun(f"Port conflict (EADDRINUSE), retry {retry_count + 1}/{max_retries}")
-                except ImportError:
-                    # Plugin not available, just let the test fail
-                    pass
 
 
 def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:

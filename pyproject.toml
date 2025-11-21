@@ -92,9 +92,6 @@ ignore = [
 "src/**" = [
     "S101",  # todo: Use of `assert` detected
     "S113",  # todo: Probable use of requests call without timeout
-    "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
-    "S324",  # todo: Probable use of insecure hash functions in `hashlib`
-    "S403",  # todo: `pickle`, `cPickle`, `dill`, and `shelve` modules are possibly insecure
     "S404",  # todo: `subprocess` module is possibly insecure
     "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
@@ -106,18 +103,14 @@ ignore = [
 "tests/**" = [
     "S101",  # Use of `assert` detected
     "S301",  # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
-    "S113",  # todo: Probable use of requests call without timeout
     "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
     "S108",  # todo: Probable insecure usage of temporary file or directory: "/tmp/sys-customizations-sync"
-    "S202",  # Uses of `tarfile.extractall()`
     "S403",  # `pickle`, `cPickle`, `dill`, and `shelve` modules are possibly insecure
     "S404",  # `subprocess` module is possibly insecure
     "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
-    "RET504",  # todo:Unnecessary variable assignment before `return` statement
-    "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
     "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
@@ -179,6 +172,7 @@ filterwarnings = [
     # "error::DeprecationWarning",
     "error::FutureWarning",
     "ignore::FutureWarning:onnxscript", # Temporary ignore until onnxscript is updated
+    "ignore:You are using `torch.load` with `weights_only=False`.*:FutureWarning",
 ]
 xfail_strict = true
 junit_duration_report = "call"

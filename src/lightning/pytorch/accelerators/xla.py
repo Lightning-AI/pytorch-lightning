@@ -15,7 +15,7 @@ from typing import Any
 
 from typing_extensions import override
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -39,17 +39,18 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
             A dictionary mapping the metrics (free memory and peak memory) to their values.
 
         """
-        import torch_xla.core.xla_model as xm
+        return self.accelerator_impl.get_device_stats(device)
 
-        memory_info = xm.get_memory_info(device)
-        free_memory = memory_info["kb_free"]
-        peak_memory = memory_info["kb_total"] - free_memory
-        return {
-            "avg. free memory (MB)": free_memory,
-            "avg. peak memory (MB)": peak_memory,
-        }
+    @staticmethod
+    @override
+    def name() -> str:
+        return "tpu"
 
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__name__)
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )

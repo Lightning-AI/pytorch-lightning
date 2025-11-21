@@ -56,12 +56,8 @@ from lightning.pytorch.strategies import (
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
-from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import (
-    _LIGHTNING_HABANA_AVAILABLE,
-)
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -496,7 +492,6 @@ def test_torchelastic_priority_over_slurm(monkeypatch):
     with monkeypatch.context():
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
-        mock_hpu_count(monkeypatch, 0)
         connector = _AcceleratorConnector(strategy="ddp")
     assert TorchElasticEnvironment.detect()
     assert SLURMEnvironment.detect()
@@ -594,73 +589,7 @@ def test_unsupported_tpu_choice(xla_available, tpu_available):
         Trainer(accelerator="tpu", precision="16-true", strategy="ddp")
 
 
-if _LIGHTNING_HABANA_AVAILABLE:
-    from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
-else:
-
-    class HPUAccelerator(Mock):
-        @staticmethod
-        def is_available():
-            return True
-
-        @classmethod
-        def register_accelerators(cls, registry):
-            registry.register("hpu", cls)
-
-        @staticmethod
-        def parse_devices(devices):
-            return int(devices)
-
-        @staticmethod
-        def get_parallel_devices(devices):
-            return [torch.device("hpu")] * devices
-
-    class SingleHPUStrategy(SingleDeviceStrategy):
-        strategy_name = "hpu_single"
-
-        @classmethod
-        def register_strategies(cls, registry):
-            registry.register(cls.strategy_name, cls)
-
-    class HPUParallelStrategy(SingleDeviceStrategy):
-        strategy_name = "hpu_parallel"
-
-        @classmethod
-        def register_strategies(cls, registry):
-            registry.register(cls.strategy_name, cls)
-
-
-class MockHPUPrecisionPlugin(Mock):
-    # The original requires a special "HPU Synapse" dependency
-    pass
-
-
-def mock_hpu_count(monkeypatch, n=1):
-    if _LIGHTNING_HABANA_AVAILABLE:
-        import lightning_habana
-        from lightning_habana.pytorch.accelerator import HPUAccelerator
-
-        monkeypatch.setattr(lightning_habana.HPUAccelerator, "auto_device_count", lambda *_: n)
-        monkeypatch.setattr(lightning_habana.HPUAccelerator, "is_available", lambda *_: n > 0)
-        monkeypatch.setattr(lightning_habana, "HPUPrecisionPlugin", MockHPUPrecisionPlugin)
-    else:
-        monkeypatch.setattr(
-            "lightning.pytorch.trainer.connectors.accelerator_connector._habana_available_and_importable", lambda: n > 0
-        )
-        if n < 1:
-            return
-        habana_mock = Mock()
-        global HPUAccelerator
-        HPUAccelerator.auto_device_count = lambda *_: n
-        habana_mock.HPUAccelerator = HPUAccelerator
-        habana_mock.SingleHPUStrategy = SingleHPUStrategy
-        habana_mock.HPUParallelStrategy = HPUParallelStrategy
-        habana_mock.HPUPrecisionPlugin = MockHPUPrecisionPlugin
-        monkeypatch.setitem(sys.modules, "lightning_habana", habana_mock)
-
-
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
-    mock_hpu_count(monkeypatch, 0)
     mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
@@ -973,44 +902,13 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
 
-    # Single HPU
-    with monkeypatch.context():
-        mock_cuda_count(monkeypatch, 0)
-        mock_mps_count(monkeypatch, 0)
-        mock_tpu_available(monkeypatch, False)
-        mock_hpu_count(monkeypatch, 1)
-        connector = _AcceleratorConnector()
-    assert isinstance(connector.accelerator, HPUAccelerator)
-    assert isinstance(connector.strategy, SingleHPUStrategy)
-    assert isinstance(connector.precision_plugin, MockHPUPrecisionPlugin)
-    assert connector._devices_flag == 1
-
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     _mock_interactive()
-
-    if not is_interactive:  # HPU does not support interactive environments
-        # Multi HPU
-        with monkeypatch.context():
-            mock_cuda_count(monkeypatch, 0)
-            mock_mps_count(monkeypatch, 0)
-            mock_tpu_available(monkeypatch, False)
-            mock_hpu_count(monkeypatch, 8)
-            connector = _AcceleratorConnector()
-        assert isinstance(connector.accelerator, HPUAccelerator)
-        assert isinstance(connector.strategy, HPUParallelStrategy)
-        assert connector._devices_flag == 8
-        if _LIGHTNING_HABANA_AVAILABLE:
-            # these are not mocked because it's an implementation detail of HPUs that doesn't relate to our
-            # connector logic. so this needs to be run only when habana is installed
-            assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-            assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
-            assert not connector.strategy.launcher.is_interactive_compatible
 
     # TPU and CUDA: prefers TPU
     with monkeypatch.context():
         mock_cuda_count(monkeypatch, 2)
         mock_mps_count(monkeypatch, 0)
-        mock_hpu_count(monkeypatch, 0)
         _mock_tpu_available(True)
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, XLAAccelerator)
@@ -1070,6 +968,7 @@ def test_precision_selection(precision_str, strategy_str, expected_precision_cls
 
 def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.bitsandbytes._BITSANDBYTES_AVAILABLE", True)
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))

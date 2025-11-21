@@ -1,9 +1,9 @@
 -r ../docs.txt
 
 nbformat  # used for generate empty notebook
-ipython[notebook] <9.7.0
+ipython[notebook] <9.8.0
 setuptools<81.0  # workaround for `error in ipython setup command: use_2to3 is invalid.`
 
-onnxscript >= 0.2.2, < 0.5.0
+onnxscript >= 0.2.2, < 0.6.0
 
 #-r ../../_notebooks/.actions/requires.txt
