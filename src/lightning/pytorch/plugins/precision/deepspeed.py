@@ -105,6 +105,7 @@ class DeepSpeedPrecision(Precision):
         optimizer: Optimizer,
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        module: Optional[Module] = None,
     ) -> None:
         return self.deepspeed_precision_impl.clip_gradients(
             optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm
