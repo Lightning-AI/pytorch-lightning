@@ -17,8 +17,9 @@ from typing import Any
 
 from typing_extensions import override
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 
 log = logging.getLogger(__name__)
 
@@ -32,26 +33,28 @@ class XLAEnvironment(ClusterEnvironment):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        if not _XLA_AVAILABLE:
-            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        super().__init__(*args, **kwargs)
+        super().__init__()
+        _raise_enterprise_not_available()
+        from pytorch_lightning_enterprise.plugins.environments.xla import (
+            XLAEnvironment as EnterpriseXLAEnvironment,
+        )
+
+        self.xla_impl = EnterpriseXLAEnvironment(*args, **kwargs)
 
     @property
     @override
     def creates_processes_externally(self) -> bool:
-        return False
+        return self.xla_impl.creates_processes_externally
 
     @property
     @override
     def main_address(self) -> str:
-        # unused by lightning
-        raise NotImplementedError
+        return self.xla_impl.main_address
 
     @property
     @override
     def main_port(self) -> int:
-        # unused by lightning
-        raise NotImplementedError
+        return self.xla_impl.main_port
 
     @staticmethod
     @override
@@ -66,18 +69,11 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as xr
-
-            return xr.world_size()
-
-        import torch_xla.core.xla_model as xm
-
-        return xm.xrt_world_size()
+        return self.xla_impl.world_size()
 
     @override
     def set_world_size(self, size: int) -> None:
-        log.debug("XLAEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+        return self.xla_impl.set_world_size(size)
 
     @override
     @functools.lru_cache(maxsize=1)
@@ -87,18 +83,11 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as xr
-
-            return xr.global_ordinal()
-
-        import torch_xla.core.xla_model as xm
-
-        return xm.get_ordinal()
+        return self.xla_impl.global_rank()
 
     @override
     def set_global_rank(self, rank: int) -> None:
-        log.debug("XLAEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
+        return self.xla_impl.set_global_rank(rank)
 
     @override
     @functools.lru_cache(maxsize=1)
@@ -108,14 +97,7 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as xr
-
-            return xr.local_ordinal()
-
-        import torch_xla.core.xla_model as xm
-
-        return xm.get_local_ordinal()
+        return self.xla_impl.local_rank()
 
     @override
     @functools.lru_cache(maxsize=1)
@@ -125,11 +107,4 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as xr
-
-            return xr.host_index()
-        import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.utils.utils import getenv_as
-
-        return getenv_as(xenv.HOST_ORDINAL, int, 0)
+        return self.xla_impl.node_rank()
