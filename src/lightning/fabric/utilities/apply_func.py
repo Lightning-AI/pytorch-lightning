@@ -14,8 +14,9 @@
 """Utilities used for collections."""
 
 from abc import ABC
+from collections.abc import Callable
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import TYPE_CHECKING, Any
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -68,7 +69,7 @@ class _TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
+    def __subclasshook__(cls, subclass: Any) -> bool | Any:
         if cls is _TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
@@ -126,7 +127,7 @@ def convert_tensors_to_scalars(data: Any) -> Any:
 
     """
 
-    def to_item(value: Tensor) -> Union[int, float, bool]:
+    def to_item(value: Tensor) -> int | float | bool:
         if value.numel() != 1:
             raise ValueError(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."

@@ -1,7 +1,7 @@
 import os
 from collections.abc import Iterable, Mapping
 from functools import partial
-from typing import Any, Literal, Optional, Union, cast
+from typing import Any, Literal, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -18,18 +18,18 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 class MyCustomTrainer:
     def __init__(
         self,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        devices: Union[list[int], str, int] = "auto",
-        precision: Union[str, int] = "32-true",
-        plugins: Optional[Union[str, Any]] = None,
-        callbacks: Optional[Union[list[Any], Any]] = None,
-        loggers: Optional[Union[Logger, list[Logger]]] = None,
-        max_epochs: Optional[int] = 1000,
-        max_steps: Optional[int] = None,
+        accelerator: str | Accelerator = "auto",
+        strategy: str | Strategy = "auto",
+        devices: list[int] | str | int = "auto",
+        precision: str | int = "32-true",
+        plugins: str | Any | None = None,
+        callbacks: list[Any] | Any | None = None,
+        loggers: Logger | list[Logger] | None = None,
+        max_epochs: int | None = 1000,
+        max_steps: int | None = None,
         grad_accum_steps: int = 1,
-        limit_train_batches: Union[int, float] = float("inf"),
-        limit_val_batches: Union[int, float] = float("inf"),
+        limit_train_batches: int | float = float("inf"),
+        limit_val_batches: int | float = float("inf"),
         validation_frequency: int = 1,
         use_distributed_sampler: bool = True,
         checkpoint_dir: str = "./checkpoints",
@@ -115,8 +115,8 @@ class MyCustomTrainer:
         self.limit_val_batches = limit_val_batches
         self.validation_frequency = validation_frequency
         self.use_distributed_sampler = use_distributed_sampler
-        self._current_train_return: Union[torch.Tensor, Mapping[str, Any]] = {}
-        self._current_val_return: Optional[Union[torch.Tensor, Mapping[str, Any]]] = {}
+        self._current_train_return: torch.Tensor | Mapping[str, Any] = {}
+        self._current_val_return: torch.Tensor | Mapping[str, Any] | None = {}
 
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_frequency = checkpoint_frequency
@@ -126,7 +126,7 @@ class MyCustomTrainer:
         model: L.LightningModule,
         train_loader: torch.utils.data.DataLoader,
         val_loader: torch.utils.data.DataLoader,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: str | None = None,
     ):
         """The main entrypoint of the trainer, triggering the actual training.
 
@@ -196,8 +196,8 @@ class MyCustomTrainer:
         model: L.LightningModule,
         optimizer: torch.optim.Optimizer,
         train_loader: torch.utils.data.DataLoader,
-        limit_batches: Union[int, float] = float("inf"),
-        scheduler_cfg: Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]] = None,
+        limit_batches: int | float = float("inf"),
+        scheduler_cfg: Mapping[str, L.fabric.utilities.types.LRScheduler | bool | str | int] | None = None,
     ):
         """The training loop running a single training epoch.
 
@@ -262,8 +262,8 @@ class MyCustomTrainer:
     def val_loop(
         self,
         model: L.LightningModule,
-        val_loader: Optional[torch.utils.data.DataLoader],
-        limit_batches: Union[int, float] = float("inf"),
+        val_loader: torch.utils.data.DataLoader | None,
+        limit_batches: int | float = float("inf"),
     ):
         """The validation loop running a single validation epoch.
 
@@ -331,7 +331,7 @@ class MyCustomTrainer:
             batch_idx: index of the current batch w.r.t the current epoch
 
         """
-        outputs: Union[torch.Tensor, Mapping[str, Any]] = model.training_step(batch, batch_idx=batch_idx)
+        outputs: torch.Tensor | Mapping[str, Any] = model.training_step(batch, batch_idx=batch_idx)
 
         loss = outputs if isinstance(outputs, torch.Tensor) else outputs["loss"]
 
@@ -347,7 +347,7 @@ class MyCustomTrainer:
     def step_scheduler(
         self,
         model: L.LightningModule,
-        scheduler_cfg: Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
+        scheduler_cfg: Mapping[str, L.fabric.utilities.types.LRScheduler | bool | str | int] | None,
         level: Literal["step", "epoch"],
         current_value: int,
     ) -> None:
@@ -387,7 +387,7 @@ class MyCustomTrainer:
             possible_monitor_vals.update({"val_" + k: v for k, v in self._current_val_return.items()})
 
         try:
-            monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
+            monitor = possible_monitor_vals[cast(str | None, scheduler_cfg["monitor"])]
         except KeyError as ex:
             possible_keys = list(possible_monitor_vals.keys())
             raise KeyError(
@@ -414,7 +414,7 @@ class MyCustomTrainer:
             return tqdm(iterable, total=total, **kwargs)
         return iterable
 
-    def load(self, state: Optional[Mapping], path: str) -> None:
+    def load(self, state: Mapping | None, path: str) -> None:
         """Loads a checkpoint from a given file into state.
 
         Args:
@@ -432,7 +432,7 @@ class MyCustomTrainer:
         if remainder:
             raise RuntimeError(f"Unused Checkpoint Values: {remainder}")
 
-    def save(self, state: Optional[Mapping]) -> None:
+    def save(self, state: Mapping | None) -> None:
         """Saves a checkpoint to the ``checkpoint_dir``
 
         Args:
@@ -447,7 +447,7 @@ class MyCustomTrainer:
         self.fabric.save(os.path.join(self.checkpoint_dir, f"epoch-{self.current_epoch:04d}.ckpt"), state)
 
     @staticmethod
-    def get_latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
+    def get_latest_checkpoint(checkpoint_dir: str) -> str | None:
         """Returns the latest checkpoint from the ``checkpoint_dir``
 
         Args:
@@ -467,8 +467,8 @@ class MyCustomTrainer:
     def _parse_optimizers_schedulers(
         self, configure_optim_output
     ) -> tuple[
-        Optional[L.fabric.utilities.types.Optimizable],
-        Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
+        L.fabric.utilities.types.Optimizable | None,
+        Mapping[str, L.fabric.utilities.types.LRScheduler | bool | str | int] | None,
     ]:
         """Recursively parses the output of :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
 
@@ -521,7 +521,7 @@ class MyCustomTrainer:
 
     @staticmethod
     def _format_iterable(
-        prog_bar, candidates: Optional[Union[torch.Tensor, Mapping[str, Union[torch.Tensor, float, int]]]], prefix: str
+        prog_bar, candidates: torch.Tensor | Mapping[str, torch.Tensor | float | int] | None, prefix: str
     ):
         """Adds values as postfix string to progressbar.
 

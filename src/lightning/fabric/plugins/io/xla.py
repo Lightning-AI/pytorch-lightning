@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from typing_extensions import override
 
@@ -38,7 +38,7 @@ class XLACheckpointIO(TorchCheckpointIO):
         self.xla_impl = EnterpriseXLACheckpointIO(*args, **kwargs)
 
     @override
-    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

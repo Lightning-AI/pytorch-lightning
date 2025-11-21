@@ -17,7 +17,7 @@ from collections import OrderedDict
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch.nn import Module
@@ -57,7 +57,7 @@ class DeepSpeedStrategy(DDPStrategy):
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: Optional[str] = None,
+        remote_device: str | None = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -81,11 +81,11 @@ class DeepSpeedStrategy(DDPStrategy):
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Union[str, int] = "auto",
-        config: Optional[Union[_PATH, dict[str, Any]]] = None,
+        logging_batch_size_per_gpu: str | int = "auto",
+        config: _PATH | dict[str, Any] | None = None,
         logging_level: int = logging.WARN,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -96,9 +96,9 @@ class DeepSpeedStrategy(DDPStrategy):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision_plugin: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        precision_plugin: Precision | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -333,7 +333,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @contextmanager
     @override
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def tensor_init_context(self, empty_init: bool | None = None) -> Generator[None, None, None]:
         with self.deepspeed_strategy_impl.tensor_init_context(empty_init=empty_init):
             yield
 
@@ -373,7 +373,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.deepspeed_strategy_impl._multi_device
 
     @override
-    def save_checkpoint(self, checkpoint: dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict, filepath: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -391,7 +391,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: bool | None = None) -> dict[str, Any]:
         return self.deepspeed_strategy_impl.load_checkpoint(checkpoint_path=checkpoint_path, weights_only=weights_only)
 
     @property

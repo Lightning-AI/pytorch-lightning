@@ -18,7 +18,6 @@ To run: python autoencoder.py --trainer.max_epochs=50
 """
 
 from os import path
-from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -46,7 +45,7 @@ class ImageSampler(callbacks.Callback):
         nrow: int = 8,
         padding: int = 2,
         normalize: bool = True,
-        value_range: Optional[tuple[int, int]] = None,
+        value_range: tuple[int, int] | None = None,
         scale_each: bool = False,
         pad_value: int = 0,
     ) -> None:

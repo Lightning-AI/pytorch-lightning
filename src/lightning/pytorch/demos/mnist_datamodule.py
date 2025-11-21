@@ -16,8 +16,8 @@ import os
 import random
 import time
 import urllib
-from collections.abc import Sized
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Sized
+from typing import Any
 from urllib.error import HTTPError
 from warnings import warn
 
@@ -121,7 +121,7 @@ class _MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: Tensor, mean: Union[int, float] = 0.0, std: Union[int, float] = 1.0) -> Tensor:
+    def normalize_tensor(tensor: Tensor, mean: int | float = 0.0, std: int | float = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
@@ -242,7 +242,7 @@ class MNISTDataModule(LightningDataModule):
         )
 
     @property
-    def default_transforms(self) -> Optional[Callable]:
+    def default_transforms(self) -> Callable | None:
         if not _TORCHVISION_AVAILABLE:
             return None
 

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch.nn import Module
@@ -42,10 +43,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Accelerator | None = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: Optional[str] = None,
+        remote_device: str | None = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -69,11 +70,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Optional[int] = None,
-        config: Optional[Union[_PATH, dict[str, Any]]] = None,
+        logging_batch_size_per_gpu: int | None = None,
+        config: _PATH | dict[str, Any] | None = None,
         logging_level: int = logging.WARN,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -84,9 +85,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        precision: Precision | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         exclude_frozen_parameters: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -331,7 +332,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self.deepspeed_impl.setup_optimizer(optimizer=optimizer)
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         return self.deepspeed_impl.module_init_context(empty_init=empty_init)
 
     @override
@@ -342,9 +343,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
@@ -371,9 +372,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -402,8 +403,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         module: "DeepSpeedEngine",
         optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
+        max_norm: float | int,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
     ) -> torch.Tensor:
         return self.deepspeed_impl.clip_gradients_norm(
@@ -415,9 +416,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @override
-    def clip_gradients_value(
-        self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: float | int) -> None:
         return self.deepspeed_impl.clip_gradients_value(module=module, optimizer=optimizer, clip_val=clip_val)
 
     @classmethod

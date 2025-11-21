@@ -17,9 +17,10 @@ import inspect
 import os
 from argparse import Namespace
 from ast import literal_eval
+from collections.abc import Callable
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 

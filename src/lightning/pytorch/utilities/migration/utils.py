@@ -18,7 +18,7 @@ import sys
 import threading
 import warnings
 from types import ModuleType, TracebackType
-from typing import Any, Optional
+from typing import Any
 
 from packaging.version import Version
 from typing_extensions import override
@@ -37,7 +37,7 @@ _lock = threading.Lock()
 
 
 def migrate_checkpoint(
-    checkpoint: _CHECKPOINT, target_version: Optional[str] = None
+    checkpoint: _CHECKPOINT, target_version: str | None = None
 ) -> tuple[_CHECKPOINT, dict[str, list[str]]]:
     """Applies Lightning version migrations to a checkpoint dictionary.
 
@@ -121,9 +121,9 @@ class pl_legacy_patch:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
     ) -> None:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
@@ -134,7 +134,7 @@ class pl_legacy_patch:
         _lock.release()
 
 
-def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH | None = None) -> _CHECKPOINT:
     """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
 
     This function is used by the Lightning Trainer when resuming from a checkpoint.
@@ -174,7 +174,7 @@ def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
     checkpoint.setdefault("legacy_pytorch-lightning_version", version)
 
 
-def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[str] = None) -> bool:
+def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: str | None = None) -> bool:
     """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
     target_version = Version(target)
     is_lte_max_version = max_version is None or target_version <= Version(max_version)

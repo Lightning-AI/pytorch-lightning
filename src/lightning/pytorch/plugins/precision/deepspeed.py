@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -73,7 +74,7 @@ class DeepSpeedPrecision(Precision):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
-        optimizer: Optional[Steppable],
+        optimizer: Steppable | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -103,7 +104,7 @@ class DeepSpeedPrecision(Precision):
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float] = 0.0,
+        clip_val: int | float = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         return self.deepspeed_precision_impl.clip_gradients(

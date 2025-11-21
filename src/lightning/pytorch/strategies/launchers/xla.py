@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import queue
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Optional
 
-import torch.multiprocessing as mp
+from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _raise_enterprise_not_available
@@ -84,8 +85,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
-        global_states: Optional[_GlobalStateSnapshot] = None,
+        return_queue: SimpleQueue | queue.Queue,
+        global_states: _GlobalStateSnapshot | None = None,
     ) -> None:
         return self.xla_launcher_impl._wrapping_function(
             process_idx, trainer, function, args, kwargs, return_queue, global_states

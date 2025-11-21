@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -32,15 +32,15 @@ class ParallelStrategy(Strategy, ABC):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision: Precision | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
-        self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
+        self.cluster_environment: ClusterEnvironment | None = cluster_environment
 
     @property
     def global_rank(self) -> int:
@@ -64,15 +64,15 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
-    def parallel_devices(self) -> Optional[list[torch.device]]:
+    def parallel_devices(self) -> list[torch.device] | None:
         return self._parallel_devices
 
     @parallel_devices.setter
-    def parallel_devices(self, parallel_devices: Optional[list[torch.device]]) -> None:
+    def parallel_devices(self, parallel_devices: list[torch.device] | None) -> None:
         self._parallel_devices = parallel_devices
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[dict[str, Any]]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any] | None:
         """Arguments for the ``DistributedSampler``.
 
         If this method is not defined, or it returns ``None``, then the ``DistributedSampler`` will not be used.
@@ -81,7 +81,7 @@ class ParallelStrategy(Strategy, ABC):
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @override
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 

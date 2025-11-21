@@ -18,8 +18,6 @@ BatchSizeFinder
 Finds optimal batch size
 """
 
-from typing import Optional
-
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -133,7 +131,7 @@ class BatchSizeFinder(Callback):
 
         assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
 
-        self.optimal_batch_size: Optional[int] = init_val
+        self.optimal_batch_size: int | None = init_val
         self._mode = mode
         self._steps_per_trial = steps_per_trial
         self._init_val = init_val
@@ -144,7 +142,7 @@ class BatchSizeFinder(Callback):
         self._early_exit = False
 
     @override
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str | None = None) -> None:
         if trainer._accelerator_connector.is_distributed:
             raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
         # TODO: check if this can be enabled (#4040)

@@ -8,7 +8,6 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 import math
 import os
 from pathlib import Path
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -54,7 +53,7 @@ class Transformer(nn.Module):
 
         self.ninp = ninp
         self.vocab_size = vocab_size
-        self.src_mask: Optional[Tensor] = None
+        self.src_mask: Tensor | None = None
 
     def generate_square_subsequent_mask(self, size: int) -> Tensor:
         """Generate a square mask for the sequence to prevent future tokens from being seen."""
@@ -62,7 +61,7 @@ class Transformer(nn.Module):
         mask = mask.float().masked_fill(mask == 1, float("-inf")).masked_fill(mask == 0, 0.0)
         return mask
 
-    def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+    def forward(self, inputs: Tensor, target: Tensor, mask: Tensor | None = None) -> Tensor:
         _, t = inputs.shape
 
         # Generate source mask to prevent future token leakage
@@ -88,7 +87,7 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
         self.max_len = max_len
-        self.pe: Optional[Tensor] = None
+        self.pe: Tensor | None = None
 
     def forward(self, x: Tensor) -> Tensor:
         if self.pe is None:

@@ -15,7 +15,7 @@ import logging
 from importlib.metadata import entry_points
 from inspect import getmembers, isclass
 from types import ModuleType
-from typing import Any, Union
+from typing import Any
 
 from lightning_utilities import is_overridden
 
@@ -43,7 +43,7 @@ def _load_external_callbacks(group: str) -> list[Any]:
     external_callbacks: list[Any] = []
     for factory in factories:
         callback_factory = factory.load()
-        callbacks_list: Union[list[Any], Any] = callback_factory()
+        callbacks_list: list[Any] | Any = callback_factory()
         callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
         if callbacks_list:
             _log.info(

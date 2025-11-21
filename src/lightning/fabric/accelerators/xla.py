@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import warnings
-from typing import Any, Union
+from typing import Any
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -53,7 +53,7 @@ class XLAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> int | list[int]:
         """Accelerator device parsing logic."""
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.accelerators.xla import XLAAccelerator as EnterpriseXLAAccelerator
@@ -62,7 +62,7 @@ class XLAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, list[int]]) -> list[torch.device]:
+    def get_parallel_devices(devices: int | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.accelerators.xla import XLAAccelerator as EnterpriseXLAAccelerator

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable, Iterator
-from typing import Any, Optional
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -117,7 +117,7 @@ class BoringModel(LightningModule):
     def forward(self, x: Tensor) -> Tensor:
         return self.layer(x)
 
-    def loss(self, preds: Tensor, labels: Optional[Tensor] = None) -> Tensor:
+    def loss(self, preds: Tensor, labels: Tensor | None = None) -> Tensor:
         if labels is None:
             labels = torch.ones_like(preds)
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls

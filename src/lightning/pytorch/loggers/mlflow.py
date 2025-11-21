@@ -19,7 +19,7 @@ MLflow Logger
 import os
 from argparse import Namespace
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal
 
 from typing_extensions import override
 
@@ -102,15 +102,15 @@ class MLFlowLogger(Logger):
     def __init__(
         self,
         experiment_name: str = "lightning_logs",
-        run_name: Optional[str] = None,
-        tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
-        tags: Optional[dict[str, Any]] = None,
-        save_dir: Optional[str] = "./mlruns",
+        run_name: str | None = None,
+        tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI"),
+        tags: dict[str, Any] | None = None,
+        save_dir: str | None = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
-        artifact_location: Optional[str] = None,
-        run_id: Optional[str] = None,
-        synchronous: Optional[bool] = None,
+        artifact_location: str | None = None,
+        run_id: str | None = None,
+        synchronous: bool | None = None,
     ):
         _raise_enterprise_not_available()
         from pytorch_lightning_enterprise.loggers.mlflow import MLFlowLogger as EnterpriseMLFlowLogger
@@ -143,7 +143,7 @@ class MLFlowLogger(Logger):
         return self.logger_impl.experiment
 
     @property
-    def run_id(self) -> Optional[str]:
+    def run_id(self) -> str | None:
         """Create the experiment if it does not exist to get the run id.
 
         Returns:
@@ -153,7 +153,7 @@ class MLFlowLogger(Logger):
         return self.logger_impl.run_id
 
     @property
-    def experiment_id(self) -> Optional[str]:
+    def experiment_id(self) -> str | None:
         """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
@@ -164,12 +164,12 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         return self.logger_impl.log_metrics(metrics, step)
 
     @override
@@ -179,7 +179,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """The root file directory in which MLflow experiments are saved.
 
         Return:
@@ -191,7 +191,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Get the experiment id.
 
         Returns:
@@ -202,7 +202,7 @@ class MLFlowLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Get the run id.
 
         Returns:

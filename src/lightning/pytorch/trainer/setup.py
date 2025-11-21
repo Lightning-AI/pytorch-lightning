@@ -14,7 +14,6 @@
 """Houses the methods used to set up the Trainer."""
 
 from datetime import timedelta
-from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -34,13 +33,13 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 def _init_debugging_flags(
     trainer: "pl.Trainer",
-    limit_train_batches: Optional[Union[int, float]],
-    limit_val_batches: Optional[Union[int, float]],
-    limit_test_batches: Optional[Union[int, float]],
-    limit_predict_batches: Optional[Union[int, float]],
-    fast_dev_run: Union[int, bool],
-    overfit_batches: Union[int, float],
-    val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
+    limit_train_batches: int | float | None,
+    limit_val_batches: int | float | None,
+    limit_test_batches: int | float | None,
+    limit_predict_batches: int | float | None,
+    fast_dev_run: int | bool,
+    overfit_batches: int | float,
+    val_check_interval: int | float | str | timedelta | dict | None,
     num_sanity_val_steps: int,
 ) -> None:
     # init debugging flags
@@ -97,7 +96,7 @@ def _init_debugging_flags(
         trainer.limit_val_batches = overfit_batches
 
 
-def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
+def _determine_batch_limits(batches: int | float | None, name: str) -> int | float:
     if batches is None:
         # batches is optional to know if the user passed a value so that we can show the above info messages only to the
         # users that set a value explicitly
@@ -130,7 +129,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     )
 
 
-def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str]]) -> None:
+def _init_profiler(trainer: "pl.Trainer", profiler: Profiler | str | None) -> None:
     if isinstance(profiler, str):
         PROFILERS = {
             "simple": SimpleProfiler,
@@ -181,7 +180,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
 
-def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
+def _parse_time_interval_seconds(value: str | timedelta | dict) -> float:
     """Convert a time interval into seconds.
 
     This helper parses different representations of a time interval and

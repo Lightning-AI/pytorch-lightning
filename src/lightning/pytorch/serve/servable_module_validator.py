@@ -2,7 +2,7 @@ import contextlib
 import logging
 import time
 from multiprocessing import Process
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import requests
 import torch
@@ -42,7 +42,7 @@ class ServableModuleValidator(Callback):
 
     def __init__(
         self,
-        optimization: Optional[Literal["trace", "script", "onnx", "tensorrt"]] = None,
+        optimization: Literal["trace", "script", "onnx", "tensorrt"] | None = None,
         server: Literal["fastapi", "ml_server", "torchserve", "sagemaker"] = "fastapi",
         host: str = "127.0.0.1",
         port: int = 8080,
@@ -70,7 +70,7 @@ class ServableModuleValidator(Callback):
         self.server = server
         self.timeout = timeout
         self.exit_on_failure = exit_on_failure
-        self.resp: Optional[requests.Response] = None
+        self.resp: requests.Response | None = None
 
     @override
     @rank_zero_only
@@ -131,7 +131,7 @@ class ServableModuleValidator(Callback):
             _logger.info(f"Your model is servable and the received payload was {self.resp.json()}.")
 
     @property
-    def successful(self) -> Optional[bool]:
+    def successful(self) -> bool | None:
         """Returns whether the model was successfully served."""
         return self.resp.status_code == 200 if self.resp else None
 

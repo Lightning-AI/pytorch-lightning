@@ -16,10 +16,11 @@
 import inspect
 import logging
 import os
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import torch
 from torch import Tensor, nn
@@ -41,7 +42,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_PROFILER = torch.profiler.profile | torch.autograd.profiler.profile | torch.autograd.profiler.emit_nvtx
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 
@@ -122,9 +123,9 @@ class ScheduleWrapper:
         self._test_step_reached_end = False
         self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
-        self._current_action: Optional[str] = None
-        self._prev_schedule_action: Optional[ProfilerAction] = None
-        self._start_action_name: Optional[str] = None
+        self._current_action: str | None = None
+        self._prev_schedule_action: ProfilerAction | None = None
+        self._start_action_name: str | None = None
 
     def setup(self, start_action_name: str) -> None:
         self._start_action_name = start_action_name
@@ -232,15 +233,15 @@ class PyTorchProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
         export_to_chrome: bool = True,
         row_limit: int = 20,
-        sort_by_key: Optional[str] = None,
+        sort_by_key: str | None = None,
         record_module_names: bool = True,
-        table_kwargs: Optional[dict[str, Any]] = None,
+        table_kwargs: dict[str, Any] | None = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -303,14 +304,14 @@ class PyTorchProfiler(Profiler):
         self._profiler_kwargs = profiler_kwargs
         self._table_kwargs = table_kwargs if table_kwargs is not None else {}
 
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional[EventList] = None
-        self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
-        self._register: Optional[RegisterRecordFunction] = None
-        self._parent_profiler: Optional[AbstractContextManager] = None
+        self.profiler: _PROFILER | None = None
+        self.function_events: EventList | None = None
+        self._lightning_module: LightningModule | None = None  # set by ProfilerConnector
+        self._register: RegisterRecordFunction | None = None
+        self._parent_profiler: AbstractContextManager | None = None
         self._recording_map: dict[str, record_function] = {}
-        self._start_action_name: Optional[str] = None
-        self._schedule: Optional[ScheduleWrapper] = None
+        self._start_action_name: str | None = None
+        self._schedule: ScheduleWrapper | None = None
 
         if _KINETO_AVAILABLE:
             self._init_kineto(profiler_kwargs)
@@ -359,7 +360,7 @@ class PyTorchProfiler(Profiler):
         self._profiler_kwargs["with_stack"] = with_stack
 
     @property
-    def _total_steps(self) -> Union[int, float]:
+    def _total_steps(self) -> int | float:
         assert self._schedule is not None
         assert self._lightning_module is not None
         trainer = self._lightning_module.trainer
@@ -396,7 +397,7 @@ class PyTorchProfiler(Profiler):
 
     @staticmethod
     @lru_cache(1)
-    def _default_schedule() -> Optional[Callable]:
+    def _default_schedule() -> Callable | None:
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
@@ -566,7 +567,7 @@ class PyTorchProfiler(Profiler):
             self._register = None
 
     @override
-    def teardown(self, stage: Optional[str]) -> None:
+    def teardown(self, stage: str | None) -> None:
         self._delete_profilers()
 
         for k in list(self._recording_map):

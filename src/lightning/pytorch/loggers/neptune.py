@@ -18,7 +18,7 @@ Neptune Logger
 
 import logging
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -207,11 +207,11 @@ class NeptuneLogger(Logger):
     def __init__(
         self,
         *,  # force users to call `NeptuneLogger` initializer with `kwargs`
-        api_key: Optional[str] = None,
-        project: Optional[str] = None,
-        name: Optional[str] = None,
-        run: Optional[Union["Run", "Handler"]] = None,
-        log_model_checkpoints: Optional[bool] = True,
+        api_key: str | None = None,
+        project: str | None = None,
+        name: str | None = None,
+        run: Union["Run", "Handler"] | None = None,
+        log_model_checkpoints: bool | None = True,
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
@@ -266,13 +266,13 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
-        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
+        self, metrics: dict[str, Tensor | float], step: int | None = None
     ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
@@ -290,7 +290,7 @@ class NeptuneLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
         locally.
 
@@ -317,13 +317,13 @@ class NeptuneLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
         return self.logger_impl.name
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Return the experiment version.
 
         It's Neptune Run's short_id

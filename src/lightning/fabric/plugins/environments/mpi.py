@@ -15,7 +15,6 @@
 import logging
 import socket
 from functools import lru_cache
-from typing import Optional
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -42,10 +41,10 @@ class MPIEnvironment(ClusterEnvironment):
         from mpi4py import MPI
 
         self._comm_world = MPI.COMM_WORLD
-        self._comm_local: Optional[MPI.Comm] = None
-        self._node_rank: Optional[int] = None
-        self._main_address: Optional[str] = None
-        self._main_port: Optional[int] = None
+        self._comm_local: MPI.Comm | None = None
+        self._node_rank: int | None = None
+        self._main_address: str | None = None
+        self._main_port: int | None = None
 
     @property
     @override

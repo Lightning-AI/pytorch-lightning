@@ -14,8 +14,9 @@
 import logging
 import signal
 import sys
+from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional
 
 from packaging.version import Version
 
@@ -204,7 +205,7 @@ def _call_callback_hooks(
     trainer: "pl.Trainer",
     hook_name: str,
     *args: Any,
-    monitoring_callbacks: Optional[bool] = None,
+    monitoring_callbacks: bool | None = None,
     **kwargs: Any,
 ) -> None:
     log.debug(f"{trainer.__class__.__name__}: calling callback hook: {hook_name}")
@@ -271,7 +272,7 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: dict[s
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = "on_load_checkpoint"
 
-    callback_states: Optional[dict[Union[type, str], dict]] = checkpoint.get("callbacks")
+    callback_states: dict[type | str, dict] | None = checkpoint.get("callbacks")
 
     if callback_states is None:
         return
@@ -297,7 +298,7 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: dict[s
 
 def _call_callbacks_load_state_dict(trainer: "pl.Trainer", checkpoint: dict[str, Any]) -> None:
     """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
-    callback_states: Optional[dict[Union[type, str], dict]] = checkpoint.get("callbacks")
+    callback_states: dict[type | str, dict] | None = checkpoint.get("callbacks")
 
     if callback_states is None:
         return
