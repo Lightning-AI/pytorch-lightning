@@ -25,7 +25,6 @@ Maintainers
 
 Emeritus Maintainers
 --------------------
-- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
