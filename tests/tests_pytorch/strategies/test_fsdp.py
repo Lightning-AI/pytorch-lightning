@@ -138,6 +138,8 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "32-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Unknown precision {self.trainer.precision}")
 
