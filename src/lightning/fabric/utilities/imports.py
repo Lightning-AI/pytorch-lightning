@@ -56,6 +56,6 @@ _TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
 def _raise_enterprise_not_available() -> None:
     if not _ENTERPRISE_AVAILABLE:
         raise ModuleNotFoundError(
-            "pytorch_lightning_enterprise is required to use the XLA accelerator. "
+            "pytorch_lightning_enterprise is required to use this feature. "
             "Install it with `pip install pytorch-lightning-enterprise`"
         )
