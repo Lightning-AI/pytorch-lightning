@@ -2180,3 +2180,36 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     assert len(checkpoint_files) == expected_files, (
         f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
     )
+
+
+def test_model_checkpoint_file_exists_distributed_branch(tmp_path):
+    """Ensure the distributed branch of ModelCheckpoint.file_exists uses reduce_boolean_decision."""
+
+    checkpoint = ModelCheckpoint(dirpath=tmp_path)
+    calls = []
+
+    class DummyStrategy:
+        def reduce_boolean_decision(self, decision, all=True):
+            calls.append((decision, all))
+            return decision
+
+    class DummyTrainer:
+        def __init__(self, is_global_zero: bool):
+            self.world_size = 2
+            self.is_global_zero = is_global_zero
+            self.strategy = DummyStrategy()
+
+    # global rank 0: filesystem is touched and decision=True is reduced with all=False
+    checkpoint._fs.exists = Mock(return_value=True)
+    trainer = DummyTrainer(is_global_zero=True)
+    assert checkpoint.file_exists("ignored", trainer)
+    checkpoint._fs.exists.assert_called_once_with("ignored")
+    assert calls == [(True, False)]
+
+    # non-global ranks: filesystem is not touched and local decision is False
+    calls.clear()
+    checkpoint._fs.exists = Mock(return_value=True)
+    trainer = DummyTrainer(is_global_zero=False)
+    assert not checkpoint.file_exists("ignored", trainer)
+    checkpoint._fs.exists.assert_not_called()
+    assert calls == [(False, False)]
