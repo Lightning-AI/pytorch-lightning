@@ -24,6 +24,7 @@ from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.accelerators.xla import XLAAccelerator
+from lightning.fabric.accelerators.musa import MUSAAccelerator
 from lightning.fabric.plugins import (
     BitsandbytesPrecision,
     CheckpointIO,
@@ -322,6 +323,8 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if MUSAAccelerator.is_available():
+            return "musa"
         return "cpu"
 
     @staticmethod
@@ -330,6 +333,8 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if MUSAAccelerator.is_available():
+            return "musa"
         raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -400,8 +405,8 @@ class _Connector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator, MUSAAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps", "musa")
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:

@@ -20,3 +20,4 @@ Accelerators
     CUDAAccelerator
     MPSAccelerator
     XLAAccelerator
+    MUSAAccelerator
