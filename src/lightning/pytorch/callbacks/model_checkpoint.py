@@ -997,7 +997,7 @@ class ModelCheckpoint(Checkpoint):
             yaml.dump(best_k, fp)
 
     def file_exists(self, filepath: _PATH, trainer: "pl.Trainer") -> bool:
-        """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
+        """Checks if a file exists on rank 0 and synchronizes the result to all other ranks, preventing the internal
         state to diverge between ranks."""
         # In distributed setups, only global rank 0 touches the filesystem
         local_decision = self._fs.exists(filepath) if trainer.is_global_zero else False
