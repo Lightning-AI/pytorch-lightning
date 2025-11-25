@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from collections.abc import Sequence
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import torch
 from torch.nn import Module, Parameter
@@ -47,7 +47,7 @@ class _EmptyInit(TorchFunctionMode):
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[dict] = None,
+        kwargs: dict | None = None,
     ) -> Any:
         kwargs = kwargs or {}
         if not self.enabled:
@@ -105,7 +105,7 @@ def _materialize_distributed_module(module: Module, device: torch.device) -> Non
         )
 
 
-def _has_meta_device_parameters_or_buffers(obj: Union[Module, Optimizer], recurse: bool = True) -> bool:
+def _has_meta_device_parameters_or_buffers(obj: Module | Optimizer, recurse: bool = True) -> bool:
     if isinstance(obj, Optimizer):
         return any(
             t.is_meta for param_group in obj.param_groups for t in param_group["params"] if isinstance(t, Parameter)

@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -56,13 +56,13 @@ class TorchCollective(Collective):
         return tensor
 
     @override
-    def all_reduce(self, tensor: Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
+    def all_reduce(self, tensor: Tensor, op: str | ReduceOp | RedOpType = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
     @override
-    def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
+    def reduce(self, tensor: Tensor, dst: int, op: str | ReduceOp | RedOpType = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)  # type: ignore[arg-type]
         return tensor
@@ -84,7 +84,7 @@ class TorchCollective(Collective):
 
     @override
     def reduce_scatter(
-        self, output: Tensor, input_list: list[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
+        self, output: Tensor, input_list: list[Tensor], op: str | ReduceOp | RedOpType = "sum"
     ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -100,7 +100,7 @@ class TorchCollective(Collective):
         dist.send(tensor, dst, tag=tag, group=self.group)  # type: ignore[arg-type]
 
     @override
-    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
+    def recv(self, tensor: Tensor, src: int | None = None, tag: int = 0) -> Tensor:
         dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
         return tensor
 
@@ -108,9 +108,7 @@ class TorchCollective(Collective):
         dist.all_gather_object(object_list, obj, group=self.group)
         return object_list
 
-    def broadcast_object_list(
-        self, object_list: list[Any], src: int, device: Optional[torch.device] = None
-    ) -> list[Any]:
+    def broadcast_object_list(self, object_list: list[Any], src: int, device: torch.device | None = None) -> list[Any]:
         dist.broadcast_object_list(object_list, src, group=self.group, device=device)  # type: ignore[arg-type]
         return object_list
 
@@ -125,16 +123,16 @@ class TorchCollective(Collective):
         return scatter_object_output_list
 
     @override
-    def barrier(self, device_ids: Optional[list[int]] = None) -> None:
+    def barrier(self, device_ids: list[int] | None = None) -> None:
         if self.group == dist.GroupMember.NON_GROUP_MEMBER:
             return
         dist.barrier(group=self.group, device_ids=device_ids)  # type: ignore[arg-type]
 
-    def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
+    def monitored_barrier(self, timeout: datetime.timedelta | None = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)  # type: ignore[arg-type]
 
     @override
-    def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
+    def setup(self, main_address: str | None = None, main_port: str | None = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
         # maybe set addr
@@ -203,7 +201,7 @@ class TorchCollective(Collective):
 
     @classmethod
     @override
-    def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
+    def _convert_to_native_op(cls, op: str | ReduceOp | RedOpType) -> ReduceOp | RedOpType:
         # `ReduceOp` is an empty shell for `RedOpType`, the latter being the actually returned class.
         # For example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
         # `ReduceOp` is still the desired class, but it's created via a special `_make_nccl_premul_sum` function

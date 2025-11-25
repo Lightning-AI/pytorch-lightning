@@ -14,7 +14,6 @@
 import operator
 import os
 import sys
-from typing import Optional
 
 import torch
 from lightning_utilities.core.imports import compare_version
@@ -29,12 +28,12 @@ from lightning.fabric.utilities.imports import _DEEPSPEED_AVAILABLE, _TORCH_GREA
 def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
-    min_torch: Optional[str] = None,
-    max_torch: Optional[str] = None,
-    min_python: Optional[str] = None,
+    min_torch: str | None = None,
+    max_torch: str | None = None,
+    min_python: str | None = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
-    mps: Optional[bool] = None,
+    mps: bool | None = None,
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,

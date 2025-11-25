@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Callable
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -71,16 +72,16 @@ class DDPStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
-        ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[Callable] = None,
-        ddp_comm_wrapper: Optional[Callable] = None,
-        model_averaging_period: Optional[int] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: Precision | None = None,
+        ddp_comm_state: object | None = None,
+        ddp_comm_hook: Callable | None = None,
+        ddp_comm_wrapper: Callable | None = None,
+        model_averaging_period: int | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
         **kwargs: Any,
     ) -> None:
@@ -99,9 +100,9 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
-        self._model_averager: Optional[ModelAverager] = None
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._model_averager: ModelAverager | None = None
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
         self._start_method = start_method
         self._pl_static_graph_delay_done = False
 
@@ -138,7 +139,7 @@ class DDPStrategy(ParallelStrategy):
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @override
@@ -259,7 +260,7 @@ class DDPStrategy(ParallelStrategy):
         self,
         optimizer: Optimizer,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
+        model: Union["pl.LightningModule", Module] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -287,7 +288,7 @@ class DDPStrategy(ParallelStrategy):
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
-    def determine_ddp_device_ids(self) -> Optional[list[int]]:
+    def determine_ddp_device_ids(self) -> list[int] | None:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
@@ -348,9 +349,7 @@ class DDPStrategy(ParallelStrategy):
         self.model.to(self.root_device)
 
     @override
-    def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def reduce(self, tensor: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:

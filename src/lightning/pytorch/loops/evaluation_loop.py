@@ -19,7 +19,7 @@ import time
 from collections import ChainMap, OrderedDict, defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -70,7 +70,7 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = _BatchProgress()  # across dataloaders
-        self._max_batches: list[Union[int, float]] = []
+        self._max_batches: list[int | float] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: list[_OUT_DICT] = []
@@ -78,8 +78,8 @@ class _EvaluationLoop(_Loop):
         self._trainer_fn = trainer_fn
         self._stage = stage
         self._data_source = _DataLoaderSource(None, f"{stage.dataloader_prefix}_dataloader")
-        self._combined_loader: Optional[CombinedLoader] = None
-        self._data_fetcher: Optional[_DataFetcher] = None
+        self._combined_loader: CombinedLoader | None = None
+        self._data_fetcher: _DataFetcher | None = None
         self._seen_batches_per_dataloader: defaultdict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
         self._module_mode = _ModuleMode()
@@ -93,7 +93,7 @@ class _EvaluationLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> list[Union[int, float]]:
+    def max_batches(self) -> list[int | float]:
         """The max number of batches to run per dataloader."""
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
@@ -394,7 +394,7 @@ class _EvaluationLoop(_Loop):
         self.trainer.profiler.stop(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
     def _evaluation_step(
-        self, batch: Any, batch_idx: int, dataloader_idx: int, dataloader_iter: Optional[Iterator]
+        self, batch: Any, batch_idx: int, dataloader_idx: int, dataloader_iter: Iterator | None
     ) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.
 
@@ -470,7 +470,7 @@ class _EvaluationLoop(_Loop):
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
             raise SIGTERMException
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int | None) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
@@ -526,7 +526,7 @@ class _EvaluationLoop(_Loop):
                 yield (k,)
 
     @staticmethod
-    def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+    def _find_value(data: dict, target: Iterable[str]) -> Any | None:
         target_start, *rest = target
         if target_start not in data:
             return None

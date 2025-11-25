@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 from torch import Tensor
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 _POLICY_SET = set[type[Module]]
-_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
+_POLICY = _POLICY_SET | Callable[[Module, bool, int], bool]
 
 
 class XLAFSDPStrategy(ParallelStrategy, _Sharded):
@@ -74,12 +75,12 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
-        precision: Optional[XLAPrecision] = None,
-        auto_wrap_policy: Optional[_POLICY] = None,
-        activation_checkpointing_policy: Optional[_POLICY_SET] = None,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        checkpoint_io: XLACheckpointIO | None = None,
+        precision: XLAPrecision | None = None,
+        auto_wrap_policy: _POLICY | None = None,
+        activation_checkpointing_policy: _POLICY_SET | None = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
         sequential_save: bool = False,
         **kwargs: Any,
@@ -125,7 +126,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -141,7 +142,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[Precision]) -> None:
+    def precision(self, precision: Precision | None) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
@@ -188,7 +189,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def module_to_device(self, module: Module) -> None:
         return self.xla_fsdp_impl.module_to_device(module=module)
 
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         return self.xla_fsdp_impl.module_init_context(empty_init=empty_init)
 
     @override
@@ -212,8 +213,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         self,
         module: Module,
         optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
+        max_norm: float | int,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
@@ -226,12 +227,12 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         )
 
     @override
-    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
+    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: float | int) -> None:
         """Clip gradients by value."""
         return self.xla_fsdp_impl.clip_gradients_value(module=module, optimizer=optimizer, clip_val=clip_val)
 
     @override
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
         Args:
@@ -246,12 +247,12 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @override
     def all_reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+        self, output: Tensor | Any, group: Any | None = None, reduce_op: ReduceOp | str | None = None
     ) -> Tensor:
         return self.xla_fsdp_impl.all_reduce(output=output, group=group, reduce_op=reduce_op)
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         return self.xla_fsdp_impl.barrier(name=name, *args, **kwargs)
 
     @override
@@ -262,9 +263,9 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state in the provided checkpoint directory.
 
@@ -281,9 +282,9 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
 

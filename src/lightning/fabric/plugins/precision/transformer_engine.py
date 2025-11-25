@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import torch
 from typing_extensions import override
@@ -56,9 +56,9 @@ class TransformerEnginePrecision(Precision):
         self,
         *,
         weights_dtype: torch.dtype,
-        recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None,
-        replace_layers: Optional[bool] = None,
-        fallback_compute_dtype: Optional[torch.dtype] = None,
+        recipe: Union[Mapping[str, Any], "DelayedScaling"] | None = None,
+        replace_layers: bool | None = None,
+        fallback_compute_dtype: torch.dtype | None = None,
     ) -> None:
         super().__init__()
         _raise_enterprise_not_available()

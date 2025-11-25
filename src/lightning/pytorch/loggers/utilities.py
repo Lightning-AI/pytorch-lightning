@@ -14,7 +14,7 @@
 """Utilities for loggers."""
 
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from torch import Tensor
 
@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
 
 
-def _version(loggers: list[Any], separator: str = "_") -> Union[int, str]:
+def _version(loggers: list[Any], separator: str = "_") -> int | str:
     if len(loggers) == 1:
         return loggers[0].version
     # Concatenate versions together, removing duplicates and preserving order

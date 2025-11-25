@@ -13,7 +13,8 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from typing_extensions import override
 
@@ -34,7 +35,7 @@ class TorchCheckpointIO(CheckpointIO):
     """
 
     @override
-    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -61,8 +62,8 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self,
         path: _PATH,
-        map_location: Optional[Callable] = lambda storage, loc: storage,
-        weights_only: Optional[bool] = None,
+        map_location: Callable | None = lambda storage, loc: storage,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 

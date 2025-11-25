@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -51,8 +51,8 @@ class BitsandbytesPrecision(Precision):
     def __init__(
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
-        dtype: Optional[torch.dtype] = None,
-        ignore_modules: Optional[set[str]] = None,
+        dtype: torch.dtype | None = None,
+        ignore_modules: set[str] | None = None,
     ) -> None:
         super().__init__()
         _raise_enterprise_not_available()

@@ -16,7 +16,7 @@
 import inspect
 import os
 from collections.abc import Iterable, Sized
-from typing import IO, Any, Optional, Union, cast
+from typing import IO, Any, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -75,7 +75,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     """
 
-    name: Optional[str] = None
+    name: str | None = None
     CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
@@ -83,15 +83,15 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     def __init__(self) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer: Optional[pl.Trainer] = None
+        self.trainer: pl.Trainer | None = None
 
     @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        val_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        test_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        predict_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        train_dataset: Dataset | Iterable[Dataset] | None = None,
+        val_dataset: Dataset | Iterable[Dataset] | None = None,
+        test_dataset: Dataset | Iterable[Dataset] | None = None,
+        predict_dataset: Dataset | Iterable[Dataset] | None = None,
         batch_size: int = 1,
         num_workers: int = 0,
         **datamodule_kwargs: Any,
@@ -174,10 +174,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     @_restricted_classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[_PATH, IO],
+        checkpoint_path: _PATH | IO,
         map_location: _MAP_LOCATION_TYPE = None,
-        hparams_file: Optional[_PATH] = None,
-        weights_only: Optional[bool] = None,
+        hparams_file: _PATH | None = None,
+        weights_only: bool | None = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint it stores the
@@ -274,14 +274,14 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             return dataset_info(True, size)
 
         def loader_info(
-            loader: Union[DataLoader, Iterable[DataLoader]],
-        ) -> Union[dataset_info, Iterable[dataset_info]]:
+            loader: DataLoader | Iterable[DataLoader],
+        ) -> dataset_info | Iterable[dataset_info]:
             """Helper function to compute dataset information."""
             return apply_to_collection(loader, DataLoader, retrieve_dataset_info)
 
         def extract_loader_info(methods: list[tuple[str, str]]) -> dict:
             """Helper function to extract information for each dataloader method."""
-            info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
+            info: dict[str, dataset_info | Iterable[dataset_info]] = {}
             for loader_name, func_name in methods:
                 loader_method = getattr(self, func_name, None)
 
@@ -293,7 +293,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
             return info
 
-        def format_loader_info(info: dict[str, Union[dataset_info, Iterable[dataset_info]]]) -> str:
+        def format_loader_info(info: dict[str, dataset_info | Iterable[dataset_info]]) -> str:
             """Helper function to format loader information."""
             output = []
             for loader_name, loader_info in info.items():

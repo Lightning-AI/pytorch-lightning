@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import torchmetrics
 from lightning_utilities.core.imports import compare_version as _compare_version

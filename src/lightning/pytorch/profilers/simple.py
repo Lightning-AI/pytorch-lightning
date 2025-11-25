@@ -18,7 +18,6 @@ import os
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -39,8 +38,8 @@ class SimpleProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
         extended: bool = True,
     ) -> None:
         """

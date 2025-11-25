@@ -19,7 +19,7 @@ Comet Logger
 import logging
 from argparse import Namespace
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -195,13 +195,13 @@ class CometLogger(Logger):
     def __init__(
         self,
         *,
-        api_key: Optional[str] = None,
-        workspace: Optional[str] = None,
-        project: Optional[str] = None,
-        experiment_key: Optional[str] = None,
-        mode: Optional[Literal["get_or_create", "get", "create"]] = None,
-        online: Optional[bool] = None,
-        prefix: Optional[str] = None,
+        api_key: str | None = None,
+        workspace: str | None = None,
+        project: str | None = None,
+        experiment_key: str | None = None,
+        mode: Literal["get_or_create", "get", "create"] | None = None,
+        online: bool | None = None,
+        prefix: str | None = None,
         **kwargs: Any,
     ):
         _raise_enterprise_not_available()
@@ -237,12 +237,12 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         return self.logger_impl.log_hyperparams(params)
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: int | None = None) -> None:
         return self.logger_impl.log_metrics(metrics, step)
 
     @override
@@ -254,7 +254,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory.
 
         Returns:
@@ -265,7 +265,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Gets the project name.
 
         Returns:
@@ -276,7 +276,7 @@ class CometLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Gets the version.
 
         Returns:
@@ -287,5 +287,5 @@ class CometLogger(Logger):
         return self.logger_impl.version
 
     @override
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         return self.logger_impl.log_graph(model, input_array)

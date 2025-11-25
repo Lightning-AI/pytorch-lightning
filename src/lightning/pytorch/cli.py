@@ -14,11 +14,11 @@
 import inspect
 import os
 import sys
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from functools import partial, update_wrapper
 from pathlib import Path
 from types import MethodType
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 import torch
 import yaml
@@ -80,14 +80,14 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
 LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[type[LRScheduler], type[ReduceLROnPlateau]]
+LRSchedulerTypeUnion = LRScheduler | ReduceLROnPlateau
+LRSchedulerType = type[LRScheduler] | type[ReduceLROnPlateau]
 
 
 # Type aliases intended for convenience of CLI developers
-ArgsType = Optional[Union[list[str], dict[str, Any], Namespace]]
+ArgsType = list[str] | dict[str, Any] | Namespace | None
 OptimizerCallable = Callable[[Iterable], Optimizer]
-LRSchedulerCallable = Callable[[Optimizer], Union[LRScheduler, ReduceLROnPlateau]]
+LRSchedulerCallable = Callable[[Optimizer], LRScheduler | ReduceLROnPlateau]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -117,18 +117,16 @@ class LightningArgumentParser(ArgumentParser):
         super().__init__(*args, description=description, env_prefix=env_prefix, default_env=default_env, **kwargs)
         self.callback_keys: list[str] = []
         # separate optimizers and lr schedulers to know which were added
-        self._optimizers: dict[str, tuple[Union[type, tuple[type, ...]], str]] = {}
-        self._lr_schedulers: dict[str, tuple[Union[type, tuple[type, ...]], str]] = {}
+        self._optimizers: dict[str, tuple[type | tuple[type, ...], str]] = {}
+        self._lr_schedulers: dict[str, tuple[type | tuple[type, ...], str]] = {}
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[
-            Callable[..., Union[Trainer, LightningModule, LightningDataModule, Callback]],
-            type[Trainer],
-            type[LightningModule],
-            type[LightningDataModule],
-            type[Callback],
-        ],
+        lightning_class: Callable[..., Trainer | LightningModule | LightningDataModule | Callback]
+        | type[Trainer]
+        | type[LightningModule]
+        | type[LightningDataModule]
+        | type[Callback],
         nested_key: str,
         subclass_mode: bool = False,
         required: bool = True,
@@ -169,7 +167,7 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_optimizer_args(
         self,
-        optimizer_class: Union[type[Optimizer], tuple[type[Optimizer], ...]] = (Optimizer,),
+        optimizer_class: type[Optimizer] | tuple[type[Optimizer], ...] = (Optimizer,),
         nested_key: str = "optimizer",
         link_to: str = "AUTOMATIC",
     ) -> None:
@@ -194,7 +192,7 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lr_scheduler_args(
         self,
-        lr_scheduler_class: Union[LRSchedulerType, tuple[LRSchedulerType, ...]] = LRSchedulerTypeTuple,
+        lr_scheduler_class: LRSchedulerType | tuple[LRSchedulerType, ...] = LRSchedulerTypeTuple,
         nested_key: str = "lr_scheduler",
         link_to: str = "AUTOMATIC",
     ) -> None:
@@ -321,14 +319,14 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Optional[Union[type[LightningModule], Callable[..., LightningModule]]] = None,
-        datamodule_class: Optional[Union[type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
-        save_config_callback: Optional[type[SaveConfigCallback]] = SaveConfigCallback,
-        save_config_kwargs: Optional[dict[str, Any]] = None,
-        trainer_class: Union[type[Trainer], Callable[..., Trainer]] = Trainer,
-        trainer_defaults: Optional[dict[str, Any]] = None,
-        seed_everything_default: Union[bool, int] = True,
-        parser_kwargs: Optional[Union[dict[str, Any], dict[str, dict[str, Any]]]] = None,
+        model_class: type[LightningModule] | Callable[..., LightningModule] | None = None,
+        datamodule_class: type[LightningDataModule] | Callable[..., LightningDataModule] | None = None,
+        save_config_callback: type[SaveConfigCallback] | None = SaveConfigCallback,
+        save_config_kwargs: dict[str, Any] | None = None,
+        trainer_class: type[Trainer] | Callable[..., Trainer] = Trainer,
+        trainer_defaults: dict[str, Any] | None = None,
+        seed_everything_default: bool | int = True,
+        parser_kwargs: dict[str, Any] | dict[str, dict[str, Any]] | None = None,
         parser_class: type[LightningArgumentParser] = LightningArgumentParser,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
@@ -450,7 +448,7 @@ class LightningCLI:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
-            type=Union[bool, int],
+            type=bool | int,
             default=self.seed_everything_default,
             help=(
                 "Set to an int to run seed_everything with this value before classes instantiation."
@@ -528,7 +526,7 @@ class LightningCLI:
         parser = self.init_parser(**kwargs)
         self._add_arguments(parser)
         # subcommand arguments
-        skip: set[Union[str, int]] = set(self.subcommands()[subcommand])
+        skip: set[str | int] = set(self.subcommands()[subcommand])
         added = parser.add_method_arguments(klass, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
@@ -654,7 +652,7 @@ class LightningCLI:
             )
         return self.trainer_class(**config)
 
-    def _parser(self, subcommand: Optional[str]) -> LightningArgumentParser:
+    def _parser(self, subcommand: str | None) -> LightningArgumentParser:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
@@ -662,7 +660,7 @@ class LightningCLI:
 
     @staticmethod
     def configure_optimizers(
-        lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
+        lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: LRSchedulerTypeUnion | None = None
     ) -> Any:
         """Override to customize the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method.
 
@@ -681,7 +679,7 @@ class LightningCLI:
             }
         return [optimizer], [lr_scheduler]
 
-    def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
+    def _add_configure_optimizers_method_to_model(self, subcommand: str | None) -> None:
         """Overrides the model's :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method if a
         single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
@@ -690,7 +688,7 @@ class LightningCLI:
         parser = self._parser(subcommand)
 
         def get_automatic(
-            class_type: Union[type, tuple[type, ...]], register: dict[str, tuple[Union[type, tuple[type, ...]], str]]
+            class_type: type | tuple[type, ...], register: dict[str, tuple[type | tuple[type, ...], str]]
         ) -> list[str]:
             automatic = []
             for key, (base_class, link_to) in register.items():
@@ -743,7 +741,7 @@ class LightningCLI:
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 
-    def _get(self, config: Namespace, key: str, default: Optional[Any] = None) -> Any:
+    def _get(self, config: Namespace, key: str, default: Any | None = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
         return config.get(str(self.subcommand), config).get(key, default)
 
@@ -792,9 +790,7 @@ def _class_path_from_class(class_type: type) -> str:
     return class_type.__module__ + "." + class_type.__name__
 
 
-def _global_add_class_path(
-    class_type: type, init_args: Optional[Union[Namespace, dict[str, Any]]] = None
-) -> dict[str, Any]:
+def _global_add_class_path(class_type: type, init_args: Namespace | dict[str, Any] | None = None) -> dict[str, Any]:
     if isinstance(init_args, Namespace):
         init_args = init_args.as_dict()
     return {"class_path": _class_path_from_class(class_type), "init_args": init_args or {}}
@@ -807,7 +803,7 @@ def _add_class_path_generator(class_type: type) -> Callable[[Namespace], dict[st
     return add_class_path
 
 
-def instantiate_class(args: Union[Any, tuple[Any, ...]], init: dict[str, Any]) -> Any:
+def instantiate_class(args: Any | tuple[Any, ...], init: dict[str, Any]) -> Any:
     """Instantiates a class with the given args and init.
 
     Args:
@@ -827,7 +823,7 @@ def instantiate_class(args: Union[Any, tuple[Any, ...]], init: dict[str, Any]) -
     return args_class(*args, **kwargs)
 
 
-def _get_short_description(component: object) -> Optional[str]:
+def _get_short_description(component: object) -> str | None:
     if component.__doc__ is None:
         return None
     try:
@@ -837,7 +833,7 @@ def _get_short_description(component: object) -> Optional[str]:
         rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
 
 
-def _get_module_type(value: Union[Callable, type]) -> type:
+def _get_module_type(value: Callable | type) -> type:
     if callable(value) and not isinstance(value, type):
         return inspect.signature(value).return_annotation
     return value

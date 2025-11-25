@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from typing_extensions import override
@@ -53,13 +53,13 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str, list[int]]) -> list[torch.device]:
+    def get_parallel_devices(devices: int | str | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None

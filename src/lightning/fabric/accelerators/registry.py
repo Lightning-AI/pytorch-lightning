@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from typing_extensions import override
 
@@ -47,7 +48,7 @@ class _AcceleratorRegistry(dict):
     def register(
         self,
         name: str,
-        accelerator: Optional[Callable] = None,
+        accelerator: Callable | None = None,
         description: str = "",
         override: bool = False,
         **init_params: Any,
@@ -85,7 +86,7 @@ class _AcceleratorRegistry(dict):
         return do_register
 
     @override
-    def get(self, name: str, default: Optional[Any] = None) -> Any:
+    def get(self, name: str, default: Any | None = None) -> Any:
         """Calls the registered accelerator with the required parameters and returns the accelerator object.
 
         Args:

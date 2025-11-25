@@ -9,7 +9,6 @@
 
 
 from dataclasses import dataclass
-from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -21,10 +20,10 @@ class ModelArgs:
     dim: int = 4096
     n_layers: int = 32
     n_heads: int = 32
-    n_kv_heads: Optional[int] = None
+    n_kv_heads: int | None = None
     vocab_size: int = -1  # defined later by tokenizer
     multiple_of: int = 256  # make SwiGLU hidden layer size multiple of large power of 2
-    ffn_dim_multiplier: Optional[float] = None
+    ffn_dim_multiplier: float | None = None
     norm_eps: float = 1e-5
     rope_theta: float = 10000
 
@@ -248,7 +247,7 @@ class FeedForward(nn.Module):
         dim: int,
         hidden_dim: int,
         multiple_of: int,
-        ffn_dim_multiplier: Optional[float],
+        ffn_dim_multiplier: float | None,
     ):
         super().__init__()
         hidden_dim = int(2 * hidden_dim / 3)

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, get_args
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from typing_extensions import get_args, override
+from typing_extensions import override
 
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
@@ -129,7 +129,7 @@ class FSDPPrecision(Precision):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     @override
-    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: Module | None, *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)

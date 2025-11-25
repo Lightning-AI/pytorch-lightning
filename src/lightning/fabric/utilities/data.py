@@ -16,14 +16,13 @@ import functools
 import inspect
 import os
 from collections import OrderedDict
-from collections.abc import Generator, Iterable, Sized
+from collections.abc import Callable, Generator, Iterable, Sized
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, TypeGuard
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
-from typing_extensions import TypeGuard
 
 from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.exceptions import MisconfigurationException
@@ -36,7 +35,7 @@ class _WrapAttrTag(LightningEnum):
     DEL = "del"
 
     def __call__(self, *args: Any) -> None:
-        fn: Union[Callable[[object, str], None], Callable[[object, str, Any], None]]
+        fn: Callable[[object, str], None] | Callable[[object, str, Any], None]
         fn = setattr if self == self.SET else delattr
         return fn(*args)
 
@@ -45,7 +44,7 @@ def has_iterable_dataset(dataloader: object) -> bool:
     return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
-def sized_len(dataloader: object) -> Optional[int]:
+def sized_len(dataloader: object) -> int | None:
     """Try to get the length of an object, return ``None`` otherwise."""
     try:
         # try getting the length
@@ -72,14 +71,14 @@ def has_len(dataloader: object) -> TypeGuard[Sized]:
     return length is not None
 
 
-def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]) -> DataLoader:
+def _update_dataloader(dataloader: DataLoader, sampler: Sampler | Iterable) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
     return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
+    sampler: Sampler | Iterable,
 ) -> tuple[tuple[Any], dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -172,7 +171,7 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
+    sampler: Sampler | Iterable,
 ) -> dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation."""
@@ -250,7 +249,7 @@ def _auto_add_worker_init_fn(dataloader: object, rank: int) -> None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
-def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optional[type] = None, **kwargs: Any) -> Any:
+def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: type | None = None, **kwargs: Any) -> Any:
     constructor = type(orig_object) if explicit_cls is None else explicit_cls
 
     try:
@@ -281,7 +280,7 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
     return result
 
 
-def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) -> Callable:
+def _wrap_init_method(init: Callable, store_explicit_arg: str | None = None) -> Callable:
     """Wraps the ``__init__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
     :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
 
@@ -356,7 +355,7 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
 
 
 @contextmanager
-def _replace_dunder_methods(base_cls: type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
+def _replace_dunder_methods(base_cls: type, store_explicit_arg: str | None = None) -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.

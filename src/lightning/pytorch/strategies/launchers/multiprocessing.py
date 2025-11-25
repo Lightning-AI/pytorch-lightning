@@ -16,15 +16,17 @@ import logging
 import os
 import queue
 import tempfile
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, NamedTuple, Optional, Union
+from typing import Any, Literal, NamedTuple, Optional
 
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.multiprocessing.queue import SimpleQueue
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -159,7 +161,7 @@ class _MultiProcessingLauncher(_Launcher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
+        return_queue: SimpleQueue | queue.Queue,
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
@@ -272,8 +274,8 @@ class _MultiProcessingLauncher(_Launcher):
 
 
 class _WorkerOutput(NamedTuple):
-    best_model_path: Optional[_PATH]
-    weights_path: Optional[_PATH]
+    best_model_path: _PATH | None
+    weights_path: _PATH | None
     trainer_state: TrainerState
     trainer_results: Any
     extra: dict[str, Any]

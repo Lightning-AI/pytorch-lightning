@@ -35,8 +35,8 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     """
 
-    _executor: Optional[ThreadPoolExecutor]
-    _error: Optional[BaseException]
+    _executor: ThreadPoolExecutor | None
+    _error: BaseException | None
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
         super().__init__(checkpoint_io)

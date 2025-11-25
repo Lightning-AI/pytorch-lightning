@@ -13,7 +13,8 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import torch
 from typing_extensions import override
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from lightning.fabric import Fabric
     from lightning.fabric.plugins import Precision
 
-_THROUGHPUT_METRICS = dict[str, Union[int, float]]
+_THROUGHPUT_METRICS = dict[str, int | float]
 
 
 # The API design of this class follows `torchmetrics.Metric` but it doesn't need to be an actual Metric because there's
@@ -92,7 +93,7 @@ class Throughput:
     """
 
     def __init__(
-        self, available_flops: Optional[float] = None, world_size: int = 1, window_size: int = 100, separator: str = "/"
+        self, available_flops: float | None = None, world_size: int = 1, window_size: int = 100, separator: str = "/"
     ) -> None:
         self.available_flops = available_flops
         self.separator = separator
@@ -116,8 +117,8 @@ class Throughput:
         time: float,
         batches: int,
         samples: int,
-        lengths: Optional[int] = None,
-        flops: Optional[int] = None,
+        lengths: int | None = None,
+        flops: int | None = None,
     ) -> None:
         """Update throughput metrics.
 
@@ -249,7 +250,7 @@ class ThroughputMonitor(Throughput):
         self.compute_and_log = rank_zero_only(self.compute_and_log, default={})  # type: ignore[method-assign]
         self.reset = rank_zero_only(self.reset)  # type: ignore[method-assign]
 
-    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> _THROUGHPUT_METRICS:
+    def compute_and_log(self, step: int | None = None, **kwargs: Any) -> _THROUGHPUT_METRICS:
         r"""See :meth:`Throughput.compute`
 
         Args:
@@ -266,7 +267,7 @@ class ThroughputMonitor(Throughput):
 def measure_flops(
     model: torch.nn.Module,
     forward_fn: Callable[[], torch.Tensor],
-    loss_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    loss_fn: Callable[[torch.Tensor], torch.Tensor] | None = None,
 ) -> int:
     """Utility to compute the total number of FLOPs used by a module during training or during inference.
 
@@ -302,7 +303,7 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
+_CUDA_FLOPS: dict[str, dict[str | torch.dtype, float]] = {
     # Hopper
     # source: https://nvdam.widen.net/s/nb5zzzsjdf/hpc-datasheet-sc23-h200-datasheet-3002446
     "h200 sxm1": {
@@ -543,7 +544,7 @@ _TPU_FLOPS = {
 }
 
 
-def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) -> Optional[int]:
+def get_available_flops(device: torch.device, dtype: torch.dtype | str) -> int | None:
     """Returns the available theoretical FLOPs.
 
     This is an optimistic upper limit that could only be achievable if only thick matmuls were run in a benchmark
@@ -678,7 +679,7 @@ class _MonotonicWindow(list[T]):
         self.maxlen = maxlen
 
     @property
-    def last(self) -> Optional[T]:
+    def last(self) -> T | None:
         if len(self) > 0:
             return self[-1]
         return None

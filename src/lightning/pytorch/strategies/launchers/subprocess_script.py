@@ -14,7 +14,8 @@
 import logging
 import os
 import subprocess
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -134,7 +135,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 del env_copy["PL_GLOBAL_SEED"]
 
             hydra_in_use = False
-            cwd: Optional[str] = None
+            cwd: str | None = None
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 
