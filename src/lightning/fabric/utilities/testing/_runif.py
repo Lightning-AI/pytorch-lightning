@@ -23,6 +23,7 @@ from packaging.version import Version
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.accelerators.musa import MUSAAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
@@ -36,6 +37,7 @@ def _runif_reasons(
     bf16_cuda: bool = False,
     tpu: bool = False,
     mps: Optional[bool] = None,
+    musa: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,
@@ -53,6 +55,8 @@ def _runif_reasons(
         tpu: Require that TPU is available.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
+        musa: If True: Require that MUSA (Device) is available,
+            if False: Explicitly Require that MUSA is not available
         skip_windows: Skip for Windows platform.
         standalone: Mark the test as standalone, our CI will run it in a separate process.
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
@@ -107,6 +111,12 @@ def _runif_reasons(
             reasons.append("MPS")
         elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
+    
+    if musa is not None:
+        if musa and not MUSAAccelerator.is_available():
+            reasons.append("MUSA")
+        elif not musa and MUSAAccelerator.is_available():
+            reasons.append("not MUSA")
 
     if standalone:
         if os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
