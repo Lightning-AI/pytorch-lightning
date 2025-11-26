@@ -21,6 +21,7 @@ from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -29,6 +30,7 @@ from lightning.pytorch.demos.boring_classes import (
     BoringDataModuleNoLen,
     BoringModel,
     IterableBoringDataModule,
+    RandomDataset,
 )
 from lightning.pytorch.profilers.simple import SimpleProfiler
 from lightning.pytorch.trainer.states import TrainerFn
@@ -272,6 +274,29 @@ def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
         default_root_dir=tmp_path, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2
     )
     trainer.fit(model, dm)
+
+
+def test_datamodule_allow_zero_length_attr_without_super(tmp_path):
+    class DataModuleWithoutSuper(LightningDataModule):
+        def __init__(self):
+            self.data = RandomDataset(32, 4)
+
+        def val_dataloader(self):
+            return DataLoader(self.data, batch_size=2)
+
+    dm = DataModuleWithoutSuper()
+    assert dm.allow_zero_length_dataloader_with_multiple_devices is False
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        fast_dev_run=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
+
+    trainer.validate(model, datamodule=dm)
 
 
 class DummyDS(torch.utils.data.Dataset):

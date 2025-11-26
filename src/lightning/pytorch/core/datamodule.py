@@ -76,6 +76,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     """
 
     name: Optional[str] = None
+    # Fallback for subclasses that don't call ``super().__init__``. The attribute normally gets initialized in
+    # ``DataHooks.__init__`` but Trainer loops expect it to exist regardless.
+    allow_zero_length_dataloader_with_multiple_devices: bool = False
     CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
