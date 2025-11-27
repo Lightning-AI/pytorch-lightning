@@ -282,7 +282,9 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         # create a peekable iterator to look ahead without consuming the original data_fetcher
-        it1, self._peekable_iter = itertools.tee(data_fetcher.iterator)
+        iterator = data_fetcher.iterator
+        assert iterator is not None
+        it1, self._peekable_iter = itertools.tee(iterator)
         data_fetcher.iterator = it1
 
         if self.restarting and self._should_check_val_fx(data_fetcher):
