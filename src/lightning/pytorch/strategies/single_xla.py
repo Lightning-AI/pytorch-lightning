@@ -11,18 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Optional, Union
 
+import torch
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, Precision, XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision.xla import XLAPrecision
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
+from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 
 
 class SingleDeviceXLAStrategy(SingleDeviceStrategy):
@@ -36,18 +41,20 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         precision_plugin: Optional[XLAPrecision] = None,
         debug: bool = False,
     ):
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if isinstance(device, torch.device):
+            # unwrap the `torch.device` in favor of `xla_device`
+            device = device.index
+        import torch_xla.core.xla_model as xm
+
         super().__init__(
             accelerator=accelerator,
-            device=device,
+            device=xm.xla_device(device),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.strategies.xla.single import (
-            SingleDeviceXLAStrategyTrainer as EnterpriseSingleDeviceXLAStrategy,
-        )
-
-        self.single_xla_strategy_impl = EnterpriseSingleDeviceXLAStrategy(outer_object=self, device=device, debug=debug)
+        self.debug = debug
 
     @property
     @override
@@ -83,7 +90,26 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
-        return self.single_xla_strategy_impl.setup(trainer=trainer)
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
+        assert self.accelerator is not None
+        self.accelerator.setup(trainer)
+
+        assert self.model is not None
+        self.precision_plugin.convert_module(self.model)
+
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        set_shared_parameters(self.model, shared_params)
+
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @classmethod
     @override
@@ -92,4 +118,5 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @override
     def teardown(self) -> None:
-        return self.single_xla_strategy_impl.teardown()
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)

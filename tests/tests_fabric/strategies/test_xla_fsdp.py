@@ -23,6 +23,7 @@ from torch.optim import Adam
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.strategies import XLAFSDPStrategy
+from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_auto_wrapper, _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -42,7 +43,6 @@ def test_xla_fsdp_setup_optimizer_validation():
 def test_xla_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     XlaFullyShardedDataParallel."""
-    from pytorch_lightning_enterprise.strategies.xla.fsdp import _XLAFSDPBackwardSyncControl
     from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
 
     strategy = XLAFSDPStrategy()
@@ -75,45 +75,41 @@ def test_xla_fsdp_grad_clipping_value_error():
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("pytorch_lightning_enterprise.strategies.xla.fsdp._XLA_AVAILABLE", True)
 def test_rank_properties_access(xla_available):
     """Test that the strategy returns the expected values depending on whether we're in the main process or not."""
     strategy = XLAFSDPStrategy()
     strategy.cluster_environment = Mock()
 
     # we're in the main process, no processes have been launched yet
-    assert not strategy.xla_fsdp_impl._launched
+    assert not strategy._launched
     assert strategy.global_rank == 0
     assert strategy.local_rank == 0
     assert strategy.node_rank == 0
     assert strategy.world_size == 1
 
     # simulate we're in a worker process
-    strategy.xla_fsdp_impl._launched = True
+    strategy._launched = True
     assert strategy.global_rank == strategy.cluster_environment.global_rank()
     assert strategy.local_rank == strategy.cluster_environment.local_rank()
     assert strategy.node_rank == strategy.cluster_environment.node_rank()
     assert strategy.world_size == strategy.cluster_environment.world_size()
 
 
-@mock.patch("pytorch_lightning_enterprise.strategies.xla.fsdp._XLA_AVAILABLE", True)
 def test_xla_fsdp_policy(xla_available):
-    from pytorch_lightning_enterprise.strategies.xla import fsdp as fsdp_module
-
     strategy = XLAFSDPStrategy(foo=1)
-    assert strategy.xla_fsdp_impl._fsdp_kwargs == {"foo": 1}
+    assert strategy._fsdp_kwargs == {"foo": 1}
 
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
-    kwargs = strategy.xla_fsdp_impl._parse_fsdp_kwargs()
+    kwargs = strategy._parse_fsdp_kwargs()
     assert set(kwargs) == {"auto_wrap_policy", "compute_dtype"}
     assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
     assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
-    _ = strategy.xla_fsdp_impl._parse_fsdp_kwargs()
-    kwargs = strategy.xla_fsdp_impl._parse_fsdp_kwargs()  # ensure it's idempotent
+    _ = strategy._parse_fsdp_kwargs()
+    kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
     assert set(kwargs) == {"auto_wrapper_callable", "compute_dtype"}
-    assert kwargs["auto_wrapper_callable"].func is fsdp_module._activation_checkpointing_auto_wrapper
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
     assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(
@@ -122,17 +118,17 @@ def test_xla_fsdp_policy(xla_available):
         activation_checkpointing_policy={torch.nn.Linear},
         precision=XLAPrecision("bf16-true"),
     )
-    kwargs = strategy.xla_fsdp_impl._parse_fsdp_kwargs()
+    kwargs = strategy._parse_fsdp_kwargs()
     assert set(kwargs) == {"auto_wrap_policy", "auto_wrapper_callable", "compute_dtype"}
     assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
-    assert kwargs["auto_wrapper_callable"].func is fsdp_module._activation_checkpointing_auto_wrapper
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
     assert kwargs["compute_dtype"] is torch.bfloat16
     strategy.teardown()
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear}, auto_wrapper_callable="foo")
     with pytest.raises(ValueError, match="cannot set both"):
-        strategy.xla_fsdp_impl._parse_fsdp_kwargs()
+        strategy._parse_fsdp_kwargs()
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy="foo")
     with pytest.raises(TypeError, match="must be a set"):
-        strategy.xla_fsdp_impl._parse_fsdp_kwargs()
+        strategy._parse_fsdp_kwargs()

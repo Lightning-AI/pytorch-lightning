@@ -21,6 +21,7 @@ import pytest
 from lightning_utilities.test.warning import no_warning_call
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -71,14 +72,14 @@ def test_attributes_from_environment_variables(caplog):
     assert env.node_rank() == 3
     assert env.job_name() == "JOB"
     # setter should be no-op
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning_enterprise.plugins.environments.slurm"):
+    with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_global_rank(100)
     assert env.global_rank() == 1
     assert "setting global rank is not allowed" in caplog.text
 
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning_enterprise.plugins.environments.slurm"):
+    with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
@@ -134,18 +135,18 @@ def test_detect():
 def test_srun_available_and_not_used(monkeypatch):
     """Test that a warning is emitted if Lightning suspects the user forgot to run their script with `srun`."""
     monkeypatch.setattr(sys, "argv", ["train.py", "--lr", "0.01"])
-    expected = r"`srun` .* available .* but is not used. HINT: .* srun python\d* train.py --lr 0.01"
+    expected = "`srun` .* available .* but is not used. HINT: .* srun python train.py --lr 0.01"
 
     # pretend `srun` is available
     with mock.patch("lightning.fabric.plugins.environments.slurm.shutil.which", return_value="/usr/bin/srun"):
-        with pytest.warns(UserWarning, match=expected):
+        with pytest.warns(PossibleUserWarning, match=expected):
             SLURMEnvironment()
 
-        with pytest.warns(UserWarning, match=expected):
+        with pytest.warns(PossibleUserWarning, match=expected):
             SLURMEnvironment.detect()
 
     # no warning if `srun` is unavailable
-    with no_warning_call(UserWarning, match=expected):
+    with no_warning_call(PossibleUserWarning, match=expected):
         SLURMEnvironment()
         assert not SLURMEnvironment.detect()
 
@@ -175,7 +176,7 @@ def test_validate_user_settings():
 
     # in interactive mode, validation is skipped because processes get launched by Fabric/Trainer, not SLURM
     with mock.patch(
-        "pytorch_lightning_enterprise.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
+        "lightning.fabric.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
     ):
         env = SLURMEnvironment()
         env.validate_settings(num_devices=4, num_nodes=1)  # no error

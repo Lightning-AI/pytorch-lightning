@@ -75,7 +75,7 @@ def test_deepspeed_defaults():
     strategy = DeepSpeedStrategy()
     assert strategy.config is not None
     assert isinstance(strategy.config["zero_optimization"], dict)
-    assert strategy.deepspeed_impl._backward_sync_control is None
+    assert strategy._backward_sync_control is None
 
 
 @RunIf(deepspeed=True)
@@ -230,7 +230,7 @@ def test_deepspeed_save_checkpoint_exclude_frozen_parameters(exclude_frozen_para
     from deepspeed import DeepSpeedEngine
 
     strategy = DeepSpeedStrategy(exclude_frozen_parameters=exclude_frozen_parameters)
-    assert strategy.deepspeed_impl.exclude_frozen_parameters is exclude_frozen_parameters
+    assert strategy.exclude_frozen_parameters is exclude_frozen_parameters
 
     model = Mock(spec=DeepSpeedEngine, optimizer=None)
     model.modules.return_value = [model]
@@ -275,7 +275,7 @@ def test_deepspeed_load_checkpoint_no_state(tmp_path):
 
 
 @RunIf(deepspeed=True)
-@mock.patch("pytorch_lightning_enterprise.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
 def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(_, tmp_path):
     """Test that the DeepSpeed strategy can only load one DeepSpeedEngine per checkpoint."""
     from deepspeed import DeepSpeedEngine
@@ -317,7 +317,7 @@ def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
 
 
 @RunIf(deepspeed=True)
-@mock.patch("pytorch_lightning_enterprise.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
 def test_deepspeed_load_checkpoint_state_updated_with_client_state(_, tmp_path):
     """Test that the DeepSpeed strategy properly updates the state variables and returns additional metadata."""
     from deepspeed import DeepSpeedEngine
@@ -342,7 +342,7 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(_, tmp_path):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("optimzer_state_requested", [True, False])
-@mock.patch("pytorch_lightning_enterprise.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
 def test_deepspeed_load_checkpoint_optimzer_state_requested(_, optimzer_state_requested, tmp_path):
     """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
     from deepspeed import DeepSpeedEngine
@@ -427,7 +427,6 @@ def test_validate_parallel_devices_indices(device_indices):
 
     """
     accelerator = Mock(spec=CUDAAccelerator)
-    accelerator.name.return_value = "cuda"
     strategy = DeepSpeedStrategy(
         accelerator=accelerator, parallel_devices=[torch.device("cuda", i) for i in device_indices]
     )

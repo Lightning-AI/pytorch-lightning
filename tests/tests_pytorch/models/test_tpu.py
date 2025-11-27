@@ -235,7 +235,7 @@ def test_tpu_misconfiguration(devices, tpu_available):
 
 
 @pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
-@mock.patch("pytorch_lightning_enterprise.accelerators.xla._using_pjrt", return_value=True)
+@mock.patch("lightning.fabric.accelerators.xla._using_pjrt", return_value=True)
 def test_exception_when_no_tpu_found(_, xla_available):
     """Test if exception is thrown when xla devices are not available."""
     with pytest.raises(MisconfigurationException, match="XLAAccelerator` can not run on your system"):

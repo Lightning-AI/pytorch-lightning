@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import pickle
+from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
 
@@ -44,10 +45,10 @@ def _fit_and_test(logger, model, tmp_path):
 def _get_logger_with_mocks(**kwargs):
     logger = NeptuneLogger(**kwargs)
     run_instance_mock = MagicMock()
-    logger.logger_impl._run_instance = run_instance_mock
-    logger.logger_impl._run_instance.__getitem__.return_value.fetch.return_value = "exp-name"
+    logger._run_instance = run_instance_mock
+    logger._run_instance.__getitem__.return_value.fetch.return_value = "exp-name"
     run_attr_mock = MagicMock()
-    logger.logger_impl._run_instance.__getitem__.return_value = run_attr_mock
+    logger._run_instance.__getitem__.return_value = run_attr_mock
 
     return logger, run_instance_mock, run_attr_mock
 
@@ -59,7 +60,7 @@ def test_neptune_online(neptune_mock):
     logger = NeptuneLogger(api_key="test", project="project")
     created_run_mock = logger.run
 
-    assert logger.logger_impl._run_instance == created_run_mock
+    assert logger._run_instance == created_run_mock
     created_run_mock.exists.assert_called_once_with("sys/id")
     assert logger.name == "Run test name"
     assert logger.version == "TEST-1"
@@ -78,8 +79,8 @@ def test_neptune_offline(neptune_mock):
     logger.experiment["foo"] = "bar"
 
     created_run_mock.exists.assert_called_once_with("sys/id")
-    assert logger.logger_impl._run_short_id == "OFFLINE"
-    assert logger.logger_impl._run_name == "offline-name"
+    assert logger._run_short_id == "OFFLINE"
+    assert logger._run_name == "offline-name"
 
 
 def test_online_with_custom_run(neptune_mock):
@@ -90,8 +91,8 @@ def test_online_with_custom_run(neptune_mock):
     neptune_mock.init_run.reset_mock()
 
     logger = NeptuneLogger(run=created_run)
-    assert logger.logger_impl._run_instance == created_run
-    assert logger.logger_impl._run_instance == created_run
+    assert logger._run_instance == created_run
+    assert logger._run_instance == created_run
     assert logger.version == "TEST-1"
     assert neptune_mock.init_run.call_count == 0
 
@@ -272,6 +273,38 @@ def test_after_save_checkpoint(neptune_mock):
 def test_save_dir(neptune_mock):
     logger = NeptuneLogger(api_key="test", project="project")
     assert logger.save_dir == os.path.join(os.getcwd(), ".neptune")
+
+
+def test_get_full_model_name():
+    SimpleCheckpoint = namedtuple("SimpleCheckpoint", ["dirpath"])
+    test_input_data = [
+        ("key", os.path.join("foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("foo", "bar"))),
+        (
+            "key/in/parts",
+            os.path.join("foo", "bar", "key/in/parts.ext"),
+            SimpleCheckpoint(dirpath=os.path.join("foo", "bar")),
+        ),
+        ("key", os.path.join("../foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("../foo", "bar"))),
+        ("key", os.path.join("foo", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("./foo", "bar/../"))),
+    ]
+
+    for expected_model_name, model_path, checkpoint in test_input_data:
+        assert NeptuneLogger._get_full_model_name(model_path, checkpoint) == expected_model_name
+
+
+def test_get_full_model_names_from_exp_structure():
+    input_dict = {
+        "foo": {
+            "bar": {
+                "lvl1_1": {"lvl2": {"lvl3_1": "some non important value", "lvl3_2": "some non important value"}},
+                "lvl1_2": "some non important value",
+            },
+            "other_non_important": {"val100": 100},
+        },
+        "other_non_important": {"val42": 42},
+    }
+    expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
+    assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
 
 
 def test_inactive_run(neptune_mock, tmp_path, monkeypatch):

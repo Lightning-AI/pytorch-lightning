@@ -101,10 +101,7 @@ def test_patch_legacy_imports_unified(pl_version):
     assert any(key.startswith("lightning." + "pytorch") for key in sys.modules), (
         f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
     )
-    assert not any(
-        key.startswith("pytorch_lightning") and not key.startswith("pytorch_lightning_enterprise")
-        for key in sys.modules
-    ), (
+    assert not any(key.startswith("pytorch_lightning") for key in sys.modules), (
         "Should not import standalone package, all imports should be redirected to the unified package;\n"
         f" environment: {_list_sys_modules('pytorch_lightning')}"
     )
@@ -125,10 +122,7 @@ def test_patch_legacy_imports_unified(pl_version):
     assert any(key.startswith("lightning." + "pytorch") for key in sys.modules), (
         f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
     )
-    assert not any(
-        key.startswith("pytorch_lightning") and not key.startswith("pytorch_lightning_enterprise")
-        for key in sys.modules
-    ), (
+    assert not any(key.startswith("pytorch_lightning") for key in sys.modules), (
         "Should not import standalone package, all imports should be redirected to the unified package;\n"
         f" environment: {_list_sys_modules('pytorch_lightning')}"
     )
