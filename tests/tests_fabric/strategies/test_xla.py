@@ -194,14 +194,14 @@ def test_rank_properties_access(xla_available):
     strategy.cluster_environment = Mock()
 
     # we're in the main process, no processes have been launched yet
-    assert not strategy.xla_strategy_impl._launched
+    assert not strategy._launched
     assert strategy.global_rank == 0
     assert strategy.local_rank == 0
     assert strategy.node_rank == 0
     assert strategy.world_size == 1
 
     # simulate we're in a worker process
-    strategy.xla_strategy_impl._launched = True
+    strategy._launched = True
     assert strategy.global_rank == strategy.cluster_environment.global_rank()
     assert strategy.local_rank == strategy.cluster_environment.local_rank()
     assert strategy.node_rank == strategy.cluster_environment.node_rank()
