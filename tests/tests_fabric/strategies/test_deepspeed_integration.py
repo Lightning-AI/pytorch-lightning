@@ -164,7 +164,7 @@ def test_deepspeed_custom_precision_params():
         devices=1,
     )
     fabric.launch()
-    assert fabric._strategy.deepspeed_impl._config_initialized
+    assert fabric._strategy._config_initialized
     assert fabric._strategy.config["fp16"]["loss_scale"] == 10
     assert fabric._strategy.config["fp16"]["initial_scale_power"] == 11
     assert fabric._strategy.config["fp16"]["loss_scale_window"] == 12
@@ -251,7 +251,7 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     strategy = fabric._strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as platform_mock:
-        strategy.deepspeed_impl._init_deepspeed_distributed()
+        strategy._init_deepspeed_distributed()
     deepspeed_dist_mock.assert_called()
     platform_mock.assert_called()
     if platform == "Windows":

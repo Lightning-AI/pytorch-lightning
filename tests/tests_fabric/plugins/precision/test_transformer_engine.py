@@ -15,22 +15,19 @@ import sys
 from unittest.mock import Mock
 
 import pytest
-import pytorch_lightning_enterprise.utils.imports
 import torch
 import torch.distributed
 
+import lightning.fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 
 
 def test_transformer_engine_plugin(monkeypatch):
-    module = pytorch_lightning_enterprise.utils.imports
+    module = lightning.fabric.plugins.precision.transformer_engine
     if module._TRANSFORMER_ENGINE_AVAILABLE:
         pytest.skip("Assumes transformer_engine is unavailable")
-    monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", True)
-    monkeypatch.setattr(
-        "pytorch_lightning_enterprise.plugins.precision.transformer_engine._TRANSFORMER_ENGINE_AVAILABLE", True
-    )
+    monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
     monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
@@ -121,11 +118,8 @@ def test_transformer_engine_plugin(monkeypatch):
 
 
 def test_convert_module_handles_linear_without_bias(monkeypatch):
-    module = pytorch_lightning_enterprise.utils.imports  # Set up mock transformer_engine
-    monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", True)
-    monkeypatch.setattr(
-        "pytorch_lightning_enterprise.plugins.precision.transformer_engine._TRANSFORMER_ENGINE_AVAILABLE", True
-    )
+    module = lightning.fabric.plugins.precision.transformer_engine  # Set up mock transformer_engine
+    monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)
 
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
