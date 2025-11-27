@@ -45,13 +45,7 @@ def test_get_available_flops(xla_available):
     ):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
-    # Import from the right module based on _XLA_GREATER_EQUAL_2_1
-    from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
-
-    if _XLA_GREATER_EQUAL_2_1:
-        from torch_xla._internal import tpu
-    else:
-        from torch_xla.experimental import tpu
+    from torch_xla.experimental import tpu
 
     assert isinstance(tpu, Mock)
 

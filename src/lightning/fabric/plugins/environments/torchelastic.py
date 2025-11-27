@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import logging
+import os
 
 import torch.distributed
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -26,29 +27,29 @@ log = logging.getLogger(__name__)
 class TorchElasticEnvironment(ClusterEnvironment):
     """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
 
-    def __init__(self) -> None:
-        super().__init__()
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.plugins.environments.torchelastic import (
-            TorchElasticEnvironment as EnterpriseTorchElasticEnvironment,
-        )
-
-        self.torchelastic_impl = EnterpriseTorchElasticEnvironment()
-
     @property
     @override
     def creates_processes_externally(self) -> bool:
-        return self.torchelastic_impl.creates_processes_externally
+        return True
 
     @property
     @override
     def main_address(self) -> str:
-        return self.torchelastic_impl.main_address
+        if "MASTER_ADDR" not in os.environ:
+            rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
+            os.environ["MASTER_ADDR"] = "127.0.0.1"
+        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
+        return os.environ["MASTER_ADDR"]
 
     @property
     @override
     def main_port(self) -> int:
-        return self.torchelastic_impl.main_port
+        if "MASTER_PORT" not in os.environ:
+            rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
+            os.environ["MASTER_PORT"] = "12910"
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
+
+        return int(os.environ["MASTER_PORT"])
 
     @staticmethod
     @override
@@ -59,28 +60,34 @@ class TorchElasticEnvironment(ClusterEnvironment):
 
     @override
     def world_size(self) -> int:
-        return self.torchelastic_impl.world_size()
+        return int(os.environ["WORLD_SIZE"])
 
     @override
     def set_world_size(self, size: int) -> None:
-        return self.torchelastic_impl.set_world_size(size)
+        log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     @override
     def global_rank(self) -> int:
-        return self.torchelastic_impl.global_rank()
+        return int(os.environ["RANK"])
 
     @override
     def set_global_rank(self, rank: int) -> None:
-        return self.torchelastic_impl.set_global_rank(rank)
+        log.debug(
+            "TorchElasticEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
+        )
 
     @override
     def local_rank(self) -> int:
-        return self.torchelastic_impl.local_rank()
+        return int(os.environ["LOCAL_RANK"])
 
     @override
     def node_rank(self) -> int:
-        return self.torchelastic_impl.node_rank()
+        return int(os.environ.get("GROUP_RANK", 0))
 
     @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
-        return self.torchelastic_impl.validate_settings(num_devices, num_nodes)
+        if num_devices * num_nodes != self.world_size():
+            raise ValueError(
+                f"You set `devices={num_devices}` and `num_nodes={num_nodes}` in Lightning, but the product"
+                f" ({num_devices} * {num_nodes}) does not match the world size ({self.world_size()})."
+            )

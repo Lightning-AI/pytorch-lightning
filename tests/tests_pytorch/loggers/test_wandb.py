@@ -25,6 +25,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_wandb_project_name(wandb_mock):
@@ -100,7 +101,7 @@ def test_wandb_logger_init(wandb_mock):
         _ = logger.experiment
 
     # verify default resume value
-    assert logger.logger_impl._wandb_init["resume"] == "allow"
+    assert logger._wandb_init["resume"] == "allow"
 
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb_mock.init.assert_called_once()
@@ -144,9 +145,9 @@ def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
 
 def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
-    assert logger.logger_impl._experiment is None
-    logger.logger_impl.__getstate__()
-    assert logger.logger_impl._experiment is not None
+    assert logger._experiment is None
+    logger.__getstate__()
+    assert logger._experiment is not None
 
 
 def test_wandb_logger_experiment_called_first(wandb_mock, tmp_path):
@@ -625,7 +626,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
 
 def test_wandb_logger_offline_log_model(wandb_mock, tmp_path):
     """Test that log_model=True raises an error in offline mode."""
-    with pytest.raises(ValueError, match="checkpoints cannot be uploaded in offline mode"):
+    with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=tmp_path, offline=True, log_model=True)
 
 

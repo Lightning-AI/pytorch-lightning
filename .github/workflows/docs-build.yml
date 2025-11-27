@@ -125,10 +125,7 @@ jobs:
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         # allow failing link check and doctest if you run with dispatch
         continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck') && github.event_name == 'workflow_dispatch' }}
-        run: |
-          # temp fix: https://github.com/Lightning-AI/pytorch-lightning/actions/runs/19440502586/job/55622388642?pr=21354#step:11:4596
-          uv pip install -U fastapi
-          make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
 
       - name: Keep artifact
         if: github.event_name == 'pull_request'

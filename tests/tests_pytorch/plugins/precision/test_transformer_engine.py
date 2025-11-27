@@ -16,16 +16,16 @@ from contextlib import nullcontext
 from unittest.mock import ANY, Mock
 
 import pytest
-import pytorch_lightning_enterprise.utils.imports
 import torch
 
+import lightning.fabric
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins import TransformerEnginePrecision
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
 
 def test_transformer_engine_precision_plugin(monkeypatch):
-    module = pytorch_lightning_enterprise.plugins.precision.transformer_engine
+    module = lightning.fabric.plugins.precision.transformer_engine
     if module._TRANSFORMER_ENGINE_AVAILABLE:
         pytest.skip("Assumes transformer_engine is unavailable")
     monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)
@@ -44,7 +44,7 @@ def test_transformer_engine_precision_plugin(monkeypatch):
 
 
 def test_configure_model(monkeypatch):
-    module = pytorch_lightning_enterprise.plugins.precision.transformer_engine
+    module = lightning.fabric.plugins.precision.transformer_engine
     if module._TRANSFORMER_ENGINE_AVAILABLE:
         pytest.skip("Assumes transformer_engine is unavailable")
     monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)

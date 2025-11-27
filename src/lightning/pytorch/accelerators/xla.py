@@ -39,7 +39,15 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
             A dictionary mapping the metrics (free memory and peak memory) to their values.
 
         """
-        return self.accelerator_impl.get_device_stats(device)
+        import torch_xla.core.xla_model as xm
+
+        memory_info = xm.get_memory_info(device)
+        free_memory = memory_info["kb_free"]
+        peak_memory = memory_info["kb_total"] - free_memory
+        return {
+            "avg. free memory (MB)": free_memory,
+            "avg. peak memory (MB)": peak_memory,
+        }
 
     @staticmethod
     @override

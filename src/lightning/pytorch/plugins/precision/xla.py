@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from functools import partial
 from typing import Any, Callable
 
 import torch
-from typing_extensions import override
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT, _PRECISION_INPUT_STR
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class XLAPrecision(Precision):
@@ -36,12 +39,25 @@ class XLAPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT = "32-true") -> None:
-        super().__init__()
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
 
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.plugins.precision.xla import XLAPrecision as EnterpriseXLAPrecision
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in XLA."
+                f" `precision` must be one of: {supported_precision}."
+            )
+        self.precision = precision
 
-        self.xla_impl = EnterpriseXLAPrecision(precision)
+        if precision == "16-true":
+            os.environ["XLA_USE_F16"] = "1"
+            self._desired_dtype = torch.float16
+        elif precision == "bf16-true":
+            os.environ["XLA_USE_BF16"] = "1"
+            self._desired_dtype = torch.bfloat16
+        else:
+            self._desired_dtype = torch.float32
 
     @override
     def optimizer_step(  # type: ignore[override]
@@ -51,24 +67,31 @@ class XLAPrecision(Precision):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
-        return self.xla_impl.optimizer_step(optimizer, model, closure, **kwargs)
+        import torch_xla.core.xla_model as xm
 
-    @property
-    def precision(self) -> _PRECISION_INPUT_STR:
-        return self.xla_impl.precision
-
-    @precision.setter
-    def precision(self, precision: _PRECISION_INPUT_STR) -> None:
-        self.xla_impl.precision = precision
-
-    @property
-    def _desired_dtype(self) -> torch.dtype:
-        return self.xla_impl._desired_dtype
-
-    @_desired_dtype.setter
-    def _desired_dtype(self, dtype: torch.dtype) -> None:
-        self.xla_impl._desired_dtype = dtype
+        closure = partial(self._xla_wrap_closure, optimizer, closure)
+        closure = partial(self._wrap_closure, model, optimizer, closure)
+        closure_result = optimizer.step(closure=closure, **kwargs)
+        xm.mark_step()
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and skipped_backward:
+            # we lack coverage here so disable this - something to explore if there's demand
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not implemented with XLA."
+                " Please, open an issue in `https://github.com/Lightning-AI/pytorch-lightning/issues`"
+                " requesting this feature."
+            )
+        return closure_result
 
     @override
     def teardown(self) -> None:
-        return self.xla_impl.teardown()
+        os.environ.pop("XLA_USE_BF16", None)
+        os.environ.pop("XLA_USE_F16", None)
+
+    def _xla_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
+        import torch_xla.core.xla_model as xm
+
+        closure_result = closure()
+        xm.reduce_gradients(optimizer)
+        return closure_result

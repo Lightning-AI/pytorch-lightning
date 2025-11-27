@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from typing import TYPE_CHECKING, Any, Literal
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from typing_extensions import override
+from typing_extensions import get_args, override
 
-from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, Precision
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.plugins.precision.precision import Precision
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
@@ -43,37 +44,51 @@ class DeepSpeedPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
-        super().__init__()
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.plugins.precision.deepspeed import (
-            DeepSpeedPrecisionFabric as EnterpriseDeepSpeedPrecision,
-        )
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in DeepSpeed."
+                f" `precision` must be one of: {supported_precision}."
+            )
+        self.precision = precision
 
-        self.deepspeed_impl = EnterpriseDeepSpeedPrecision(precision=precision)
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_dtype = precision_to_type[self.precision]
 
     @override
     def convert_module(self, module: Module) -> Module:
-        return self.deepspeed_impl.convert_module(module)
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_dtype)
+        return module
 
     @override
     def tensor_init_context(self) -> AbstractContextManager:
-        return self.deepspeed_impl.tensor_init_context()
+        if "true" not in self.precision:
+            return nullcontext()
+        return _DtypeContextManager(self._desired_dtype)
 
     @override
     def module_init_context(self) -> AbstractContextManager:
-        return self.deepspeed_impl.module_init_context()
+        return self.tensor_init_context()
 
     @override
     def convert_input(self, data: Any) -> Any:
-        return self.deepspeed_impl.convert_input(data)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     @override
     def convert_output(self, data: Any) -> Any:
-        return self.deepspeed_impl.convert_output(data)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     @override
     def backward(self, tensor: Tensor, model: "DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
-        return self.deepspeed_impl.backward(tensor, model, *args, **kwargs)
+        """Performs back-propagation using DeepSpeed's engine."""
+        model.backward(tensor, *args, **kwargs)
 
     @override
     def optimizer_step(
@@ -81,20 +96,5 @@ class DeepSpeedPrecision(Precision):
         optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
-        return self.deepspeed_impl.optimizer_step(optimizer, **kwargs)
-
-    @property
-    def precision(self) -> _PRECISION_INPUT_STR:
-        return self.deepspeed_impl.precision
-
-    @precision.setter
-    def precision(self, precision: _PRECISION_INPUT_STR) -> None:
-        self.deepspeed_impl.precision = precision
-
-    @property
-    def _desired_dtype(self) -> torch.dtype:
-        return self.deepspeed_impl._desired_dtype
-
-    @_desired_dtype.setter
-    def _desired_dtype(self, dtype: torch.dtype) -> None:
-        self.deepspeed_impl._desired_dtype = dtype
+        # DeepSpeed handles the optimizer step internally
+        return optimizer.step(**kwargs)

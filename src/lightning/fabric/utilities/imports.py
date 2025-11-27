@@ -40,22 +40,3 @@ _TORCH_LESS_EQUAL_2_6 = compare_version("torch", operator.le, "2.6.0")
 _TORCH_GREATER_EQUAL_2_6 = compare_version("torch", operator.ge, "2.6.0")
 _TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
-
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
-_COMET_AVAILABLE = RequirementCache("comet-ml>=3.44.4")
-_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0")
-_MLFLOW_SYNCHRONOUS_AVAILABLE = RequirementCache("mlflow>=2.8.0")
-_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
-
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-_DEEPSPEED_GREATER_EQUAL_0_16 = RequirementCache("deepspeed>=0.16.0")
-_ENTERPRISE_AVAILABLE = RequirementCache("pytorch_lightning_enterprise")
-_TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
-
-
-def _raise_enterprise_not_available() -> None:
-    if not _ENTERPRISE_AVAILABLE:
-        raise ModuleNotFoundError(
-            "pytorch_lightning_enterprise is required to use this feature. "
-            "Install it with `pip install pytorch-lightning-enterprise`"
-        )

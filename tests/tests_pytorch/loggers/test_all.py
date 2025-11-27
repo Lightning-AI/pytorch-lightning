@@ -70,7 +70,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path, monkeypatch):
     """Verify that basic functionality of all loggers."""
@@ -107,8 +107,8 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
-        logger.logger_impl._comet_config.offline_directory = None
-        logger.logger_impl._project_name = "bar"
+        logger._comet_config.offline_directory = None
+        logger._project_name = "bar"
         logger.experiment.get_key.return_value = "SOME_KEY"
 
     if logger_class == NeptuneLogger:
@@ -287,7 +287,7 @@ def _test_logger_initialization(tmp_path, logger_class):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
@@ -335,7 +335,7 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-@mock.patch("pytorch_lightning_enterprise.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     """Test that the default logger name is lightning_logs."""
     # CSV
@@ -358,6 +358,6 @@ def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     logger = _instantiate_logger(MLFlowLogger, save_dir=tmp_path)
 
     _ = logger.experiment
-    logger.logger_impl._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
+    logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
     # on MLFLowLogger `name` refers to the experiment id
     # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
