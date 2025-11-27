@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import itertools
 import math
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
+from itertools import islice
 from typing import Any, Optional, Union
 
 import torch
@@ -94,6 +96,7 @@ class _TrainingEpochLoop(loops._Loop):
         self._batches_that_stepped: int = 0
         self._restart_stage = RestartStage.NONE
         self._skip_next_val = False
+        self._num_global_valid_tokens: Optional[int] = None
 
     @property
     def total_batch_idx(self) -> int:
@@ -278,6 +281,10 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
+        # create a peekable iterator to look ahead without consuming the original data_fetcher
+        it1, self._peekable_iter = itertools.tee(data_fetcher.iterator)
+        data_fetcher.iterator = it1
+
         if self.restarting and self._should_check_val_fx(data_fetcher):
             if self.val_loop.restarted_mid_evaluation:
                 # Go back and finish running validation
@@ -346,6 +353,38 @@ class _TrainingEpochLoop(loops._Loop):
                     if not using_dataloader_iter
                     else OrderedDict(any=dataloader_iter)
                 )
+
+                # Count valid tokens across global batch when using grad accumulation when using cross entropy loss
+                # Only calculate at the first batch of accumulation window and then reuse
+                if (
+                    trainer.lightning_module.automatic_optimization
+                    and trainer.accumulate_grad_batches > 1
+                    and batch_idx % trainer.accumulate_grad_batches == 0
+                ):
+                    # require all batches in accumulation window to be properly formatted
+                    total_valid_tokens = 0
+                    all_formatted_batches = True
+                    # Take next N batches without consuming the original data_fetcher
+                    peek_batches = list(islice(self._peekable_iter, trainer.accumulate_grad_batches))
+                    for batch in peek_batches:
+                        # unwrap Lightning's list/tuple wrapper
+                        if isinstance(batch, (list, tuple)):
+                            batch = batch[0]
+                        # require batch to be instance of dict and has labels, otherwise break
+                        if not isinstance(batch, dict):
+                            all_formatted_batches = False
+                            break
+                        labels = batch.get("labels")
+                        # break if labels missing or None
+                        if labels is None:
+                            all_formatted_batches = False
+                            break
+                        # safe to process
+                        labels = torch.as_tensor(labels)
+                        total_valid_tokens += int((labels != -100).sum().item())
+                    self._num_global_valid_tokens = total_valid_tokens if all_formatted_batches else None
+
+                kwargs["num_global_valid_tokens"] = self._num_global_valid_tokens
                 with trainer.profiler.profile("run_training_batch"):
                     if trainer.lightning_module.automatic_optimization:
                         # in automatic optimization, there can only be one optimizer
