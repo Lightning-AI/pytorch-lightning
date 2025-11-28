@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+import time
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
@@ -22,6 +23,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -29,6 +31,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
     from rich.console import Console, RenderableType
+    from rich.live import _RefreshThread as _RichRefreshThread
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar as _RichProgressBar
     from rich.style import Style
@@ -66,8 +69,48 @@ if _RICH_AVAILABLE:
         def time_remaining(self) -> Optional[float]:
             return None
 
+    class _RefreshThread(_RichRefreshThread):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.refresh_cond = False
+            super().__init__(*args, **kwargs)
+
+        def run(self) -> None:
+            while not self.done.is_set():
+                if self.refresh_cond:
+                    with self.live._lock:
+                        self.live.refresh()
+                    self.refresh_cond = False
+                time.sleep(0.005)
+
     class CustomProgress(Progress):
         """Overrides ``Progress`` to support adding tasks that have an infinite total size."""
+
+        def start(self) -> None:
+            """Starts the progress display.
+
+            Notes
+            -----
+                This override is needed to support the custom refresh thread.
+
+            """
+            if self.live.auto_refresh:
+                self.live._refresh_thread = _RefreshThread(self.live, self.live.refresh_per_second)
+                self.live.auto_refresh = False
+            super().start()
+            if self.live._refresh_thread:
+                self.live.auto_refresh = True
+                self.live._refresh_thread.start()
+
+        def stop(self) -> None:
+            refresh_thread = self.live._refresh_thread
+            super().stop()
+            if refresh_thread:
+                refresh_thread.stop()
+                refresh_thread.join()
+
+        def soft_refresh(self) -> None:
+            if self.live.auto_refresh and isinstance(self.live._refresh_thread, _RefreshThread):
+                self.live._refresh_thread.refresh_cond = True
 
         def add_task(
             self,
@@ -356,7 +399,7 @@ class RichProgressBar(ProgressBar):
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
                 self._metric_component,
-                auto_refresh=False,
+                auto_refresh=True,
                 disable=self.is_disabled,
                 console=self._console,
             )
@@ -364,9 +407,12 @@ class RichProgressBar(ProgressBar):
             # progress has started
             self._progress_stopped = False
 
-    def refresh(self) -> None:
+    def refresh(self, hard: bool = False) -> None:
         if self.progress:
-            self.progress.refresh()
+            if hard or _IS_INTERACTIVE:
+                self.progress.refresh()
+            else:
+                self.progress.soft_refresh()
 
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
