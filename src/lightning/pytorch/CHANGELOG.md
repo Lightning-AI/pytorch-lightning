@@ -6,19 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] - YYYY-MM-DD
 
-### Added
+### Fixed
 
--
+- Ensured ``LightningDataModule`` always exposes ``allow_zero_length_dataloader_with_multiple_devices`` so Trainer zero-length checks don't raise ``AttributeError`` when subclasses skip ``super().__init__`` ([#21358](https://github.com/Lightning-AI/pytorch-lightning/issues/21358))
 
-### Changed
-
--
-
-### Removed
-
--
+---
 
 
 ## [2.6.0] - 2025-11-28
