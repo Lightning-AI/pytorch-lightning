@@ -89,10 +89,10 @@ def test_comet_experiment_is_still_alive_after_training_complete(comet_mock):
     logger.finalize("ended")
 
     # Assert that data was saved to comet.com
-    logger.logger_impl._experiment.flush.assert_called_once()
+    logger._experiment.flush.assert_called_once()
 
     # Assert that was not ended
-    logger.logger_impl._experiment.end.assert_not_called()
+    logger._experiment.end.assert_not_called()
 
 
 @mock.patch.dict(os.environ, {})
@@ -115,8 +115,8 @@ def test_comet_logger_experiment_name(comet_mock):
         experiment_config=comet_mock.ExperimentConfig(),
     )
     # check that we saved "experiment name" in kwargs as new "name" arg
-    assert logger.logger_impl._kwargs["name"] == experiment_name
-    assert "experiment_name" not in logger.logger_impl._kwargs
+    assert logger._kwargs["name"] == experiment_name
+    assert "experiment_name" not in logger._kwargs
 
     # check that "experiment name" was passed to experiment config correctly
     assert call(experiment_name=experiment_name) not in comet_mock.ExperimentConfig.call_args_list
@@ -130,10 +130,10 @@ def test_comet_version(comet_mock):
     experiment_name = "My Name"
 
     logger = CometLogger(api_key=api_key, name=experiment_name)
-    assert logger.logger_impl._experiment is not None
+    assert logger._experiment is not None
     _ = logger.version
 
-    logger.logger_impl._experiment.get_key.assert_called()
+    logger._experiment.get_key.assert_called()
 
 
 @mock.patch.dict(os.environ, {})
@@ -146,7 +146,7 @@ def test_comet_epoch_logging(comet_mock, tmp_path, monkeypatch):
         {"test": 1},
         epoch=1,
         step=123,
-        prefix=logger.logger_impl._prefix,
+        prefix=logger._prefix,
         framework="pytorch-lightning",
     )
 

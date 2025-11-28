@@ -22,7 +22,6 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-import pytorch_lightning_enterprise.utils.imports
 import torch.distributed
 from tqdm import TMonitor
 
@@ -102,8 +101,6 @@ def restore_env_variables():
         "TPU_ML_PLATFORM_VERSION",
         "LD_LIBRARY_PATH",
         "ENABLE_RUNTIME_UPTIME_TELEMETRY",
-        "TQDM_MININTERVAL",  # set by our platform
-        "TQDM_POSITION",  # set by our platform
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -223,47 +220,14 @@ def mps_count_1(monkeypatch):
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    # First, mock torch_xla modules in sys.modules so imports succeed
-    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.functions", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_env_vars", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental.pjrt", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental.tpu", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.distributed", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.distributed.parallel_loader", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.distributed.xla_multiprocessing", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.runtime", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.utils", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.utils.utils", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.debug", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.debug.profiler", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla._internal", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla._internal.tpu", Mock())
-
-    # Then patch the _XLA_AVAILABLE flags in various modules
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_1", value)
-    monkeypatch.setattr(pytorch_lightning_enterprise.utils.imports, "_XLA_GREATER_EQUAL_2_5", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_1", value)
-    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_5", value)
-    # Patch in the modules where they're used after import
-    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_1", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._XLA_GREATER_EQUAL_2_5", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.xla._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.single._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.ddp._XLA_GREATER_EQUAL_2_1", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.fsdp._XLA_AVAILABLE", value)
-    monkeypatch.setattr("pytorch_lightning_enterprise.strategies.xla.launcher._XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
 @pytest.fixture
@@ -273,14 +237,10 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
-    # Also mock the enterprise XLAAccelerator methods
-    import pytorch_lightning_enterprise.accelerators.xla
-
-    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(pytorch_lightning_enterprise.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
-
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())

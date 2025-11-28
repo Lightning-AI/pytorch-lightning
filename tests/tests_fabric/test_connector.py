@@ -242,10 +242,8 @@ def test_custom_accelerator(*_):
         ),
     ],
 )
-@mock.patch(
-    "pytorch_lightning_enterprise.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"]
-)
-@mock.patch("pytorch_lightning_enterprise.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
+@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
+@mock.patch("lightning.fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
     with mock.patch.dict(os.environ, env_vars, clear=True):
         connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
@@ -343,8 +341,8 @@ def test_cuda_accelerator_can_not_run_on_system(_):
 
 
 @pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
-@mock.patch("pytorch_lightning_enterprise.accelerators.xla._XLA_AVAILABLE", True)
-@mock.patch("pytorch_lightning_enterprise.accelerators.xla._using_pjrt", return_value=True)
+@mock.patch("lightning.fabric.accelerators.xla._XLA_AVAILABLE", True)
+@mock.patch("lightning.fabric.accelerators.xla._using_pjrt", return_value=True)
 def test_tpu_accelerator_can_not_run_on_system(_):
     with pytest.raises(RuntimeError, match="XLAAccelerator` can not run on your system"):
         _Connector(accelerator="tpu", devices=8)
@@ -890,7 +888,7 @@ def test_precision_selection_model_parallel(_, precision, raises):
 
 
 def test_bitsandbytes_precision_cuda_required(monkeypatch):
-    monkeypatch.setattr("pytorch_lightning_enterprise.plugins.precision.bitsandbytes._BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _Connector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
