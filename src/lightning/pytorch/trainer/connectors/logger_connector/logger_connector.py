@@ -234,7 +234,9 @@ class _LoggerConnector:
         """This function returns either batch or epoch metrics."""
         on_step = self._first_loop_iter is not None
         assert self.trainer._results is not None
-        return self.trainer._results.metrics(on_step)
+        # Only include progress bar metrics if a progress bar callback is present
+        include_pbar_metrics = self.trainer.progress_bar_callback is not None
+        return self.trainer._results.metrics(on_step, include_pbar_metrics=include_pbar_metrics)
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
