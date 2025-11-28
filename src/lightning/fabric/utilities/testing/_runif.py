@@ -111,7 +111,7 @@ def _runif_reasons(
             reasons.append("MPS")
         elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
-    
+
     if musa is not None:
         if musa and not MUSAAccelerator.is_available():
             reasons.append("MUSA")

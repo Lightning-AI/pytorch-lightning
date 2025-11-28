@@ -40,7 +40,12 @@ def spawn_launch(fn, parallel_devices):
     """Copied from ``tests_pytorch.core.test_results.spawn_launch``"""
     # TODO: the accelerator and cluster_environment should be optional to just launch processes, but this requires lazy
     # initialization to be implemented
-    device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator, "musa": MUSAAccelerator}
+    device_to_accelerator = {
+        "cuda": CUDAAccelerator,
+        "mps": MPSAccelerator,
+        "cpu": CPUAccelerator,
+        "musa": MUSAAccelerator,
+    }
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
     strategy = DDPStrategy(
         accelerator=accelerator_cls(),

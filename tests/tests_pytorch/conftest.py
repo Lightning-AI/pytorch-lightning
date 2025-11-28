@@ -203,6 +203,7 @@ def cuda_count_2(monkeypatch):
 def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
+
 def mock_musa_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.musa, "num_musa_devices", lambda: n)
     monkeypatch.setattr(lightning.pytorch.accelerators.musa, "num_musa_devices", lambda: n)

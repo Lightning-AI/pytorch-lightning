@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 
 from lightning.fabric.accelerators.musa import MUSAAccelerator
-from lightning.fabric.utilities.exceptions import MisconfigurationException
 from tests_fabric.helpers.runif import RunIf
-from unittest import mock
-from unittest.mock import Mock
 
 _MAYBE_MUSA = "musa" if MUSAAccelerator.is_available() else "cpu"
 
@@ -50,6 +49,7 @@ def test_init_device_with_wrong_device_type():
 )
 def test_get_parallel_devices(devices, expected):
     assert MUSAAccelerator.get_parallel_devices(devices) == expected
+
 
 @mock.patch("torch.musa.set_device")
 @mock.patch("torch.musa.get_device_capability", return_value=(7, 0))

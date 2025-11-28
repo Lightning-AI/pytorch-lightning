@@ -10,8 +10,8 @@ MUSA training (Advanced)
 
 MUSAAccelerator Overview
 --------------------
-torch_musa is an extended Python package based on PyTorch that enables full utilization of MooreThreads graphics cards' 
-super computing power. Combined with PyTorch, users can take advantage of the strong power of MooreThreads graphics cards 
+torch_musa is an extended Python package based on PyTorch that enables full utilization of MooreThreads graphics cards'
+super computing power. Combined with PyTorch, users can take advantage of the strong power of MooreThreads graphics cards
 through torch_musa.
 
 PyTorch Lightning automatically finds these weights and ties them after the modules are moved to the

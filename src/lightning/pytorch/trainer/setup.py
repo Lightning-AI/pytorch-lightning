@@ -18,7 +18,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator, MUSAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, MUSAAccelerator, XLAAccelerator
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,

@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import namedtuple
 from unittest import mock
 
 import pytest
-import torch
 
-import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import MUSAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -41,6 +38,7 @@ def test_trainer_musa_accelerator(accelerator_value):
     trainer = Trainer(accelerator=accelerator_value, devices=1)
     assert isinstance(trainer.accelerator, MUSAAccelerator)
     assert trainer.num_devices == 1
+
 
 @RunIf(musa=True)
 @mock.patch("torch.musa.set_device")

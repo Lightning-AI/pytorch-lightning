@@ -86,7 +86,9 @@ def _parse_gpu_ids(
     # We know the user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
-    gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa)
+    gpus = _normalize_parse_gpu_input_to_list(
+        gpus, include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa
+    )
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
 
@@ -94,7 +96,8 @@ def _parse_gpu_ids(
         torch.distributed.is_available()
         and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
-        and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa)) == 1
+        and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa))
+        == 1
     ):
         # Omit sanity check on torchelastic because by default it shows one visible GPU per process
         return gpus
@@ -115,7 +118,9 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[in
     return int(s.strip())
 
 
-def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: bool = False, include_musa: bool = False) -> list[int]:
+def _sanitize_gpu_ids(
+    gpus: list[int], include_cuda: bool = False, include_mps: bool = False, include_musa: bool = False
+) -> list[int]:
     """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
     GPUs is not available.
 
@@ -132,7 +137,9 @@ def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: 
     """
     if sum((include_cuda, include_mps, include_musa)) == 0:
         raise ValueError("At least one gpu type should be specified!")
-    all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa)
+    all_available_gpus = _get_all_available_gpus(
+        include_cuda=include_cuda, include_mps=include_mps, include_musa=include_musa
+    )
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
@@ -157,7 +164,9 @@ def _normalize_parse_gpu_input_to_list(
     return list(range(gpus))
 
 
-def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False, include_musa: bool = False) -> list[int]:
+def _get_all_available_gpus(
+    include_cuda: bool = False, include_mps: bool = False, include_musa: bool = False
+) -> list[int]:
     """
     Returns:
         A list of all available GPUs
@@ -214,8 +223,8 @@ def _select_auto_accelerator() -> str:
     """Choose the accelerator type (str) based on availability."""
     from lightning.fabric.accelerators.cuda import CUDAAccelerator
     from lightning.fabric.accelerators.mps import MPSAccelerator
-    from lightning.fabric.accelerators.xla import XLAAccelerator
     from lightning.fabric.accelerators.musa import MUSAAccelerator
+    from lightning.fabric.accelerators.xla import XLAAccelerator
 
     if XLAAccelerator.is_available():
         return "tpu"

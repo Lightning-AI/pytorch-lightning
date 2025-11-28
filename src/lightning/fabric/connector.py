@@ -23,8 +23,8 @@ from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
-from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.accelerators.musa import MUSAAccelerator
+from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
     BitsandbytesPrecision,
     CheckpointIO,

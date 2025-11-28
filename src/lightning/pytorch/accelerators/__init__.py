@@ -30,8 +30,8 @@ from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.accelerators.musa import MUSAAccelerator
+from lightning.pytorch.accelerators.xla import XLAAccelerator
 
 AcceleratorRegistry = _AcceleratorRegistry()
 _register_classes(AcceleratorRegistry, "register_accelerators", sys.modules[__name__], Accelerator)

@@ -34,7 +34,7 @@ from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator, MUSAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, MUSAAccelerator, XLAAccelerator
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
