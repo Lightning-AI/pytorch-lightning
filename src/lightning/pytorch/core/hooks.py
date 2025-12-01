@@ -69,6 +69,7 @@ class ModelHooks:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
+        Learning rate scheduler will still be stepped at the end of epoch.
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
