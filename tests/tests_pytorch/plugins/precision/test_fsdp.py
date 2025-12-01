@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
@@ -21,19 +22,30 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from tests_pytorch.helpers.runif import RunIf
 
 
+# Pytest passes args/kwargs to the context manager used with `pytest.warns`.
+# `contextlib.nullcontext` doesn't accept them, so this no-op version does.
+@contextmanager
+def null_ctx(*args, **kwargs):
+    yield
+
+
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
         ("16-true", (torch.float16, torch.float16, torch.float16)),
         ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
-        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        ("16-mixed", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
         ("32-true", (torch.float32, torch.float32, torch.float32)),
     ],
 )
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision)
-    config = plugin.mixed_precision_config
+
+    warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx
+
+    with warning_ctx(UserWarning, match="enables computation in lower precision"):
+        config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
     assert config.buffer_dtype == expected[1]
