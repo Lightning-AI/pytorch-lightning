@@ -19,7 +19,7 @@ from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
 
 
 def test_invalid_precision_with_deepspeed_precision():
-    with pytest.raises(ValueError, match=r"is not supported in DeepSpeed. `precision` must be one of"):
+    with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
         DeepSpeedPrecision(precision="64-true")
 
 
