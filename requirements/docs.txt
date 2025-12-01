@@ -3,7 +3,7 @@ myst-parser >=0.18.1, <5.0.0
 nbsphinx >=0.8.5, <=0.9.7
 nbconvert >7.14, <7.17
 pandoc >=1.0, <=2.4
-docutils>=0.18.1,<=0.22.2
+docutils>=0.18.1,<=0.22.3
 sphinxcontrib-fulltoc >=1.0, <=1.2.0
 sphinxcontrib-mockautodoc
 sphinx-autobuild
