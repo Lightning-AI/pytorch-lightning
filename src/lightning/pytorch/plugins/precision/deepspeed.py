@@ -11,21 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import AbstractContextManager
-from typing import Any, Callable, Optional, Union
+from contextlib import AbstractContextManager, nullcontext
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
+from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
-from typing_extensions import override
+from torch.optim import LBFGS, Optimizer
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT, _PRECISION_INPUT_STR
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.rank_zero import WarningCache
+
+if TYPE_CHECKING:
+    import deepspeed
+
+warning_cache = WarningCache()
 
 
 class DeepSpeedPrecision(Precision):
@@ -44,29 +53,41 @@ class DeepSpeedPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
-        super().__init__()
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.plugins.precision.deepspeed import (
-            DeepSpeedPrecisionTrainer as EnterpriseDeepSpeedPrecision,
-        )
-
-        self.deepspeed_precision_impl = EnterpriseDeepSpeedPrecision(outer_object=self, precision=precision)
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
+                f" `precision` must be one of: {supported_precision}."
+            )
+        self.precision = precision
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_dtype = precision_to_type[self.precision]
 
     @override
     def convert_module(self, module: Module) -> Module:
-        return self.deepspeed_precision_impl.convert_module(module=module)
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_dtype)
+        return module
 
     @override
     def convert_input(self, data: Any) -> Any:
-        return self.deepspeed_precision_impl.convert_input(data=data)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     @override
     def tensor_init_context(self) -> AbstractContextManager:
-        return self.deepspeed_precision_impl.tensor_init_context()
+        if "true" not in self.precision:
+            return nullcontext()
+        return _DtypeContextManager(self._desired_dtype)
 
     @override
     def module_init_context(self) -> AbstractContextManager:
-        return self.deepspeed_precision_impl.module_init_context()
+        return self.tensor_init_context()
 
     @override
     def backward(  # type: ignore[override]
@@ -77,7 +98,7 @@ class DeepSpeedPrecision(Precision):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        r"""Performs back-propagation.
+        r"""Performs back-propagation using DeepSpeed's engine.
 
         Args:
             tensor: the loss tensor
@@ -87,7 +108,13 @@ class DeepSpeedPrecision(Precision):
             \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
 
         """
-        return self.deepspeed_precision_impl.backward(tensor=tensor, model=model, optimizer=optimizer, *args, **kwargs)
+        if is_overridden("backward", model):
+            warning_cache.warn(
+                "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
+                " the backward logic internally."
+            )
+        deepspeed_engine: deepspeed.DeepSpeedEngine = model.trainer.model
+        deepspeed_engine.backward(tensor, *args, **kwargs)
 
     @override
     def optimizer_step(  # type: ignore[override]
@@ -97,7 +124,19 @@ class DeepSpeedPrecision(Precision):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
-        return self.deepspeed_precision_impl.optimizer_step(optimizer=optimizer, model=model, closure=closure, **kwargs)
+        if isinstance(optimizer, LBFGS):
+            raise MisconfigurationException("DeepSpeed and the LBFGS optimizer are not compatible.")
+        closure_result = closure()
+        self._after_closure(model, optimizer)
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and skipped_backward:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
+            )
+        # DeepSpeed handles the optimizer step internally
+        deepspeed_engine: deepspeed.DeepSpeedEngine = model.trainer.model
+        return deepspeed_engine.step(**kwargs)
 
     @override
     def clip_gradients(
@@ -106,22 +145,4 @@ class DeepSpeedPrecision(Precision):
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        return self.deepspeed_precision_impl.clip_gradients(
-            optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm
-        )
-
-    @property
-    def precision(self) -> _PRECISION_INPUT_STR:
-        return self.deepspeed_precision_impl.precision
-
-    @precision.setter
-    def precision(self, value: _PRECISION_INPUT_STR) -> None:
-        self.deepspeed_precision_impl.precision = value
-
-    @property
-    def _desired_dtype(self) -> torch.dtype:
-        return self.deepspeed_precision_impl._desired_dtype
-
-    @_desired_dtype.setter
-    def _desired_dtype(self, value: torch.dtype) -> None:
-        self.deepspeed_precision_impl._desired_dtype = value
+        """DeepSpeed handles gradient clipping internally."""

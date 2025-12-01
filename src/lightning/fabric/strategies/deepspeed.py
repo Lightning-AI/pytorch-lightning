@@ -11,29 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
+import json
 import logging
-from contextlib import AbstractContextManager
+import os
+import platform
+from collections.abc import Mapping
+from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
+from itertools import chain
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
-from lightning.fabric.accelerators import Accelerator
+from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
+from lightning.fabric.utilities.load import _move_state_into
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from deepspeed import DeepSpeedEngine
     from torch.optim.lr_scheduler import _LRScheduler
+
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+_DEEPSPEED_GREATER_EQUAL_0_16 = RequirementCache("deepspeed>=0.16.0")
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
@@ -220,11 +235,24 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             exclude_frozen_parameters: Exclude frozen parameters when saving checkpoints.
 
         """
+        if not _DEEPSPEED_AVAILABLE:
+            raise ImportError(
+                "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
+                " Install it by running `pip install -U deepspeed`."
+            )
 
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.strategies.deepspeed import (
-            DeepSpeedStrategyFabric as EnterpriseDeepSpeedStrategy,
-        )
+        if _TORCH_GREATER_EQUAL_2_6 and not _DEEPSPEED_GREATER_EQUAL_0_16:
+            # Starting with PyTorch 2.6, `torch.load` defaults to `weights_only=True` when loading full checkpoints.
+            # DeepSpeed added support for this behavior in version 0.16.0.
+            import deepspeed
+
+            deepspeed_version = deepspeed.__version__
+
+            raise ImportError(
+                f"PyTorch >= 2.6 requires DeepSpeed >= 0.16.0. "
+                f"Detected DeepSpeed version: {deepspeed_version}. "
+                "Please upgrade by running `pip install -U 'deepspeed>=0.16.0'`."
+            )
 
         super().__init__(
             accelerator=accelerator,
@@ -233,68 +261,77 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             precision=precision,
             process_group_backend=process_group_backend,
         )
-        self.deepspeed_impl = EnterpriseDeepSpeedStrategy(
-            outer_object=self,
-            accelerator=accelerator,
-            zero_optimization=zero_optimization,
-            stage=stage,
-            remote_device=remote_device,
-            offload_optimizer=offload_optimizer,
-            offload_parameters=offload_parameters,
-            offload_params_device=offload_params_device,
-            nvme_path=nvme_path,
-            params_buffer_count=params_buffer_count,
-            params_buffer_size=params_buffer_size,
-            max_in_cpu=max_in_cpu,
-            offload_optimizer_device=offload_optimizer_device,
-            optimizer_buffer_count=optimizer_buffer_count,
-            block_size=block_size,
-            queue_depth=queue_depth,
-            single_submit=single_submit,
-            overlap_events=overlap_events,
-            thread_count=thread_count,
-            pin_memory=pin_memory,
-            sub_group_size=sub_group_size,
-            contiguous_gradients=contiguous_gradients,
-            overlap_comm=overlap_comm,
-            allgather_partitions=allgather_partitions,
-            reduce_scatter=reduce_scatter,
-            allgather_bucket_size=allgather_bucket_size,
-            reduce_bucket_size=reduce_bucket_size,
-            zero_allow_untested_optimizer=zero_allow_untested_optimizer,
-            logging_batch_size_per_gpu=logging_batch_size_per_gpu,
-            config=config,
-            logging_level=logging_level,
-            parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
-            loss_scale=loss_scale,
-            initial_scale_power=initial_scale_power,
-            loss_scale_window=loss_scale_window,
-            hysteresis=hysteresis,
-            min_loss_scale=min_loss_scale,
-            partition_activations=partition_activations,
-            cpu_checkpointing=cpu_checkpointing,
-            contiguous_memory_optimization=contiguous_memory_optimization,
-            synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
-            load_full_weights=load_full_weights,
-            precision=precision,
-            process_group_backend=process_group_backend,
-            timeout=timeout,
-            exclude_frozen_parameters=exclude_frozen_parameters,
-        )
+        self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
+        self._timeout: Optional[timedelta] = timeout
+
+        self.config = self._load_config(config)
+        if self.config is None:
+            # User has not overridden config, set defaults
+            self.config = self._create_default_config(
+                zero_optimization,
+                zero_allow_untested_optimizer,
+                logging_batch_size_per_gpu,
+                offload_optimizer=offload_optimizer,
+                offload_parameters=offload_parameters,
+                nvme_path=nvme_path,
+                offload_params_device=offload_params_device,
+                params_buffer_count=params_buffer_count,
+                params_buffer_size=params_buffer_size,
+                max_in_cpu=max_in_cpu,
+                pin_memory=pin_memory,
+                offload_optimizer_device=offload_optimizer_device,
+                optimizer_buffer_count=optimizer_buffer_count,
+                block_size=block_size,
+                queue_depth=queue_depth,
+                single_submit=single_submit,
+                overlap_events=overlap_events,
+                thread_count=thread_count,
+                partition_activations=partition_activations,
+                cpu_checkpointing=cpu_checkpointing,
+                contiguous_memory_optimization=contiguous_memory_optimization,
+                synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
+                stage=stage,
+                contiguous_gradients=contiguous_gradients,
+                overlap_comm=overlap_comm,
+                allgather_partitions=allgather_partitions,
+                reduce_scatter=reduce_scatter,
+                allgather_bucket_size=allgather_bucket_size,
+                reduce_bucket_size=reduce_bucket_size,
+                sub_group_size=sub_group_size,
+            )
+
+        import deepspeed
+
+        self._config_initialized = False
+        deepspeed.utils.logging.logger.setLevel(logging_level)
+
+        self.remote_device = remote_device
+        self.load_full_weights = load_full_weights
+        self.exclude_frozen_parameters = exclude_frozen_parameters
+
+        # default FP16 parameters.
+        self.loss_scale = loss_scale
+        self.initial_scale_power = initial_scale_power
+        self.loss_scale_window = loss_scale_window
+        self.hysteresis = hysteresis
+        self.min_loss_scale = min_loss_scale
+
+        self._deepspeed_engine: Optional[DeepSpeedEngine] = None
 
     @property
     def zero_stage_3(self) -> bool:
-        return self.deepspeed_impl.zero_stage_3
+        assert isinstance(self.config, dict)
+        zero_optimization = self.config.get("zero_optimization")
+        return zero_optimization is not None and zero_optimization.get("stage") == 3
 
     @property
     @override
     def distributed_sampler_kwargs(self) -> dict[str, int]:
-        return self.deepspeed_impl.distributed_sampler_kwargs
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def model(self) -> "DeepSpeedEngine":
-        return self.deepspeed_impl._deepspeed_engine
+        return self._deepspeed_engine
 
     @override
     def setup_module_and_optimizers(
@@ -308,9 +345,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             deepspeed optimizer, and an optional learning rate scheduler.
 
         """
-        return self.deepspeed_impl.setup_module_and_optimizers(
-            module=module, optimizers=optimizers, scheduler=scheduler
-        )
+        if len(optimizers) != 1:
+            raise ValueError(
+                f"Currently only one optimizer is supported with DeepSpeed. Got {len(optimizers)} optimizers instead."
+            )
+
+        self._deepspeed_engine, optimizer, scheduler = self._initialize_engine(module, optimizers[0], scheduler)
+        self._set_deepspeed_activation_checkpointing()
+        return self._deepspeed_engine, [optimizer], scheduler
 
     @override
     def setup_module(self, module: Module) -> "DeepSpeedEngine":
@@ -319,7 +361,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         For training, see :meth:`setup_module_and_optimizers`.
 
         """
-        return self.deepspeed_impl.setup_module(module=module)
+        self._deepspeed_engine, _, _ = self._initialize_engine(module)
+        return self._deepspeed_engine
 
     @override
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
@@ -328,15 +371,34 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
 
         """
-        return self.deepspeed_impl.setup_optimizer(optimizer=optimizer)
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @override
     def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
-        return self.deepspeed_impl.module_init_context(empty_init=empty_init)
+        if self.zero_stage_3 and empty_init is False:
+            raise NotImplementedError(
+                f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+            )
+        module_sharded_ctx = self.module_sharded_context()
+        stack = ExitStack()
+        if not self.zero_stage_3:
+            stack.enter_context(super().module_init_context(empty_init=empty_init))
+        stack.enter_context(module_sharded_ctx)
+        return stack
 
     @override
     def module_sharded_context(self) -> AbstractContextManager:
-        return self.deepspeed_impl.module_sharded_context()
+        # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
+        # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
+
+        import deepspeed
+
+        assert self._config_initialized
+        return deepspeed.zero.Init(
+            enabled=self.zero_stage_3,
+            remote_device=self.remote_device,
+            config_dict_or_path=self.config,
+        )
 
     @override
     def save_checkpoint(
@@ -363,8 +425,46 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 :class:`deepspeed.DeepSpeedEngine` objects were found.
 
         """
-        return self.deepspeed_impl.save_checkpoint(
-            path=path, state=state, storage_options=storage_options, filter=filter
+        if storage_options is not None:
+            raise TypeError(
+                "`DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `DeepSpeedStrategy` does not use the `CheckpointIO`."
+            )
+        if filter is not None:
+            raise TypeError(
+                "`DeepSpeedStrategy.save_checkpoint(..., filter=...)` is not supported because"
+                " `DeepSpeedStrategy` manages the state serialization internally."
+            )
+
+        engines = _get_deepspeed_engines_from_state(state)
+        if len(engines) == 0:
+            raise ValueError(
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
+            )
+        if len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
+                " currently limited to a single model per checkpoint. To save multiple models, call the"
+                " save method for each model separately with a different path."
+            )
+        engine = engines[0]
+
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
+
+        # split the checkpoint into two parts:
+        # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
+        # 2) the rest of the user's state, which in deepspeed is called `client state`
+        excluded_objects = (engine, engine.optimizer) if engine.optimizer is not None else (engine,)
+        state = {k: v for k, v in state.items() if v not in excluded_objects}
+        _validate_state_keys(state)
+        # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
+        state = self._convert_stateful_objects_in_state(state, filter={})
+        # use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        engine.save_checkpoint(
+            path, client_state=state, tag="checkpoint", exclude_frozen_parameters=self.exclude_frozen_parameters
         )
 
     @override
@@ -395,7 +495,59 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 not in the expected DeepSpeed format.
 
         """
-        return self.deepspeed_impl.load_checkpoint(path=path, state=state, strict=strict)
+        if isinstance(state, (Module, Optimizer)) or self.load_full_weights and self.zero_stage_3:
+            # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
+            # a consolidated checkpoint
+            path = self.broadcast(path)
+            return super().load_checkpoint(path=path, state=state, strict=strict, weights_only=weights_only)
+
+        if not state:
+            raise ValueError(
+                f"Got DeepSpeedStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+                f" a model instance to reload is required. Pass it in like so:"
+                " DeepSpeedStrategy.load_checkpoint(..., state={'model': model, ...})"
+            )
+        _validate_checkpoint_directory(path)
+
+        engines = _get_deepspeed_engines_from_state(state)
+        if len(engines) == 0:
+            raise ValueError(
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+            )
+        if len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving and loading checkpoints"
+                " with DeepSpeed is currently limited to a single model per checkpoint. To load multiple model"
+                " states, call the load method for each model checkpoint separately."
+            )
+        engine = engines[0]
+
+        from deepspeed.runtime.base_optimizer import DeepSpeedOptimizer
+
+        optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
+
+        torch.cuda.empty_cache()
+        _, client_state = engine.load_checkpoint(
+            path,
+            tag="checkpoint",
+            load_optimizer_states=optimzer_state_requested,
+            load_lr_scheduler_states=False,
+            load_module_strict=strict,
+        )
+
+        if client_state is None:
+            raise RuntimeError(
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
+                " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
+            )
+
+        # `Engine.load_checkpoint` adds useless keys 'optimizer' and 'lr_scheduler' to the client state; remove
+        # them to avoid name collision with user state
+        keys = set(client_state) & set(state) - {"optimizer", "lr_scheduler"}
+        _move_state_into(source=client_state, destination=state, keys=keys)
+        return client_state
 
     @override
     def clip_gradients_norm(
@@ -406,19 +558,19 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
     ) -> torch.Tensor:
-        return self.deepspeed_impl.clip_gradients_norm(
-            module=module,
-            optimizer=optimizer,
-            max_norm=max_norm,
-            norm_type=norm_type,
-            error_if_nonfinite=error_if_nonfinite,
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
         )
 
     @override
     def clip_gradients_value(
         self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
-        return self.deepspeed_impl.clip_gradients_value(module=module, optimizer=optimizer, clip_val=clip_val)
+        raise NotImplementedError(
+            "DeepSpeed handles gradient clipping automatically within the optimizer. "
+            "Make sure to set the `gradient_clipping` value in your Config."
+        )
 
     @classmethod
     @override
@@ -461,22 +613,338 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             offload_optimizer_device="nvme",
         )
 
+    def _initialize_engine(
+        self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional["_LRScheduler"] = None
+    ) -> tuple["DeepSpeedEngine", Optimizer, Any]:
+        """Initialize one model and one optimizer with an optional learning rate scheduler.
+
+        This calls ``deepspeed.initialize`` internally.
+
+        """
+        import deepspeed
+
+        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        deepspeed_engine, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
+            config=self.config,
+            model=model,
+            model_parameters=model_parameters,
+            optimizer=optimizer,
+            lr_scheduler=scheduler,
+            dist_init_required=False,
+        )
+        return deepspeed_engine, deepspeed_optimizer, deepspeed_scheduler
+
     @override
     def setup_environment(self) -> None:
-        return self.deepspeed_impl.setup_environment()
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
+        super().setup_environment()
 
     @override
     def _setup_distributed(self) -> None:
-        return self.deepspeed_impl._setup_distributed()
+        assert self.parallel_devices is not None
+        _validate_device_index_selection(self.parallel_devices)
+        reset_seed()
+        self._set_world_ranks()
+        self._init_deepspeed_distributed()
+        if not self._config_initialized:
+            self._format_config()
+            self._config_initialized = True
 
-    @property
-    def config(self) -> dict[str, Any]:
-        return self.deepspeed_impl.config
+    def _init_deepspeed_distributed(self) -> None:
+        import deepspeed
 
-    @config.setter
-    def config(self, config: dict[str, Any]) -> None:
-        self.deepspeed_impl.config = config
+        assert self.cluster_environment is not None
+        if platform.system() != "Windows":
+            # do not set env variables on windows, allow deepspeed to control setup
+            self._set_node_environment_variables()
+            log.info(
+                "initializing deepspeed distributed: "
+                f"GLOBAL_RANK: {self.global_rank}, "
+                f"MEMBER: {self.global_rank + 1}/{self.world_size}"
+            )
+        self._process_group_backend = self._get_process_group_backend()
+        deepspeed.init_distributed(
+            self._process_group_backend, distributed_port=self.cluster_environment.main_port, timeout=self._timeout
+        )
 
-    @property
-    def load_full_weights(self) -> bool:
-        return self.deepspeed_impl.load_full_weights
+    def _set_node_environment_variables(self) -> None:
+        assert self.cluster_environment is not None
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
+        os.environ["RANK"] = str(self.global_rank)
+        os.environ["WORLD_SIZE"] = str(self.world_size)
+        os.environ["LOCAL_RANK"] = str(self.local_rank)
+
+    def _set_deepspeed_activation_checkpointing(self) -> None:
+        import deepspeed
+
+        assert isinstance(self.config, dict)
+        if self.config.get("activation_checkpointing"):
+            checkpoint_config = self.config["activation_checkpointing"]
+            deepspeed.checkpointing.configure(
+                mpu_=None,
+                partition_activations=checkpoint_config.get("partition_activations"),
+                contiguous_checkpointing=checkpoint_config.get("contiguous_memory_optimization"),
+                checkpoint_in_cpu=checkpoint_config.get("cpu_checkpointing"),
+                profile=checkpoint_config.get("profile"),
+            )
+
+    def _format_config(self) -> None:
+        if self.config is None:
+            raise ValueError(
+                "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
+            )
+
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
+
+    def _create_default_config(
+        self,
+        zero_optimization: bool,
+        zero_allow_untested_optimizer: bool,
+        logging_batch_size_per_gpu: Optional[int],
+        partition_activations: bool,
+        cpu_checkpointing: bool,
+        contiguous_memory_optimization: bool,
+        synchronize_checkpoint_boundary: bool,
+        offload_optimizer: bool,
+        offload_parameters: bool,
+        nvme_path: str,
+        offload_params_device: str,
+        params_buffer_count: int,
+        params_buffer_size: int,
+        max_in_cpu: int,
+        offload_optimizer_device: str,
+        optimizer_buffer_count: int,
+        pin_memory: bool,
+        block_size: int,
+        queue_depth: int,
+        single_submit: bool,
+        overlap_events: bool,
+        thread_count: int,
+        **zero_kwargs: Any,
+    ) -> dict:
+        cfg = {
+            "activation_checkpointing": {
+                "partition_activations": partition_activations,
+                "cpu_checkpointing": cpu_checkpointing,
+                "contiguous_memory_optimization": contiguous_memory_optimization,
+                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary,
+            },
+            "aio": {
+                "block_size": block_size,
+                "queue_depth": queue_depth,
+                "single_submit": single_submit,
+                "overlap_events": overlap_events,
+                "thread_count": thread_count,
+            },
+        }
+        if zero_optimization:
+            zero_config = zero_kwargs
+
+            if offload_optimizer:
+                zero_config["offload_optimizer"] = {
+                    "device": offload_optimizer_device,
+                    "nvme_path": nvme_path,
+                    "buffer_count": optimizer_buffer_count,
+                    "pin_memory": pin_memory,
+                }
+            if offload_parameters:
+                zero_config["offload_param"] = {
+                    "device": offload_params_device,
+                    "nvme_path": nvme_path,
+                    "buffer_count": params_buffer_count,
+                    "buffer_size": params_buffer_size,
+                    "max_in_cpu": max_in_cpu,
+                    "pin_memory": pin_memory,
+                }
+            cfg.update({
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_config,
+            })
+        if logging_batch_size_per_gpu:
+            cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
+        return cfg
+
+    def _restore_zero_state(self, module: Module, ckpt: Mapping[str, Any]) -> None:
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
+        across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
+        across processes.
+
+        Args:
+            ckpt: The ckpt file.
+
+        """
+        import deepspeed
+
+        def load(module: torch.nn.Module, prefix: str = "") -> None:
+            missing_keys: list[str] = []
+            unexpected_keys: list[str] = []
+            error_msgs: list[str] = []
+            state_dict = ckpt["state_dict"]
+
+            # copy state_dict so _load_from_state_dict can modify it
+            metadata = getattr(state_dict, "_metadata", None)
+            state_dict = state_dict.copy()
+            if metadata is not None:
+                state_dict._metadata = metadata
+
+            local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
+            # because zero3 puts placeholders in model params, this context
+            # manager gathers (unpartitions) the params of the current layer, then loads from
+            # the state dict and then re-partitions them again
+            with deepspeed.zero.GatheredParameters(list(module.parameters(recurse=False)), modifier_rank=0):
+                if self.is_global_zero:
+                    module._load_from_state_dict(
+                        state_dict=state_dict,
+                        prefix=prefix,
+                        local_metadata=local_metadata,
+                        strict=True,
+                        missing_keys=missing_keys,
+                        unexpected_keys=unexpected_keys,
+                        error_msgs=error_msgs,
+                    )
+
+            for name, child in module._modules.items():
+                if child is not None:
+                    load(child, prefix + name + ".")
+
+        load(module, prefix="")
+
+    def _load_config(self, config: Optional[Union[_PATH, dict[str, Any]]]) -> Optional[dict[str, Any]]:
+        if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
+            rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
+            config = os.environ[self.DEEPSPEED_ENV_VAR]
+        if isinstance(config, (str, Path)):
+            if not os.path.isfile(config):
+                raise FileNotFoundError(
+                    f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
+                )
+            with open(config) as f:
+                config = json.load(f)
+        assert isinstance(config, dict) or config is None
+        return config
+
+
+def _get_deepspeed_engines_from_state(state: dict[str, Any]) -> list["DeepSpeedEngine"]:
+    from deepspeed import DeepSpeedEngine
+
+    modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
+    return [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
+
+
+def _validate_state_keys(state: dict[str, Any]) -> None:
+    # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
+    # colliding keys from the user. We explicitly check it here:
+    deepspeed_internal_keys = {
+        "module",
+        "buffer_names",
+        "optimizer",
+        "param_shapes",
+        "lr_scheduler",
+        "sparse_tensor_module_names",
+        "skipped_steps",
+        "global_steps",
+        "global_samples",
+        "dp_world_size",
+        "mp_world_size",
+        "ds_config",
+        "ds_version",
+    }
+    colliding_keys = deepspeed_internal_keys.intersection(state.keys())
+    if colliding_keys:
+        rank_zero_warn(
+            "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
+            " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
+            + ", ".join(colliding_keys)
+        )
+
+
+def _validate_device_index_selection(parallel_devices: list[torch.device]) -> None:
+    selected_device_indices = [device.index for device in parallel_devices]
+    expected_device_indices = list(range(len(parallel_devices)))
+    if selected_device_indices != expected_device_indices:
+        raise RuntimeError(
+            f"The selected device indices {selected_device_indices!r} don't match the local rank values of processes."
+            " If you need to select GPUs at a specific index, set the `CUDA_VISIBLE_DEVICES` environment variable"
+            f" instead. For example: `CUDA_VISIBLE_DEVICES={','.join(str(i) for i in selected_device_indices)}`."
+        )
+
+
+def _is_deepspeed_checkpoint(path: Path) -> bool:
+    """Heuristic check whether the path points to a top-level DeepSpeed checkpoint directory."""
+    return path.is_dir() and (path / "checkpoint").is_dir()
+
+
+def _validate_checkpoint_directory(path: _PATH) -> None:
+    """Validates that the path points to a DeepSpeed checkpoint directory and suggests fixes for user error."""
+    # Example DeepSpeed checkpoint directory:
+    #
+    # epoch=5-step=10999.ckpt
+    # ├── checkpoint
+    # │   ├── zero_pp_rank_0_mp_rank_00_model_states.pt
+    # │   ├── zero_pp_rank_0_mp_rank_00_optim_states.pt
+    # │   ├── zero_pp_rank_1_mp_rank_00_model_states.pt
+    # │   └── zero_pp_rank_1_mp_rank_00_optim_states.pt
+    # ├── latest
+    # └── zero_to_fp32.py
+
+    path = Path(path)
+    path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
+    default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path}"
+
+    if not path_is_ds_checkpoint:
+        # Case 1: User may have accidentally passed the subfolder "checkpoint"
+        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
+        if parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a subfolder."
+                f" Try to load using this parent directory instead: {path.parent}"
+            )
+        # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
+        parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
+        if parent_parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed checkpoint folder."
+                f" Try to load using this parent directory instead: {path.parent.parent}"
+            )
+        raise FileNotFoundError(default_message)
+
+
+def _format_precision_config(
+    config: dict[str, Any],
+    precision: str,
+    loss_scale: float,
+    loss_scale_window: int,
+    min_loss_scale: int,
+    initial_scale_power: int,
+    hysteresis: int,
+) -> None:
+    if "fp16" not in config and precision in ("16-mixed", "16-true"):
+        # FP16 is a DeepSpeed standalone AMP implementation
+        rank_zero_info("Enabling DeepSpeed FP16. Model parameters and inputs will be cast to `float16`.")
+        config["fp16"] = {
+            "enabled": True,
+            "loss_scale": loss_scale,
+            "initial_scale_power": initial_scale_power,
+            "loss_scale_window": loss_scale_window,
+            "hysteresis": hysteresis,
+            "min_loss_scale": min_loss_scale,
+        }
+    elif "bf16" not in config and precision in ("bf16-mixed", "bf16-true"):
+        rank_zero_info("Enabling DeepSpeed BF16. Model parameters and inputs will be cast to `bfloat16`.")
+        config["bf16"] = {"enabled": True}
