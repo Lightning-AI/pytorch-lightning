@@ -1542,7 +1542,7 @@ class LightningModule(
 
         """
         rank_zero_deprecation(
-            "`LightningModule.to_torchscript` has been deprecated in v2.5 and will be removed in v2.7. "
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
             "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
             "See https://pytorch.org/docs/stable/export.html for more information."
         )
