@@ -271,14 +271,6 @@ checkpointing = ModelCheckpoint(monitor="val_loss")
 trainer = Trainer(callbacks=[checkpointing])
 ```
 
-<summary>Export to torchscript (JIT) (production use)</summary>
-
-```python
-# torchscript
-autoencoder = LitAutoEncoder()
-torch.jit.save(autoencoder.to_torchscript(), "model.pt")
-```
-
 <summary>Export to ONNX (production use)</summary>
 
 ```python

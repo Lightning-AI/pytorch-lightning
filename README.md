@@ -324,12 +324,22 @@ trainer = Trainer(callbacks=[checkpointing])
 </details>
 
 <details>
-  <summary>Export to torchscript (JIT) (production use)</summary>
+  <summary>Export to torchscript (JIT) (production use) - DEPRECATED</summary>
+
+> **⚠️ Deprecated**: `to_torchscript()` is deprecated in PyTorch Lightning v2.5 and will be removed in v2.7.
+> TorchScript is deprecated in PyTorch. Use `torch.export.export()` instead.
+> See [PyTorch Export Documentation](https://pytorch.org/docs/stable/export.html) for more information.
 
 ```python
-# torchscript
+# torchscript (deprecated)
 autoencoder = LitAutoEncoder()
 torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+
+# Recommended alternative using torch.export
+import torch
+autoencoder = LitAutoEncoder()
+exported_program = torch.export.export(autoencoder, (torch.randn(1, 64),))
+torch.export.save(exported_program, "model.pt2")
 ```
 
 </details>
