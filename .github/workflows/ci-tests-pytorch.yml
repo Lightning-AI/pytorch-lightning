@@ -44,23 +44,20 @@ jobs:
       matrix:
         os: [macOS-14, ubuntu-22.04, windows-2022]
         config:
-          # only run PyTorch latest
+          # Test unified "lightning" package with PyTorch 2.1-2.5
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
 
-          # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
+          # Test "pytorch" package with PyTorch 2.6-2.9
           - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-
-          # "pytorch" installs the standalone package
-          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-
-          # adding recently cut Torch 2.7 - FUTURE
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
 
-          # "oldest" versions tests, only on minimum Python
+          # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 50
     env:
@@ -78,7 +75,7 @@ jobs:
       - name: Install uv and set Python version
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.config.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
