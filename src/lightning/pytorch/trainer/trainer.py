@@ -453,6 +453,9 @@ class Trainer:
             max_time,
         )
 
+        # Handle signals as part of the train loop
+        self._signal_connector.register_callback()
+
         # init data flags
         self.check_val_every_n_epoch: Optional[int]
         self._data_connector.on_trainer_init(

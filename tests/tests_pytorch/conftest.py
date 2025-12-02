@@ -32,7 +32,6 @@ from lightning.fabric.strategies.launchers.subprocess_script import _ChildProces
 from lightning.fabric.utilities.distributed import _destroy_dist_connection, _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
-from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -113,7 +112,7 @@ def restore_signal_handlers():
     This is a safety net for tests that don't run Trainer's teardown.
 
     """
-    valid_signals = _SignalConnector._valid_signals()
+    valid_signals = signal.valid_signals()
     if not _IS_WINDOWS:
         # SIGKILL and SIGSTOP are not allowed to be modified by the user
         valid_signals -= {signal.SIGKILL, signal.SIGSTOP}
