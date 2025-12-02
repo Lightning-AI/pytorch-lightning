@@ -322,6 +322,33 @@ def test_advanced_profiler_dump_states(tmp_path):
     assert len(data) > 0
 
 
+@pytest.mark.parametrize("char", ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"])
+def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
+    """Profiler should sanitize action names to produce filesystem-safe .prof filenames.
+
+    This guards against errors when callbacks or actions include path-unsafe characters (e.g., metric names with '/').
+
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    action_name = f"before{char}after"
+    with profiler.profile(action_name):
+        pass
+
+    profiler.describe()
+
+    prof_files = [f for f in os.listdir(tmp_path) if f.endswith(".prof")]
+    assert len(prof_files) == 1
+    prof_name = prof_files[0]
+
+    # Ensure none of the path-unsafe characters are present in the produced filename
+    forbidden = ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"]
+    for bad in forbidden:
+        assert bad not in prof_name
+
+    # File should be non-empty
+    assert (tmp_path / prof_name).read_bytes()
+
+
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"

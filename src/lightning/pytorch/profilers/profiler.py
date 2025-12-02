@@ -15,6 +15,7 @@
 
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -81,6 +82,7 @@ class Profiler(ABC):
         action_name: Optional[str] = None,
         extension: str = ".txt",
         split_token: str = "-",  # noqa: S107
+        sanitize: bool = True,
     ) -> str:
         args = []
         if self._stage is not None:
@@ -91,7 +93,15 @@ class Profiler(ABC):
             args.append(str(self._local_rank))
         if action_name is not None:
             args.append(action_name)
-        return split_token.join(args) + extension
+        base = split_token.join(args)
+        if sanitize:
+            # Replace a set of path-unsafe characters across platforms with '_'
+            base = re.sub(r"[\\/:*?\"<>|\n\r\t]", "_", base)
+            base = re.sub(r"_+", "_", base)
+            base = base.strip()
+            if not base:
+                base = "profile"
+        return base + extension
 
     def _prepare_streams(self) -> None:
         if self._write_stream is not None:
