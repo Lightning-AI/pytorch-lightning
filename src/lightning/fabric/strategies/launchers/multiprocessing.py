@@ -207,7 +207,7 @@ def _check_bad_cuda_fork() -> None:
         if _IS_INTERACTIVE:
             message += " You will have to restart the Python kernel."
         raise RuntimeError(message)
-    
+
     # Fallback to the old check if _is_in_bad_fork is not available (older PyTorch versions)
     if _is_in_bad_fork is None and torch.cuda.is_initialized():
         message = (
