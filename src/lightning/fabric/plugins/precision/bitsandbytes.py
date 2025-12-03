@@ -17,10 +17,11 @@ import math
 import os
 import warnings
 from collections import OrderedDict
+from collections.abc import Callable
 from contextlib import AbstractContextManager, ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, Literal, Optional, cast
+from typing import Any, Literal, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -70,8 +71,8 @@ class BitsandbytesPrecision(Precision):
     def __init__(
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
-        dtype: Optional[torch.dtype] = None,
-        ignore_modules: Optional[set[str]] = None,
+        dtype: torch.dtype | None = None,
+        ignore_modules: set[str] | None = None,
     ) -> None:
         _import_bitsandbytes()
 
@@ -176,7 +177,7 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
 
 
 def _replace_param(
-    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[tuple] = None
+    param: torch.nn.Parameter, data: torch.Tensor, quant_state: tuple | None = None
 ) -> torch.nn.Parameter:
     bnb = _import_bitsandbytes()
 
@@ -223,10 +224,10 @@ def _import_bitsandbytes() -> ModuleType:
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and re-quantizaton when loading
         the state dict."""
 
-        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
+        def __init__(self, *args: Any, device: _DEVICE | None = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
             self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
-            self.bias: Optional[torch.nn.Parameter] = self.bias
+            self.bias: torch.nn.Parameter | None = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -234,7 +235,7 @@ def _import_bitsandbytes() -> ModuleType:
             self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize_))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def quantize_(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+        def quantize_(self, weight: torch.Tensor | None = None, device: torch.device | None = None) -> None:
             """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
@@ -246,7 +247,7 @@ def _import_bitsandbytes() -> ModuleType:
 
         @staticmethod
         def quantize(
-            int8params: bnb.nn.Int8Params, weight: torch.Tensor, device: Optional[torch.device]
+            int8params: bnb.nn.Int8Params, weight: torch.Tensor, device: torch.device | None
         ) -> bnb.nn.Int8Params:
             device = device or torch.device("cuda")
             if device.type != "cuda":
@@ -310,10 +311,10 @@ def _import_bitsandbytes() -> ModuleType:
         """Wraps `bnb.nn.Linear4bit` to enable: instantiation directly on the device, re-quantizaton when loading the
         state dict, meta-device initialization, and materialization."""
 
-        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
+        def __init__(self, *args: Any, device: _DEVICE | None = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
             self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
-            self.bias: Optional[torch.nn.Parameter] = self.bias
+            self.bias: torch.nn.Parameter | None = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -321,7 +322,7 @@ def _import_bitsandbytes() -> ModuleType:
             self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize_))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def quantize_(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+        def quantize_(self, weight: torch.Tensor | None = None, device: torch.device | None = None) -> None:
             """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
@@ -334,7 +335,7 @@ def _import_bitsandbytes() -> ModuleType:
 
         @staticmethod
         def quantize(
-            params4bit: bnb.nn.Params4bit, weight: torch.Tensor, device: Optional[torch.device]
+            params4bit: bnb.nn.Params4bit, weight: torch.Tensor, device: torch.device | None
         ) -> bnb.nn.Params4bit:
             device = device or torch.device("cuda")
             if device.type != "cuda":

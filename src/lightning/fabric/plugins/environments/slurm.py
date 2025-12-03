@@ -116,7 +116,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return os.environ.get("SLURM_JOB_NAME")
 
     @staticmethod
-    def job_id() -> Optional[int]:
+    def job_id() -> int | None:
         # in interactive mode, don't make logs use the same job id
         if _is_slurm_interactive_mode():
             return None

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from typing import Any, Union
+from typing import Any
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -47,13 +47,13 @@ class XLAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> int | list[int]:
         """Accelerator device parsing logic."""
         return _parse_tpu_devices(devices)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, list[int]]) -> list[torch.device]:
+    def get_parallel_devices(devices: int | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_tpu_devices(devices)
         if isinstance(devices, int):
@@ -131,7 +131,7 @@ def _using_pjrt() -> bool:
     return pjrt.using_pjrt()
 
 
-def _parse_tpu_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
+def _parse_tpu_devices(devices: int | str | list[int]) -> int | list[int]:
     """Parses the TPU devices given in the format as accepted by the
     :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
@@ -168,7 +168,7 @@ def _check_tpu_devices_valid(devices: object) -> None:
     )
 
 
-def _parse_tpu_devices_str(devices: str) -> Union[int, list[int]]:
+def _parse_tpu_devices_str(devices: str) -> int | list[int]:
     devices = devices.strip()
     try:
         return int(devices)

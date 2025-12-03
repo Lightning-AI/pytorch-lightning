@@ -20,9 +20,9 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -234,11 +234,11 @@ class NeptuneLogger(Logger):
     def __init__(
         self,
         *,  # force users to call `NeptuneLogger` initializer with `kwargs`
-        api_key: Optional[str] = None,
-        project: Optional[str] = None,
-        name: Optional[str] = None,
-        run: Optional[Union["Run", "Handler"]] = None,
-        log_model_checkpoints: Optional[bool] = True,
+        api_key: str | None = None,
+        project: str | None = None,
+        name: str | None = None,
+        run: Union["Run", "Handler"] | None = None,
+        log_model_checkpoints: bool | None = True,
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
@@ -255,7 +255,7 @@ class NeptuneLogger(Logger):
         self._api_key = api_key
         self._run_instance = run
         self._neptune_run_kwargs = neptune_run_kwargs
-        self._run_short_id: Optional[str] = None
+        self._run_short_id: str | None = None
 
         if self._run_instance is not None:
             self._retrieve_run_data()
@@ -317,10 +317,10 @@ class NeptuneLogger(Logger):
 
     @staticmethod
     def _verify_input_arguments(
-        api_key: Optional[str],
-        project: Optional[str],
-        name: Optional[str],
-        run: Optional[Union["Run", "Handler"]],
+        api_key: str | None,
+        project: str | None,
+        name: str | None,
+        run: Union["Run", "Handler"] | None,
         neptune_run_kwargs: dict,
     ) -> None:
         from neptune import Run
@@ -396,7 +396,7 @@ class NeptuneLogger(Logger):
     @override
     @rank_zero_only
     @_catch_inactive
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -444,7 +444,7 @@ class NeptuneLogger(Logger):
     @override
     @rank_zero_only
     @_catch_inactive
-    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, Tensor | float], step: int | None = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -475,7 +475,7 @@ class NeptuneLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
         locally.
 
@@ -569,7 +569,7 @@ class NeptuneLogger(Logger):
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
+    def _dict_paths(cls, d: dict[str, Any], path_in_build: str | None = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):
@@ -579,13 +579,13 @@ class NeptuneLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
         return self._run_name
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Return the experiment version.
 
         It's Neptune Run's short_id
