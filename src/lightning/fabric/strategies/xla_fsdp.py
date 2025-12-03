@@ -16,7 +16,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import torch
 from torch import Tensor
