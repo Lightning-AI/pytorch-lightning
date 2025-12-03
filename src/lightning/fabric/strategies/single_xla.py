@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
 from lightning.fabric.utilities.types import _DEVICE
 
 
@@ -33,16 +34,20 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         checkpoint_io: XLACheckpointIO | None = None,
         precision: XLAPrecision | None = None,
     ):
-        _raise_enterprise_not_available()
-        from pytorch_lightning_enterprise.strategies.xla.single import validate_xla_strategy
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if isinstance(device, torch.device):
+            # unwrap the `torch.device` in favor of `xla_device`
+            device = device.index
+
+        import torch_xla.core.xla_model as xm
 
         super().__init__(
             accelerator=accelerator,
-            device=device,
+            device=xm.xla_device(device),
             checkpoint_io=checkpoint_io,
             precision=precision,
         )
-        validate_xla_strategy(strategy=self, device=device)
 
     @property
     @override
