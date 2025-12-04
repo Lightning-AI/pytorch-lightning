@@ -551,10 +551,13 @@ class ModelCheckpoint(Checkpoint):
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
             "last_model_path": self.last_model_path,
+            "best_model_metrics": self.best_model_metrics,
         }
 
     @override
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        self.best_model_metrics = state_dict.get("best_model_metrics", {})
+
         dirpath_from_ckpt = state_dict.get("dirpath", self.dirpath)
 
         if self.dirpath == dirpath_from_ckpt:
