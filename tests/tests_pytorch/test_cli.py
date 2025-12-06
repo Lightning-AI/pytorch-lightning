@@ -17,7 +17,7 @@ import json
 import operator
 import os
 import sys
-from contextlib import ExitStack, contextmanager, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -98,7 +98,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     def _raise():
         raise _UnkArgError
 
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+    parser = LightningArgumentParser(add_help=False)
     parser.add_lightning_class_args(Trainer, None)
 
     monkeypatch.setattr(parser, "exit", lambda *args: _raise(), raising=True)
@@ -339,7 +339,7 @@ def test_lightning_cli_save_config_seed_everything(cleandir):
 
 
 def test_save_to_log_dir_false_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="`save_to_log_dir=False` only makes sense*"):
         SaveConfigCallback(
             LightningArgumentParser(),
             Namespace(),
@@ -485,6 +485,81 @@ def test_lightning_cli_print_config():
     assert outval["model"]["class_path"] == "lightning.pytorch.demos.BoringModel"
     assert outval["data"]["class_path"] == "lightning.pytorch.demos.BoringDataModule"
     assert outval["ckpt_path"] is None
+
+
+class BoringCkptPathModel(BoringModel):
+    def __init__(self, out_dim: int = 2, hidden_dim: int = 2) -> None:
+        super().__init__()
+        self.save_hyperparameters()
+        self.hidden_dim = hidden_dim
+        self.layer = torch.nn.Linear(32, out_dim)
+
+
+def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
+    class CkptPathCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
+
+    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.fit.model.out_dim == 3
+    assert cli.config.fit.model.hidden_dim == 6
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    assert hparams["out_dim"] == 3
+    assert hparams["hidden_dim"] == 6
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+    cli_args = ["predict", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel)
+
+    assert cli.config.predict.model.out_dim == 3
+    assert cli.config.predict.model.hidden_dim == 6
+    assert cli.config_init.predict.model.layer.out_features == 3
+
+    err = StringIO()
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
+        cli = LightningCLI(BoringModel)
+    assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
+
+
+class BoringCkptPathSubclass(BoringCkptPathModel):
+    def __init__(self, extra: bool = True, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.extra = extra
+
+
+def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
+    class CkptPathCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.init_args.out_dim", "model.init_args.hidden_dim", compute_fn=lambda x: x * 2)
+
+    cli_args = ["fit", "--model=BoringCkptPathSubclass", "--model.out_dim=4", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
+
+    assert cli.config.fit.model.class_path.endswith(".BoringCkptPathSubclass")
+    assert cli.config.fit.model.init_args == Namespace(out_dim=4, hidden_dim=8, extra=True)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    assert hparams["out_dim"] == 4
+    assert hparams["hidden_dim"] == 8
+    assert hparams["extra"] is True
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+    cli_args = ["predict", "--model=BoringCkptPathModel", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
+
+    assert isinstance(cli.model, BoringCkptPathSubclass)
+    assert cli.model.hidden_dim == 8
+    assert cli.model.extra is True
+    assert cli.model.layer.out_features == 4
 
 
 def test_lightning_cli_submodules(cleandir):
@@ -1183,7 +1258,7 @@ def test_lightning_cli_model_short_arguments():
     ):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]),
@@ -1211,7 +1286,7 @@ def test_lightning_cli_datamodule_short_arguments():
     ):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]),
@@ -1232,7 +1307,7 @@ def test_lightning_cli_datamodule_short_arguments():
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]),
@@ -1408,7 +1483,7 @@ def test_lightning_cli_config_with_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1424,7 +1499,7 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1437,7 +1512,7 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=None)
     assert cli.trainer.limit_val_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1455,7 +1530,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
     with (
@@ -1464,7 +1539,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=None)
     assert cli.trainer.limit_val_batches == 1
 
 
@@ -1476,7 +1551,7 @@ def test_lightning_cli_config_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1489,7 +1564,9 @@ def test_lightning_cli_config_before_and_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar")
+    test_mock.assert_called_once_with(
+        cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar", weights_only=None
+    )
     assert cli.trainer.limit_test_batches == 1
     assert cli.trainer.fast_dev_run == 1
 
@@ -1878,3 +1955,29 @@ def test_lightning_cli_jsonnet(cleandir):
         cli = LightningCLI(MainModule, run=False, parser_kwargs={"parser_mode": "jsonnet"})
 
     assert cli.config["model"]["main_param"] == 2
+
+
+def test_lightning_cli_callback_trainer_default(cleandir):
+    """Check that callbacks passed as trainer_defaults are properly instantiated."""
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            trainer_defaults={
+                "logger": {
+                    "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
+                    "init_args": {
+                        "save_dir": ".",
+                        "name": "demo",
+                    },
+                },
+                "callbacks": {
+                    "class_path": "lightning.pytorch.callbacks.ModelCheckpoint",
+                    "init_args": {
+                        "monitor": "val_loss",
+                    },
+                },
+            },
+            run=False,
+        )
+    assert any(isinstance(c, ModelCheckpoint) for c in cli.trainer.callbacks)

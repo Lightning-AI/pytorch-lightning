@@ -87,15 +87,9 @@ class _Trainer(BasicTrainer):
 
         precision = self.fabric._precision
         assert isinstance(precision, FSDPPrecision)
-        if precision.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
-        elif precision.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
-        elif precision.precision == "16-true":
+        if precision.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif precision.precision == "bf16-true":
+        elif precision.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise ValueError(f"Unknown precision {precision.precision}")

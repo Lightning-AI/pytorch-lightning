@@ -41,7 +41,7 @@ def _prepare_extras() -> dict[str, Any]:
     }
 
     # project specific extras groups
-    extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
+    extras["fabric-all"] = extras["fabric-extra"] + extras["fabric-strategies"] + extras["fabric-examples"]
     extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]

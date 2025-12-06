@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
@@ -21,19 +22,30 @@ from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from tests_fabric.helpers.runif import RunIf
 
 
+# Pytest passes args/kwargs to the context manager used with `pytest.warns`.
+# `contextlib.nullcontext` doesn't accept them, so this no-op version does.
+@contextmanager
+def null_ctx(*args, **kwargs):
+    yield
+
+
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
         ("16-true", (torch.float16, torch.float16, torch.float16)),
         ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
-        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        ("16-mixed", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
         ("32-true", (torch.float32, torch.float32, torch.float32)),
     ],
 )
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision)
-    config = plugin.mixed_precision_config
+
+    warning_ctx = pytest.warns if precision in ("16-true", "bf16-true") else null_ctx
+
+    with warning_ctx(UserWarning, match="enables computation in lower precision"):
+        config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
     assert config.buffer_dtype == expected[1]
@@ -56,7 +68,7 @@ def test_fsdp_precision_scaler_with_bf16():
 
 
 @RunIf(min_cuda_gpus=1)
-def test_fsdp_precision_forward_context():
+def test_fsdp_precision_forward_context_f16():
     """Test to ensure that the context manager correctly is set to bfloat16."""
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -76,6 +88,10 @@ def test_fsdp_precision_forward_context():
     assert isinstance(precision.forward_context(), _DtypeContextManager)
     assert precision.forward_context()._new_dtype == torch.float16
 
+
+@RunIf(min_cuda_gpus=1, bf16_cuda=True)
+def test_fsdp_precision_forward_context_bf16():
+    """Test to ensure that the context manager correctly is set to bfloat16."""
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():

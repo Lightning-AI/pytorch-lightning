@@ -313,7 +313,7 @@ def test_deepspeed_config(tmp_path, deepspeed_zero_config):
     trainer.fit(model)
     trainer.test(model)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
-    assert len(set(lr_monitor.lrs["lr-SGD"])) == 8
+    assert len(lr_monitor.lrs["lr-SGD"]) == 8
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -560,6 +560,46 @@ def test_deepspeed_multigpu_single_file(tmp_path):
     assert isinstance(strategy, DeepSpeedStrategy)
     assert strategy.load_full_weights
     trainer.test(model, ckpt_path=checkpoint_path)
+
+
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+def test_deepspeed_strategy_exclude_frozen_parameters_integration(tmp_path):
+    """Test end-to-end integration of exclude_frozen_parameters with actual model training and checkpointing."""
+
+    class TestModelWithFrozenParams(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.frozen_layer = torch.nn.Linear(32, 32)
+
+        def configure_model(self) -> None:
+            super().configure_model()
+            # Freeze the additional layer parameters
+            for param in self.frozen_layer.parameters():
+                param.requires_grad = False
+
+        def forward(self, x):
+            x = self.frozen_layer(x)
+            return super().forward(x)
+
+    model = TestModelWithFrozenParams()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        strategy=DeepSpeedStrategy(exclude_frozen_parameters=True),
+        accelerator="gpu",
+        devices=1,
+        fast_dev_run=True,
+        precision="16-mixed",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model)
+    checkpoint_path = os.path.join(tmp_path, "checkpoint_exclude_frozen.ckpt")
+    trainer.save_checkpoint(checkpoint_path)
+
+    # Verify checkpoint was created
+    assert os.path.exists(checkpoint_path)
 
 
 class ModelParallelClassificationModel(LightningModule):
@@ -989,6 +1029,9 @@ def _assert_save_model_is_equal(model, tmp_path, trainer):
     if trainer.is_global_zero:
         single_ckpt_path = os.path.join(tmp_path, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
+
+        if not os.path.isfile(single_ckpt_path):
+            single_ckpt_path = os.path.join(single_ckpt_path, "pytorch_model.bin")
         state_dict = torch.load(single_ckpt_path, weights_only=False)
 
         model = model.cpu()

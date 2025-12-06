@@ -2107,6 +2107,22 @@ def test_init_module_context(monkeypatch):
     strategy.tensor_init_context.reset_mock()
 
 
+@pytest.mark.parametrize(
+    ("target_device", "accelerator", "devices"),
+    [
+        ("cpu", "cpu", "auto"),
+        pytest.param("cuda:0", "gpu", [0], marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda:1", "gpu", [1], marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
+def test_init_module_device_type(target_device, accelerator, devices):
+    """Test that the strategy returns the context manager for initializing the module."""
+    trainer = Trainer(accelerator=accelerator, devices=devices)
+    with trainer.init_module():
+        model = BoringModel()
+        assert model.device == torch.device(target_device)
+
+
 def test_expand_home_trainer():
     """Test that the dirpath gets expanded if it contains `~`."""
     home_root = Path.home()

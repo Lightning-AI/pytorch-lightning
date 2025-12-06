@@ -54,12 +54,6 @@ package:
           - "src/lightning_fabric/*"
           - "src/pytorch_lightning/*"
 
-dockers:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "dockers/**"
-          - ".github/workflows/docker-build.yml"
-
 dependencies:
   - changed-files:
       - any-glob-to-any-file:

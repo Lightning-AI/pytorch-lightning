@@ -44,23 +44,20 @@ jobs:
       matrix:
         os: [macOS-14, ubuntu-22.04, windows-2022]
         config:
-          # only run PyTorch latest
+          # Test unified "lightning" package with PyTorch 2.1-2.5
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
 
-          # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
+          # Test "pytorch" package with PyTorch 2.6-2.9
           - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-
-          # "pytorch" installs the standalone package
-          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.7" }
-
-          # adding recently cut Torch 2.7 - FUTURE
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
 
-          # "oldest" versions tests, only on minimum Python
+          # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 50
     env:
@@ -69,47 +66,53 @@ jobs:
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-      PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
+      UV_TORCH_BACKEND: "cpu"
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python ${{ matrix.config.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.config.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
-      - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+      - name: Basic setup
+        run: uv pip install -q -r .actions/requirements.txt
+
+      - name: Append Env. vars for Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
+
+      - name: Append Env. vars for MacOS
+        if: ${{ runner.os == 'macOS' }}
+        run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
 
       - name: Set min. dependencies
-        if: ${{ matrix.requires == 'oldest' }}
+        if: ${{ matrix.config.requires == 'oldest' }}
         run: |
-          cd requirements/pytorch
-          pip install -U "lightning-utilities[cli]"
-          python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'extra.txt', 'strategies.txt', 'examples.txt', 'test.txt']"
-          pip install "cython<3.0" wheel
-          pip install "pyyaml==5.4" --no-build-isolation
+          uv pip install -U "lightning-utilities[cli]"
+          python -m lightning_utilities.cli requirements set-oldest \
+            --req_files "['requirements/pytorch/base.txt', 'requirements/pytorch/extra.txt', 'requirements/pytorch/strategies.txt', 'requirements/pytorch/examples.txt', 'requirements/pytorch/test.txt']"
+          uv pip install "cython<3.0" wheel
+          uv pip install "pyyaml==5.4" --no-build-isolation
+          # This script removes any line containing "error::FutureWarning" from pyproject.toml
+          uv pip install -r requirements/ci.txt
+          python .actions/assistant.py prune_pytest_as_errors
 
       - name: Adjust PyTorch versions in requirements files
-        if: ${{ matrix.requires != 'oldest' }}
+        if: ${{ matrix.config.requires != 'oldest' }}
         run: |
-          pip install -q -r requirements/ci.txt
+          uv pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
           for fpath in `ls requirements/**/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.config.pytorch-version }}; \
           done
           cat requirements/pytorch/base.txt
-
-      - name: pip wheels cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PYPI_CACHE_DIR }}
-          key: pypi_wheels
-      - run: |
-          mkdir -p $PYPI_CACHE_DIR
-          ls -lh $PYPI_CACHE_DIR
 
       - name: Env. variables
         run: |
@@ -125,28 +128,20 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
-            -U --upgrade-strategy=eager --prefer-binary \
-            -r requirements/_integrations/accelerators.txt \
-            --extra-index-url="${TORCH_URL}" \
-            --find-links="${PYPI_CACHE_DIR}" \
+          uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
+            --upgrade \
+            --find-links="${TORCH_URL}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
-          pip list
+          uv pip list
+
       - name: Drop LAI from extensions
         if: ${{ matrix.config.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
-        run: pip uninstall -y lightning
+        run: uv pip uninstall lightning
+
       - name: Drop PL for LAI
         if: ${{ matrix.config.pkg-name == 'lightning' }}
-        run: pip uninstall -y pytorch-lightning
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
+        run: uv pip uninstall pytorch-lightning
 
       - name: Cache datasets
         uses: actions/cache@v4
@@ -214,6 +209,9 @@ jobs:
           flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest-full,python${{ matrix.config.python-version }},pytorch${{ matrix.config.pytorch-version }}
           name: CPU-coverage
           fail_ci_if_error: false
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   pl-cpu-guardian:
     runs-on: ubuntu-latest

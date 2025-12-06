@@ -240,7 +240,7 @@ class _CallbackConnector:
 
 
 def _validate_callbacks_list(callbacks: list[Callback]) -> None:
-    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb)]
+    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb, parent=Callback)]
     seen_callbacks = set()
     for callback in stateful_callbacks:
         if callback.state_key in seen_callbacks:

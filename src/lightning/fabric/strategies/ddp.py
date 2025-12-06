@@ -160,7 +160,17 @@ class DDPStrategy(ParallelStrategy):
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:
-            torch.distributed.barrier()
+            # Handle PyTorch bug where barrier() fails on CPU with "PrivateUse1HooksInterface" error
+            try:
+                torch.distributed.barrier()
+            except RuntimeError as e:
+                if "PrivateUse1HooksInterface" in str(e):
+                    # Fallback: Use all_reduce as barrier - all processes must participate
+                    # This achieves the same synchronization effect as barrier()
+                    dummy_tensor = torch.tensor(0.0, device=self.root_device)
+                    torch.distributed.all_reduce(dummy_tensor)
+                else:
+                    raise
 
     @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:

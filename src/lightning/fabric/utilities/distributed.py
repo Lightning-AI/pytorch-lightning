@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 from typing_extensions import Self, TypeGuard, override
@@ -210,20 +209,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     else:
         op = reduce_op
 
-    # HPU doesn't support Long types, forcefully set it to float
-    # TODO: move this to the `lightning_habana` package
-    if (
-        package_available("habana_frameworks")
-        and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        and result.type()
-        in (
-            "torch.LongTensor",
-            "torch.hpu.LongTensor",
-        )
-    ):
-        rank_zero_info("Long tensor unsupported on HPU, casting to float")
-        result = result.float()
-
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
@@ -319,7 +304,11 @@ def _destroy_dist_connection() -> None:
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    """Return corresponding distributed backend for a given device."""
+    device_backend_map = torch.distributed.Backend.default_device_backend_map
+    if device.type in device_backend_map:
+        return device_backend_map[device.type]
+    return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):

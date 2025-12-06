@@ -21,10 +21,10 @@ subprojects:
     checks:
       - "pl-cpu-guardian" # aggregated check for all cases
 
-  - id: "pytorch_lightning: Azure GPU"
+  - id: "pytorch_lightning: lit GPU"
     paths:
       - ".actions/*"
-      - ".azure/gpu-tests-pytorch.yml"
+      - ".lightning/workflows/pytorch.yml"
       # only the azure GPU workflow runs the examples
       # all examples don't need to be added because they aren't used in CI, but these are
       - "examples/run_pl_examples.sh"
@@ -47,13 +47,13 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning (GPUs) (testing Lightning | latest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | oldest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
+      - "pytorch.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, pytorch, 3.10)"
+      - "pytorch.yml / Lit Job (lightning, 3.12)"
+      - "pytorch.yml / Lit Job (pytorch, 3.12)"
 
-  - id: "pytorch_lightning: Benchmarks"
+  - id: "Benchmarks"
     paths:
-      - ".azure/gpu-benchmarks.yml"
+      - ".lightning/workflows/benchmark.yml"
       - "requirements/fabric/**"
       - "requirements/pytorch/**"
       - "src/lightning/fabric/**"
@@ -65,7 +65,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning.Benchmarks"
+      - "benchmark.yml / Lit Job (fabric)"
+      - "benchmark.yml / Lit Job (pytorch)"
 
   # Temporarily disabled
   #  - id: "pytorch-lightning: TPU workflow"
@@ -111,34 +112,6 @@ subprojects:
       - "docs-make (pytorch, doctest)"
       - "docs-make (pytorch, html)"
 
-  - id: "pytorch_lightning: Docker"
-    paths:
-      - ".actions/*"
-      - ".github/workflows/docker-build.yml"
-      - "dockers/**"
-      - "requirements/pytorch/**"
-      - "requirements/fabric/**"
-      - "setup.py"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "build-cuda (3.10, 2.1.2, 12.1.1)"
-      - "build-cuda (3.11, 2.2.2, 12.1.1)"
-      - "build-cuda (3.11, 2.3.1, 12.1.1)"
-      - "build-cuda (3.11, 2.4.1, 12.1.1)"
-      - "build-cuda (3.12, 2.5.1, 12.1.1)"
-      - "build-cuda (3.12, 2.6.0, 12.4.1)"
-      #- "build-NGC"
-      - "build-pl (3.10, 2.1, 12.1.1)"
-      - "build-pl (3.11, 2.2, 12.1.1)"
-      - "build-pl (3.11, 2.3, 12.1.1)"
-      - "build-pl (3.11, 2.4, 12.1.1)"
-      - "build-pl (3.12, 2.5, 12.1.1)"
-      - "build-pl (3.12, 2.6, 12.4.1)"
-      - "build-pl (3.12, 2.7, 12.6.3)"
-      - "build-pl (3.12, 2.8, 12.6.3, true)"
-
   # SECTION: lightning_fabric
 
   - id: "lightning_fabric: CPU workflow"
@@ -156,10 +129,10 @@ subprojects:
     checks:
       - "fabric-cpu-guardian" # aggregated check for all cases
 
-  - id: "lightning_fabric: Azure GPU"
+  - id: "lightning_fabric: lit GPU"
     paths:
       - ".actions/*"
-      - ".azure/gpu-tests-fabric.yml"
+      - ".lightning/workflows/fabric.yml"
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
       - "requirements/fabric/**"
@@ -175,9 +148,9 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning-fabric (GPUs) (testing Fabric | oldest)"
-      - "lightning-fabric (GPUs) (testing Fabric | latest)"
-      - "lightning-fabric (GPUs) (testing Lightning | latest)"
+      - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, fabric, 3.10)"
+      - "fabric.yml / Lit Job (fabric, 3.12)"
+      - "fabric.yml / Lit Job (lightning, 3.12)"
 
   # Temporarily disabled
   #  - id: "lightning_fabric: TPU workflow"

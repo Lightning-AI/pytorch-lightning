@@ -93,10 +93,19 @@ class XLAAccelerator(Accelerator):
             # when `torch_xla` is imported but not used
             return False
 
+    @staticmethod
+    @override
+    def name() -> str:
+        return "tpu"
+
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__name__)
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )
 
 
 # PJRT support requires this minimum version

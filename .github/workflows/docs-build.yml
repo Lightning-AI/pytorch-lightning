@@ -47,7 +47,6 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
-  PYPI_CACHE_DIR: "_pip-wheels"
   PYPI_LOCAL_DIR: "pypi_pkgs/"
 
 jobs:
@@ -67,32 +66,33 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.checkout }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
           lfs: ${{ matrix.pkg-name == 'pytorch' }}
-      - uses: actions/setup-python@v5
+
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
+          # TODO: Avoid activating environment like this
+          # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
+          activate-environment: true
+          enable-cache: true
 
       - name: List notebooks
         if: ${{ matrix.pkg-name == 'pytorch' }}
         working-directory: _notebooks/
         run: |
-          pip install -q py-tree
+          uv pip install -q py-tree
           py-tree .notebooks/
           ls -lhR .notebooks/
 
       - name: Pull sphinx template
         run: |
-          pip install -q -r requirements/ci.txt
+          uv pip install -q -r requirements/ci.txt
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
-          pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
-
-      - name: pip wheels cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PYPI_CACHE_DIR }}
-          key: pypi_wheels
+          uv pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
       - name: Install pandoc & texlive
         if: ${{ matrix.pkg-name == 'pytorch' }}
@@ -100,25 +100,27 @@ jobs:
         run: |
           sudo apt-get update --fix-missing
           sudo apt-get install -y pandoc
+
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
-          ls -lh ${PYPI_CACHE_DIR}
-          pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} --extra-index-url="${TORCH_URL}"
-          pip list
+          uv pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f ${PYPI_LOCAL_DIR} --extra-index-url="${TORCH_URL}"
+          uv pip list
+
       - name: Install req. for Notebooks/tutorials
         if: matrix.pkg-name == 'pytorch'
         timeout-minutes: 10
-        run: pip install -q -r _notebooks/.actions/requires.txt
+        run: uv pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+
       - name: Build without warnings
         if: github.event_name != 'workflow_dispatch'
         run: echo "BUILD_SPHINX_OPTS=-W --keep-going" >> $GITHUB_ENV
+
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         # allow failing link check and doctest if you run with dispatch
@@ -128,23 +130,15 @@ jobs:
       - name: Keep artifact
         if: github.event_name == 'pull_request'
         run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
+
       - name: Upload built docs
         if: ${{ matrix.target == 'html' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
           retention-days: ${{ env.ARTIFACT_DAYS }}
           include-hidden-files: true
-
-      #- name: Dump handy wheels
-      #  if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      #  continue-on-error: true
-      #  uses: ./.github/actions/pip-wheels
-      #  with:
-      #    wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-      #    torch-url: ${{ env.TORCH_URL }}
-      #    cache-key: "pypi_wheels"
 
   deploy-docs:
     needs: docs-make
@@ -159,7 +153,7 @@ jobs:
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/

@@ -21,7 +21,6 @@
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
    Hooks <../common/hooks>
-   HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
@@ -185,13 +184,6 @@ Glossary
    :description: How to customize the training, validation, and testing logic
    :col_css: col-md-12
    :button_link: ../common/hooks.html
-   :height: 100
-
-.. displayitem::
-   :header: HPU
-   :description: Habana Gaudi AI Processor Unit for faster training
-   :col_css: col-md-12
-   :button_link: ../integrations/hpu/index.html
    :height: 100
 
 .. displayitem::

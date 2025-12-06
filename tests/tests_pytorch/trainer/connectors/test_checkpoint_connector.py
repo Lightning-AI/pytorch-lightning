@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import errno
+import operator
 import os
 import re
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import fsspec
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
@@ -121,7 +122,7 @@ def test_local_cross_device_checkpoint(tmpdir):
         mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
         mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
     ):
-        if fsspec.__version__ < "2025.5.0":
+        if compare_version("fsspec", operator.lt, "2025.5.0"):
             with pytest.raises(
                 RuntimeError,
                 match=re.escape(

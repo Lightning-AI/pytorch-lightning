@@ -277,7 +277,8 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
-        dst = getattr(new, name)
+        # Check if the parameter has been pruned (has _orig suffix)
+        dst = getattr(new, name + "_orig") if hasattr(new, name + "_orig") else getattr(new, name)
         src = getattr(old, name)
         if dst is None or src is None or not isinstance(dst, Tensor) or not isinstance(src, Tensor):
             return
@@ -348,7 +349,7 @@ class ModelPruning(Callback):
     def _log_sparsity_stats(
         self, prev: list[tuple[int, int]], curr: list[tuple[int, int]], amount: Union[int, float] = 0
     ) -> None:
-        total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
+        total_params = sum(total for _, total in curr)
         prev_total_zeros = sum(zeros for zeros, _ in prev)
         curr_total_zeros = sum(zeros for zeros, _ in curr)
         log.info(

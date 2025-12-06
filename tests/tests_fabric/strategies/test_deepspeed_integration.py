@@ -312,6 +312,9 @@ def _assert_saved_model_is_equal(fabric, model, checkpoint_path):
             single_ckpt_path = checkpoint_path / "single_model.pt"
             # the tag is hardcoded in DeepSpeedStrategy
             convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path, tag="checkpoint")
+
+            is_ckpt_path_a_file = os.path.isfile(single_ckpt_path)
+            single_ckpt_path = single_ckpt_path if is_ckpt_path_a_file else single_ckpt_path / "pytorch_model.bin"
             state_dict = torch.load(single_ckpt_path, weights_only=False)
         else:
             # 'checkpoint' is the tag, hardcoded in DeepSpeedStrategy

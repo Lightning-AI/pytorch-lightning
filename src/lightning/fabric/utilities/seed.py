@@ -40,7 +40,8 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: 
         env_seed = os.environ.get("PL_GLOBAL_SEED")
         if env_seed is None:
             seed = 0
-            rank_zero_warn(f"No seed found, seed set to {seed}")
+            if verbose:
+                rank_zero_warn(f"No seed found, seed set to {seed}")
         else:
             try:
                 seed = int(env_seed)

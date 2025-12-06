@@ -13,12 +13,14 @@
 # limitations under the License.
 import itertools
 import logging
+import warnings
 from unittest.mock import Mock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
@@ -108,6 +110,8 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path)
     else:
         assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
+
+    assert trainer.is_last_batch
 
 
 def test_should_stop_mid_epoch(tmp_path):
@@ -277,3 +281,52 @@ def test_progress_bar_steps(tmp_path, max_steps):
 
     # assert progress bar callback uses correct total steps
     assert pbar.train_progress_bar.total == max_steps
+
+
+@pytest.mark.parametrize("warn", [True, False])
+def test_eval_mode_warning(tmp_path, warn):
+    """Test that a warning is raised if any module is in eval mode at the start of training."""
+    model = BoringModel()
+    if warn:
+        model.some_eval_module = torch.nn.Linear(32, 16)
+        model.some_eval_module.eval()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+    )
+
+    if warn:
+        with pytest.warns(PossibleUserWarning):
+            trainer.fit(model)
+    else:
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            trainer.fit(model)
+            eval_warnings = [
+                w for w in warning_list if issubclass(w.category, PossibleUserWarning) and "eval mode" in str(w.message)
+            ]
+            assert len(eval_warnings) == 0, "Expected no eval mode warnings"
+
+
+@pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8)])
+def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs, batch_idx_):
+    """Test that when the rest of the epoch is skipped, due to on_train_batch_start returning -1, the learning rate is
+    still updated when it should, at the end of the epoch."""
+
+    class TestModel(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx):
+            if batch_idx == batch_idx_:
+                return -1
+            return super().on_train_batch_start(batch, batch_idx)
+
+    model = TestModel()
+    init_lr = 0.1
+    trainer = Trainer(default_root_dir=tmp_path, limit_train_batches=10, max_epochs=max_epochs)
+    trainer.fit(model)
+
+    adjusted_lr = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
+
+    assert len(trainer.lr_scheduler_configs) == 1
+    assert all(a == adjusted_lr[0] for a in adjusted_lr)
+    assert init_lr * 0.1**max_epochs == adjusted_lr[0]

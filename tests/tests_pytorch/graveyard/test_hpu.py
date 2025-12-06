@@ -21,5 +21,7 @@ import pytest
 def test_extracted_hpu(import_path, name):
     module = import_module(import_path)
     cls = getattr(module, name)
-    with pytest.raises(NotImplementedError, match=f"{name}` class has been moved to an external package.*"):
+    with pytest.raises(
+        NotImplementedError, match=f"{name}` class has been removed. Please contact developer@lightning.ai"
+    ):
         cls()

@@ -99,7 +99,12 @@ The webdataset library contains a small wrapper (``WebLoader``) that adds a flui
     import lightning as L
     import webdataset as wds
 
-    dataset = wds.WebDataset(urls)
+    dataset = wds.WebDataset(
+        urls,
+        # needed for multi-gpu or multi-node training
+        workersplitter=wds.shardlists.split_by_worker,
+        nodesplitter=wds.shardlists.split_by_node,
+    )
     train_dataloader = wds.WebLoader(dataset)
 
     model = ...

@@ -2,6 +2,7 @@ import pytest
 import torch
 from torch import nn as nn
 
+from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from tests_fabric.helpers.runif import RunIf
 
@@ -48,6 +49,30 @@ def test_submodules_device_and_dtype(dst_device_str, dst_type):
     # device and dtype change should propagate down into all children
     assert model.device == model.module.module.device == dst_device
     assert model.dtype == model.module.module.dtype == dst_type
+
+
+@pytest.mark.parametrize(
+    "dst_device_str",
+    [
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
+    ],
+)
+@pytest.mark.parametrize(
+    "dst_type",
+    [
+        torch.float,
+        pytest.param(torch.half, marks=RunIf(mps=False)),
+        pytest.param(torch.double, marks=RunIf(mps=False)),
+    ],
+)
+def test_submodules_context_device_and_dtype(dst_device_str, dst_type):
+    dst_device = torch.device(dst_device_str)
+    with _DtypeContextManager(dst_type), dst_device:
+        model = TopModule()
+    assert model.device == dst_device
+    assert model.dtype == dst_type
 
 
 @pytest.mark.parametrize(
