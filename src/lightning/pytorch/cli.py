@@ -601,12 +601,12 @@ class LightningCLI:
             hparams.pop("_instantiator", None)
             if not hparams:
                 return
-            
+
             # Allow customization of checkpoint hyperparameters via adapt_checkpoint_hparams hook
             hparams = self.adapt_checkpoint_hparams(hparams)
             if not hparams:
                 return
-            
+
             if "_class_path" in hparams:
                 hparams = {
                     "class_path": hparams.pop("_class_path"),
