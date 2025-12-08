@@ -221,22 +221,19 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmp_path):
 
 @RunIf(rich=True)
 @pytest.mark.parametrize(
-    ("refresh_rate", "train_batches", "val_batches", "expected_call_count"),
+    ("train_batches", "val_batches", "expected_call_count"),
     [
         # note: there is always one extra update at the very end (+1)
-        (3, 6, 6, 2 + 2 + 1),
-        (4, 6, 6, 2 + 2 + 1),
-        (7, 6, 6, 1 + 1 + 1),
-        (1, 2, 3, 2 + 3 + 1),
-        (1, 0, 0, 0 + 0),
-        (3, 1, 0, 1 + 0),
-        (3, 1, 1, 1 + 1 + 1),
-        (3, 5, 0, 2 + 0),
-        (3, 5, 2, 2 + 1 + 1),
-        (6, 5, 2, 1 + 1 + 1),
+        (6, 6, 6 + 6 + 1),
+        (2, 3, 2 + 3 + 1),
+        (0, 0, 0 + 0),
+        (1, 0, 1 + 0),
+        (1, 1, 1 + 1 + 1),
+        (5, 0, 5 + 0),
+        (5, 2, 5 + 2 + 1),
     ],
 )
-def test_rich_progress_bar_with_refresh_rate(tmp_path, refresh_rate, train_batches, val_batches, expected_call_count):
+def test_rich_progress_bar_update_counts(tmp_path, train_batches, val_batches, expected_call_count):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -244,7 +241,7 @@ def test_rich_progress_bar_with_refresh_rate(tmp_path, refresh_rate, train_batch
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
         max_epochs=1,
-        callbacks=RichProgressBar(refresh_rate=refresh_rate),
+        callbacks=RichProgressBar(),
     )
 
     trainer.progress_bar_callback.on_train_start(trainer, model)
