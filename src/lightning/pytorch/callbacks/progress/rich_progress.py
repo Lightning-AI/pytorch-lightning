@@ -498,8 +498,6 @@ class RichProgressBar(ProgressBar):
                 visible=False,
             )
 
-        self.refresh()
-
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
         return self.progress.add_task(
@@ -513,28 +511,23 @@ class RichProgressBar(ProgressBar):
         train_description = self._get_train_description(self.trainer.current_epoch)
         self.train_progress_bar_id = self._add_task(total_batches, train_description)
 
-    def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
+    def _update(
+        self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True, refresh: bool = True
+    ) -> None:
         if self.progress is not None and self.is_enabled and progress_bar_id is not None:
-            total = self.progress.tasks[progress_bar_id].total
-            assert total is not None
-            if not self._should_update(current, total):
-                return
-            self.progress.update(progress_bar_id, completed=current, visible=visible)
-
-    def _should_update(self, current: int, total: Union[int, float]) -> bool:
-        return current % self.refresh_rate == 0 or current == total
+            self.progress.update(progress_bar_id, completed=current, visible=visible, refresh=refresh)
 
     @override
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled and self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             assert self.progress is not None
-            self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
-            self.refresh()
+            self.progress.update(self.val_progress_bar_id, advance=0, visible=False, refresh=True)
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
+            self.refresh()
         self.reset_dataloader_idx_tracker()
 
     @override
@@ -561,7 +554,6 @@ class RichProgressBar(ProgressBar):
             assert self.progress is not None
             self.progress.update(self.test_progress_bar_id, advance=0, visible=False)
         self.test_progress_bar_id = self._add_task(self.total_test_batches_current_dataloader, self.test_description)
-        self.refresh()
 
     @override
     def on_predict_batch_start(
@@ -581,7 +573,6 @@ class RichProgressBar(ProgressBar):
         self.predict_progress_bar_id = self._add_task(
             self.total_predict_batches_current_dataloader, self.predict_description
         )
-        self.refresh()
 
     @override
     def on_train_batch_end(
@@ -595,13 +586,14 @@ class RichProgressBar(ProgressBar):
         if not self.is_disabled and self.train_progress_bar_id is None:
             # can happen when resuming from a mid-epoch restart
             self._initialize_train_progress_bar_id()
-        self._update(self.train_progress_bar_id, batch_idx + 1)
-        self._update_metrics(trainer, pl_module, batch_idx + 1)
+        self._update(self.train_progress_bar_id, batch_idx + 1, refresh=False)
+        self._update_metrics(trainer, pl_module)
         self.refresh()
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._update_metrics(trainer, pl_module, total_batches=True)
+        self._update_metrics(trainer, pl_module)
+        self.refresh()
 
     @override
     def on_validation_batch_end(
@@ -617,13 +609,12 @@ class RichProgressBar(ProgressBar):
             return
         if trainer.sanity_checking:
             if self.val_sanity_progress_bar_id is not None:
-                self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
+                self._update(self.val_sanity_progress_bar_id, batch_idx + 1, refresh=True)
             return
 
         if self.val_progress_bar_id is None:
             return
-        self._update(self.val_progress_bar_id, batch_idx + 1)
-        self.refresh()
+        self._update(self.val_progress_bar_id, batch_idx + 1, refresh=True)
 
     @override
     def on_test_batch_end(
@@ -637,8 +628,7 @@ class RichProgressBar(ProgressBar):
     ) -> None:
         if self.is_disabled or self.test_progress_bar_id is None:
             return
-        self._update(self.test_progress_bar_id, batch_idx + 1)
-        self.refresh()
+        self._update(self.test_progress_bar_id, batch_idx + 1, refresh=True)
 
     @override
     def on_predict_batch_end(
@@ -652,8 +642,7 @@ class RichProgressBar(ProgressBar):
     ) -> None:
         if self.is_disabled or self.predict_progress_bar_id is None:
             return
-        self._update(self.predict_progress_bar_id, batch_idx + 1)
-        self.refresh()
+        self._update(self.predict_progress_bar_id, batch_idx + 1, refresh=True)
 
     def _get_train_description(self, current_epoch: int) -> str:
         train_description = f"Epoch {current_epoch}"
@@ -690,16 +679,9 @@ class RichProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        current: Optional[int] = None,
-        total_batches: bool = False,
     ) -> None:
         if not self.is_enabled or self._metric_component is None:
             return
-
-        if current is not None and not total_batches:
-            total = self.total_train_batches
-            if not self._should_update(current, total):
-                return
 
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
