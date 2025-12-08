@@ -283,7 +283,7 @@ class RichProgressBar(ProgressBar):
 
     Args:
         refresh_rate: Determines at which rate (per second) the progress bars get updated.
-            Set it to ``0`` to disable the display. Default: 100
+            Set it to ``0`` to disable the display. Default: 10
         leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
         console_kwargs: Args for constructing a `Console`
@@ -301,7 +301,7 @@ class RichProgressBar(ProgressBar):
 
     def __init__(
         self,
-        refresh_rate: int = 100,
+        refresh_rate: int = 10,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
         console_kwargs: Optional[dict[str, Any]] = None,
