@@ -80,7 +80,7 @@ if _RICH_AVAILABLE:
                     with self.live._lock:
                         self.live.refresh()
                     self.refresh_cond = False
-                time.sleep(0.005)
+                time.sleep(1 / self.refresh_per_second)
 
     class CustomProgress(Progress):
         """Overrides ``Progress`` to support adding tasks that have an infinite total size."""
@@ -282,8 +282,8 @@ class RichProgressBar(ProgressBar):
         trainer = Trainer(callbacks=RichProgressBar())
 
     Args:
-        refresh_rate: Determines at which rate (in number of batches) the progress bars get updated.
-            Set it to ``0`` to disable the display.
+        refresh_rate: Determines at which rate (per second) the progress bars get updated.
+            Set it to ``0`` to disable the display. Default: 100
         leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
         console_kwargs: Args for constructing a `Console`
@@ -301,7 +301,7 @@ class RichProgressBar(ProgressBar):
 
     def __init__(
         self,
-        refresh_rate: int = 1,
+        refresh_rate: int = 100,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
         console_kwargs: Optional[dict[str, Any]] = None,
@@ -400,6 +400,7 @@ class RichProgressBar(ProgressBar):
                 *self.configure_columns(trainer),
                 self._metric_component,
                 auto_refresh=True,
+                refresh_per_second=self.refresh_rate if self.is_enabled else 1,
                 disable=self.is_disabled,
                 console=self._console,
             )
