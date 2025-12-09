@@ -564,6 +564,7 @@ def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
 
 def test_adapt_checkpoint_hparams_hook(cleandir):
     """Test that the adapt_checkpoint_hparams hook is called and modifications are applied."""
+
     class AdaptHparamsCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
@@ -597,6 +598,7 @@ def test_adapt_checkpoint_hparams_hook(cleandir):
 
 def test_adapt_checkpoint_hparams_hook_empty_dict(cleandir):
     """Test that returning empty dict from adapt_checkpoint_hparams disables checkpoint hyperparameter loading."""
+
     class AdaptHparamsEmptyCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
