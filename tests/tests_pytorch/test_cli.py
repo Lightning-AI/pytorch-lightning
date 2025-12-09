@@ -562,6 +562,66 @@ def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
     assert cli.model.layer.out_features == 4
 
 
+def test_adapt_checkpoint_hparams_hook(cleandir):
+    """Test that the adapt_checkpoint_hparams hook is called and modifications are applied."""
+    class AdaptHparamsCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
+
+        def adapt_checkpoint_hparams(self, subcommand, checkpoint_hparams):
+            """Remove out_dim and hidden_dim for non-fit subcommands."""
+            if subcommand != "fit":
+                checkpoint_hparams.pop("out_dim", None)
+                checkpoint_hparams.pop("hidden_dim", None)
+            return checkpoint_hparams
+
+    # First, create a checkpoint by running fit
+    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = AdaptHparamsCLI(BoringCkptPathModel)
+
+    assert cli.config.fit.model.out_dim == 3
+    assert cli.config.fit.model.hidden_dim == 6
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+
+    # Test that predict uses adapted hparams (without out_dim and hidden_dim)
+    cli_args = ["predict", f"--ckpt_path={checkpoint_path}", "--model.out_dim=5", "--model.hidden_dim=10"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = AdaptHparamsCLI(BoringCkptPathModel)
+
+    # Since we removed out_dim and hidden_dim for predict, the CLI values should be used
+    assert cli.config.predict.model.out_dim == 5
+    assert cli.config.predict.model.hidden_dim == 10
+
+
+def test_adapt_checkpoint_hparams_hook_empty_dict(cleandir):
+    """Test that returning empty dict from adapt_checkpoint_hparams disables checkpoint hyperparameter loading."""
+    class AdaptHparamsEmptyCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
+
+        def adapt_checkpoint_hparams(self, subcommand, checkpoint_hparams):
+            """Disable checkpoint hyperparameter loading."""
+            return {}
+
+    # First, create a checkpoint
+    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = AdaptHparamsEmptyCLI(BoringCkptPathModel)
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
+
+    # Test that predict uses default values when hook returns empty dict
+    cli_args = ["predict", f"--ckpt_path={checkpoint_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = AdaptHparamsEmptyCLI(BoringCkptPathModel)
+
+    # Model should use default values (out_dim=8, hidden_dim=16)
+    assert cli.config_init.predict.model.out_dim == 8
+    assert cli.config_init.predict.model.hidden_dim == 16
+
+
 def test_lightning_cli_submodules(cleandir):
     class MainModule(BoringModel):
         def __init__(self, submodule1: LightningModule, submodule2: LightningModule, main_param: int = 1):
