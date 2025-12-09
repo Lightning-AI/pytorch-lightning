@@ -579,7 +579,9 @@ class LightningCLI:
         Example::
 
             class MyCLI(LightningCLI):
-                def adapt_checkpoint_hparams(self, subcommand: str, checkpoint_hparams: dict[str, Any]) -> dict[str, Any]:
+                def adapt_checkpoint_hparams(
+                    self, subcommand: str, checkpoint_hparams: dict[str, Any]
+                ) -> dict[str, Any]:
                     # Only remove training-specific hyperparameters for non-fit subcommands
                     if subcommand != "fit":
                         checkpoint_hparams.pop("lr", None)
