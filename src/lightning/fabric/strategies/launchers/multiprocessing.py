@@ -199,7 +199,7 @@ def _check_bad_cuda_fork() -> None:
     # is initialized. This allows passive CUDA initialization (e.g., from library imports or device queries)
     # while still catching actual problematic cases where CUDA context was created before forking.
     _is_in_bad_fork = getattr(torch.cuda, "_is_in_bad_fork", None)
-    if _is_in_bad_fork is not None and _is_in_bad_fork():
+    if _is_in_bad_fork is not None and callable(_is_in_bad_fork) and _is_in_bad_fork():
         message = (
             "Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, "
             "you must use the 'spawn' start method or avoid CUDA initialization in the main process."

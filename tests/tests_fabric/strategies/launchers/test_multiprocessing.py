@@ -98,6 +98,17 @@ def test_check_for_bad_cuda_fork(mp_mock, _, start_method):
         launcher.launch(function=Mock())
 
 
+@pytest.mark.parametrize("start_method", ["fork", "forkserver"])
+@mock.patch("torch.cuda._is_in_bad_fork", return_value=True)
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
+def test_check_for_bad_cuda_fork_with_is_in_bad_fork(mp_mock, _, start_method):
+    """Test the new _is_in_bad_fork detection when available."""
+    mp_mock.get_all_start_methods.return_value = [start_method]
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
+    with pytest.raises(RuntimeError, match="Cannot re-initialize CUDA in forked subprocess"):
+        launcher.launch(function=Mock())
+
+
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
     with (
