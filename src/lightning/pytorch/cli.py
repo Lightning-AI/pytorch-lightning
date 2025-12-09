@@ -560,7 +560,7 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
-    def adapt_checkpoint_hparams(self, checkpoint_hparams: Dict[str, Any]) -> Dict[str, Any]:
+    def adapt_checkpoint_hparams(self, subcommand: str, checkpoint_hparams: dict[str, Any]) -> dict[str, Any]:
         """Adapt checkpoint hyperparameters before instantiating the model class.
 
         This method allows for customization of hyperparameters loaded from a checkpoint when
@@ -569,6 +569,8 @@ class LightningCLI:
         ``__init__`` parameters, you can remove or modify incompatible hyperparameters.
 
         Args:
+            subcommand: The subcommand being executed (e.g., 'fit', 'validate', 'test', 'predict').
+                This allows you to apply different hyperparameter adaptations depending on the context.
             checkpoint_hparams: Dictionary of hyperparameters loaded from the checkpoint.
 
         Returns:
@@ -577,10 +579,11 @@ class LightningCLI:
         Example::
 
             class MyCLI(LightningCLI):
-                def adapt_checkpoint_hparams(self, checkpoint_hparams: Dict[str, Any]) -> Dict[str, Any]:
-                    # Remove training-specific hyperparameters not needed for inference
-                    checkpoint_hparams.pop("lr", None)
-                    checkpoint_hparams.pop("weight_decay", None)
+                def adapt_checkpoint_hparams(self, subcommand: str, checkpoint_hparams: dict[str, Any]) -> dict[str, Any]:
+                    # Only remove training-specific hyperparameters for non-fit subcommands
+                    if subcommand != "fit":
+                        checkpoint_hparams.pop("lr", None)
+                        checkpoint_hparams.pop("weight_decay", None)
                     return checkpoint_hparams
 
         Note:
@@ -603,7 +606,7 @@ class LightningCLI:
                 return
 
             # Allow customization of checkpoint hyperparameters via adapt_checkpoint_hparams hook
-            hparams = self.adapt_checkpoint_hparams(hparams)
+            hparams = self.adapt_checkpoint_hparams(self.config.subcommand, hparams)
             if not hparams:
                 return
 
