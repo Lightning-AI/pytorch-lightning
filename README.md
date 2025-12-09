@@ -323,6 +323,16 @@ trainer = Trainer(callbacks=[checkpointing])
 
 </details>
 
+<details>
+  <summary>Export to torchscript (JIT) (production use)</summary>
+
+```python
+# torchscript
+autoencoder = LitAutoEncoder()
+torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+```
+
+</details>
 
 <details>
   <summary>Export to ONNX (production use)</summary>
