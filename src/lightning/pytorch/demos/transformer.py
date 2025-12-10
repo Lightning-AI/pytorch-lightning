@@ -59,8 +59,7 @@ class Transformer(nn.Module):
     def generate_square_subsequent_mask(self, size: int) -> Tensor:
         """Generate a square mask for the sequence to prevent future tokens from being seen."""
         mask = torch.triu(torch.ones(size, size), diagonal=1)
-        mask = mask.float().masked_fill(mask == 1, float("-inf")).masked_fill(mask == 0, 0.0)
-        return mask
+        return mask.float().masked_fill(mask == 1, float("-inf")).masked_fill(mask == 0, 0.0)
 
     def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
         _, t = inputs.shape
@@ -78,8 +77,7 @@ class Transformer(nn.Module):
         output = self.transformer(src, target, tgt_mask=mask)
         output = self.decoder(output)
         output = F.log_softmax(output, dim=-1)
-        output = output.view(-1, self.vocab_size)
-        return output
+        return output.view(-1, self.vocab_size)
 
 
 class PositionalEncoding(nn.Module):
@@ -106,8 +104,7 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(torch.arange(0, self.dim, 2, device=device).float() * (-math.log(10000.0) / self.dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        return pe
+        return pe.unsqueeze(0)
 
 
 class WikiText2(Dataset):
@@ -200,8 +197,7 @@ class LightningTransformer(LightningModule):
     def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
-        loss = torch.nn.functional.nll_loss(output, target.view(-1))
-        return loss
+        return torch.nn.functional.nll_loss(output, target.view(-1))
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.SGD(self.model.parameters(), lr=0.1)
