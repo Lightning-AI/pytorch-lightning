@@ -32,6 +32,7 @@ def _runif_reasons(
     bf16_cuda: bool = False,
     tpu: bool = False,
     mps: Optional[bool] = None,
+    musa: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,
@@ -56,6 +57,8 @@ def _runif_reasons(
         tpu: Require that TPU is available.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
+        musa: If True: Require that MUSA (Device) is available,
+            if False: Explicitly Require that MUSA is not available
         skip_windows: Skip for Windows platform.
         standalone: Mark the test as standalone, our CI will run it in a separate process.
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
@@ -79,6 +82,7 @@ def _runif_reasons(
         bf16_cuda=bf16_cuda,
         tpu=tpu,
         mps=mps,
+        musa=musa,
         skip_windows=skip_windows,
         standalone=standalone,
         deepspeed=deepspeed,
