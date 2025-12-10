@@ -16,17 +16,23 @@ Neptune Logger
 --------------
 """
 
+import contextlib
 import logging
+import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Optional, Union
+from collections.abc import Generator
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _raise_enterprise_not_available
+from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
@@ -34,6 +40,27 @@ if TYPE_CHECKING:
     from neptune.handler import Handler
 
 log = logging.getLogger(__name__)
+
+# Neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# `neptune` was introduced as a name transition of neptune-client and the long-term target is to get
+# rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
+# of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
+# in compare to neptune-client<1.0.0.
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
+_INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
+
+
+# Neptune client throws `InactiveRunException` when trying to log to an inactive run.
+# This may happen when the run was stopped through the UI and the logger is still trying to log to it.
+def _catch_inactive(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        from neptune.exceptions import InactiveRunException
+
+        with contextlib.suppress(InactiveRunException):
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 class NeptuneLogger(Logger):
@@ -215,19 +242,113 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        _raise_enterprise_not_available()
-        super().__init__()
-        from pytorch_lightning_enterprise.loggers.neptune import NeptuneLogger as EnterpriseNeptuneLogger
+        if not _NEPTUNE_AVAILABLE:
+            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
 
-        self.logger_impl = EnterpriseNeptuneLogger(
-            api_key=api_key,
-            project=project,
-            name=name,
-            run=run,
-            log_model_checkpoints=log_model_checkpoints,
-            prefix=prefix,
-            **neptune_run_kwargs,
-        )
+        # verify if user passed proper init arguments
+        self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
+        super().__init__()
+        self._log_model_checkpoints = log_model_checkpoints
+        self._prefix = prefix
+        self._run_name = name
+        self._project_name = project
+        self._api_key = api_key
+        self._run_instance = run
+        self._neptune_run_kwargs = neptune_run_kwargs
+        self._run_short_id: Optional[str] = None
+
+        if self._run_instance is not None:
+            self._retrieve_run_data()
+
+            from neptune.handler import Handler
+
+            # make sure that we've log integration version for outside `Run` instances
+            root_obj = self._run_instance
+            if isinstance(root_obj, Handler):
+                root_obj = root_obj.get_root_object()
+
+            root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
+
+    def _retrieve_run_data(self) -> None:
+        from neptune.handler import Handler
+
+        assert self._run_instance is not None
+        root_obj = self._run_instance
+        if isinstance(root_obj, Handler):
+            root_obj = root_obj.get_root_object()
+
+        root_obj.wait()
+
+        if root_obj.exists("sys/id"):
+            self._run_short_id = root_obj["sys/id"].fetch()
+            self._run_name = root_obj["sys/name"].fetch()
+        else:
+            self._run_short_id = "OFFLINE"
+            self._run_name = "offline-name"
+
+    @property
+    def _neptune_init_args(self) -> dict:
+        args: dict = {}
+        # Backward compatibility in case of previous version retrieval
+        with contextlib.suppress(AttributeError):
+            args = self._neptune_run_kwargs
+
+        if self._project_name is not None:
+            args["project"] = self._project_name
+
+        if self._api_key is not None:
+            args["api_token"] = self._api_key
+
+        if self._run_short_id is not None:
+            args["run"] = self._run_short_id
+
+        # Backward compatibility in case of previous version retrieval
+        with contextlib.suppress(AttributeError):
+            if self._run_name is not None:
+                args["name"] = self._run_name
+
+        return args
+
+    def _construct_path_with_prefix(self, *keys: str) -> str:
+        """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with `_prefix` if defined."""
+        if self._prefix:
+            return self.LOGGER_JOIN_CHAR.join([self._prefix, *keys])
+        return self.LOGGER_JOIN_CHAR.join(keys)
+
+    @staticmethod
+    def _verify_input_arguments(
+        api_key: Optional[str],
+        project: Optional[str],
+        name: Optional[str],
+        run: Optional[Union["Run", "Handler"]],
+        neptune_run_kwargs: dict,
+    ) -> None:
+        from neptune import Run
+        from neptune.handler import Handler
+
+        # check if user passed the client `Run`/`Handler` object
+        if run is not None and not isinstance(run, (Run, Handler)):
+            raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
+
+        # check if user passed redundant neptune.init_run arguments when passed run
+        any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
+        if run is not None and any_neptune_init_arg_passed:
+            raise ValueError(
+                "When an already initialized run object is provided, you can't provide other `neptune.init_run()`"
+                " parameters."
+            )
+
+    def __getstate__(self) -> dict[str, Any]:
+        state = self.__dict__.copy()
+        # Run instance can't be pickled
+        state["_run_instance"] = None
+        return state
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        import neptune
+
+        self.__dict__ = state
+        self._run_instance = neptune.init_run(**self._neptune_init_args)
 
     @property
     @rank_zero_experiment
@@ -257,23 +378,73 @@ class NeptuneLogger(Logger):
         with NeptuneLogger.
 
         """
-        return self.logger_impl.experiment
+        return self.run
 
     @property
     @rank_zero_experiment
     def run(self) -> "Run":
-        return self.logger_impl.run
+        import neptune
+
+        if not self._run_instance:
+            self._run_instance = neptune.init_run(**self._neptune_init_args)
+            self._retrieve_run_data()
+            # make sure that we've log integration version for newly created
+            self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
+
+        return self._run_instance
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
-        return self.logger_impl.log_hyperparams(params)
+        r"""Log hyperparameters to the run.
+
+        Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
+
+        Note:
+
+            You can also log parameters by directly using the logger instance:
+            ``neptune_logger.experiment["model/hyper-parameters"] = params_dict``.
+
+            In this way you can keep hierarchical structure of the parameters.
+
+        Args:
+            params: `dict`.
+                Python dictionary structure with parameters.
+
+        Example::
+
+            from lightning.pytorch.loggers import NeptuneLogger
+            import neptune
+
+            PARAMS = {
+                "batch_size": 64,
+                "lr": 0.07,
+                "decay_factor": 0.97,
+            }
+
+            neptune_logger = NeptuneLogger(
+                api_key=neptune.ANONYMOUS_API_TOKEN,
+                project="common/pytorch-lightning-integration"
+            )
+
+            neptune_logger.log_hyperparams(PARAMS)
+
+        """
+        from neptune.utils import stringify_unsupported
+
+        params = _convert_params(params)
+        params = _sanitize_callable_params(params)
+
+        parameters_key = self.PARAMETERS_KEY
+        parameters_key = self._construct_path_with_prefix(parameters_key)
+
+        self.run[parameters_key] = stringify_unsupported(params)
 
     @override
     @rank_zero_only
-    def log_metrics(  # type: ignore[override]
-        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
-    ) -> None:
+    @_catch_inactive
+    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -281,12 +452,26 @@ class NeptuneLogger(Logger):
             step: Step number at which the metrics should be recorded
 
         """
-        return self.logger_impl.log_metrics(metrics, step)
+        if rank_zero_only.rank != 0:
+            raise ValueError("run tried to log from global_rank != 0")
+
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+
+        for key, val in metrics.items():
+            self.run[key].append(val, step=step)
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def finalize(self, status: str) -> None:
-        return self.logger_impl.finalize(status)
+        if not self._run_instance:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
+        if status:
+            self.run[self._construct_path_with_prefix("status")] = status
+
+        super().finalize(status)
 
     @property
     @override
@@ -298,14 +483,21 @@ class NeptuneLogger(Logger):
             the root directory where experiment logs get saved
 
         """
-        return self.logger_impl.save_dir
+        return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
+    @_catch_inactive
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
-        return self.logger_impl.log_model_summary(model, max_depth)
+        from neptune.types import File
+
+        model_str = str(ModelSummary(model=model, max_depth=max_depth))
+        self.run[self._construct_path_with_prefix("model/summary")] = File.from_content(
+            content=model_str, extension="txt"
+        )
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
@@ -313,13 +505,83 @@ class NeptuneLogger(Logger):
             checkpoint_callback: the model checkpoint callback instance
 
         """
-        return self.logger_impl.after_save_checkpoint(checkpoint_callback)
+        if not self._log_model_checkpoints:
+            return
+
+        file_names = set()
+        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
+
+        # save last model
+        if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
+            model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
+            file_names.add(model_last_name)
+            self.run[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
+
+        # save best k models
+        if hasattr(checkpoint_callback, "best_k_models"):
+            for key in checkpoint_callback.best_k_models:
+                model_name = self._get_full_model_name(key, checkpoint_callback)
+                file_names.add(model_name)
+                self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
+
+        # log best model path and checkpoint
+        if hasattr(checkpoint_callback, "best_model_path") and checkpoint_callback.best_model_path:
+            self.run[self._construct_path_with_prefix("model/best_model_path")] = checkpoint_callback.best_model_path
+
+            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
+            file_names.add(model_name)
+            self.run[f"{checkpoints_namespace}/{model_name}"].upload(checkpoint_callback.best_model_path)
+
+        # remove old models logged to experiment if they are not part of best k models at this point
+        if self.run.exists(checkpoints_namespace):
+            exp_structure = self.run.get_structure()
+            uploaded_model_names = self._get_full_model_names_from_exp_structure(exp_structure, checkpoints_namespace)
+
+            for file_to_drop in list(uploaded_model_names - file_names):
+                del self.run[f"{checkpoints_namespace}/{file_to_drop}"]
+
+        # log best model score
+        if hasattr(checkpoint_callback, "best_model_score") and checkpoint_callback.best_model_score:
+            self.run[self._construct_path_with_prefix("model/best_model_score")] = (
+                checkpoint_callback.best_model_score.cpu().detach().numpy()
+            )
+
+    @staticmethod
+    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
+        """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
+        if hasattr(checkpoint_callback, "dirpath"):
+            model_path = os.path.normpath(model_path)
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
+            if not model_path.startswith(expected_model_path):
+                raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
+            # Remove extension from filepath
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
+
+    @classmethod
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[str]:
+        """Returns all paths to properties which were already logged in `namespace`"""
+        structure_keys: list[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
+        for key in structure_keys:
+            exp_structure = exp_structure[key]
+        uploaded_models_dict = exp_structure
+        return set(cls._dict_paths(uploaded_models_dict))
+
+    @classmethod
+    def _dict_paths(cls, d: dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
+        for k, v in d.items():
+            path = f"{path_in_build}/{k}" if path_in_build is not None else k
+            if not isinstance(v, dict):
+                yield path
+            else:
+                yield from cls._dict_paths(v, path)
 
     @property
     @override
     def name(self) -> Optional[str]:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
-        return self.logger_impl.name
+        return self._run_name
 
     @property
     @override
@@ -329,4 +591,4 @@ class NeptuneLogger(Logger):
         It's Neptune Run's short_id
 
         """
-        return self.logger_impl.version
+        return self._run_short_id
