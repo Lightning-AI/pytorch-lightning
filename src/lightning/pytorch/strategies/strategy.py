@@ -13,9 +13,9 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -50,24 +50,24 @@ class Strategy(ABC):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: Precision | None = None,
     ) -> None:
-        self._accelerator: Optional[pl.accelerators.Accelerator] = accelerator
-        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[Precision] = None
+        self._accelerator: pl.accelerators.Accelerator | None = accelerator
+        self._checkpoint_io: CheckpointIO | None = checkpoint_io
+        self._precision_plugin: Precision | None = None
         # Call the precision setter for input validation
         self.precision_plugin = precision_plugin
-        self._lightning_module: Optional[pl.LightningModule] = None
-        self._model: Optional[Module] = None
-        self._launcher: Optional[_Launcher] = None
+        self._lightning_module: pl.LightningModule | None = None
+        self._model: Module | None = None
+        self._launcher: _Launcher | None = None
         self._forward_redirection: _ForwardRedirection = _ForwardRedirection()
         self._optimizers: list[Optimizer] = []
         self._lightning_optimizers: list[LightningOptimizer] = []
         self.lr_scheduler_configs: list[LRSchedulerConfig] = []
 
     @property
-    def launcher(self) -> Optional[_Launcher]:
+    def launcher(self) -> _Launcher | None:
         return self._launcher
 
     @property
@@ -96,7 +96,7 @@ class Strategy(ABC):
         return self._precision_plugin if self._precision_plugin is not None else Precision()
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
+    def precision_plugin(self, precision_plugin: Precision | None) -> None:
         self._precision_plugin = precision_plugin
 
     @property
@@ -192,7 +192,7 @@ class Strategy(ABC):
     def backward(
         self,
         closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
+        optimizer: Optimizer | None,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -221,7 +221,7 @@ class Strategy(ABC):
         self,
         optimizer: Optimizer,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
+        model: Union["pl.LightningModule", Module] | None = None,
         **kwargs: Any,
     ) -> Any:
         r"""Performs the actual optimizer step.
@@ -260,7 +260,7 @@ class Strategy(ABC):
         # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         return optimizer
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+    def batch_to_device(self, batch: Any, device: torch.device | None = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
 
         The returned batch is of the same type as the input batch, just
@@ -295,10 +295,10 @@ class Strategy(ABC):
     @abstractmethod
     def reduce(
         self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, Any]:
+        tensor: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
+    ) -> Tensor | Any:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
@@ -310,7 +310,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         """Synchronizes all processes which blocks processes until the whole group enters this function.
 
         Args:
@@ -329,7 +329,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform an all_gather on all processes.
 
         Args:
@@ -350,12 +350,12 @@ class Strategy(ABC):
         """Run after precision plugin executes backward."""
 
     @property
-    def model(self) -> Optional[Module]:
+    def model(self) -> Module | None:
         """Returns the potentially wrapped LightningModule."""
         return self._model if self._model is not None else self._lightning_module
 
     @model.setter
-    def model(self, new_model: Optional[Module]) -> None:
+    def model(self, new_model: Module | None) -> None:
         self._model = new_model
 
     @property
@@ -363,7 +363,7 @@ class Strategy(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return self._lightning_module
 
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: bool | None = None) -> dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path, weights_only=weights_only)
 
@@ -476,9 +476,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()
 
-    def save_checkpoint(
-        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -501,7 +499,7 @@ class Strategy(ABC):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextmanager
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def tensor_init_context(self, empty_init: bool | None = None) -> Generator[None, None, None]:
         """Controls how tensors get created (device, dtype).
 
         Args:

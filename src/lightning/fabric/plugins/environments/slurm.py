@@ -18,7 +18,6 @@ import re
 import shutil
 import signal
 import sys
-from typing import Optional
 
 from typing_extensions import override
 
@@ -44,7 +43,7 @@ class SLURMEnvironment(ClusterEnvironment):
 
     """
 
-    def __init__(self, auto_requeue: bool = True, requeue_signal: Optional[signal.Signals] = None) -> None:
+    def __init__(self, auto_requeue: bool = True, requeue_signal: signal.Signals | None = None) -> None:
         super().__init__()
         self.auto_requeue = auto_requeue
         if requeue_signal is None and not _IS_WINDOWS:
@@ -113,11 +112,11 @@ class SLURMEnvironment(ClusterEnvironment):
         return _is_srun_used()
 
     @staticmethod
-    def job_name() -> Optional[str]:
+    def job_name() -> str | None:
         return os.environ.get("SLURM_JOB_NAME")
 
     @staticmethod
-    def job_id() -> Optional[int]:
+    def job_id() -> int | None:
         # in interactive mode, don't make logs use the same job id
         if _is_slurm_interactive_mode():
             return None

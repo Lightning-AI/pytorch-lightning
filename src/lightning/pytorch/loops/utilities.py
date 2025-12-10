@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, contextmanager
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -36,7 +36,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
-def check_finite_loss(loss: Optional[Tensor]) -> None:
+def check_finite_loss(loss: Tensor | None) -> None:
     """Checks for finite loss value.
 
     Args:
@@ -48,10 +48,10 @@ def check_finite_loss(loss: Optional[Tensor]) -> None:
 
 
 def _parse_loop_limits(
-    min_steps: Optional[int],
+    min_steps: int | None,
     max_steps: int,
-    min_epochs: Optional[int],
-    max_epochs: Optional[int],
+    min_epochs: int | None,
+    max_epochs: int | None,
     trainer: "pl.Trainer",
 ) -> tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the values

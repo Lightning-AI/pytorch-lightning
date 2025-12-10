@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import torch
 from torch import Tensor
@@ -49,9 +49,9 @@ class XLAStrategy(DDPStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
-        precision_plugin: Optional[XLAPrecision] = None,
+        parallel_devices: list[torch.device] | None = None,
+        checkpoint_io: XLACheckpointIO | _WrappingCheckpointIO | None = None,
+        precision_plugin: XLAPrecision | None = None,
         debug: bool = False,
         sync_module_states: bool = True,
         **_: Any,
@@ -72,7 +72,7 @@ class XLAStrategy(DDPStrategy):
 
     @property
     @override
-    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+    def checkpoint_io(self) -> XLACheckpointIO | _WrappingCheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
             assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
@@ -81,7 +81,7 @@ class XLAStrategy(DDPStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -97,7 +97,7 @@ class XLAStrategy(DDPStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
+    def precision_plugin(self, precision_plugin: Precision | None) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
@@ -199,7 +199,7 @@ class XLAStrategy(DDPStrategy):
         self.model = self.model.to(self.root_device)
 
     @override
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
 
@@ -248,9 +248,9 @@ class XLAStrategy(DDPStrategy):
     @override
     def reduce(
         self,
-        output: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+        output: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
     ) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
@@ -297,9 +297,7 @@ class XLAStrategy(DDPStrategy):
         pass
 
     @override
-    def save_checkpoint(
-        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Any | None = None) -> None:
         import torch_xla.core.xla_model as xm
 
         # sync any pending lazy tensors on all ranks before saving to prevent potential collective hangs
@@ -319,7 +317,7 @@ class XLAStrategy(DDPStrategy):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     @override
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
         Args:

@@ -19,8 +19,8 @@ Freeze and unfreeze models for finetuning purposes.
 """
 
 import logging
-from collections.abc import Generator, Iterable
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Generator, Iterable
+from typing import Any
 
 import torch
 from torch.nn import Module, ModuleDict
@@ -124,7 +124,7 @@ class BaseFinetuning(Callback):
             self._restarting = False
 
     @staticmethod
-    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> list[Module]:
+    def flatten_modules(modules: Module | Iterable[Module | Iterable]) -> list[Module]:
         """This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
         with no children) and parent modules that have parameters directly themselves.
 
@@ -152,7 +152,7 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def filter_params(
-        modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True, requires_grad: bool = True
+        modules: Module | Iterable[Module | Iterable], train_bn: bool = True, requires_grad: bool = True
     ) -> Generator:
         """Yields the `requires_grad` parameters of a given module or list of modules.
 
@@ -174,7 +174,7 @@ class BaseFinetuning(Callback):
                     yield param
 
     @staticmethod
-    def make_trainable(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> None:
+    def make_trainable(modules: Module | Iterable[Module | Iterable]) -> None:
         """Unfreezes the parameters of the provided modules.
 
         Args:
@@ -204,7 +204,7 @@ class BaseFinetuning(Callback):
             param.requires_grad = False
 
     @staticmethod
-    def freeze(modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True) -> None:
+    def freeze(modules: Module | Iterable[Module | Iterable], train_bn: bool = True) -> None:
         """Freezes the parameters of the provided modules.
 
         Args:
@@ -253,9 +253,9 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def unfreeze_and_add_param_group(
-        modules: Union[Module, Iterable[Union[Module, Iterable]]],
+        modules: Module | Iterable[Module | Iterable],
         optimizer: Optimizer,
-        lr: Optional[float] = None,
+        lr: float | None = None,
         initial_denom_lr: float = 10.0,
         train_bn: bool = True,
     ) -> None:
@@ -410,7 +410,7 @@ class BackboneFinetuning(BaseFinetuning):
         unfreeze_backbone_at_epoch: int = 10,
         lambda_func: Callable = multiplicative,
         backbone_initial_ratio_lr: float = 10e-2,
-        backbone_initial_lr: Optional[float] = None,
+        backbone_initial_lr: float | None = None,
         should_align: bool = True,
         initial_denom_lr: float = 10.0,
         train_bn: bool = True,
@@ -422,13 +422,13 @@ class BackboneFinetuning(BaseFinetuning):
         self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
         self.lambda_func: Callable = lambda_func
         self.backbone_initial_ratio_lr: float = backbone_initial_ratio_lr
-        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
+        self.backbone_initial_lr: float | None = backbone_initial_lr
         self.should_align: bool = should_align
         self.initial_denom_lr: float = initial_denom_lr
         self.train_bn: bool = train_bn
         self.verbose: bool = verbose
         self.rounding: int = rounding
-        self.previous_backbone_lr: Optional[float] = None
+        self.previous_backbone_lr: float | None = None
 
     @override
     def state_dict(self) -> dict[str, Any]:

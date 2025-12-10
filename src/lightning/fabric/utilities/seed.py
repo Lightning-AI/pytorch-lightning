@@ -3,7 +3,7 @@ import os
 import random
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Optional
+from typing import Any
 
 import torch
 
@@ -17,7 +17,7 @@ max_seed_value = 4294967295  # 2^32 - 1 (uint32)
 min_seed_value = 0
 
 
-def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: bool = True) -> int:
+def seed_everything(seed: int | None = None, workers: bool = False, verbose: bool = True) -> int:
     r"""Function that sets the seed for pseudo-random number generators in: torch, numpy, and Python's random module.
     In addition, sets the following environment variables:
 
@@ -82,7 +82,7 @@ def reset_seed() -> None:
     seed_everything(int(seed), workers=bool(int(workers)), verbose=False)
 
 
-def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
+def pl_worker_init_function(worker_id: int, rank: int | None = None) -> None:  # pragma: no cover
     r"""The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed with
     ``seed_everything(seed, workers=True)``.
 

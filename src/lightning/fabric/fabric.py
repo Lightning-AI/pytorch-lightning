@@ -13,16 +13,14 @@
 # limitations under the License.
 import inspect
 import os
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
-    Union,
     cast,
     overload,
 )
@@ -134,14 +132,14 @@ class Fabric:
     def __init__(
         self,
         *,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        devices: Union[list[int], str, int] = "auto",
+        accelerator: str | Accelerator = "auto",
+        strategy: str | Strategy = "auto",
+        devices: list[int] | str | int = "auto",
         num_nodes: int = 1,
-        precision: Optional[_PRECISION_INPUT] = None,
-        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
-        callbacks: Optional[Union[list[Any], Any]] = None,
-        loggers: Optional[Union[Logger, list[Logger]]] = None,
+        precision: _PRECISION_INPUT | None = None,
+        plugins: _PLUGIN_INPUT | list[_PLUGIN_INPUT] | None = None,
+        callbacks: list[Any] | Any | None = None,
+        loggers: Logger | list[Logger] | None = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -373,7 +371,7 @@ class Fabric:
         self._models_setup += 1
         return module
 
-    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, tuple[_FabricOptimizer, ...]]:
+    def setup_optimizers(self, *optimizers: Optimizer) -> _FabricOptimizer | tuple[_FabricOptimizer, ...]:
         r"""Set up one or more optimizers for accelerated training.
 
         Some strategies do not allow setting up model and optimizer independently. For them, you should call
@@ -411,7 +409,7 @@ class Fabric:
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, list[DataLoader]]:
+    ) -> DataLoader | list[DataLoader]:
         r"""Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -479,7 +477,7 @@ class Fabric:
         fabric_dataloader = cast(DataLoader, fabric_dataloader)
         return fabric_dataloader
 
-    def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, *args: Any, model: _FabricModule | None = None, **kwargs: Any) -> None:
         r"""Replaces ``loss.backward()`` in your training loop. Handles precision automatically for you.
 
         Args:
@@ -526,13 +524,13 @@ class Fabric:
 
     def clip_gradients(
         self,
-        module: Union[torch.nn.Module, _FabricModule],
-        optimizer: Union[Optimizer, _FabricOptimizer],
-        clip_val: Optional[Union[float, int]] = None,
-        max_norm: Optional[Union[float, int]] = None,
-        norm_type: Union[float, int] = 2.0,
+        module: torch.nn.Module | _FabricModule,
+        optimizer: Optimizer | _FabricOptimizer,
+        clip_val: float | int | None = None,
+        max_norm: float | int | None = None,
+        norm_type: float | int = 2.0,
         error_if_nonfinite: bool = True,
-    ) -> Optional[torch.Tensor]:
+    ) -> torch.Tensor | None:
         """Clip the gradients of the model to a given max value or max norm.
 
         Args:
@@ -598,7 +596,7 @@ class Fabric:
     @overload
     def to_device(self, obj: Any) -> Any: ...
 
-    def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
+    def to_device(self, obj: nn.Module | Tensor | Any) -> nn.Module | Tensor | Any:
         r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already on
         that device.
 
@@ -626,7 +624,7 @@ class Fabric:
         if self.local_rank == 0:
             print(*args, **kwargs)
 
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         """Wait for all processes to enter this call.
 
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
@@ -655,8 +653,8 @@ class Fabric:
         return self._strategy.broadcast(obj, src=src)
 
     def all_gather(
-        self, data: Union[Tensor, dict, list, tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[Tensor, dict, list, tuple]:
+        self, data: Tensor | dict | list | tuple, group: Any | None = None, sync_grads: bool = False
+    ) -> Tensor | dict | list | tuple:
         """Gather tensors or collections of tensors from multiple processes.
 
         This method needs to be called on all processes and the tensors need to have the same shape across all
@@ -680,10 +678,10 @@ class Fabric:
 
     def all_reduce(
         self,
-        data: Union[Tensor, dict, list, tuple],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, dict, list, tuple]:
+        data: Tensor | dict | list | tuple,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
+    ) -> Tensor | dict | list | tuple:
         """Reduce tensors or collections of tensors from multiple processes.
 
         The reduction on tensors is applied in-place, meaning the result will be placed back into the input tensor.
@@ -802,7 +800,7 @@ class Fabric:
         the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
-    def init_module(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def init_module(self, empty_init: bool | None = None) -> AbstractContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
@@ -819,9 +817,9 @@ class Fabric:
 
     def save(
         self,
-        path: Union[str, Path],
-        state: dict[str, Union[nn.Module, Optimizer, Any]],
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        path: str | Path,
+        state: dict[str, nn.Module | Optimizer | Any],
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         r"""Save checkpoint contents to a file.
 
@@ -868,8 +866,8 @@ class Fabric:
 
     def load(
         self,
-        path: Union[str, Path],
-        state: Optional[dict[str, Union[nn.Module, Optimizer, Any]]] = None,
+        path: str | Path,
+        state: dict[str, nn.Module | Optimizer | Any] | None = None,
         strict: bool = True,
     ) -> dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
@@ -911,7 +909,7 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
-    def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
+    def load_raw(self, path: str | Path, obj: nn.Module | Optimizer, strict: bool = True) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
 
         Use this for loading a raw PyTorch model checkpoint created without Fabric.
@@ -1049,7 +1047,7 @@ class Fabric:
             filtered_kwargs = self._filter_kwargs_for_callback(method, kwargs)
             method(*args, **filtered_kwargs)
 
-    def log(self, name: str, value: Any, step: Optional[int] = None) -> None:
+    def log(self, name: str, value: Any, step: int | None = None) -> None:
         """Log a scalar to all loggers that were added to Fabric.
 
         Args:
@@ -1062,7 +1060,7 @@ class Fabric:
         """
         self.log_dict(metrics={name: value}, step=step)
 
-    def log_dict(self, metrics: Mapping[str, Any], step: Optional[int] = None) -> None:
+    def log_dict(self, metrics: Mapping[str, Any], step: int | None = None) -> None:
         """Log multiple scalars at once to all loggers that were added to Fabric.
 
         Args:
@@ -1077,7 +1075,7 @@ class Fabric:
             logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
-    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None, verbose: bool = True) -> int:
+    def seed_everything(seed: int | None = None, workers: bool | None = None, verbose: bool = True) -> int:
         r"""Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`~lightning.fabric.utilities.seed.seed_everything` for more details.
@@ -1229,7 +1227,7 @@ class Fabric:
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
     @staticmethod
-    def _configure_callbacks(callbacks: Optional[Union[list[Any], Any]]) -> list[Any]:
+    def _configure_callbacks(callbacks: list[Any] | Any | None) -> list[Any]:
         callbacks = callbacks if callbacks is not None else []
         callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
         callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))

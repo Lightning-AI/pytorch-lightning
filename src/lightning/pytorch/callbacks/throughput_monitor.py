@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import torch
 from typing_extensions import override
@@ -77,13 +78,13 @@ class ThroughputMonitor(Callback):
     """
 
     def __init__(
-        self, batch_size_fn: Callable[[Any], int], length_fn: Optional[Callable[[Any], int]] = None, **kwargs: Any
+        self, batch_size_fn: Callable[[Any], int], length_fn: Callable[[Any], int] | None = None, **kwargs: Any
     ) -> None:
         super().__init__()
         self.kwargs = kwargs
         self.batch_size_fn = batch_size_fn
         self.length_fn = length_fn
-        self.available_flops: Optional[int] = None
+        self.available_flops: int | None = None
         self._throughputs: dict[RunningStage, Throughput] = {}
         self._t0s: dict[RunningStage, float] = {}
         self._lengths: dict[RunningStage, int] = {}
@@ -154,7 +155,7 @@ class ThroughputMonitor(Callback):
             flops=flops_per_batch,  # type: ignore[arg-type]
         )
 
-    def _compute(self, trainer: "Trainer", iter_num: Optional[int] = None) -> None:
+    def _compute(self, trainer: "Trainer", iter_num: int | None = None) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
         stage = trainer.state.stage
@@ -246,7 +247,7 @@ class ThroughputMonitor(Callback):
         self._compute(trainer, iter_num)
 
 
-def _plugin_to_compute_dtype(plugin: Union[FabricPrecision, Precision]) -> torch.dtype:
+def _plugin_to_compute_dtype(plugin: FabricPrecision | Precision) -> torch.dtype:
     # TODO: integrate this into the precision plugins
     if not isinstance(plugin, Precision):
         return fabric_plugin_to_compute_dtype(plugin)

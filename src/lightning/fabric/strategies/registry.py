@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from typing_extensions import override
 
@@ -44,8 +45,8 @@ class _StrategyRegistry(dict):
     def register(
         self,
         name: str,
-        strategy: Optional[Callable] = None,
-        description: Optional[str] = None,
+        strategy: Callable | None = None,
+        description: str | None = None,
         override: bool = False,
         **init_params: Any,
     ) -> Callable:
@@ -82,7 +83,7 @@ class _StrategyRegistry(dict):
         return do_register
 
     @override
-    def get(self, name: str, default: Optional[Any] = None) -> Any:
+    def get(self, name: str, default: Any | None = None) -> Any:
         """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:

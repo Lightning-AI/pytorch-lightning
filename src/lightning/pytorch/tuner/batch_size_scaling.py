@@ -15,7 +15,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -34,7 +34,7 @@ def _scale_batch_size(
     batch_arg_name: str = "batch_size",
     margin: float = 0.05,
     max_val: int = 8192,
-) -> Optional[int]:
+) -> int | None:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
 
@@ -329,8 +329,8 @@ def _adjust_batch_size(
     trainer: "pl.Trainer",
     batch_arg_name: str = "batch_size",
     factor: float = 1.0,
-    value: Optional[int] = None,
-    desc: Optional[str] = None,
+    value: int | None = None,
+    desc: str | None = None,
     max_val: int = 8192,
 ) -> tuple[int, bool]:
     """Helper function for adjusting the batch size.

@@ -17,14 +17,14 @@ import json
 from argparse import Namespace
 from collections.abc import Mapping, MutableMapping
 from dataclasses import asdict, is_dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 from torch import Tensor
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
 
-def _convert_params(params: Optional[Union[dict[str, Any], Namespace]]) -> dict[str, Any]:
+def _convert_params(params: dict[str, Any] | Namespace | None) -> dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
 
     Args:
@@ -164,9 +164,7 @@ def _is_json_serializable(value: Any) -> bool:
         return False
 
 
-def _add_prefix(
-    metrics: Mapping[str, Union[Tensor, float]], prefix: str, separator: str
-) -> Mapping[str, Union[Tensor, float]]:
+def _add_prefix(metrics: Mapping[str, Tensor | float], prefix: str, separator: str) -> Mapping[str, Tensor | float]:
     """Insert prefix before each key in a dict, separated by the separator.
 
     Args:

@@ -17,7 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -76,13 +76,13 @@ class LayerSummary:
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
-        self._in_size: Optional[Union[str, list]] = None
-        self._out_size: Optional[Union[str, list]] = None
+        self._in_size: str | list | None = None
+        self._out_size: str | list | None = None
 
     def __del__(self) -> None:
         self.detach_hook()
 
-    def _register_hook(self) -> Optional[RemovableHandle]:
+    def _register_hook(self) -> RemovableHandle | None:
         """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If the
         hook is called, it will remove itself from the from the module, meaning that recursive models will only record
         their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
@@ -124,11 +124,11 @@ class LayerSummary:
             self._hook_handle.remove()
 
     @property
-    def in_size(self) -> Union[str, list]:
+    def in_size(self) -> str | list:
         return self._in_size or UNKNOWN_SIZE
 
     @property
-    def out_size(self) -> Union[str, list]:
+    def out_size(self) -> str | list:
         return self._out_size or UNKNOWN_SIZE
 
     @property
@@ -431,7 +431,7 @@ class ModelSummary:
         return str(self)
 
 
-def parse_batch_shape(batch: Any) -> Union[str, list]:
+def parse_batch_shape(batch: Any) -> str | list:
     if hasattr(batch, "shape"):
         return list(batch.shape)
 

@@ -16,7 +16,6 @@ import os
 import pickle
 import sys
 from collections import defaultdict
-from typing import Union
 from unittest import mock
 from unittest.mock import ANY, Mock, PropertyMock, call, patch
 
@@ -457,7 +456,7 @@ def test_tensor_to_float_conversion(tmp_path):
         ("abc", "abc"),
     ],
 )
-def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
+def test_tqdm_format_num(input_num: str | int | float, expected: str):
     """Check that the specialized tqdm.format_num appends 0 to floats and strings."""
     assert Tqdm.format_num(input_num) == expected
 

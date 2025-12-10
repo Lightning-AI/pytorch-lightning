@@ -13,18 +13,18 @@
 # limitations under the License.
 import itertools
 import shutil
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard, TypeVar
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from typing_extensions import TypeGuard, override
+from typing_extensions import override
 
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
@@ -89,11 +89,11 @@ class ModelParallelStrategy(ParallelStrategy):
     def __init__(
         self,
         parallelize_fn: Callable[[TModel, "DeviceMesh"], TModel],
-        data_parallel_size: Union[Literal["auto"], int] = "auto",
-        tensor_parallel_size: Union[Literal["auto"], int] = "auto",
+        data_parallel_size: Literal["auto"] | int = "auto",
+        tensor_parallel_size: Literal["auto"] | int = "auto",
         save_distributed_checkpoint: bool = True,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
     ) -> None:
         super().__init__()
         if not _TORCH_GREATER_EQUAL_2_4:
@@ -103,11 +103,11 @@ class ModelParallelStrategy(ParallelStrategy):
         self._tensor_parallel_size = tensor_parallel_size
         self._num_nodes = 1
         self._save_distributed_checkpoint = save_distributed_checkpoint
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
         self._backward_sync_control = _ParallelBackwardSyncControl()
 
-        self._device_mesh: Optional[DeviceMesh] = None
+        self._device_mesh: DeviceMesh | None = None
 
     @property
     def device_mesh(self) -> "DeviceMesh":
@@ -151,7 +151,7 @@ class ModelParallelStrategy(ParallelStrategy):
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @override
@@ -195,7 +195,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
+    def module_init_context(self, empty_init: bool | None = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         stack = ExitStack()
         if empty_init:
@@ -206,9 +206,7 @@ class ModelParallelStrategy(ParallelStrategy):
         return stack
 
     @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def all_reduce(self, tensor: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean") -> Tensor:
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
@@ -235,9 +233,9 @@ class ModelParallelStrategy(ParallelStrategy):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Module | Optimizer | Any],
+        storage_options: Any | None = None,
+        filter: dict[str, Callable[[str, Any], bool]] | None = None,
     ) -> None:
         """Save model, optimizer, and other state to a checkpoint on disk.
 
@@ -273,9 +271,9 @@ class ModelParallelStrategy(ParallelStrategy):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Module | Optimizer | dict[str, Module | Optimizer | Any] | None = None,
         strict: bool = True,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -348,10 +346,10 @@ class _FSDPNoSync(AbstractContextManager):
 
 def _save_checkpoint(
     path: Path,
-    state: dict[str, Union[Module, Optimizer, Any]],
+    state: dict[str, Module | Optimizer | Any],
     full_state_dict: bool,
     rank: int,
-    filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+    filter: dict[str, Callable[[str, Any], bool]] | None = None,
 ) -> None:
     if path.is_dir() and full_state_dict and not _is_sharded_checkpoint(path):
         raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
@@ -409,10 +407,10 @@ def _save_checkpoint(
 
 def _load_checkpoint(
     path: Path,
-    state: dict[str, Union[Module, Optimizer, Any]],
+    state: dict[str, Module | Optimizer | Any],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
-    weights_only: Optional[bool] = None,
+    weights_only: bool | None = None,
 ) -> dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,

@@ -2,7 +2,6 @@ import base64
 from dataclasses import dataclass
 from io import BytesIO
 from os import path
-from typing import Optional
 
 import numpy as np
 import torch
@@ -56,8 +55,8 @@ class CIFAR10DataModule(LightningDataModule):
 
 @dataclass(unsafe_hash=True)
 class Image:
-    height: Optional[int] = None
-    width: Optional[int] = None
+    height: int | None = None
+    width: int | None = None
     extension: str = "JPEG"
     mode: str = "RGB"
     channel_first: bool = False

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 from torch import Tensor
 from torch.nn import Module
@@ -33,7 +33,7 @@ _PRECISION_INPUT_STR = Literal[
     "32-true",
     "64-true",
 ]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS]
+_PRECISION_INPUT = _PRECISION_INPUT_INT | _PRECISION_INPUT_STR | _PRECISION_INPUT_STR_ALIAS
 
 
 class Precision:
@@ -87,7 +87,7 @@ class Precision:
         """
         return data
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
+    def pre_backward(self, tensor: Tensor, module: Module | None) -> Any:
         """Runs before precision plugin executes backward.
 
         Args:
@@ -96,7 +96,7 @@ class Precision:
 
         """
 
-    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: Module | None, *args: Any, **kwargs: Any) -> None:
         """Performs the actual backpropagation.
 
         Args:
@@ -106,7 +106,7 @@ class Precision:
         """
         tensor.backward(*args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
+    def post_backward(self, tensor: Tensor, module: Module | None) -> Any:
         """Runs after precision plugin executes backward.
 
         Args:

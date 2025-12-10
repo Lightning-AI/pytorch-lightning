@@ -34,15 +34,15 @@ class ParallelStrategy(Strategy, ABC):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: Precision | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
-        self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
-        self._layer_sync: Optional[LayerSync] = None
+        self.cluster_environment: ClusterEnvironment | None = cluster_environment
+        self._layer_sync: LayerSync | None = None
 
     @property
     @abstractmethod
@@ -72,11 +72,11 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
-    def parallel_devices(self) -> Optional[list[torch.device]]:
+    def parallel_devices(self) -> list[torch.device] | None:
         return self._parallel_devices
 
     @parallel_devices.setter
-    def parallel_devices(self, parallel_devices: Optional[list[torch.device]]) -> None:
+    def parallel_devices(self, parallel_devices: list[torch.device] | None) -> None:
         self._parallel_devices = parallel_devices
 
     @property
@@ -87,7 +87,7 @@ class ParallelStrategy(Strategy, ABC):
         }
 
     @override
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
