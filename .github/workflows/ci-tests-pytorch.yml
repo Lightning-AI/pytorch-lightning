@@ -87,7 +87,6 @@ jobs:
       - name: Append Env. vars for Linux
         if: ${{ runner.os == 'Linux' }}
         run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
-
       - name: Append Env. vars for MacOS
         if: ${{ runner.os == 'macOS' }}
         run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
@@ -133,6 +132,11 @@ jobs:
             --find-links="${TORCH_URL}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
           uv pip list
+
+      - name: Patch NumPy for old Torch versions
+        if: ${{ startsWith(matrix.config.pytorch-version, '2.1') || startsWith(matrix.config.pytorch-version, '2.2') || startsWith(matrix.config.pytorch-version, '2.3') }}
+        # Patch numpy to avoid "RuntimeError: Numpy is not available"
+        run: uv pip install -U "numpy<1.24"
 
       - name: Drop LAI from extensions
         if: ${{ matrix.config.pkg-name != 'lightning' }}
