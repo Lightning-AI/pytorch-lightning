@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `best_model_metrics` attribute to `ModelCheckpoint` callback to store all logged metrics associated with the best model checkpoint ([#21355](https://github.com/Lightning-AI/pytorch-lightning/pull/21355))
 
 ### Changed
 
