@@ -1,10 +1,9 @@
-import os
-import lightning as L
 import torch
 import torch.nn.functional as F
-from lightning.pytorch.demos import Transformer, WikiText2
 from torch.utils.data import DataLoader, random_split
-from pathlib import Path
+
+import lightning as L
+from lightning.pytorch.demos import Transformer, WikiText2
 
 
 class TinyModel(L.LightningModule):
@@ -15,8 +14,7 @@ class TinyModel(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         out = self.model(x, y)
-        loss = F.nll_loss(out, y.view(-1))
-        return loss
+        return F.nll_loss(out, y.view(-1))
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)
@@ -118,12 +116,23 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
     assert bp is not None, "BatchProgress object not found on Trainer; see earlier logs."
 
     possible_total_names = [
-        "total_completed", "total_completed_batches", "total_steps_completed",
-        "completed", "total", "total_done", "total_ready", "ready",
+        "total_completed",
+        "total_completed_batches",
+        "total_steps_completed",
+        "completed",
+        "total",
+        "total_done",
+        "total_ready",
+        "ready",
     ]
     possible_current_names = [
-        "current_completed", "current", "current_batch", "current_index",
-        "completed_in_epoch", "in_progress", "current_ready",
+        "current_completed",
+        "current",
+        "current_batch",
+        "current_index",
+        "completed_in_epoch",
+        "in_progress",
+        "current_ready",
     ]
 
     total_candidate = None
@@ -156,7 +165,7 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
     gs = trainer_resume.global_step
 
     assert total_completed >= 0 and current_completed >= 0, "negative counters found"
-    assert total_completed >= gs or total_completed == 0, f"unexpected total_completed={total_completed} < global_step={gs}"
+    assert total_completed >= gs or total_completed == 0, (
+        f"unexpected total_completed={total_completed} < global_step={gs}"
+    )
     assert current_completed <= total_completed
-
-

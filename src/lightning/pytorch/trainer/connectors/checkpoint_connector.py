@@ -82,17 +82,17 @@ class _CheckpointConnector:
         with pl_legacy_patch():
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
-        
+
         try:
             bp = getattr(self.trainer, "batch_progress", None)
             if bp is not None:
                 gs = int(getattr(self.trainer, "global_step", 0))
-               # Align total counters defensively so they are at least the restored global_step
+                # Align total counters defensively so they are at least the restored global_step
                 try:
-                   bp.total_ready = max(int(getattr(bp, "total_ready", 0)), gs)
-                   bp.total_completed = max(int(getattr(bp, "total_completed", 0)), gs)
+                    bp.total_ready = max(int(getattr(bp, "total_ready", 0)), gs)
+                    bp.total_completed = max(int(getattr(bp, "total_completed", 0)), gs)
                 except Exception:
-                   pass
+                    pass
 
                 # Try to compute within-epoch counters from limit_train_batches when possible,
                 # otherwise fall back to safe defaults.
