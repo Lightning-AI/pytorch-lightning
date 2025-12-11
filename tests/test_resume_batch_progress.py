@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader, random_split
 import lightning as L
 from lightning.pytorch.demos import Transformer, WikiText2
 
+from pathlib import Path
+import logging
 
 class TinyModel(L.LightningModule):
     def __init__(self, vocab_size):
@@ -39,8 +41,9 @@ def _find_batch_progress(trainer):
                 continue
             if any(n in dir(obj) for n in ("current_completed", "current", "completed")):
                 return obj
-        except Exception:
-            continue
+        except Exception as exc:
+            log = logging.getLogger(__name__)
+            log.debug(f"BatchProgress restore fallback triggered: {exc}")
     return None
 
 
@@ -60,8 +63,9 @@ def _extract_int(candidate):
         if hasattr(candidate, attr):
             try:
                 return int(getattr(candidate, attr))
-            except Exception:
-                pass
+            except Exception as exc:
+                log = logging.getLogger(__name__)
+                log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     if isinstance(candidate, (tuple, list)) and len(candidate) > 0:
         for el in candidate:
@@ -72,12 +76,14 @@ def _extract_int(candidate):
                     if hasattr(el, attr):
                         try:
                             return int(getattr(el, attr))
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log = logging.getLogger(__name__)
+                            log.debug(f"BatchProgress restore fallback triggered: {exc}")
         try:
             return int(candidate[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            log = logging.getLogger(__name__)
+            log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     try:
         return int(candidate)
@@ -154,8 +160,9 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
                 try:
                     current_candidate = getattr(bp, name)
                     break
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log = logging.getLogger(__name__)
+                    log.debug(f"BatchProgress restore fallback triggered: {exc}")
     if current_candidate is None:
         current_candidate = 0
 
@@ -164,8 +171,12 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
 
     gs = trainer_resume.global_step
 
-    assert total_completed >= 0 and current_completed >= 0, "negative counters found"
+
+    assert total_completed >= 0, "negative total_completed found"
+    assert current_completed >= 0, "negative current_completed found"
+
     assert total_completed >= gs or total_completed == 0, (
         f"unexpected total_completed={total_completed} < global_step={gs}"
     )
+
     assert current_completed <= total_completed

@@ -89,10 +89,12 @@ class _CheckpointConnector:
                 gs = int(getattr(self.trainer, "global_step", 0))
                 # Align total counters defensively so they are at least the restored global_step
                 try:
-                    bp.total_ready = max(int(getattr(bp, "total_ready", 0)), gs)
-                    bp.total_completed = max(int(getattr(bp, "total_completed", 0)), gs)
-                except Exception:
-                    pass
+                   bp.total_ready = max(int(getattr(bp, "total_ready", 0)), gs)
+                   bp.total_completed = max(int(getattr(bp, "total_completed", 0)), gs)
+                except Exception as exc:
+                    log = logging.getLogger(__name__)
+                    log.debug(f"BatchProgress restore fallback triggered: {exc}")
+                   
 
                 # Try to compute within-epoch counters from limit_train_batches when possible,
                 # otherwise fall back to safe defaults.
@@ -109,10 +111,12 @@ class _CheckpointConnector:
                     try:
                         bp.current_completed = 0
                         bp.current_ready = 0
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+                    except Exception as exc:
+                        log = logging.getLogger(__name__)
+                        log.debug(f"BatchProgress restore fallback triggered: {exc}")
+        except Exception as exc:
+            log = logging.getLogger(__name__)
+            log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     def _select_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
