@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
@@ -5,8 +7,6 @@ from torch.utils.data import DataLoader, random_split
 import lightning as L
 from lightning.pytorch.demos import Transformer, WikiText2
 
-from pathlib import Path
-import logging
 
 class TinyModel(L.LightningModule):
     def __init__(self, vocab_size):
@@ -170,7 +170,6 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
     current_completed = _extract_int(current_candidate)
 
     gs = trainer_resume.global_step
-
 
     assert total_completed >= 0, "negative total_completed found"
     assert current_completed >= 0, "negative current_completed found"
