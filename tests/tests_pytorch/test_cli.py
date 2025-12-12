@@ -497,9 +497,10 @@ class BoringCkptPathModel(BoringModel):
 
 class AdaptHparamsModel(LightningModule):
     """Simple model for testing adapt_checkpoint_hparams hook without dynamic neural network layers.
-    
-    This model stores hyperparameters as attributes without creating layers that would cause
-    size mismatches when hyperparameters are changed between fit and predict phases.
+
+    This model stores hyperparameters as attributes without creating layers that would cause size mismatches when
+    hyperparameters are changed between fit and predict phases.
+
     """
 
     def __init__(self, out_dim: int = 8, hidden_dim: int = 16) -> None:
@@ -515,8 +516,7 @@ class AdaptHparamsModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        loss = torch.nn.functional.mse_loss(self(x), y)
-        return loss
+        return torch.nn.functional.mse_loss(self(x), y)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.1)
