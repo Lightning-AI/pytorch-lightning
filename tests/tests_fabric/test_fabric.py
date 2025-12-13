@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import warnings
 from contextlib import nullcontext
@@ -20,7 +21,6 @@ from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
 import pytest
 import torch
-import torch.distributed
 import torch.nn.functional
 from lightning_utilities.test.warning import no_warning_call
 from torch import nn
@@ -1294,3 +1294,56 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+def test_callback_kwargs_filtering():
+    """Test that callbacks receive only the kwargs they can handle based on their signature."""
+
+    class CallbackWithLimitedKwargs:
+        def on_train_epoch_end(self, epoch: int):
+            self.epoch = epoch
+
+    class CallbackWithVarKeywords:
+        def on_train_epoch_end(self, epoch: int, **kwargs):
+            self.epoch = epoch
+            self.kwargs = kwargs
+
+    class CallbackWithNoParams:
+        def on_train_epoch_end(self):
+            self.called = True
+
+    callback1 = CallbackWithLimitedKwargs()
+    callback2 = CallbackWithVarKeywords()
+    callback3 = CallbackWithNoParams()
+    fabric = Fabric(callbacks=[callback1, callback2, callback3])
+    fabric.call("on_train_epoch_end", epoch=5, loss=0.1, metrics={"acc": 0.9})
+
+    assert callback1.epoch == 5
+    assert not hasattr(callback1, "loss")
+    assert callback2.epoch == 5
+    assert callback2.kwargs == {"loss": 0.1, "metrics": {"acc": 0.9}}
+    assert callback3.called is True
+
+
+def test_callback_kwargs_filtering_signature_inspection_failure():
+    """Test behavior when signature inspection fails - should fallback to passing all kwargs."""
+    callback = Mock()
+    fabric = Fabric(callbacks=[callback])
+    original_signature = inspect.signature
+
+    def mock_signature(obj):
+        if hasattr(obj, "_mock_name") or hasattr(obj, "_mock_new_name"):
+            raise ValueError("Cannot inspect mock signature")
+        return original_signature(obj)
+
+    # Temporarily replace signature function in fabric module
+    import lightning.fabric.fabric
+
+    lightning.fabric.fabric.inspect.signature = mock_signature
+
+    try:
+        # Should still work by passing all kwargs when signature inspection fails
+        fabric.call("on_test_hook", arg1="value1", arg2="value2")
+        callback.on_test_hook.assert_called_with(arg1="value1", arg2="value2")
+    finally:
+        lightning.fabric.fabric.inspect.signature = original_signature
