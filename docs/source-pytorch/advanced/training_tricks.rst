@@ -62,7 +62,7 @@ Lightning provides two callbacks to facilitate weight averaging. :class:`~lightn
 is a generic callback that wraps the
 `AveragedModel <https://pytorch.org/docs/stable/generated/torch.optim.swa_utils.AveragedModel.html>`__ class from
 PyTorch. It allows SWA, EMA, or a custom averaging strategy to be used. By default, it updates the weights after every
-step, but it can be customized to update at specific steps or epochs by overriding the `should_update()` method.
+step, but it can be customized to update at specific steps or epochs by overriding the ``should_update()`` method.
 
 The older :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback is specific to SWA. It starts the SWA
 procedure after a certain number of epochs and always runs on every epoch. Additionally, it switches to a constant
@@ -75,7 +75,7 @@ procedure starts.
 
 .. seealso::
     The :class:`~lightning.pytorch.callbacks.WeightAveraging` callback and
-    :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
+    :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback.
 
 .. testcode::
 
