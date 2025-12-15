@@ -63,7 +63,7 @@ jobs:
       PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.checkout }}
           token: ${{ secrets.GITHUB_TOKEN }}
