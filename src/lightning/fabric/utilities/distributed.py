@@ -8,13 +8,13 @@ from collections.abc import Iterable, Iterator, Sized
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, TypeGuard
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import Self, TypeGuard, override
+from typing_extensions import Self, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+def is_shared_filesystem(strategy: "Strategy", path: _PATH | None = None, timeout: int = 3) -> bool:
     """Checks whether the filesystem under the given path is shared across all processes.
 
     This function should only be used in a context where distributed is initialized.
@@ -99,7 +99,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
     return all_found
 
 
-def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> list[Tensor]:
+def _gather_all_tensors(result: Tensor, group: Any | None = None) -> list[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
@@ -159,9 +159,7 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> l
     return gathered_result
 
 
-def _sync_ddp_if_available(
-    result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> Tensor:
+def _sync_ddp_if_available(result: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = None) -> Tensor:
     """Function to reduce a tensor across worker processes during distributed training.
 
     Args:
@@ -179,7 +177,7 @@ def _sync_ddp_if_available(
     return result
 
 
-def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
+def _sync_ddp(result: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = None) -> Tensor:
     """Reduces a tensor across several distributed processes.
 
     This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
@@ -197,7 +195,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     divide_by_world_size = False
     group = torch.distributed.group.WORLD if group is None else group
 
-    op: Optional[ReduceOp]
+    op: ReduceOp | None
     if isinstance(reduce_op, str):
         reduce_op = "avg" if reduce_op == "mean" else reduce_op
         if reduce_op.lower() == "avg" and torch.distributed.get_backend(group) == "gloo":
@@ -251,8 +249,8 @@ def _all_gather_ddp_if_available(
 def _init_dist_connection(
     cluster_environment: "ClusterEnvironment",
     torch_distributed_backend: str,
-    global_rank: Optional[int] = None,
-    world_size: Optional[int] = None,
+    global_rank: int | None = None,
+    world_size: int | None = None,
     **kwargs: Any,
 ) -> None:
     """Utility function to initialize distributed connection by setting env variables and initializing the distributed
@@ -314,7 +312,7 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
 class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
-    def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
+    def __init__(self, sampler: Sampler | Iterable) -> None:
         if not isinstance(sampler, Sized):
             raise TypeError(
                 "You seem to have configured a sampler in your DataLoader which"
@@ -335,7 +333,7 @@ class _DatasetSamplerWrapper(Dataset):
             )
         self._sampler = sampler
         # defer materializing an iterator until it is necessary
-        self._sampler_list: Optional[list[Any]] = None
+        self._sampler_list: list[Any] | None = None
 
     @override
     def __getitem__(self, index: int) -> Any:
@@ -364,7 +362,7 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     """
 
-    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, sampler: Sampler | Iterable, *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
     @override

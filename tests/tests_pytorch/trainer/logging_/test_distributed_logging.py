@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Optional, Union
+from typing import Any
 from unittest.mock import Mock
 
 import lightning.pytorch as pl
@@ -37,10 +37,10 @@ class AllRankLogger(Logger):
     def experiment(self) -> Any:
         return self.exp
 
-    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: dict[str, float], step: int | None = None):
         self.logs.update(metrics)
 
-    def version(self) -> Union[int, str]:
+    def version(self) -> int | str:
         return 1
 
     def name(self) -> str:
@@ -143,7 +143,7 @@ def test_logger_after_fit_predict_test_calls(tmp_path):
             self.buffer = {}
             self.logs = {}
 
-        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
             self.buffer.update(metrics)
 
         def finalize(self, status: str) -> None:
@@ -155,7 +155,7 @@ def test_logger_after_fit_predict_test_calls(tmp_path):
             return None
 
         @property
-        def version(self) -> Union[int, str]:
+        def version(self) -> int | str:
             return 1
 
         @property

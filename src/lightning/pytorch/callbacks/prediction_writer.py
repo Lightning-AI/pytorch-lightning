@@ -19,7 +19,7 @@ Aids in saving predictions
 """
 
 from collections.abc import Sequence
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from typing_extensions import override
 
@@ -122,7 +122,7 @@ class BasePredictionWriter(Callback):
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
         prediction: Any,
-        batch_indices: Optional[Sequence[int]],
+        batch_indices: Sequence[int] | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int,

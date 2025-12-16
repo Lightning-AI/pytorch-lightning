@@ -47,13 +47,13 @@ warning_cache = WarningCache()
 class _DataConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
-        self._datahook_selector: Optional[_DataHookSelector] = None
+        self._datahook_selector: _DataHookSelector | None = None
 
     def on_trainer_init(
         self,
-        val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
+        val_check_interval: int | float | str | timedelta | dict | None,
         reload_dataloaders_every_n_epochs: int,
-        check_val_every_n_epoch: Optional[int],
+        check_val_every_n_epoch: int | None,
     ) -> None:
         self.trainer.datamodule = None
 
@@ -104,10 +104,10 @@ class _DataConnector:
     def attach_data(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        train_dataloaders: TRAIN_DATALOADERS | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        test_dataloaders: EVAL_DATALOADERS | None = None,
+        predict_dataloaders: EVAL_DATALOADERS | None = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
     ) -> None:
         # set up the passed in dataloaders (if needed)
@@ -126,10 +126,10 @@ class _DataConnector:
     def attach_dataloaders(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        train_dataloaders: TRAIN_DATALOADERS | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        test_dataloaders: EVAL_DATALOADERS | None = None,
+        predict_dataloaders: EVAL_DATALOADERS | None = None,
     ) -> None:
         trainer = self.trainer
 
@@ -194,8 +194,8 @@ class _DataConnector:
         return dataloader
 
     def _resolve_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
-    ) -> Union[Sampler, Iterable]:
+        self, dataloader: DataLoader, shuffle: bool, mode: RunningStage | None = None
+    ) -> Sampler | Iterable:
         if self._requires_distributed_sampler(dataloader):
             distributed_sampler_kwargs = self.trainer.distributed_sampler_kwargs
             assert distributed_sampler_kwargs is not None
@@ -230,8 +230,8 @@ class _DataConnector:
 def _get_distributed_sampler(
     dataloader: DataLoader,
     shuffle: bool,
-    overfit_batches: Union[int, float],
-    mode: Optional[RunningStage] = None,
+    overfit_batches: int | float,
+    mode: RunningStage | None = None,
     **kwargs: Any,
 ) -> DistributedSampler:
     """This function is used to created the distributed sampler injected within the user DataLoader."""
@@ -286,10 +286,10 @@ class _DataLoaderSource:
 
     """
 
-    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
+    instance: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"] | None
     name: str
 
-    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> TRAIN_DATALOADERS | EVAL_DATALOADERS:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
@@ -320,7 +320,7 @@ class _DataLoaderSource:
         return isinstance(self.instance, (pl.LightningModule, pl.LightningDataModule))
 
 
-def _request_dataloader(data_source: _DataLoaderSource) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+def _request_dataloader(data_source: _DataLoaderSource) -> TRAIN_DATALOADERS | EVAL_DATALOADERS:
     """Requests a dataloader by calling dataloader hooks corresponding to the given stage.
 
     Returns:
@@ -446,9 +446,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         )
 
 
-def _parse_num_batches(
-    stage: RunningStage, length: Union[int, float], limit_batches: Union[int, float]
-) -> Union[int, float]:
+def _parse_num_batches(stage: RunningStage, length: int | float, limit_batches: int | float) -> int | float:
     if length == 0:
         return int(length)
 

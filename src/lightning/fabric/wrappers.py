@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from collections.abc import Generator, Iterator, Mapping
+from collections.abc import Callable, Generator, Iterator, Mapping
 from copy import deepcopy
 from functools import partial, wraps
 from types import MethodType
 from typing import (
     Any,
-    Callable,
-    Optional,
     TypeVar,
-    Union,
     overload,
 )
 
@@ -50,7 +47,7 @@ _in_fabric_backward: bool = False
 
 
 class _FabricOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[list[Callable]] = None) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: list[Callable] | None = None) -> None:
         """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
         step calls to the strategy.
 
@@ -77,7 +74,7 @@ class _FabricOptimizer:
     def load_state_dict(self, state_dict: dict[str, Tensor]) -> None:
         self.optimizer.load_state_dict(state_dict)
 
-    def step(self, closure: Optional[Callable] = None) -> Any:
+    def step(self, closure: Callable | None = None) -> Any:
         kwargs = {"closure": closure} if closure is not None else {}
         if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Optimizable):
             # only DeepSpeed defines this
@@ -99,9 +96,7 @@ class _FabricOptimizer:
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
-    def __init__(
-        self, forward_module: nn.Module, strategy: Strategy, original_module: Optional[nn.Module] = None
-    ) -> None:
+    def __init__(self, forward_module: nn.Module, strategy: Strategy, original_module: nn.Module | None = None) -> None:
         """The FabricModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
 
@@ -148,8 +143,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     @override
     def state_dict(
-        self, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
-    ) -> Optional[dict[str, Any]]:
+        self, destination: T_destination | None = None, prefix: str = "", keep_vars: bool = False
+    ) -> dict[str, Any] | None:
         return self._original_module.state_dict(
             destination=destination,  # type: ignore[type-var]
             prefix=prefix,
@@ -162,7 +157,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     ) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
 
-    def mark_forward_method(self, method: Union[MethodType, str]) -> None:
+    def mark_forward_method(self, method: MethodType | str) -> None:
         """Mark a method as a 'forward' method to prevent it bypassing the strategy wrapper (e.g., DDP)."""
         if not isinstance(method, (MethodType, str)):
             raise TypeError(f"Expected a method or a string, but got: {type(method).__name__}")
@@ -291,7 +286,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
 
 class _FabricDataLoader:
-    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+    def __init__(self, dataloader: DataLoader, device: torch.device | None = None) -> None:
         """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
         device automatically if the device is specified.
 
@@ -307,13 +302,13 @@ class _FabricDataLoader:
         self._num_iter_calls = 0
 
     @property
-    def device(self) -> Optional[torch.device]:
+    def device(self) -> torch.device | None:
         return self._device
 
     def __len__(self) -> int:
         return len(self._dataloader)
 
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+    def __iter__(self) -> Iterator[Any] | Generator[Any, None, None]:
         # Without setting the epoch, the distributed sampler would return the same indices every time, even when
         # shuffling is enabled. In PyTorch, the user would normally have to call `.set_epoch()` on the sampler.
         # In Fabric, we take care of this boilerplate code.
@@ -329,8 +324,8 @@ class _FabricDataLoader:
 
 def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
-        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader],
-    ) -> Union[nn.Module, Optimizer, DataLoader]:
+        obj: _FabricModule | _FabricOptimizer | _FabricDataLoader,
+    ) -> nn.Module | Optimizer | DataLoader:
         if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
             return _unwrap_compiled(unwrapped._forward_module)[0]
         if isinstance(obj, _FabricOptimizer):
@@ -345,7 +340,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> tuple[Union[Any, nn.Module], Optional[dict[str, Any]]]:
+def _unwrap_compiled(obj: Any | OptimizedModule) -> tuple[Any | nn.Module, dict[str, Any] | None]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.

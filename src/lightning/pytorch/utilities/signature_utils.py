@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Callable, Optional
+from collections.abc import Callable
 
 
 def is_param_in_hook_signature(
-    hook_fx: Callable, param: str, explicit: bool = False, min_args: Optional[int] = None
+    hook_fx: Callable, param: str, explicit: bool = False, min_args: int | None = None
 ) -> bool:
     """
     Args:

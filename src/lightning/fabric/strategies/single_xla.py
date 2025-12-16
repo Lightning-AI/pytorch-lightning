@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import torch
 from typing_extensions import override
@@ -31,9 +30,9 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     def __init__(
         self,
         device: _DEVICE,
-        accelerator: Optional[Accelerator] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
-        precision: Optional[XLAPrecision] = None,
+        accelerator: Accelerator | None = None,
+        checkpoint_io: XLACheckpointIO | None = None,
+        precision: XLAPrecision | None = None,
     ):
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
@@ -61,7 +60,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -77,7 +76,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[Precision]) -> None:
+    def precision(self, precision: Precision | None) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision

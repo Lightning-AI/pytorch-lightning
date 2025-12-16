@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -35,13 +35,13 @@ class _LoggerConnector:
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
-        self._current_fx: Optional[str] = None
+        self._current_fx: str | None = None
         # None: hasn't started, True: first loop iteration, False: subsequent iterations
-        self._first_loop_iter: Optional[bool] = None
+        self._first_loop_iter: bool | None = None
 
     def on_trainer_init(
         self,
-        logger: Union[bool, Logger, Iterable[Logger]],
+        logger: bool | Logger | Iterable[Logger],
         log_every_n_steps: int,
     ) -> None:
         self.configure_logger(logger)
@@ -64,7 +64,7 @@ class _LoggerConnector:
         should_log = step % trainer.log_every_n_steps == 0
         return should_log or trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
+    def configure_logger(self, logger: bool | Logger | Iterable[Logger]) -> None:
         if not logger:
             # logger is None or logger is False
             self.trainer.loggers = []
@@ -87,7 +87,7 @@ class _LoggerConnector:
         else:
             self.trainer.loggers = [logger]
 
-    def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: _OUT_DICT, step: int | None = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
         metrics["step"] as a step.
 
@@ -177,7 +177,7 @@ class _LoggerConnector:
     Utilities and properties
     """
 
-    def on_batch_start(self, batch: Any, dataloader_idx: Optional[int] = None) -> None:
+    def on_batch_start(self, batch: Any, dataloader_idx: int | None = None) -> None:
         if self._first_loop_iter is None:
             self._first_loop_iter = True
         elif self._first_loop_iter is True:

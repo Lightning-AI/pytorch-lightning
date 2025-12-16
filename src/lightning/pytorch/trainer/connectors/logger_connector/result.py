@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -32,7 +32,7 @@ from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
-_VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
+_VALUE = Metric | Tensor  # Do not include scalars as they were converted to tensors
 _OUT_DICT = dict[str, Tensor]
 _PBAR_DICT = dict[str, float]
 
@@ -48,11 +48,11 @@ warning_cache = WarningCache()
 
 @dataclass
 class _Sync:
-    fn: Optional[Callable] = None
+    fn: Callable | None = None
     _should: bool = False
     rank_zero_only: bool = False
-    _op: Optional[str] = None
-    _group: Optional[Any] = None
+    _op: str | None = None
+    _group: Any | None = None
 
     def __post_init__(self) -> None:
         self._generate_sync_fn()
@@ -68,21 +68,21 @@ class _Sync:
         self._generate_sync_fn()
 
     @property
-    def op(self) -> Optional[str]:
+    def op(self) -> str | None:
         return self._op
 
     @op.setter
-    def op(self, op: Optional[str]) -> None:
+    def op(self, op: str | None) -> None:
         self._op = op
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
     @property
-    def group(self) -> Optional[Any]:
+    def group(self) -> Any | None:
         return self._group
 
     @group.setter
-    def group(self, group: Optional[Any]) -> None:
+    def group(self, group: Any | None) -> None:
         self._group = group
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
@@ -114,9 +114,9 @@ class _Metadata:
     reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
-    dataloader_idx: Optional[int] = None
-    metric_attribute: Optional[str] = None
-    _sync: Optional[_Sync] = None
+    dataloader_idx: int | None = None
+    metric_attribute: str | None = None
+    _sync: _Sync | None = None
 
     def __post_init__(self) -> None:
         if not self.on_step and not self.on_epoch:
@@ -201,7 +201,7 @@ class _ResultMetric(Metric):
                 self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
-        self._forward_cache: Optional[Any] = None
+        self._forward_cache: Any | None = None
 
     @override
     def update(self, value: _VALUE, batch_size: int) -> None:
@@ -273,7 +273,7 @@ class _ResultMetric(Metric):
     def _wrap_compute(self, compute: Any) -> Any:
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
-        def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
+        def wrapped_func(*args: Any, **kwargs: Any) -> Any | None:
             update_called = self.update_called if _TORCHMETRICS_GREATER_EQUAL_1_0_0 else self._update_called
             if not update_called:
                 rank_zero_warn(
@@ -328,15 +328,15 @@ class _ResultCollection(dict):
     def __init__(self, training: bool) -> None:
         super().__init__()
         self.training = training
-        self.batch: Optional[Any] = None
-        self.batch_size: Optional[int] = None
-        self.dataloader_idx: Optional[int] = None
+        self.batch: Any | None = None
+        self.batch_size: int | None = None
+        self.dataloader_idx: int | None = None
 
     @property
     def result_metrics(self) -> list[_ResultMetric]:
         return list(self.values())
 
-    def _extract_batch_size(self, value: _ResultMetric, batch_size: Optional[int], meta: _Metadata) -> int:
+    def _extract_batch_size(self, value: _ResultMetric, batch_size: int | None, meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = self.batch_size
@@ -366,10 +366,10 @@ class _ResultCollection(dict):
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
-        sync_dist_group: Optional[Any] = None,
+        sync_dist_group: Any | None = None,
         add_dataloader_idx: bool = True,
-        batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
+        batch_size: int | None = None,
+        metric_attribute: str | None = None,
         rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.LightningModule.log`"""
@@ -422,7 +422,7 @@ class _ResultCollection(dict):
         result_metric.has_reset = False
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[Tensor]:
+    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Tensor | None:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -493,7 +493,7 @@ class _ResultCollection(dict):
 
         return metrics
 
-    def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
+    def reset(self, metrics: bool | None = None, fx: str | None = None) -> None:
         """Reset the result collection.
 
         Args:

@@ -19,7 +19,6 @@ import sys
 from argparse import Namespace
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 from unittest import mock
 
 import cloudpickle
@@ -97,7 +96,7 @@ class SaveHparamsDecoratedDataModule(BoringDataModule):
 # STANDARD TESTS
 # -------------------------
 def _run_standard_hparams_test(
-    tmp_path, model, cls, datamodule=None, try_overwrite=False, weights_only: Optional[bool] = None
+    tmp_path, model, cls, datamodule=None, try_overwrite=False, weights_only: bool | None = None
 ):
     """Tests for the existence of an arg 'test_arg=14'."""
     obj = datamodule if issubclass(cls, LightningDataModule) else model

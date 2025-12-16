@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+from collections.abc import Callable
 from copy import deepcopy
-from typing import Callable
 
 import pytest
 import torch

@@ -42,7 +42,6 @@ To run:
 
 import logging
 from pathlib import Path
-from typing import Union
 
 import torch
 import torch.nn.functional as F
@@ -91,7 +90,7 @@ class MilestonesFinetuning(BaseFinetuning):
 
 
 class CatDogImageDataModule(LightningDataModule):
-    def __init__(self, dl_path: Union[str, Path] = "data", num_workers: int = 0, batch_size: int = 8):
+    def __init__(self, dl_path: str | Path = "data", num_workers: int = 0, batch_size: int = 8):
         """CatDogImageDataModule.
 
         Args:

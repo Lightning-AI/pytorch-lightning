@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import lightning.pytorch as pl
 from lightning.pytorch.loops.progress import _BaseProgress
@@ -59,7 +58,7 @@ class _Loop:
     def on_load_checkpoint(self, state_dict: dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[dict] = None, prefix: str = "") -> dict:
+    def state_dict(self, destination: dict | None = None, prefix: str = "") -> dict:
         """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:

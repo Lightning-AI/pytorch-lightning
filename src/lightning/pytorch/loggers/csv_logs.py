@@ -21,7 +21,7 @@ CSV logger for basic experiment logging that does not require opening ports
 
 import os
 from argparse import Namespace
-from typing import Any, Optional, Union
+from typing import Any
 
 from typing_extensions import override
 
@@ -88,8 +88,8 @@ class CSVLogger(Logger, FabricCSVLogger):
     def __init__(
         self,
         save_dir: _PATH,
-        name: Optional[str] = "lightning_logs",
-        version: Optional[Union[int, str]] = None,
+        name: str | None = "lightning_logs",
+        version: int | str | None = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
     ):
@@ -139,7 +139,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace | None = None) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 

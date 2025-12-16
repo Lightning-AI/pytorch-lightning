@@ -16,7 +16,7 @@ import math
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from typing_extensions import override
@@ -37,8 +37,6 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-
-_BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
 
 @dataclass
@@ -70,7 +68,7 @@ class _TrainingEpochLoop(loops._Loop):
 
     """
 
-    def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
+    def __init__(self, trainer: "pl.Trainer", min_steps: int | None = None, max_steps: int = -1) -> None:
         super().__init__(trainer)
         if max_steps < -1:
             raise MisconfigurationException(
@@ -324,7 +322,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch)
 
-        batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
+        batch_output: _OPTIMIZER_LOOP_OUTPUTS_TYPE | _MANUAL_LOOP_OUTPUTS_TYPE | None = None  # for mypy
         should_skip_rest_of_epoch = False
 
         if batch is None and not using_dataloader_iter:
@@ -516,7 +514,7 @@ class _TrainingEpochLoop(loops._Loop):
                 )
                 self.scheduler_progress.increment_completed()
 
-    def _get_monitor_value(self, key: str) -> Optional[Any]:
+    def _get_monitor_value(self, key: str) -> Any | None:
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 

@@ -14,7 +14,6 @@
 import os
 import platform
 from functools import lru_cache
-from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -46,7 +45,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -54,7 +53,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str, list[int]]) -> list[torch.device]:
+    def get_parallel_devices(devices: int | str | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None

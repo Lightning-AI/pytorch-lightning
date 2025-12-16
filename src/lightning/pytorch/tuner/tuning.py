@@ -31,9 +31,9 @@ class Tuner:
     def scale_batch_size(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
+        train_dataloaders: Union[TRAIN_DATALOADERS, "pl.LightningDataModule"] | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        dataloaders: EVAL_DATALOADERS | None = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
         method: Literal["fit", "validate", "test", "predict"] = "fit",
         mode: str = "power",
@@ -43,7 +43,7 @@ class Tuner:
         batch_arg_name: str = "batch_size",
         margin: float = 0.05,
         max_val: int = 8192,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
         error.
 
@@ -119,16 +119,16 @@ class Tuner:
     def lr_find(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
+        train_dataloaders: Union[TRAIN_DATALOADERS, "pl.LightningDataModule"] | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        dataloaders: EVAL_DATALOADERS | None = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
         method: Literal["fit", "validate", "test", "predict"] = "fit",
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
         mode: str = "exponential",
-        early_stop_threshold: Optional[float] = 4.0,
+        early_stop_threshold: float | None = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
     ) -> Optional["_LRFinder"]:
@@ -196,9 +196,9 @@ class Tuner:
 
 
 def _check_tuner_configuration(
-    train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-    val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-    dataloaders: Optional[EVAL_DATALOADERS] = None,
+    train_dataloaders: Union[TRAIN_DATALOADERS, "pl.LightningDataModule"] | None = None,
+    val_dataloaders: EVAL_DATALOADERS | None = None,
+    dataloaders: EVAL_DATALOADERS | None = None,
     method: Literal["fit", "validate", "test", "predict"] = "fit",
 ) -> None:
     supported_methods = ("fit", "validate", "test", "predict")

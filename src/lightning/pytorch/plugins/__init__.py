@@ -1,5 +1,3 @@
-from typing import Union
-
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
@@ -13,7 +11,7 @@ from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.pytorch.plugins.precision.xla import XLAPrecision
 
-_PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO, LayerSync]
+_PLUGIN_INPUT = Precision | ClusterEnvironment | CheckpointIO | LayerSync
 
 __all__ = [
     "AsyncCheckpointIO",

@@ -15,18 +15,19 @@ import functools
 import inspect
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Concatenate, Generic, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
-from typing_extensions import Concatenate, ParamSpec, override
+from typing_extensions import ParamSpec, override
 
 import lightning.pytorch as pl
 
 _log = logging.getLogger(__name__)
 
 
-def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[type[object]] = None) -> bool:
+def is_overridden(method_name: str, instance: object | None = None, parent: type[object] | None = None) -> bool:
     if instance is None:
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False
@@ -115,7 +116,7 @@ class _restricted_classmethod_impl(classmethod, Generic[_T, _P, _R_co]):
         self.method = method
 
     @override
-    def __get__(self, instance: _T, cls: Optional[type[_T]] = None) -> Callable[_P, _R_co]:  # type: ignore[override]
+    def __get__(self, instance: _T, cls: type[_T] | None = None) -> Callable[_P, _R_co]:  # type: ignore[override]
         # The wrapper ensures that the method can be inspected, but not called on an instance
         @functools.wraps(self.method)
         def wrapper(*args: Any, **kwargs: Any) -> _R_co:

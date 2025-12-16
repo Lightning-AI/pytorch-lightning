@@ -22,7 +22,7 @@ from collections.abc import Iterable, Iterator, Sequence
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from packaging.requirements import Requirement
 from packaging.version import Version
@@ -48,7 +48,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 class _RequirementWithComment(Requirement):
     strict_cmd = "strict"
 
-    def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, comment: str = "", pip_argument: str | None = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.comment = comment
         assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
@@ -285,7 +285,7 @@ def copy_replace_imports(
     source_dir: str,
     source_imports: Sequence[str],
     target_imports: Sequence[str],
-    target_dir: Optional[str] = None,
+    target_dir: str | None = None,
     lightning_by: str = "",
 ) -> None:
     """Copy package content with import adjustments."""
@@ -347,7 +347,7 @@ class AssistantCLI:
         source_dir: str,
         source_import: str,
         target_import: str,
-        target_dir: Optional[str] = None,
+        target_dir: str | None = None,
         lightning_by: str = "",
     ) -> None:
         """Copy package content with import adjustments."""
@@ -363,7 +363,7 @@ class AssistantCLI:
         target_dir: str = "docs/source-pytorch/XXX",
         checkout: str = "refs/tags/1.0.0",
         source_dir: str = "docs/source",
-        single_page: Optional[str] = None,
+        single_page: str | None = None,
         as_orphan: bool = False,
     ) -> None:
         """Pull docs pages from external source and append to local docs.

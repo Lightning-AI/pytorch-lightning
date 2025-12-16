@@ -72,7 +72,7 @@ class MixedPrecision(Precision):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     @override
-    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: Module | None, *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)

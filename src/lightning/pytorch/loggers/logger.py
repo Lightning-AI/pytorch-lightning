@@ -18,8 +18,8 @@ import operator
 import statistics
 from abc import ABC
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Optional
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from typing_extensions import override
 
@@ -42,7 +42,7 @@ class Logger(FabricLogger, ABC):
         pass
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
@@ -100,7 +100,7 @@ class DummyLogger(Logger):
 # TODO: this should have been deprecated
 def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping] = None,
+    agg_key_funcs: Mapping | None = None,
     default_func: Callable[[Sequence[float]], float] = statistics.mean,
 ) -> dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given function.

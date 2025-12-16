@@ -31,7 +31,8 @@ For the Lightning developer: How to add a new migration?
 """
 
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping

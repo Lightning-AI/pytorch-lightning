@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from collections.abc import Iterable, Iterator
-from typing import Any, Callable, Literal, Optional, Union
+from collections.abc import Callable, Iterable, Iterator
+from typing import Any, Literal
 
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict, override
@@ -26,7 +26,7 @@ _ITERATOR_RETURN = tuple[Any, int, int]  # batch, batch_idx, dataloader_idx
 
 
 class _ModeIterator(Iterator[_ITERATOR_RETURN]):
-    def __init__(self, iterables: list[Iterable], limits: Optional[list[Union[int, float]]] = None) -> None:
+    def __init__(self, iterables: list[Iterable], limits: list[int | float] | None = None) -> None:
         if limits is not None and len(limits) != len(iterables):
             raise ValueError(f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(iterables)})")
         self.iterables = iterables
@@ -65,7 +65,7 @@ class _ModeIterator(Iterator[_ITERATOR_RETURN]):
 
 
 class _MaxSizeCycle(_ModeIterator):
-    def __init__(self, iterables: list[Iterable], limits: Optional[list[Union[int, float]]] = None) -> None:
+    def __init__(self, iterables: list[Iterable], limits: list[int | float] | None = None) -> None:
         super().__init__(iterables, limits)
         self._consumed: list[bool] = []
 
@@ -121,7 +121,7 @@ class _MinSize(_ModeIterator):
 
 
 class _Sequential(_ModeIterator):
-    def __init__(self, iterables: list[Iterable], limits: Optional[list[Union[int, float]]] = None) -> None:
+    def __init__(self, iterables: list[Iterable], limits: list[int | float] | None = None) -> None:
         super().__init__(iterables, limits)
         self._iterator_idx = 0  # what would be dataloader_idx
 
@@ -287,8 +287,8 @@ class CombinedLoader(Iterable):
         self._iterables = iterables
         self._flattened, self._spec = _tree_flatten(iterables)
         self._mode = mode
-        self._iterator: Optional[_ModeIterator] = None
-        self._limits: Optional[list[Union[int, float]]] = None
+        self._iterator: _ModeIterator | None = None
+        self._limits: list[int | float] | None = None
 
     @property
     def iterables(self) -> Any:
@@ -322,12 +322,12 @@ class CombinedLoader(Iterable):
         self._flattened = flattened
 
     @property
-    def limits(self) -> Optional[list[Union[int, float]]]:
+    def limits(self) -> list[int | float] | None:
         """Optional limits per iterator."""
         return self._limits
 
     @limits.setter
-    def limits(self, limits: Optional[Union[int, float, list[Union[int, float]]]]) -> None:
+    def limits(self, limits: int | float | list[int | float] | None) -> None:
         if isinstance(limits, (int, float)):
             limits = [limits] * len(self.flattened)
         elif isinstance(limits, list) and len(limits) != len(self.flattened):
@@ -401,5 +401,5 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
         dataloader._iterator = None
 
 
-def _get_iterables_lengths(iterables: list[Iterable]) -> list[Union[int, float]]:
+def _get_iterables_lengths(iterables: list[Iterable]) -> list[int | float]:
     return [(float("inf") if (length := sized_len(iterable)) is None else length) for iterable in iterables]

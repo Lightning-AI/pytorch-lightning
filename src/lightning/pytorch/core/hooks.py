@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -65,7 +65,7 @@ class ModelHooks:
     def on_predict_end(self) -> None:
         """Called at the end of predicting."""
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> Optional[int]:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> int | None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -145,7 +145,7 @@ class ModelHooks:
 
         """
 
-    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_predict_batch_end(self, outputs: Any | None, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop after the batch.
 
         Args:

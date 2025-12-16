@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -40,7 +40,7 @@ class AbstractClosure(ABC, Generic[T]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._result: Optional[T] = None
+        self._result: T | None = None
 
     def consume_result(self) -> T:
         """The cached result from the last time the closure was called.

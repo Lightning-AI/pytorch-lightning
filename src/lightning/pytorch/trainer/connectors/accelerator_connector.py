@@ -16,7 +16,7 @@ import logging
 import os
 from collections import Counter
 from collections.abc import Iterable
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import torch
 
@@ -74,16 +74,16 @@ _LITERAL_WARN = Literal["warn"]
 class _AcceleratorConnector:
     def __init__(
         self,
-        devices: Union[list[int], str, int] = "auto",
+        devices: list[int] | str | int = "auto",
         num_nodes: int = 1,
-        accelerator: Union[str, Accelerator] = "auto",
-        strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
-        precision: Optional[_PRECISION_INPUT] = None,
+        accelerator: str | Accelerator = "auto",
+        strategy: str | Strategy = "auto",
+        plugins: _PLUGIN_INPUT | Iterable[_PLUGIN_INPUT] | None = None,
+        precision: _PRECISION_INPUT | None = None,
         sync_batchnorm: bool = False,
-        benchmark: Optional[bool] = None,
+        benchmark: bool | None = None,
         use_distributed_sampler: bool = True,
-        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
+        deterministic: bool | _LITERAL_WARN | None = None,
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -117,14 +117,14 @@ class _AcceleratorConnector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        self._strategy_flag: Union[Strategy, str] = "auto"
-        self._accelerator_flag: Union[Accelerator, str] = "auto"
+        self._strategy_flag: Strategy | str = "auto"
+        self._accelerator_flag: Accelerator | str = "auto"
         self._precision_flag: _PRECISION_INPUT_STR = "32-true"
-        self._precision_plugin_flag: Optional[Precision] = None
-        self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: list[Union[int, torch.device, str]] = []
-        self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
-        self.checkpoint_io: Optional[CheckpointIO] = None
+        self._precision_plugin_flag: Precision | None = None
+        self._cluster_environment_flag: ClusterEnvironment | str | None = None
+        self._parallel_devices: list[int | torch.device | str] = []
+        self._layer_sync: LayerSync | None = TorchSyncBatchNorm() if sync_batchnorm else None
+        self.checkpoint_io: CheckpointIO | None = None
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -162,10 +162,10 @@ class _AcceleratorConnector:
 
     def _check_config_and_set_final_flags(
         self,
-        strategy: Union[str, Strategy],
-        accelerator: Union[str, Accelerator],
-        precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
+        strategy: str | Strategy,
+        accelerator: str | Accelerator,
+        precision: _PRECISION_INPUT | None,
+        plugins: _PLUGIN_INPUT | Iterable[_PLUGIN_INPUT] | None,
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
@@ -309,7 +309,7 @@ class _AcceleratorConnector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: list[int] | str | int, num_nodes: int) -> None:
         if not isinstance(num_nodes, int) or num_nodes < 1:
             raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
 
@@ -397,7 +397,7 @@ class _AcceleratorConnector:
                 return env_type()
         return LightningEnvironment()
 
-    def _choose_strategy(self) -> Union[Strategy, str]:
+    def _choose_strategy(self) -> Strategy | str:
         if self._accelerator_flag == "hpu":
             raise MisconfigurationException("HPU is currently not supported. Please contact developer@lightning.ai")
 
@@ -568,9 +568,7 @@ class _AcceleratorConnector:
         return False
 
 
-def _set_torch_flags(
-    *, deterministic: Optional[Union[bool, _LITERAL_WARN]] = None, benchmark: Optional[bool] = None
-) -> None:
+def _set_torch_flags(*, deterministic: bool | _LITERAL_WARN | None = None, benchmark: bool | None = None) -> None:
     if deterministic:
         if benchmark is None:
             # Set benchmark to False to ensure determinism

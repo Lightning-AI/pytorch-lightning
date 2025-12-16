@@ -18,7 +18,7 @@ Weight Averaging Callback
 
 import itertools
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 from torch.optim.swa_utils import AveragedModel, get_ema_avg_fn
@@ -89,19 +89,19 @@ class WeightAveraging(Callback):
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, str, int]] = None,
+        device: torch.device | str | int | None = None,
         use_buffers: bool = True,
         **kwargs: Any,
     ) -> None:
         # The default value is a string so that jsonargparse knows how to serialize it.
         if isinstance(device, str):
-            self._device: Optional[Union[torch.device, int]] = torch.device(device)
+            self._device: torch.device | int | None = torch.device(device)
         else:
             self._device = device
         self._use_buffers = use_buffers
         self._kwargs = kwargs
 
-        self._average_model: Optional[AveragedModel] = None
+        self._average_model: AveragedModel | None = None
 
         # Number of optimizer steps taken, when the average model was last updated. Initializing this with zero ensures
         # that self.should_update() will be first called after the first optimizer step, which takes place after N
@@ -112,7 +112,7 @@ class WeightAveraging(Callback):
         # epoch.
         self._latest_update_epoch = -1
 
-    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+    def should_update(self, step_idx: int | None = None, epoch_idx: int | None = None) -> bool:
         """Called after every optimizer step and after every training epoch to check whether the average model should
         be updated.
 
@@ -368,12 +368,12 @@ class EMAWeightAveraging(WeightAveraging):
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, str, int]] = None,
+        device: torch.device | str | int | None = None,
         use_buffers: bool = True,
         decay: float = 0.999,
         update_every_n_steps: int = 1,
-        update_starting_at_step: Optional[int] = None,
-        update_starting_at_epoch: Optional[int] = None,
+        update_starting_at_step: int | None = None,
+        update_starting_at_epoch: int | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -387,7 +387,7 @@ class EMAWeightAveraging(WeightAveraging):
         self.update_starting_at_step = update_starting_at_step
         self.update_starting_at_epoch = update_starting_at_epoch
 
-    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+    def should_update(self, step_idx: int | None = None, epoch_idx: int | None = None) -> bool:
         """Decide when to update the model weights.
 
         Args:

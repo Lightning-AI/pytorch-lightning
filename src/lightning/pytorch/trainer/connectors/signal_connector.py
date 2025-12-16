@@ -3,9 +3,10 @@ import os
 import re
 import signal
 import threading
+from collections.abc import Callable
 from subprocess import call
 from types import FrameType
-from typing import Any, Callable, Union
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -16,14 +17,14 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_zero_info
 
 # copied from signal.pyi
-_SIGNUM = Union[int, signal.Signals]
-_HANDLER = Union[Callable[[_SIGNUM, FrameType], Any], int, signal.Handlers, None]
+_SIGNUM = int | signal.Signals
+_HANDLER = Callable[[_SIGNUM, FrameType], Any] | int | signal.Handlers | None
 
 log = logging.getLogger(__name__)
 
 
 class _HandlersCompose:
-    def __init__(self, signal_handlers: Union[list[_HANDLER], _HANDLER]) -> None:
+    def __init__(self, signal_handlers: _HANDLER | list[_HANDLER]) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers

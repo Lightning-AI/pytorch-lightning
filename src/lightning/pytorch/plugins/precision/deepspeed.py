@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, get_args
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import get_args, override
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
@@ -94,7 +95,7 @@ class DeepSpeedPrecision(Precision):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
-        optimizer: Optional[Steppable],
+        optimizer: Steppable | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -142,7 +143,7 @@ class DeepSpeedPrecision(Precision):
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float] = 0.0,
+        clip_val: int | float = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""

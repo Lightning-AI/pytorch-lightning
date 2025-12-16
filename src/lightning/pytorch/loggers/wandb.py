@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -293,18 +293,18 @@ class WandbLogger(Logger):
 
     def __init__(
         self,
-        name: Optional[str] = None,
+        name: str | None = None,
         save_dir: _PATH = ".",
-        version: Optional[str] = None,
+        version: str | None = None,
         offline: bool = False,
-        dir: Optional[_PATH] = None,
-        id: Optional[str] = None,
-        anonymous: Optional[bool] = None,
-        project: Optional[str] = None,
-        log_model: Union[Literal["all"], bool] = False,
+        dir: _PATH | None = None,
+        id: str | None = None,
+        anonymous: bool | None = None,
+        project: str | None = None,
+        log_model: Literal["all"] | bool = False,
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
-        checkpoint_name: Optional[str] = None,
+        checkpoint_name: str | None = None,
         add_file_policy: Literal["mutable", "immutable"] = "mutable",
         **kwargs: Any,
     ) -> None:
@@ -422,13 +422,13 @@ class WandbLogger(Logger):
         return self._experiment
 
     def watch(
-        self, model: nn.Module, log: Optional[str] = "gradients", log_freq: int = 100, log_graph: bool = True
+        self, model: nn.Module, log: str | None = "gradients", log_freq: int = 100, log_graph: bool = True
     ) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         params = _convert_json_serializable(params)
@@ -436,7 +436,7 @@ class WandbLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -449,10 +449,10 @@ class WandbLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: Optional[list[str]] = None,
-        data: Optional[list[list[Any]]] = None,
+        columns: list[str] | None = None,
+        data: list[list[Any]] | None = None,
         dataframe: Any = None,
-        step: Optional[int] = None,
+        step: int | None = None,
     ) -> None:
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
 
@@ -468,10 +468,10 @@ class WandbLogger(Logger):
     def log_text(
         self,
         key: str,
-        columns: Optional[list[str]] = None,
-        data: Optional[list[list[str]]] = None,
+        columns: list[str] | None = None,
+        data: list[list[str]] | None = None,
         dataframe: Any = None,
-        step: Optional[int] = None,
+        step: int | None = None,
     ) -> None:
         """Log text as a Table.
 
@@ -482,7 +482,7 @@ class WandbLogger(Logger):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_image(self, key: str, images: list[Any], step: int | None = None, **kwargs: Any) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
@@ -502,7 +502,7 @@ class WandbLogger(Logger):
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @rank_zero_only
-    def log_audio(self, key: str, audios: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_audio(self, key: str, audios: list[Any], step: int | None = None, **kwargs: Any) -> None:
         r"""Log audios (numpy arrays, or file paths).
 
         Args:
@@ -528,7 +528,7 @@ class WandbLogger(Logger):
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @rank_zero_only
-    def log_video(self, key: str, videos: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_video(self, key: str, videos: list[Any], step: int | None = None, **kwargs: Any) -> None:
         """Log videos (numpy arrays, or file paths).
 
         Args:
@@ -555,7 +555,7 @@ class WandbLogger(Logger):
 
     @property
     @override
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory.
 
         Returns:
@@ -566,7 +566,7 @@ class WandbLogger(Logger):
 
     @property
     @override
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """The project name of this experiment.
 
         Returns:
@@ -578,7 +578,7 @@ class WandbLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Gets the id of the experiment.
 
         Returns:
@@ -600,9 +600,9 @@ class WandbLogger(Logger):
     @rank_zero_only
     def download_artifact(
         artifact: str,
-        save_dir: Optional[_PATH] = None,
-        artifact_type: Optional[str] = None,
-        use_artifact: Optional[bool] = True,
+        save_dir: _PATH | None = None,
+        artifact_type: str | None = None,
+        use_artifact: bool | None = True,
     ) -> str:
         """Downloads an artifact from the wandb server.
 
@@ -627,7 +627,7 @@ class WandbLogger(Logger):
         save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
-    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "Artifact":
+    def use_artifact(self, artifact: str, artifact_type: str | None = None) -> "Artifact":
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
         Args:

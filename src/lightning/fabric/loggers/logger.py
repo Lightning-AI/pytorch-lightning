@@ -15,8 +15,9 @@
 
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 from torch import Tensor
 from torch.nn import Module
@@ -29,22 +30,22 @@ class Logger(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Return the experiment name."""
 
     @property
     @abstractmethod
-    def version(self) -> Optional[Union[int, str]]:
+    def version(self) -> int | str | None:
         """Return the experiment version."""
 
     @property
-    def root_dir(self) -> Optional[str]:
+    def root_dir(self) -> str | None:
         """Return the root directory where all versions of an experiment get saved, or `None` if the logger does not
         save data locally."""
         return None
 
     @property
-    def log_dir(self) -> Optional[str]:
+    def log_dir(self) -> str | None:
         """Return directory the current version of the experiment gets saved, or `None` if the logger does not save
         data locally."""
         return None
@@ -55,7 +56,7 @@ class Logger(ABC):
         return "/"
 
     @abstractmethod
-    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
         """Records metrics. This method logs metrics as soon as it received them.
 
         Args:
@@ -66,7 +67,7 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace, *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
@@ -76,7 +77,7 @@ class Logger(ABC):
 
         """
 
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         """Record model graph.
 
         Args:
@@ -103,7 +104,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the _DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self: Logger) -> Union[Any, _DummyExperiment]:
+    def experiment(self: Logger) -> Any | _DummyExperiment:
         """
         Note:
             ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method

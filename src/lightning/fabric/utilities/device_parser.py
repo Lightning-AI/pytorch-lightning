@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import MutableSequence
-from typing import Optional, Union
 
 import torch
 
@@ -20,7 +19,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
 
-def _determine_root_gpu_device(gpus: list[_DEVICE]) -> Optional[_DEVICE]:
+def _determine_root_gpu_device(gpus: list[_DEVICE]) -> _DEVICE | None:
     """
     Args:
         gpus: Non-empty list of ints representing which GPUs to use
@@ -47,10 +46,10 @@ def _determine_root_gpu_device(gpus: list[_DEVICE]) -> Optional[_DEVICE]:
 
 
 def _parse_gpu_ids(
-    gpus: Optional[Union[int, str, list[int]]],
+    gpus: int | str | list[int] | None,
     include_cuda: bool = False,
     include_mps: bool = False,
-) -> Optional[list[int]]:
+) -> list[int] | None:
     """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
@@ -103,7 +102,7 @@ def _parse_gpu_ids(
     return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
 
 
-def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[int, list[int]]:
+def _normalize_parse_gpu_string_input(s: int | str | list[int]) -> int | list[int]:
     if not isinstance(s, str):
         return s
     if s == "-1":
@@ -140,8 +139,8 @@ def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: 
 
 
 def _normalize_parse_gpu_input_to_list(
-    gpus: Union[int, list[int], tuple[int, ...]], include_cuda: bool, include_mps: bool
-) -> Optional[list[int]]:
+    gpus: int | list[int] | tuple[int, ...], include_cuda: bool, include_mps: bool
+) -> list[int] | None:
     assert gpus is not None
     if isinstance(gpus, (MutableSequence, tuple)):
         return list(gpus)

@@ -15,11 +15,10 @@ import logging
 import os
 import re
 from argparse import Namespace
-from typing import Any, Optional
+from typing import Any, get_args
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
@@ -156,7 +155,7 @@ if _CLICK_AVAILABLE:
             " and a '.consolidated' suffix."
         ),
     )
-    def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
+    def _consolidate(checkpoint_folder: str, output_file: str | None) -> None:
         """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
 
         Only supports FSDP sharded checkpoints at the moment.
@@ -229,7 +228,7 @@ def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main(args: Namespace, script_args: Optional[list[str]] = None) -> None:
+def main(args: Namespace, script_args: list[str] | None = None) -> None:
     _set_env_variables(args)
     _torchrun_launch(args, script_args or [])
 

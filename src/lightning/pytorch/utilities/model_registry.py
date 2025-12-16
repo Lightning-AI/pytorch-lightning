@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import re
-from typing import Optional
 
 from lightning_utilities import module_available
 
@@ -26,7 +25,7 @@ if _IS_WINDOWS:
     __doctest_skip__ = ["_determine_model_folder"]
 
 
-def _is_registry(text: Optional[_PATH]) -> bool:
+def _is_registry(text: _PATH | None) -> bool:
     """Check if a string equals 'registry' or starts with 'registry:'.
 
     Args:
@@ -50,7 +49,7 @@ def _is_registry(text: Optional[_PATH]) -> bool:
     return bool(re.match(pattern, text.lower()))
 
 
-def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]:
+def _parse_registry_model_version(ckpt_path: _PATH | None) -> tuple[str, str]:
     """Parse the model version from a registry path.
 
     Args:
@@ -86,7 +85,7 @@ def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]
     return model_name, version
 
 
-def _determine_model_name(ckpt_path: Optional[_PATH], default_model_registry: Optional[str]) -> str:
+def _determine_model_name(ckpt_path: _PATH | None, default_model_registry: str | None) -> str:
     """Determine the model name from the checkpoint path.
 
     Args:
@@ -142,7 +141,7 @@ def _determine_model_folder(model_name: str, default_root_dir: str) -> str:
 
 
 def find_model_local_ckpt_path(
-    ckpt_path: Optional[_PATH], default_model_registry: Optional[str], default_root_dir: str
+    ckpt_path: _PATH | None, default_model_registry: str | None, default_root_dir: str
 ) -> str:
     """Find the local checkpoint path for a model."""
     model_registry = _determine_model_name(ckpt_path, default_model_registry)
@@ -156,7 +155,7 @@ def find_model_local_ckpt_path(
     return os.path.join(local_model_dir, folder_files[0])
 
 
-def download_model_from_registry(ckpt_path: Optional[_PATH], trainer: "pl.Trainer") -> None:
+def download_model_from_registry(ckpt_path: _PATH | None, trainer: "pl.Trainer") -> None:
     """Download a model from the Lightning Model Registry."""
     if trainer.local_rank == 0:
         if not module_available("litmodels"):

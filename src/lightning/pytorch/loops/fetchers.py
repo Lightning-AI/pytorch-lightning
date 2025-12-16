@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Iterator
-from typing import Any, Optional
+from typing import Any
 
 from typing_extensions import override
 
@@ -28,11 +28,11 @@ def _profile_nothing() -> None:
 
 class _DataFetcher(Iterator):
     def __init__(self) -> None:
-        self._combined_loader: Optional[CombinedLoader] = None
-        self.iterator: Optional[Iterator] = None
+        self._combined_loader: CombinedLoader | None = None
+        self.iterator: Iterator | None = None
         self.fetched: int = 0
         self.done: bool = False
-        self.length: Optional[int] = None
+        self.length: int | None = None
         self._start_profiler = _profile_nothing
         self._stop_profiler = _profile_nothing
 
@@ -197,7 +197,7 @@ class _DataFetcherWrapper(Iterator):
         return self.data_fetcher.fetched
 
     @property
-    def length(self) -> Optional[int]:
+    def length(self) -> int | None:
         return self.data_fetcher.length
 
     @override

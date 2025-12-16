@@ -14,7 +14,7 @@
 import pickle
 from argparse import Namespace
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import patch
 
 import numpy as np
@@ -58,7 +58,7 @@ class CustomLogger(Logger):
         self.finalized_status = status
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None

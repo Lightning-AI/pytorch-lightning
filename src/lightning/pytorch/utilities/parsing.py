@@ -19,7 +19,7 @@ import pickle
 import types
 from collections.abc import MutableMapping, Sequence
 from dataclasses import fields, is_dataclass
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 from torch import nn
 
@@ -49,7 +49,7 @@ def clean_namespace(hparams: MutableMapping) -> None:
         del hparams[k]
 
 
-def parse_class_init_keys(cls: type) -> tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(cls: type) -> tuple[str, str | None, str | None]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
@@ -71,7 +71,7 @@ def parse_class_init_keys(cls: type) -> tuple[str, Optional[str], Optional[str]]
     def _get_first_if_any(
         params: list[inspect.Parameter],
         param_type: Literal[inspect._ParameterKind.VAR_POSITIONAL, inspect._ParameterKind.VAR_KEYWORD],
-    ) -> Optional[str]:
+    ) -> str | None:
         for p in params:
             if p.kind == param_type:
                 return p.name
@@ -89,7 +89,7 @@ def get_init_args(frame: types.FrameType) -> dict[str, Any]:  # pragma: no-cover
     return local_args
 
 
-def _get_init_args(frame: types.FrameType) -> tuple[Optional[Any], dict[str, Any]]:
+def _get_init_args(frame: types.FrameType) -> tuple[Any | None, dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars or frame.f_code.co_name != "__init__":
         return None, {}
@@ -146,9 +146,9 @@ def collect_init_args(
 def save_hyperparameters(
     obj: Any,
     *args: Any,
-    ignore: Optional[Union[Sequence[str], str]] = None,
-    frame: Optional[types.FrameType] = None,
-    given_hparams: Optional[dict[str, Any]] = None,
+    ignore: Sequence[str] | str | None = None,
+    frame: types.FrameType | None = None,
+    given_hparams: dict[str, Any] | None = None,
 ) -> None:
     """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
 
@@ -263,7 +263,7 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
     return holders
 
 
-def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
+def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str) -> Any | None:
     """Special attribute finding for Lightning.
 
     Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace, the old hparams
@@ -286,7 +286,7 @@ def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
-def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
+def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Any | None:
     """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and the
     datamodule.
 

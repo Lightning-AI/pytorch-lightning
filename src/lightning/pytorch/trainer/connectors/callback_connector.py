@@ -16,7 +16,6 @@ import logging
 import os
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -50,12 +49,12 @@ class _CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks: Optional[Union[list[Callback], Callback]],
+        callbacks: list[Callback] | Callback | None,
         enable_checkpointing: bool,
         enable_progress_bar: bool,
-        default_root_dir: Optional[str],
+        default_root_dir: str | None,
         enable_model_summary: bool,
-        max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
+        max_time: str | timedelta | dict[str, int] | None = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
@@ -155,7 +154,7 @@ class _CallbackConnector:
             progress_bar_callback = RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
-    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, dict[str, int]]] = None) -> None:
+    def _configure_timer_callback(self, max_time: str | timedelta | dict[str, int] | None = None) -> None:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
