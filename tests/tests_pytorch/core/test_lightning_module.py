@@ -446,6 +446,45 @@ def test_lightning_module_scriptable():
     torch.jit.script(model)
 
 
+@RunIf(min_cuda_gpus=1)
+def test_lr_scheduler_step_warning_message(tmp_path):
+    class MinimalSchedulerModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            if batch_idx == 0:
+                loss = loss * torch.tensor(float("nan"), device=self.device)
+            return loss
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "step"}}
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=1,
+        precision="16-mixed",
+        max_steps=2,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    model = MinimalSchedulerModel()
+
+    warning_match = (
+        r"lr_scheduler\.step\(\).*optimizer\.step\(\).*"
+        r"Lightning note: When training in mixed/half precision \(e\.g\., 16-bit\)"
+    )
+
+    with pytest.warns(UserWarning, match=warning_match):
+        trainer.fit(model)
+
+
 def test_trainer_reference_recursively():
     ensemble = LightningModule()
     inner = LightningModule()
