@@ -16,6 +16,7 @@
 import copy
 import logging
 import numbers
+import warnings
 import weakref
 from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager, nullcontext
@@ -1329,10 +1330,26 @@ class LightningModule(
                 scheduler.step(epoch=self.current_epoch)
 
         """
-        if metric is None:
-            scheduler.step()  # type: ignore[call-arg]
-        else:
-            scheduler.step(metric)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+
+            if metric is None:
+                scheduler.step()  # type: ignore[call-arg]
+            else:
+                scheduler.step(metric)
+
+        for w in caught:
+            msg = str(w.message)
+
+            if "lr_scheduler.step()" in msg and "optimizer.step()" in msg:
+                msg = (
+                    f"{msg} Lightning note: When training in mixed/half precision "
+                    "(e.g., 16-bit), an overflow on the first iteration can skip the "
+                    "optimizer step; the scheduler then runs before any optimizer "
+                    "step, which surfaces this warning."
+                )
+
+            rank_zero_warn(msg, category=w.category, stacklevel=2)
 
     def optimizer_step(
         self,
