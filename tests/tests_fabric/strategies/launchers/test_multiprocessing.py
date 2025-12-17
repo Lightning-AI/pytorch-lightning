@@ -90,6 +90,7 @@ def test_global_state_snapshot():
 
 @pytest.mark.parametrize("start_method", ["fork", "forkserver"])
 @mock.patch("torch.cuda.is_initialized", return_value=True)
+@mock.patch("torch.cuda._is_in_bad_fork", None)
 @mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
 def test_check_for_bad_cuda_fork(mp_mock, _, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
