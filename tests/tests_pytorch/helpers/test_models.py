@@ -46,7 +46,8 @@ def test_models(tmp_path, data_class, model_class):
     if dm is not None:
         trainer.test(model, datamodule=dm)
 
-    model.to_torchscript()
+    with pytest.deprecated_call(match="has been deprecated in v2.7 and will be removed in v2.8"):
+        model.to_torchscript()
     if data_class:
         model.to_onnx(os.path.join(tmp_path, "my-model.onnx"), input_sample=dm.sample)
 
