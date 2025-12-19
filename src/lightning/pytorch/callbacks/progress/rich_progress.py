@@ -646,15 +646,14 @@ class RichProgressBar(ProgressBar):
         current: Optional[int] = None,
         total_batches: bool = False,
     ) -> None:
-        if not self.is_enabled or self._metric_component is None:
-            return
-
         if current is not None and not total_batches:
             total = self.total_train_batches
             if not self._should_update(current, total):
                 return
 
         metrics = self.get_metrics(trainer, pl_module)
+        if not self.is_enabled or self._metric_component is None:
+            return
         if self._metric_component:
             self._metric_component.update(metrics)
 
