@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Reinstated`checkpoint_path_prefix` parameter in `MLFlowLogger` to control the artifact path prefix for logged checkpoints.
+- Reinstated the `checkpoint_path_prefix` parameter in `MLFlowLogger` ([#21432](https://github.com/Lightning-AI/pytorch-lightning/pull/21432))
 
 ### Changed
 
