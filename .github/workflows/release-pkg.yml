@@ -104,7 +104,7 @@ jobs:
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           title: "Bump lightning ver `${{ env.TAG }}`"
           committer: GitHub <noreply@github.com>
