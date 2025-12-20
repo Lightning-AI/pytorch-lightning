@@ -84,37 +84,30 @@ class _CheckpointConnector:
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
         try:
-            bp = getattr(self.trainer, "batch_progress", None)
-            if bp is not None:
-                gs = int(getattr(self.trainer, "global_step", 0))
+            batch_progress = getattr(self.trainer, "batch_progress", None)
+            if batch_progress is not None:
+                global_step = int(getattr(self.trainer, "global_step", 0))
+
                 # Align total counters defensively so they are at least the restored global_step
                 try:
-                    bp.total_ready = max(int(getattr(bp, "total_ready", 0)), gs)
-                    bp.total_completed = max(int(getattr(bp, "total_completed", 0)), gs)
+                    batch_progress.total_ready = max(int(getattr(batch_progress, "total_ready", 0)), global_step)
+                    batch_progress.total_completed = max(
+                        int(getattr(batch_progress, "total_completed", 0)), global_step
+                    )
                 except Exception as exc:
-                    log = logging.getLogger(__name__)
                     log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
-                # Try to compute within-epoch counters from limit_train_batches when possible,
-                # otherwise fall back to safe defaults.
+                # Try to compute within-epoch counters when possible
                 try:
                     epoch_len = getattr(self.trainer, "limit_train_batches", None)
                     if isinstance(epoch_len, int) and epoch_len > 0:
                         epoch_size = int(epoch_len)
-                        bp.current_completed = gs % max(1, epoch_size)
-                        bp.current_ready = bp.current_completed
-                    else:
-                        bp.current_completed = 0
-                        bp.current_ready = 0
-                except Exception:
-                    try:
-                        bp.current_completed = 0
-                        bp.current_ready = 0
-                    except Exception as exc:
-                        log = logging.getLogger(__name__)
-                        log.debug(f"BatchProgress restore fallback triggered: {exc}")
+                        batch_progress.current_completed = global_step % max(1, epoch_size)
+                        batch_progress.current_ready = batch_progress.current_completed
+                except Exception as exc:
+                    log.debug(f"BatchProgress restore fallback triggered: {exc}")
+
         except Exception as exc:
-            log = logging.getLogger(__name__)
             log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     def _select_ckpt_path(
@@ -274,7 +267,7 @@ class _CheckpointConnector:
 
         All restored states are listed in return value description of `dump_checkpoint`.
 
-        Args:
+        Arglobal_step:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
@@ -325,7 +318,8 @@ class _CheckpointConnector:
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.
 
-        This includes the precision settings, loop progress, optimizer states and learning rate scheduler states.
+        This includes the precision settinglobal_step, loop progress, optimizer states and learning rate scheduler
+        states.
 
         """
         if not self._loaded_checkpoint:
@@ -449,7 +443,7 @@ class _CheckpointConnector:
     def dump_checkpoint(self, weights_only: Optional[bool] = None) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
 
-        Args:
+        Arglobal_step:
             weights_only: If True, only saves model and loops state_dict objects. If False,
             additionally saves callbacks, optimizers, schedulers, and precision plugin states.
 
@@ -559,7 +553,7 @@ class _CheckpointConnector:
     def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
-        Args:
+        Arglobal_step:
             dir_path: path of directory which may contain files whose name include `name_key`
             name_key: file name prefix
         Returns:

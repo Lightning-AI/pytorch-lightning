@@ -24,25 +24,25 @@ class TinyModel(L.LightningModule):
 
 def _find_batch_progress(trainer):
     """Try common places for the BatchProgress object across Lightning versions."""
+    log = logging.getLogger(__name__)
     candidates = [
         getattr(trainer, "batch_progress", None),
         getattr(getattr(trainer, "fit_loop", None), "batch_progress", None),
         getattr(getattr(getattr(trainer, "fit_loop", None), "epoch_loop", None), "batch_progress", None),
     ]
-    for c in candidates:
-        if c is not None:
-            return c
+    for candidate in candidates:
+        if candidate is not None:
+            return candidate
 
     # heuristic scan
     for name in dir(trainer):
         try:
-            obj = getattr(trainer, name)
-            if obj is None:
+            attr = getattr(trainer, name)
+            if attr is None:
                 continue
-            if any(n in dir(obj) for n in ("current_completed", "current", "completed")):
-                return obj
+            if any(n in dir(attr) for n in ("current_completed", "current", "completed")):
+                return attr
         except Exception as exc:
-            log = logging.getLogger(__name__)
             log.debug(f"BatchProgress restore fallback triggered: {exc}")
     return None
 
@@ -56,33 +56,32 @@ def _extract_int(candidate):
      - something convertible via int()
     Raise ValueError if not possible.
     """
+    log = logging.getLogger(__name__)
+
     if isinstance(candidate, int):
         return candidate
 
-    for attr in ("completed", "ready", "count", "value", "n", "total"):
-        if hasattr(candidate, attr):
+    for attribute in ("completed", "ready", "count", "value", "n", "total"):
+        if hasattr(candidate, attribute):
             try:
-                return int(getattr(candidate, attr))
+                return int(getattr(candidate, attribute))
             except Exception as exc:
-                log = logging.getLogger(__name__)
                 log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     if isinstance(candidate, (tuple, list)) and len(candidate) > 0:
-        for el in candidate:
+        for element in candidate:
             try:
-                return int(el)
+                return int(element)
             except Exception:
-                for attr in ("completed", "ready", "count", "value", "n"):
-                    if hasattr(el, attr):
+                for attribute in ("completed", "ready", "count", "value", "n"):
+                    if hasattr(element, attribute):
                         try:
-                            return int(getattr(el, attr))
+                            return int(getattr(element, attribute))
                         except Exception as exc:
-                            log = logging.getLogger(__name__)
                             log.debug(f"BatchProgress restore fallback triggered: {exc}")
         try:
             return int(candidate[0])
         except Exception as exc:
-            log = logging.getLogger(__name__)
             log.debug(f"BatchProgress restore fallback triggered: {exc}")
 
     try:
@@ -95,16 +94,16 @@ def _extract_int(candidate):
 
 def test_resume_mid_epoch_batch_progress(tmp_path):
     L.seed_everything(42)
-
-    ds = WikiText2()
-    n = len(ds)
-    train_ds, val_ds, _ = random_split(ds, [n - 200, 100, 100])
+    log = logging.getLogger(__name__)
+    dataset = WikiText2()
+    dataset_len = len(dataset)
+    train_ds, val_ds, _ = random_split(dataset, [dataset_len - 200, 100, 100])
 
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=False)
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False)
 
     # 1) Run short training to produce a mid-epoch checkpoint (step 5)
-    model = TinyModel(vocab_size=ds.vocab_size)
+    model = TinyModel(vocab_size=dataset.vocab_size)
     trainer_short = L.Trainer(max_steps=5, enable_progress_bar=False)
     trainer_short.fit(model, train_loader, val_loader)
     assert trainer_short.global_step >= 5, f"short trainer didn't reach step 5 (gs={trainer_short.global_step})"
@@ -115,11 +114,11 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
 
     # 2) Resume from that checkpoint with a fresh trainer
     trainer_resume = L.Trainer(max_steps=10, enable_progress_bar=False)
-    model2 = TinyModel(vocab_size=ds.vocab_size)
+    model2 = TinyModel(vocab_size=dataset.vocab_size)
     trainer_resume.fit(model2, train_loader, val_loader, ckpt_path=str(ckpt_mid))
 
-    bp = _find_batch_progress(trainer_resume)
-    assert bp is not None, "BatchProgress object not found on Trainer; see earlier logs."
+    batch_progress = _find_batch_progress(trainer_resume)
+    assert batch_progress is not None, "BatchProgress object not found on Trainer; see earlier logs."
 
     possible_total_names = [
         "total_completed",
@@ -143,25 +142,24 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
 
     total_candidate = None
     for name in possible_total_names:
-        if hasattr(bp, name):
-            total_candidate = getattr(bp, name)
+        if hasattr(batch_progress, name):
+            total_candidate = getattr(batch_progress, name)
             break
     if total_candidate is None:
-        total_candidate = bp
+        total_candidate = batch_progress
 
     current_candidate = None
     for name in possible_current_names:
-        if hasattr(bp, name):
-            current_candidate = getattr(bp, name)
+        if hasattr(batch_progress, name):
+            current_candidate = getattr(batch_progress, name)
             break
     if current_candidate is None:
-        for name in dir(bp):
+        for name in dir(batch_progress):
             if name.lower().startswith("current"):
                 try:
-                    current_candidate = getattr(bp, name)
+                    current_candidate = getattr(batch_progress, name)
                     break
                 except Exception as exc:
-                    log = logging.getLogger(__name__)
                     log.debug(f"BatchProgress restore fallback triggered: {exc}")
     if current_candidate is None:
         current_candidate = 0
@@ -169,13 +167,13 @@ def test_resume_mid_epoch_batch_progress(tmp_path):
     total_completed = _extract_int(total_candidate)
     current_completed = _extract_int(current_candidate)
 
-    gs = trainer_resume.global_step
+    global_step = trainer_resume.global_step
 
     assert total_completed >= 0, "negative total_completed found"
     assert current_completed >= 0, "negative current_completed found"
 
-    assert total_completed >= gs or total_completed == 0, (
-        f"unexpected total_completed={total_completed} < global_step={gs}"
+    assert total_completed >= global_step or total_completed == 0, (
+        f"unexpected total_completed={total_completed} < global_step={global_step}"
     )
 
     assert current_completed <= total_completed
