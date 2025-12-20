@@ -155,3 +155,41 @@ def neptune_mock(monkeypatch):
 
     monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
     return neptune
+
+
+@pytest.fixture
+def litlogger_mock(monkeypatch):
+    """Mock litlogger module for unit testing LightningLogger."""
+    experiment_mock = MagicMock()
+    experiment_mock.url = "https://lightning.ai/test/experiments/test-experiment"
+    experiment_mock.name = "test-experiment"
+    experiment_mock.version = "2024-01-01T00:00:00.000Z"
+
+    litlogger = ModuleType("litlogger")
+    litlogger.experiment = None
+    litlogger.Experiment = MagicMock
+
+    def mock_init(**kwargs):
+        litlogger.experiment = experiment_mock
+        return experiment_mock
+
+    litlogger.init = Mock(side_effect=mock_init)
+    litlogger.log_metrics = Mock()
+    litlogger.log_file = Mock()
+    litlogger.get_file = Mock(return_value="/path/to/file")
+    litlogger.log_model = Mock()
+    litlogger.get_model = Mock(return_value=MagicMock())
+    litlogger.log_model_artifact = Mock()
+    litlogger.get_model_artifact = Mock(return_value="/path/to/artifact")
+    litlogger.finalize = Mock()
+    monkeypatch.setitem(sys.modules, "litlogger", litlogger)
+
+    # Create generator submodule
+    generator_module = ModuleType("litlogger.generator")
+    generator_module._create_name = Mock(return_value="generated-name")
+    monkeypatch.setitem(sys.modules, "litlogger.generator", generator_module)
+
+    litlogger.generator = generator_module
+
+    monkeypatch.setattr("lightning.pytorch.loggers.litlogger._LITLOGGER_AVAILABLE", True)
+    return litlogger

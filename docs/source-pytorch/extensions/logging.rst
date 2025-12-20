@@ -27,13 +27,13 @@ The following are loggers we support:
     :nosignatures:
     :template: classtemplate.rst
 
+    LitLogger
     CometLogger
     CSVLogger
     MLFlowLogger
     NeptuneLogger
     TensorBoardLogger
     WandbLogger
-
 
 The above loggers will normally plot an additional chart (**global_step VS epoch**). Depending on the loggers you use, there might be some additional charts too.
 
@@ -80,9 +80,9 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. code-block:: python
 
+    lit_logger = pl_loggers.LitLogger(save_dir="logs/")
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
-    comet_logger = pl_loggers.CometLogger(save_dir="logs/")
-    trainer = Trainer(logger=[tb_logger, comet_logger])
+    trainer = Trainer(logger=[lit_logger, tb_logger])
 
 .. note::
 
