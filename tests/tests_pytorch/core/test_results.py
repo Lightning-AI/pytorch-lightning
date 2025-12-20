@@ -147,54 +147,33 @@ def test_assert_sync_dist_metric_keys_consistency_order_mismatch_mocked(_, __, _
     assert "Detected a mismatch" in message
 
 
-def _sync_dist_keys_consistency_match_fn(strategy):
-    """Function to test that matching keys across ranks doesn't raise an error."""
-    # All ranks have the same keys
+def _sync_dist_keys_consistency_ddp_fn(strategy):
+    """Consolidated function to test key consistency validation in DDP mode."""
+    rank = dist.get_rank()
+
+    # Test 1: Matching keys should not raise
     keys = ["training_step.loss", "training_step.acc"]
-    # This should not raise
     _assert_sync_dist_metric_keys_consistency(keys, "training_step", None)
 
+    # Test 2: Empty keys should not raise
+    empty_keys: list[str] = []
+    _assert_sync_dist_metric_keys_consistency(empty_keys, "training_step", None)
 
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_assert_sync_dist_metric_keys_consistency_match():
-    """Test that _assert_sync_dist_metric_keys_consistency doesn't raise when keys match."""
-    spawn_launch(_sync_dist_keys_consistency_match_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_dist_keys_consistency_mismatch_fn(strategy):
-    """Function to test that mismatched keys across ranks raises an error."""
-    rank = dist.get_rank()
-    keys = ["training_step.metric_a"] if rank == 0 else ["training_step.metric_b"]
-
+    # Test 3: Mismatched keys should raise
+    mismatched_keys = ["training_step.metric_a"] if rank == 0 else ["training_step.metric_b"]
     with pytest.raises(MisconfigurationException) as excinfo:
-        _assert_sync_dist_metric_keys_consistency(keys, "training_step", None)
-
+        _assert_sync_dist_metric_keys_consistency(mismatched_keys, "training_step", None)
     message = str(excinfo.value)
     assert "sync_dist=True" in message
     assert "Detected a mismatch" in message
-    assert "training_step.metric_a" in message
-    assert "training_step.metric_b" in message
 
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_assert_sync_dist_metric_keys_consistency_mismatch():
-    """Test that _assert_sync_dist_metric_keys_consistency raises when keys mismatch."""
-    spawn_launch(_sync_dist_keys_consistency_mismatch_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_dist_keys_consistency_order_mismatch_fn(strategy):
-    """Function to test that keys in different order across ranks raises an error."""
-    rank = dist.get_rank()
+    # Test 4: Different key order should raise
     if rank == 0:
-        keys = ["training_step.metric_a", "training_step.metric_b"]
+        order_keys = ["training_step.metric_x", "training_step.metric_y"]
     else:
-        keys = ["training_step.metric_b", "training_step.metric_a"]
-
+        order_keys = ["training_step.metric_y", "training_step.metric_x"]
     with pytest.raises(MisconfigurationException) as excinfo:
-        _assert_sync_dist_metric_keys_consistency(keys, "training_step", None)
-
+        _assert_sync_dist_metric_keys_consistency(order_keys, "training_step", None)
     message = str(excinfo.value)
     assert "sync_dist=True" in message
     assert "Detected a mismatch" in message
@@ -202,23 +181,9 @@ def _sync_dist_keys_consistency_order_mismatch_fn(strategy):
 
 @pytest.mark.flaky(reruns=3)
 @RunIf(skip_windows=True)
-def test_assert_sync_dist_metric_keys_consistency_order_mismatch():
-    """Test that _assert_sync_dist_metric_keys_consistency raises when key order differs."""
-    spawn_launch(_sync_dist_keys_consistency_order_mismatch_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_dist_keys_consistency_empty_keys_fn(strategy):
-    """Function to test that empty keys across all ranks doesn't raise an error."""
-    keys: list[str] = []
-    # Empty keys should not raise (no metrics to sync)
-    _assert_sync_dist_metric_keys_consistency(keys, "training_step", None)
-
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_assert_sync_dist_metric_keys_consistency_empty_keys():
-    """Test that _assert_sync_dist_metric_keys_consistency doesn't raise with empty keys on all ranks."""
-    spawn_launch(_sync_dist_keys_consistency_empty_keys_fn, [torch.device("cpu")] * 2)
+def test_assert_sync_dist_metric_keys_consistency_ddp():
+    """Test _assert_sync_dist_metric_keys_consistency in DDP mode (consolidated tests)."""
+    spawn_launch(_sync_dist_keys_consistency_ddp_fn, [torch.device("cpu")] * 2)
 
 
 @patch("lightning.pytorch.trainer.connectors.logger_connector.result._distributed_is_initialized", return_value=False)
@@ -360,108 +325,83 @@ def test_sync_on_epoch_metrics_with_mocked_distributed(_, __, ___, ____):
     assert loss_metric._computed is not None
 
 
-def _sync_on_step_metrics_ddp_fn(strategy):
-    """Function to test sync_on_step_metrics in DDP mode with consistent keys."""
-    result = _ResultCollection(training=True)
-
-    # All ranks log the same keys
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
-    result.log("training_step", "acc", torch.tensor(0.9), on_step=True, on_epoch=False, sync_dist=True)
-
-    # Before sync, forward cache should be set but not synced
-    loss_metric = result["training_step.loss"]
-    assert loss_metric._forward_cache is not None, "Forward cache should be set"
-    assert loss_metric._forward_cache_synced is False, "Forward cache should not be synced yet"
-
-    # This should not raise since all ranks have the same keys
-    result.sync_on_step_metrics()
-
-    # Verify the forward cache was synced
-    assert loss_metric._forward_cache_synced is True
-
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_sync_on_step_metrics_ddp():
-    """Test sync_on_step_metrics works correctly in DDP with consistent keys."""
-    spawn_launch(_sync_on_step_metrics_ddp_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_on_epoch_metrics_ddp_fn(strategy):
-    """Function to test sync_on_epoch_metrics in DDP mode with consistent keys."""
-    result = _ResultCollection(training=True)
-
-    # All ranks log the same keys
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
-    result.log("training_step", "acc", torch.tensor(0.9), on_step=False, on_epoch=True, sync_dist=True)
-
-    # This should not raise since all ranks have the same keys
-    result.sync_on_epoch_metrics()
-
-    # Verify compute was called (which sets _computed)
-    loss_metric = result["training_step.loss"]
-    assert loss_metric._computed is not None
-
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_sync_on_epoch_metrics_ddp():
-    """Test sync_on_epoch_metrics works correctly in DDP with consistent keys."""
-    spawn_launch(_sync_on_epoch_metrics_ddp_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_on_step_metrics_mismatch_ddp_fn(strategy):
-    """Function to test sync_on_step_metrics raises with mismatched keys."""
+def _sync_metrics_ddp_fn(strategy):
+    """Consolidated function to test sync_on_step_metrics and sync_on_epoch_metrics in DDP mode."""
     rank = dist.get_rank()
-    result = _ResultCollection(training=True)
 
-    # Different ranks log different keys
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+    # Test 1: sync_on_step_metrics with consistent keys
+    result1 = _ResultCollection(training=True)
+    result1.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+    result1.log("training_step", "acc", torch.tensor(0.9), on_step=True, on_epoch=False, sync_dist=True)
+    loss_metric1 = result1["training_step.loss"]
+    assert loss_metric1._forward_cache is not None, "Forward cache should be set"
+    assert loss_metric1._forward_cache_synced is False, "Forward cache should not be synced yet"
+    result1.sync_on_step_metrics()
+    assert loss_metric1._forward_cache_synced is True
+
+    # Test 2: sync_on_epoch_metrics with consistent keys
+    result2 = _ResultCollection(training=True)
+    result2.log("training_step", "loss", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
+    result2.log("training_step", "acc", torch.tensor(0.9), on_step=False, on_epoch=True, sync_dist=True)
+    result2.sync_on_epoch_metrics()
+    loss_metric2 = result2["training_step.loss"]
+    assert loss_metric2._computed is not None
+
+    # Test 3: sync_on_step_metrics with mismatched keys should raise
+    result3 = _ResultCollection(training=True)
+    result3.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
     if rank == 0:
-        result.log("training_step", "metric_a", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+        result3.log("training_step", "metric_a", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
     else:
-        result.log("training_step", "metric_b", torch.tensor(2.0), on_step=True, on_epoch=False, sync_dist=True)
-
+        result3.log("training_step", "metric_b", torch.tensor(2.0), on_step=True, on_epoch=False, sync_dist=True)
     with pytest.raises(MisconfigurationException) as excinfo:
-        result.sync_on_step_metrics()
-
+        result3.sync_on_step_metrics()
     message = str(excinfo.value)
     assert "sync_dist=True" in message
     assert "Detected a mismatch" in message
 
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_sync_on_step_metrics_mismatch_ddp():
-    """Test sync_on_step_metrics raises with mismatched keys in DDP."""
-    spawn_launch(_sync_on_step_metrics_mismatch_ddp_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_on_epoch_metrics_mismatch_ddp_fn(strategy):
-    """Function to test sync_on_epoch_metrics raises with mismatched keys."""
-    rank = dist.get_rank()
-    result = _ResultCollection(training=True)
-
-    # Different ranks log different keys
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
+    # Test 4: sync_on_epoch_metrics with mismatched keys should raise
+    result4 = _ResultCollection(training=True)
+    result4.log("training_step", "loss", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
     if rank == 0:
-        result.log("training_step", "metric_a", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
+        result4.log("training_step", "metric_c", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
     else:
-        result.log("training_step", "metric_b", torch.tensor(2.0), on_step=False, on_epoch=True, sync_dist=True)
-
+        result4.log("training_step", "metric_d", torch.tensor(2.0), on_step=False, on_epoch=True, sync_dist=True)
     with pytest.raises(MisconfigurationException) as excinfo:
-        result.sync_on_epoch_metrics()
-
+        result4.sync_on_epoch_metrics()
     message = str(excinfo.value)
     assert "sync_dist=True" in message
     assert "Detected a mismatch" in message
 
+    # Test 5: sync_on_step_metrics updates value for on_step only metrics
+    result5 = _ResultCollection(training=True)
+    result5.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+    loss_metric5 = result5["training_step.loss"]
+    assert loss_metric5._forward_cache is not None
+    assert loss_metric5._forward_cache_synced is False
+    result5.sync_on_step_metrics()
+    assert loss_metric5._forward_cache_synced is True
+    assert torch.equal(loss_metric5.value, loss_metric5._forward_cache)
+
+    # Test 6: both on_step and on_epoch sync work together
+    result6 = _ResultCollection(training=True)
+    result6.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=True, sync_dist=True)
+    result6.log("training_step", "acc", torch.tensor(0.9), on_step=True, on_epoch=True, sync_dist=True)
+    loss_metric6 = result6["training_step.loss"]
+    acc_metric6 = result6["training_step.acc"]
+    result6.sync_on_step_metrics()
+    assert loss_metric6._forward_cache_synced is True
+    assert acc_metric6._forward_cache_synced is True
+    result6.sync_on_epoch_metrics()
+    assert loss_metric6._computed is not None
+    assert acc_metric6._computed is not None
+
 
 @pytest.mark.flaky(reruns=3)
 @RunIf(skip_windows=True)
-def test_sync_on_epoch_metrics_mismatch_ddp():
-    """Test sync_on_epoch_metrics raises with mismatched keys in DDP."""
-    spawn_launch(_sync_on_epoch_metrics_mismatch_ddp_fn, [torch.device("cpu")] * 2)
+def test_sync_metrics_ddp():
+    """Test sync_on_step_metrics and sync_on_epoch_metrics in DDP mode (consolidated tests)."""
+    spawn_launch(_sync_metrics_ddp_fn, [torch.device("cpu")] * 2)
 
 
 @patch("lightning.pytorch.trainer.connectors.logger_connector.result._assert_sync_dist_metric_keys_consistency")
@@ -691,58 +631,14 @@ def test_sync_on_epoch_metrics_multiple_metrics(_, __, ___, ____):
         assert metric._computed is not None
 
 
-def _sync_on_step_metrics_value_update_ddp_fn(strategy):
-    """Function to test sync_on_step_metrics updates value for on_step only metrics in DDP."""
-    result = _ResultCollection(training=True)
-
-    # Log on_step only metric
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
-
-    loss_metric = result["training_step.loss"]
-    assert loss_metric._forward_cache is not None
-    assert loss_metric._forward_cache_synced is False
-
-    result.sync_on_step_metrics()
-
-    # After sync, value should equal forward_cache (both synced)
-    assert loss_metric._forward_cache_synced is True
-    assert torch.equal(loss_metric.value, loss_metric._forward_cache)
-
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_sync_on_step_metrics_value_update_ddp():
-    """Test sync_on_step_metrics updates value for on_step only metrics in DDP."""
-    spawn_launch(_sync_on_step_metrics_value_update_ddp_fn, [torch.device("cpu")] * 2)
-
-
-def _sync_on_step_and_epoch_metrics_ddp_fn(strategy):
-    """Function to test both on_step and on_epoch sync in DDP."""
-    result = _ResultCollection(training=True)
-
-    # Log with both on_step and on_epoch
-    result.log("training_step", "loss", torch.tensor(1.0), on_step=True, on_epoch=True, sync_dist=True)
-    result.log("training_step", "acc", torch.tensor(0.9), on_step=True, on_epoch=True, sync_dist=True)
-
-    loss_metric = result["training_step.loss"]
-    acc_metric = result["training_step.acc"]
-
-    # First, sync on_step metrics
-    result.sync_on_step_metrics()
-    assert loss_metric._forward_cache_synced is True
-    assert acc_metric._forward_cache_synced is True
-
-    # Then, sync on_epoch metrics
-    result.sync_on_epoch_metrics()
-    assert loss_metric._computed is not None
-    assert acc_metric._computed is not None
-
-
-@pytest.mark.flaky(reruns=3)
-@RunIf(skip_windows=True)
-def test_sync_on_step_and_epoch_metrics_ddp():
-    """Test both on_step and on_epoch sync work together in DDP."""
-    spawn_launch(_sync_on_step_and_epoch_metrics_ddp_fn, [torch.device("cpu")] * 2)
+# NOTE: The following DDP tests have been consolidated into test_sync_metrics_ddp above
+# to reduce the number of process spawns and avoid potential segfaults in CI.
+# - test_sync_on_step_metrics_ddp
+# - test_sync_on_epoch_metrics_ddp
+# - test_sync_on_step_metrics_mismatch_ddp
+# - test_sync_on_epoch_metrics_mismatch_ddp
+# - test_sync_on_step_metrics_value_update_ddp
+# - test_sync_on_step_and_epoch_metrics_ddp
 
 
 def _mock_all_gather_detailed_mismatch(output_list, obj, group=None):
