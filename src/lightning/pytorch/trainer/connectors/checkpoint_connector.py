@@ -267,7 +267,7 @@ class _CheckpointConnector:
 
         All restored states are listed in return value description of `dump_checkpoint`.
 
-        Arglobal_step:
+        Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
@@ -443,7 +443,7 @@ class _CheckpointConnector:
     def dump_checkpoint(self, weights_only: Optional[bool] = None) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
 
-        Arglobal_step:
+        Args:
             weights_only: If True, only saves model and loops state_dict objects. If False,
             additionally saves callbacks, optimizers, schedulers, and precision plugin states.
 
@@ -553,7 +553,7 @@ class _CheckpointConnector:
     def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
-        Arglobal_step:
+        Args:
             dir_path: path of directory which may contain files whose name include `name_key`
             name_key: file name prefix
         Returns:
