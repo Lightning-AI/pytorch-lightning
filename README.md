@@ -282,6 +282,9 @@ trainer = Trainer(precision=16)
 ```python
 from lightning import loggers
 
+# litlogger
+trainer = Trainer(logger=LitLogger())
+
 # tensorboard
 trainer = Trainer(logger=TensorBoardLogger("logs/"))
 
