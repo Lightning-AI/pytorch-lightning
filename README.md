@@ -55,6 +55,8 @@ ______________________________________________________________________
 
 &nbsp;
 
+English | [繁體中文](./README_zh.md)
+
 # Looking for GPUs?
 Over 340,000 developers use [Lightning Cloud](https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) - purpose-built for PyTorch and PyTorch Lightning. 
 - [GPUs](https://lightning.ai/pricing?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) from $0.19.   
