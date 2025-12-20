@@ -104,7 +104,7 @@ class MixedPrecision(Precision):
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
+        if clip_val > 0 and self.scaler is not None and _optimizer_handles_unscaling(optimizer):
             raise RuntimeError(
                 f"The current optimizer, {type(optimizer).__qualname__}, does not allow for gradient clipping"
                 " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
