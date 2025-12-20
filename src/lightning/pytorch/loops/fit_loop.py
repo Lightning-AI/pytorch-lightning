@@ -479,6 +479,10 @@ class _FitLoop(_Loop):
         call._call_lightning_module_hook(trainer, "on_train_epoch_end")
         call._call_callback_hooks(trainer, "on_train_epoch_end", monitoring_callbacks=True)
 
+        # Sync on_epoch metrics across ranks and validate all ranks logged the same keys
+        # Must be called before on_epoch_end() which computes the metrics
+        trainer._logger_connector.sync_on_epoch_metrics()
+
         trainer._logger_connector.on_epoch_end()
 
         if not self.restarting and self.epoch_loop._num_ready_batches_reached():
@@ -489,6 +493,7 @@ class _FitLoop(_Loop):
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished
         self.epoch_loop._batches_that_stepped -= 1
+
         # log epoch metrics
         trainer._logger_connector.update_train_epoch_metrics()
         self.epoch_loop._batches_that_stepped += 1

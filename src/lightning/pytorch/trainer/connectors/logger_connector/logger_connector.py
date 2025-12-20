@@ -190,6 +190,36 @@ class _LoggerConnector:
         results.batch_size = None
         results.dataloader_idx = dataloader_idx
 
+    def sync_on_step_metrics(self) -> None:
+        """Synchronize on_step metrics across ranks.
+
+        This must be called at a point where ALL ranks are synchronized, typically right after
+        training_step/validation_step returns. It validates that all ranks logged the same metric keys with
+        sync_dist=True and performs the sync operations.
+
+        See
+        https://github.com/Lightning-AI/pytorch-lightning/issues/21409
+
+        """
+        results = self.trainer._results
+        if results is not None:
+            results.sync_on_step_metrics()
+
+    def sync_on_epoch_metrics(self) -> None:
+        """Synchronize on_epoch metrics across ranks.
+
+        This must be called at a point where ALL ranks are synchronized, typically at epoch end before metrics are
+        consumed. It validates that all ranks logged the same metric keys with sync_dist=True and performs the
+        compute/sync operations.
+
+        See
+        https://github.com/Lightning-AI/pytorch-lightning/issues/21409
+
+        """
+        results = self.trainer._results
+        if results is not None:
+            results.sync_on_epoch_metrics()
+
     def epoch_end_reached(self) -> None:
         self._first_loop_iter = None
 
