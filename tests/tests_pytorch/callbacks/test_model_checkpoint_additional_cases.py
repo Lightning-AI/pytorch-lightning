@@ -1,4 +1,5 @@
 import math
+import os
 from datetime import timedelta
 
 import pytest
@@ -9,6 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class TinyDataset(Dataset):
@@ -206,3 +208,24 @@ def test_model_checkpoint_defer_until_next_validation_when_val_every_2_epochs(tm
     expected = max(val_scores)  # last/maximum value occurs at final validation epoch
     actual = float(ckpt.best_model_score)
     assert math.isclose(actual, expected, rel_tol=0, abs_tol=1e-6)
+
+
+def test_model_checkpoint_save_last_link_symlink_bug(tmp_path):
+    """Reproduce the bug where save_last='link' and save_top_k=-1 creates a recursive symlink."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        callbacks=[ModelCheckpoint(dirpath=tmp_path, every_n_epochs=10, save_last="link", save_top_k=-1)],
+        enable_checkpointing=True,
+        enable_model_summary=False,
+        logger=False,
+    )
+
+    model = BoringModel()
+    trainer.fit(model)
+
+    last_ckpt = tmp_path / "last.ckpt"
+    assert last_ckpt.exists()
+    # With the fix, if a symlink exists, it should not point to itself (preventing recursion)
+    if os.path.islink(str(last_ckpt)):
+        assert os.readlink(str(last_ckpt)) != str(last_ckpt)

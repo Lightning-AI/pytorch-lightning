@@ -55,7 +55,7 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_EQUAL_2_8
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_2_8
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -1730,7 +1730,12 @@ def test_exception_when_lightning_module_is_not_set_on_trainer(fn):
 
 @RunIf(min_cuda_gpus=1)
 # FixMe: the memory raises to 1024 from expected 512
-@pytest.mark.xfail(AssertionError, strict=True, condition=_TORCH_EQUAL_2_8, reason="temporarily disabled for torch 2.8")
+@pytest.mark.xfail(
+    AssertionError,
+    strict=True,
+    condition=_TORCH_GREATER_EQUAL_2_8,
+    reason="temporarily disabled for torch >= 2.8",
+)
 def test_multiple_trainer_constant_memory_allocated(tmp_path):
     """This tests ensures calling the trainer several times reset the memory back to 0."""
 
@@ -2105,6 +2110,22 @@ def test_init_module_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once_with(empty_init=None)
     strategy.tensor_init_context.reset_mock()
+
+
+@pytest.mark.parametrize(
+    ("target_device", "accelerator", "devices"),
+    [
+        ("cpu", "cpu", "auto"),
+        pytest.param("cuda:0", "gpu", [0], marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda:1", "gpu", [1], marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
+def test_init_module_device_type(target_device, accelerator, devices):
+    """Test that the strategy returns the context manager for initializing the module."""
+    trainer = Trainer(accelerator=accelerator, devices=devices)
+    with trainer.init_module():
+        model = BoringModel()
+        assert model.device == torch.device(target_device)
 
 
 def test_expand_home_trainer():

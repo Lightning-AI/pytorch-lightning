@@ -44,7 +44,7 @@ def _prepare_extras() -> dict[str, Any]:
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["all"] = extras["strategies"] + extras["examples"]
+    extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]
     return extras
 
@@ -73,7 +73,7 @@ def _setup_args() -> dict[str, Any]:
         "include_package_data": True,
         "zip_safe": False,
         "keywords": ["deep learning", "pytorch", "AI"],
-        "python_requires": ">=3.9",
+        "python_requires": ">=3.10",
         "setup_requires": ["wheel"],
         "install_requires": assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
@@ -105,9 +105,9 @@ def _setup_args() -> dict[str, Any]:
             # Specify the Python versions you support here. In particular, ensure
             # that you indicate whether you support Python 2, Python 3 or both.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
             "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
         ],
     }

@@ -1,64 +1,108 @@
 trigger:
   push:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "release/stable"]
 
-timeout: "55" # minutes
+timeout: "60" # minutes
+machine: "L4_X_2"
+image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
-    # note that this is setting also all oldest requirements which is linked to Torch == 2.1
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.1.1-py3.10-torch2.1"
+    # note that this is setting also all oldest requirements which is linked to python == 3.10
+    - image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
       PACKAGE_NAME: "fabric"
-      machine: "A100_X_2"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
-      PACKAGE_NAME: "fabric"
-      machine: "L4_X_2"
-    # - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.7"
-    #   PACKAGE_NAME: "fabric"
-    - image: "pytorchlightning/pytorch_lightning:base-cuda12.6.3-py3.12-torch2.8"
-      PACKAGE_NAME: "lightning"
-      machine: "L4_X_2"
+      python_version: "3.10"
+    - PACKAGE_NAME: "fabric"
+      python_version: "3.12"
+    #- image: "nvidia/cuda:12.6-runtime-ubuntu22.04"
+    #  PACKAGE_NAME: "fabric"
+    - PACKAGE_NAME: "lightning"
+      python_version: "3.12"
   exclude: []
 
 env:
+  TZ: "Etc/UTC"
+  DEBIAN_FRONTEND: "noninteractive"
+  CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
+  MKL_THREADING_LAYER: "GNU"
+  CUDA_LAUNCH_BLOCKING: "1"
+  NCCL_DEBUG: "INFO"
+  TORCHDYNAMO_VERBOSE: "1"
   FREEZE_REQUIREMENTS: "1"
   RUN_ONLY_CUDA_TESTS: "1"
 
 run: |
+  echo "Installing dependencies"
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  apt-get install -q -y software-properties-common curl
+  echo "Add deadsnakes PPA for newer Python versions if needed"
+  add-apt-repository ppa:deadsnakes/ppa -y
+  apt-get update -qq --fix-missing -o=Dpkg::Use-Pty=0 &> /dev/null
+  echo "Install Python ${python_version} and other dependencies"
+  apt-get install -q -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
+        build-essential \
+        pkg-config \
+        cmake \
+        ca-certificates \
+        libopenmpi-dev \
+        openmpi-bin \
+        ninja-build \
+        libnccl2 \
+        libnccl-dev
+
+  echo "Install Python ${python_version} and UV"
+  apt-get install -y python${python_version} python${python_version}-venv python${python_version}-dev
+  ln -sf /usr/bin/python${python_version} /usr/bin/python
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  echo "Source the environment and ensure UV is in PATH"
+  [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
+  source $HOME/.cargo/env 2>/dev/null || true
+  export PATH="$HOME/.cargo/bin:$PATH"
+
+  echo "Verify UV installation"
+  command -v uv || (echo "UV not found in PATH" && exit 1)
+  # Create and activate a local uv virtual environment
+  uv venv .venv -p "/usr/bin/python${python_version}" || uv venv .venv -p "python${python_version}" || uv venv .venv
+  . .venv/bin/activate
+  hash -r
+
+  echo "Show system information"
   whereis nvidia
   nvidia-smi
   python --version
-  pip --version
-  pip install -q fire wget packaging
-  pip list
+  uv --version
+  uv pip list
   set -ex
 
-  CUDA_VERSION="${image##*cuda}" # Remove everything up to and including "cuda"
+  # Parse CUDA version from image tag, e.g., "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+  IMAGE_TAG="${image##*:}"  # "12.6.3-devel-ubuntu22.04"
+  CUDA_VERSION="${IMAGE_TAG%%-*}"  # "12.6.3"
   echo "Using CUDA version: ${CUDA_VERSION}"
-  CUDA_VERSION_M_M="${cuda_version%.*}" # Get major.minor by removing the last dot and everything after
-  CUDA_VERSION_MM="${CUDA_VERSION_M_M//'.'/''}"
-  TORCH_URL="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html"
-  echo "Torch URL: ${TORCH_URL}"
-  COVERAGE_SOURCE=$(python -c 'n = "$(PACKAGE_NAME)" ; print(dict(fabric="lightning_fabric").get(n, n))')
+  CUDA_VERSION_M_M="${CUDA_VERSION%.*}"  # "12.6"
+  CUDA_VERSION_MM="${CUDA_VERSION_M_M//./}"  # "126"
+  export UV_TORCH_BACKEND=cu${CUDA_VERSION_MM}
+  COVERAGE_SOURCE=$(python -c 'n = "${PACKAGE_NAME}" ; print(dict(fabric="lightning_fabric").get(n, n))')
   echo "collecting coverage for: ${COVERAGE_SOURCE}"
-  TORCH_VER=$(python -c "import torch; print(torch.__version__.rsplit('.', 1)[0])")
 
-  if [ "${TORCH_VER}" == "2.1" ]; then
+  uv pip install fire wget packaging "lightning-utilities[cli]"
+  if [ "${python_version}" == "3.10" ]; then
     echo "Set oldest versions"
-    pip uninstall -y deepspeed
-    pip install -U "lightning-utilities[cli]"
     cd requirements/fabric
     python -m lightning_utilities.cli requirements set-oldest --req_files "['base.txt', 'strategies.txt']"
     python -m lightning_utilities.cli requirements prune-pkgs --packages deepspeed --req_files strategies.txt
     cd ../..
-    pip install "cython<3.0" wheel  # for compatibility
+    uv pip install "cython<3.0" wheel  # for compatibility
   fi
 
+  echo "Install the base so we can adjust other packages"
+  uv pip install .
   echo "Adjust torch versions in requirements files"
   PYTORCH_VERSION=$(python -c "import torch; print(torch.__version__.split('+')[0])")
-  pip install -q wget packaging
+  uv pip install wget packaging
   python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
   for fpath in `ls requirements/**/*.txt`; do \
     python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
@@ -66,7 +110,7 @@ run: |
 
   if [ "${PACKAGE_NAME}" == "fabric" ]; then
     echo "Replaced PL imports"
-    pip install -U -q -r .actions/requirements.txt
+    uv pip install --upgrade -r .actions/requirements.txt
     python .actions/assistant.py copy_replace_imports --source_dir="./tests/tests_fabric" \
       --source_import="lightning.fabric" \
       --target_import="lightning_fabric"
@@ -75,12 +119,12 @@ run: |
       --target_import="lightning_fabric"
   fi
 
-  extra=$(python -c "print({'lightning': 'fabric-'}.get('$(PACKAGE_NAME)', ''))")
-  pip install -e ".[${extra}dev]" -U --upgrade-strategy=eager --extra-index-url="${TORCH_URL}"
+  echo "Install package with [${PACKAGE_NAME}] extras"
+  extra=$(python -c "print({'lightning': 'fabric-'}.get('${PACKAGE_NAME}', ''))")
+  uv pip install ".[${extra}dev]" --upgrade
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
-  python requirements/pytorch/check-avail-extras.py
   python -c "import bitsandbytes"
 
   echo "Testing: Fabric doctests"
@@ -96,7 +140,7 @@ run: |
 
   echo "Testing: fabric standalone"
   export PL_RUN_STANDALONE_TESTS=1
-  wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+  python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
   bash ./run_standalone_tests.sh "tests_fabric"
   export PL_RUN_STANDALONE_TESTS=0
 

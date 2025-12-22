@@ -46,14 +46,14 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 class _RequirementWithComment(Requirement):
-    strict_string = "# strict"
+    strict_cmd = "strict"
 
     def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.comment = comment
         assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
         self.pip_argument = pip_argument
-        self.strict = self.strict_string in comment.lower()
+        self.strict = self.strict_cmd in comment.lower()
 
     def adjust(self, unfreeze: str) -> str:
         """Remove version restrictions unless they are strict.
@@ -62,25 +62,26 @@ class _RequirementWithComment(Requirement):
         'arrow<=1.2.2,>=1.2.0'
         >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").adjust("none")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").adjust("all")
-        'arrow>=1.2.0'
+        >>> _RequirementWithComment('arrow<=1.2.2,>=1.2.0; python_version >= "3.10"', comment="# my name").adjust("all")
+        'arrow>=1.2.0; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("all")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow").adjust("all")
-        'arrow'
+        >>> _RequirementWithComment('arrow; python_version >= "3.10"').adjust("all")
+        'arrow; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").adjust("major")
         'arrow<2.0,>=1.2.0'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("major")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow>=1.2.0").adjust("major")
-        'arrow>=1.2.0'
+        >>> _RequirementWithComment('arrow>=1.2.0; python_version >= "3.10"').adjust("major")
+        'arrow>=1.2.0; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
 
         """
         out = str(self)
         if self.strict:
-            return f"{out}  {self.strict_string}"
+            return f"{out}  # {self.strict_cmd}"
+
         specs = [(spec.operator, spec.version) for spec in self.specifier]
         if unfreeze == "major":
             for operator, version in specs:
@@ -458,6 +459,25 @@ class AssistantCLI:
 
         tags = [f"{docker_project}:{tag}" for tag in tags]
         print(",".join(tags))
+
+    @staticmethod
+    def prune_pytest_as_errors(
+        pyproject_toml: str = "pyproject.toml", errors: tuple = ("FutureWarning", "DeprecationWarning")
+    ) -> None:
+        """Prune pytest warnings as errors from the pyproject.toml file."""
+        import tomlkit
+
+        with open(pyproject_toml, encoding="utf-8") as fopen:
+            content = fopen.read()
+        pyproject = tomlkit.parse(content)
+        filterwarnings = pyproject.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("filterwarnings", [])
+        if not filterwarnings:
+            return
+        filterwarnings = [wrn for wrn in filterwarnings if not any(f"error::{err}" in wrn for err in errors)]
+        pyproject["tool"]["pytest"]["ini_options"]["filterwarnings"] = filterwarnings
+
+        with open(pyproject_toml, "w", encoding="utf-8") as fopen:
+            fopen.write(tomlkit.dumps(pyproject))
 
 
 if __name__ == "__main__":

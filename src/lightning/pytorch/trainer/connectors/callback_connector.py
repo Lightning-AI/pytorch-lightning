@@ -35,6 +35,7 @@ from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
+from lightning.pytorch.loggers.litlogger import LitLogger
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
@@ -47,6 +48,7 @@ _log = logging.getLogger(__name__)
 class _CallbackConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
+        self._pending_litmodels_tip = False
 
     def on_trainer_init(
         self,
@@ -106,11 +108,8 @@ class _CallbackConnector:
 
                 model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
             else:
-                rank_zero_info(
-                    "💡 Tip: For seamless cloud uploads and versioning,"
-                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
-                    " which syncs automatically with the Lightning model registry."
-                )
+                # Defer the litmodels tip until loggers are set up (in _attach_model_callbacks)
+                self._pending_litmodels_tip = True
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
 
@@ -170,6 +169,30 @@ class _CallbackConnector:
             callback.log = lightning_module.log
             callback.log_dict = lightning_module.log_dict
 
+    def _maybe_show_litmodels_tip(self) -> None:
+        """Show litmodels tip if not using LitLogger with log_model enabled.
+
+        This is called after loggers are set up, so we can reliably check for LitLogger.
+
+        """
+        if not self._pending_litmodels_tip:
+            return
+        self._pending_litmodels_tip = False  # Only show once
+
+        # Check if LitLogger is being used with log_model enabled
+        for logger in self.trainer.loggers:
+            if isinstance(logger, LitLogger) and logger._log_model:
+                # If LitLogger is being used with log_model enabled, don't show the tip
+                # because it will already take care of the uploading and versioning using litmodels
+                return
+
+        # if we get here, we are not using litmodels already and we aren't using litlogger with log_model enabled
+        rank_zero_info(
+            "💡 Tip: For seamless cloud uploads and versioning,"
+            " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+            " which syncs automatically with the Lightning model registry."
+        )
+
     def _attach_model_callbacks(self) -> None:
         """Attaches the callbacks defined in the model.
 
@@ -179,6 +202,9 @@ class _CallbackConnector:
         will be pushed to the end of the list, ensuring they run last.
 
         """
+        # Show litmodels tip now that loggers are guaranteed to be set up
+        self._maybe_show_litmodels_tip()
+
         trainer = self.trainer
 
         model_callbacks = call._call_lightning_module_hook(trainer, "configure_callbacks")
@@ -240,7 +266,7 @@ class _CallbackConnector:
 
 
 def _validate_callbacks_list(callbacks: list[Callback]) -> None:
-    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb)]
+    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb, parent=Callback)]
     seen_callbacks = set()
     for callback in stateful_callbacks:
         if callback.state_key in seen_callbacks:

@@ -25,8 +25,8 @@ jobs:
       matrix:
         pkg-name: ${{ fromJSON(inputs.pkg-names) }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
@@ -41,7 +41,7 @@ jobs:
           mkdir -p pypi/${{ matrix.pkg-name }}
           cp dist/* pypi/${{ matrix.pkg-name }}/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
           path: pypi
@@ -51,7 +51,7 @@ jobs:
     needs: build-packages
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with: # download all build artifacts
           pattern: ${{ inputs.artifact-name }}-*
           merge-multiple: true
@@ -62,7 +62,7 @@ jobs:
 
       - name: Keep artifact
         run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
