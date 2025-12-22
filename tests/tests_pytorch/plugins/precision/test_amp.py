@@ -44,15 +44,31 @@ def test_clip_gradients():
     precision.clip_grad_by_norm.assert_called_once()
 
 
-def test_optimizer_amp_scaling_support_in_step_method():
-    """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
-    gradient clipping (example: fused Adam)."""
+@pytest.mark.parametrize(
+    ("precision", "scaler", "should_error"),
+    [
+        ("16-mixed", Mock(), True),  # fp16 with scaler: fused optimizer + clip = error
+        ("bf16-mixed", None, False),  # bf16 no scaler: fused optimizer + clip = ok
+    ],
+)
+def test_optimizer_amp_scaling_support_in_step_method(precision, scaler, should_error):
+    """Test that gradient clipping with fused optimizers is only blocked when a scaler is present.
 
+    The `_step_supports_amp_scaling` flag indicates the optimizer handles unscaling internally (e.g., fused Adam).
+    This is incompatible with gradient clipping only when using a GradScaler (16-mixed), since we can't unscale
+    before clipping. With bf16-mixed there's no scaler, so gradient clipping works normally.
+
+    """
     optimizer = Mock(_step_supports_amp_scaling=True)
-    precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
+    plugin = MixedPrecision(precision=precision, device="cuda:0", scaler=scaler)
+    plugin.clip_grad_by_norm = Mock()
 
-    with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
-        precision.clip_gradients(optimizer, clip_val=1.0)
+    if should_error:
+        with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
+            plugin.clip_gradients(optimizer, clip_val=1.0)
+    else:
+        plugin.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM)
+        plugin.clip_grad_by_norm.assert_called_once()
 
 
 def test_amp_with_no_grad():
