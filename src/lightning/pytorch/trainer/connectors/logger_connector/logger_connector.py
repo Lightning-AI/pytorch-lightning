@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -82,6 +82,8 @@ class _LoggerConnector:
                 )
                 logger_ = CSVLogger(save_dir=self.trainer.default_root_dir)  # type: ignore[assignment]
             self.trainer.loggers = [logger_]
+        elif isinstance(logger, Mapping):
+            self.trainer.loggers = logger
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:
