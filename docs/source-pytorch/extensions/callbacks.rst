@@ -344,6 +344,12 @@ on_load_checkpoint
 .. automethod:: lightning.pytorch.callbacks.Callback.on_load_checkpoint
     :noindex:
 
+on_checkpoint_write_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: lightning.pytorch.callbacks.Callback.on_checkpoint_write_end
+    :noindex:
+
 on_before_backward
 ^^^^^^^^^^^^^^^^^^
 
