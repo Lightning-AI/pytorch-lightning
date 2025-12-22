@@ -1,4 +1,4 @@
-sphinx >5.0, <6.0
+sphinx >5.0, <10.0
 myst-parser >=0.18.1, <5.0.0
 nbsphinx >=0.8.5, <=0.9.8
 nbconvert >7.14, <7.17
