@@ -17,9 +17,11 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+import torch.nn as nn
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 import lightning.pytorch as pl
 import tests_pytorch.helpers.pipelines as tpipes
@@ -495,3 +497,71 @@ def test_ddp_gradients_synced(tmp_path, automatic_optimization, static_graph):
     gmin = trainer.callback_metrics["grad_sum_min"]
     gmax = trainer.callback_metrics["grad_sum_max"]
     assert torch.allclose(gmin, gmax)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+@pytest.mark.parametrize("disabled_auto_shuffle", [None, False, True])
+def test_custom_sampler_disable_auto_shuffle(tmp_path, disabled_auto_shuffle):
+    """Test that a custom sampler can opt out of Lightning's automatic shuffling in DDP."""
+    world_size = 2
+
+    class IntegerDataset(Dataset):
+        def __len__(self):
+            return 16
+
+        def __getitem__(self, idx):
+            return idx
+
+    class CustomInOrderSampler(Sampler):
+        def __init__(self, dataset):
+            self.dataset = dataset
+            if disabled_auto_shuffle is not None:
+                self.disable_auto_shuffle = disabled_auto_shuffle
+
+        def __iter__(self):
+            return iter(range(len(self.dataset)))
+
+        def __len__(self):
+            return len(self.dataset)
+
+    class RecordingModule(pl.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(1, 1)
+            self.seen_indices = []
+
+        def training_step(self, batch, batch_idx):
+            # batch is a tensor of indices
+            self.seen_indices.extend(batch.tolist())
+            return torch.tensor(0.0, requires_grad=True)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    dataset = IntegerDataset()
+    sampler = CustomInOrderSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size=2)
+
+    model = RecordingModule()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=world_size,
+        strategy="ddp",
+        max_steps=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model, train_dataloaders=dataloader)
+
+    seen = model.seen_indices
+
+    if disabled_auto_shuffle is True:
+        # In-order distributed sampling: indices differ by world size
+        diffs = [j - i for i, j in zip(seen[:-1], seen[1:])]
+        assert all(d == world_size for d in diffs)
+    else:
+        # Order is no longer guaranteed
+        diffs = [j - i for i, j in zip(seen[:-1], seen[1:])]
+        assert any(d != world_size for d in diffs)
