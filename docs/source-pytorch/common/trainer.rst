@@ -1176,6 +1176,27 @@ By setting to False, you have to add your own distributed sampler:
         dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
         return dataloader
 
+Custom samplers and automatic shuffling
+---------------------------------------
+
+When using a custom sampler, Lightning trainer will still apply automatic shuffling during training.
+If your sampler fully controls the iteration order (for example, to enforce a specific
+or deterministic ordering), you can opt out of this behavior by setting
+``disable_auto_shuffle = True`` on the sampler.
+
+.. code-block:: python
+
+    class InOrderSampler(torch.utils.data.Sampler):
+        def __init__(self, dataset):
+            self.dataset = dataset
+            self.disable_auto_shuffle = True
+
+        def __iter__(self):
+            yield from range(len(self.dataset))
+
+        def __len__(self):
+            return len(self.dataset)
+
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
