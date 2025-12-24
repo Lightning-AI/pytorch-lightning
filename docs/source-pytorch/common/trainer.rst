@@ -1184,6 +1184,8 @@ If your sampler fully controls the iteration order (for example, to enforce a sp
 or deterministic ordering), you can opt out of this behavior by setting
 ``disable_auto_shuffle = True`` on the sampler.
 
+This is particularly important when ``use_distributed_sampler=True`` (the default), as Lightning wraps custom samplers with ``DistributedSamplerWrapper`` and passes the ``shuffle`` parameter.
+
 .. code-block:: python
 
     class InOrderSampler(torch.utils.data.Sampler):

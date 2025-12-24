@@ -490,7 +490,8 @@ def _process_dataloader(
     else:
         # custom samplers may explicitly disable Lightning's automatic shuffling
         # to preserve their intended iteration order
-        disable_auto_shuffle = getattr(dataloader.sampler, "disable_auto_shuffle", False)
+        sampler = getattr(dataloader, "sampler", None)
+        disable_auto_shuffle = getattr(sampler, "disable_auto_shuffle", False)
         is_shuffled = not disable_auto_shuffle
 
     # automatically add samplers
