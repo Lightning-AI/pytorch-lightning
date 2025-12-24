@@ -1191,7 +1191,7 @@ This is particularly important when ``use_distributed_sampler=True`` (the defaul
     class InOrderSampler(torch.utils.data.Sampler):
         def __init__(self, dataset):
             self.dataset = dataset
-            self.disable_auto_shuffle = True
+            self.disable_auto_shuffle = True  # <-------- opt out of auto shuffle
 
         def __iter__(self):
             yield from range(len(self.dataset))
