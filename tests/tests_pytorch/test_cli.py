@@ -495,7 +495,7 @@ class BoringCkptPathModel(BoringModel):
         self.layer = torch.nn.Linear(32, out_dim)
 
 
-class AdaptHparamsModel(LightningModule):
+class AdaptHparamsModel(BoringModel):
     """Simple model for testing adapt_checkpoint_hparams hook without dynamic neural network layers.
 
     This model stores hyperparameters as attributes without creating layers that would cause size mismatches when
@@ -508,18 +508,6 @@ class AdaptHparamsModel(LightningModule):
         self.save_hyperparameters()
         self.out_dim = out_dim
         self.hidden_dim = hidden_dim
-        # Add a simple layer that doesn't depend on hyperparameters
-        self.layer = torch.nn.Linear(10, 2)
-
-    def forward(self, x):
-        return self.layer(x)
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        return torch.nn.functional.mse_loss(self(x), y)
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.1)
 
 
 def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
