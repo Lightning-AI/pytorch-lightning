@@ -589,12 +589,12 @@ def test_adapt_checkpoint_hparams_hook_pop_keys(cleandir):
             return checkpoint_hparams
 
     # First, create a checkpoint by running fit
-    cli_args = ["fit", "--model.out_dim=3", "--trainer.max_epochs=1"]
+    cli_args = ["fit", "--model.out_dim=3", "--model.hidden_dim=6", "--trainer.max_epochs=1"]
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = AdaptHparamsCLI(AdaptHparamsModel)
 
     assert cli.config.fit.model.out_dim == 3
-    assert cli.config.fit.model.hidden_dim == 3
+    assert cli.config.fit.model.hidden_dim == 6
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"))
 
