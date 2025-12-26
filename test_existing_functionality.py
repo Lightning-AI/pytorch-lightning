@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""
-Test to verify existing AdvancedProfiler functionality still works after the fix.
+"""Test to verify existing AdvancedProfiler functionality still works after the fix.
+
 Based on existing tests from the test suite.
+
 """
 
-import tempfile
-from pathlib import Path
-import time
+import os
 
 # Import our modified AdvancedProfiler
 import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+import tempfile
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from lightning.pytorch.profilers.advanced import AdvancedProfiler
 
@@ -24,7 +25,7 @@ def test_advanced_profiler_deepcopy():
         profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
         profiler.describe()
         try:
-            result = deepcopy(profiler)
+            deepcopy(profiler)
             print("✓ AdvancedProfiler deepcopy works")
             return True
         except Exception as e:
@@ -162,9 +163,9 @@ def main():
     if passed == total:
         print("✓ ALL TESTS PASSED - Fix is working correctly!")
         return 0
-    else:
-        print("✗ SOME TESTS FAILED")
-        return 1
+    print("✗ SOME TESTS FAILED")
+    return 1
+
 
 if __name__ == "__main__":
     exit(main())

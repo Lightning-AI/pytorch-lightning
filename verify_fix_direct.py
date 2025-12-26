@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""
-Direct verification of the exact fix applied to AdvancedProfiler.
+"""Direct verification of the exact fix applied to AdvancedProfiler.
+
 This tests the specific lines of code that were changed.
+
 """
+
 
 def test_original_code():
     """Test what the original code would do (should raise ValueError)."""
-    from collections import defaultdict
     import cProfile
     import logging
+    from collections import defaultdict
 
-    log = logging.getLogger(__name__)
+    logging.getLogger(__name__)
     profiled_actions = defaultdict(cProfile.Profile)
 
     # Original implementation
@@ -34,12 +36,13 @@ def test_original_code():
 
 def test_fixed_code():
     """Test what the fixed code does (should log debug and return)."""
-    from collections import defaultdict
     import cProfile
-    import logging
 
     # Set up logging to capture debug messages
     import io
+    import logging
+    from collections import defaultdict
+
     log_stream = io.StringIO()
     handler = logging.StreamHandler(log_stream)
     handler.setLevel(logging.DEBUG)
@@ -96,16 +99,15 @@ def test_behavior_comparison():
 def verify_actual_file_was_changed():
     """Verify that the actual source file contains our fix."""
     try:
-        with open("src/lightning/pytorch/profilers/advanced.py", "r") as f:
+        with open("src/lightning/pytorch/profilers/advanced.py") as f:
             content = f.read()
 
         # Check that our fix is present
         if 'log.debug(f"Attempting to stop recording an action ({action_name}) which was never started.")' in content:
             print("✓ Source file contains the debug logging fix")
             return True
-        else:
-            print("✗ Source file does not contain the expected fix")
-            return False
+        print("✗ Source file does not contain the expected fix")
+        return False
 
     except FileNotFoundError:
         print("✗ Could not find source file")
@@ -137,9 +139,8 @@ def main():
         print("✓ The AdvancedProfiler now handles missing actions gracefully")
         print("✓ No more ValueError crashes for users with multiple trainers")
         return 0
-    else:
-        print("\n✗ FAILURE: Fix verification failed")
-        return 1
+    print("\n✗ FAILURE: Fix verification failed")
+    return 1
 
 
 if __name__ == "__main__":

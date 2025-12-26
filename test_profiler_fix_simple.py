@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""
-Simple test of just the AdvancedProfiler class to verify the fix.
+"""Simple test of just the AdvancedProfiler class to verify the fix.
+
 This directly tests the modified class without full Lightning dependencies.
+
 """
 
 import cProfile
 import io
 import logging
-import os
 import pstats
-import tempfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional, Union
 
 log = logging.getLogger(__name__)
+
 
 class AdvancedProfiler:
     """Minimal version of AdvancedProfiler to test the fix."""
@@ -48,6 +48,7 @@ class AdvancedProfiler:
 
     def profile(self, action_name: str):
         """Context manager for profiling."""
+
         class ProfileContext:
             def __init__(self, profiler, action_name):
                 self.profiler = profiler
@@ -74,6 +75,7 @@ class AdvancedProfiler:
     def teardown(self, stage: Optional[str] = None) -> None:
         self.profiled_actions.clear()
 
+
 def test_stop_nonexistent_action():
     """Test that stopping a non-existent action doesn't raise ValueError."""
     print("=== Testing stop of nonexistent action ===")
@@ -93,6 +95,7 @@ def test_stop_nonexistent_action():
         print(f"✗ Unexpected error: {e}")
         return False
 
+
 def test_normal_profiling_still_works():
     """Test that normal profiling functionality still works."""
     print("\n=== Testing normal profiling still works ===")
@@ -102,20 +105,20 @@ def test_normal_profiling_still_works():
     try:
         # Normal profiling should still work
         with profiler.profile("test_action"):
-            x = sum(range(100))  # Some work
+            sum(range(100))  # Some work
 
         # Should be able to get summary
         summary = profiler.summary()
         if "test_action" in summary:
             print("✓ Normal profiling works correctly")
             return True
-        else:
-            print("✗ Normal profiling summary doesn't contain expected action")
-            return False
+        print("✗ Normal profiling summary doesn't contain expected action")
+        return False
 
     except Exception as e:
         print(f"✗ Normal profiling failed: {e}")
         return False
+
 
 def test_mixed_usage():
     """Test mixed usage of stop on nonexistent and normal profiling."""
@@ -129,7 +132,7 @@ def test_mixed_usage():
 
         # Normal profiling
         with profiler.profile("real_action"):
-            y = sum(range(50))
+            sum(range(50))
 
         # Stop another nonexistent action - should not error
         profiler.stop("nonexistent2")
@@ -139,13 +142,13 @@ def test_mixed_usage():
         if "real_action" in summary:
             print("✓ Mixed usage works correctly")
             return True
-        else:
-            print("✗ Mixed usage failed - real action not in summary")
-            return False
+        print("✗ Mixed usage failed - real action not in summary")
+        return False
 
     except Exception as e:
         print(f"✗ Mixed usage failed: {e}")
         return False
+
 
 def main():
     """Run all tests."""
@@ -170,9 +173,9 @@ def main():
         print("✓ ALL TESTS PASSED")
         print("✓ The fix successfully resolves the issue!")
         return 0
-    else:
-        print("✗ SOME TESTS FAILED")
-        return 1
+    print("✗ SOME TESTS FAILED")
+    return 1
+
 
 if __name__ == "__main__":
     exit(main())

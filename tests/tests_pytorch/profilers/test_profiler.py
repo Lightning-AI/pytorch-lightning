@@ -716,6 +716,7 @@ def test_advanced_profiler_multiple_trainers_test_only_one(tmp_path):
     This reproduces the bug reported in issue #9136 where having multiple trainers
     with AdvancedProfiler and only running test on one would cause:
     ValueError: Attempting to stop recording an action (run_test_evaluation) which was never started.
+
     """
     # Create a shared profiler instance
     profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
@@ -764,6 +765,7 @@ def test_advanced_profiler_reused_trainer_test(tmp_path):
 
     This tests another scenario that could trigger the bug: reusing the same trainer
     for multiple test calls with profiling.
+
     """
     profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
     model = BoringModel()
@@ -799,10 +801,11 @@ def test_advanced_profiler_stop_nonexistent_action_no_error(advanced_profiler, s
     This test verifies that the defensive fix works: attempting to stop
     a profiling action that was never started should not crash, but instead
     log a debug message and continue gracefully.
+
     """
     # This should not raise ValueError
     advanced_profiler.stop(f"run_{stage}_evaluation")
-    advanced_profiler.stop(f"some_nonexistent_action")
+    advanced_profiler.stop("some_nonexistent_action")
 
     # Verify the profiler is still functional
     with advanced_profiler.profile("test_action"):
