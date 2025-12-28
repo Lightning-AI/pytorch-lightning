@@ -561,8 +561,7 @@ class LightningCLI:
             self.config = parser.parse_args(args)
 
     def _parse_ckpt_path(self, parser, args) -> None:
-        """
-        Parses the checkpoint path, loads hyperparameters, and injects them as new defaults.
+        """Parses the checkpoint path, loads hyperparameters, and injects them as new defaults.
 
         If `ckpt_path` is provided, this method:
         1. Loads hyperparameters from the checkpoint file.
@@ -571,6 +570,7 @@ class LightningCLI:
 
         This ensures thre correct priority order:
         __init__ defaults < ckpt hparams < cfg file < CLI args
+
         """
         if not self.config.get("subcommand"):
             return

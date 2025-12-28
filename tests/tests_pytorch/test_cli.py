@@ -651,19 +651,20 @@ def test_cli_args_override_checkpoint_hparams(cleandir):
 
     # --- Phase 3: Assertions ---
     target_classes = 10
-    assert (
-        new_cli.model.num_classes == target_classes
-    ), f"Checkpoint restoration failed! Expected num_classes {target_classes}, got {new_cli.model.num_classes}"
-    assert (
-        new_cli.model.learning_rate == new_lr
-    ), f"CLI override failed! Expected LR {new_lr}, got {new_cli.model.learning_rate}"
+    assert new_cli.model.num_classes == target_classes, (
+        f"Checkpoint restoration failed! Expected num_classes {target_classes}, got {new_cli.model.num_classes}"
+    )
+    assert new_cli.model.learning_rate == new_lr, (
+        f"CLI override failed! Expected LR {new_lr}, got {new_cli.model.learning_rate}"
+    )
 
-    assert (
-        new_cli.model.dropout == orig_dropout
-    ), f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
-    assert (
-        new_cli.model.backbone_hidden_dim == new_hidden_dim
-    ), f"CLI override failed! Expected dim {new_hidden_dim}, got {new_cli.model.backbone_hidden_dim}"
+    assert new_cli.model.dropout == orig_dropout, (
+        f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
+    )
+    assert new_cli.model.backbone_hidden_dim == new_hidden_dim, (
+        f"CLI override failed! Expected dim {new_hidden_dim}, got {new_cli.model.backbone_hidden_dim}"
+    )
+
 
 def test_cli_config_priority_over_checkpoint_hparams(cleandir):
     """
@@ -722,18 +723,18 @@ def test_cli_config_priority_over_checkpoint_hparams(cleandir):
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         new_cli = LightningCLI(DemoModel)
 
-    assert (
-        new_cli.model.num_classes == cli_classes
-    ), f"CLI priority failed! Expected num_classes {cli_classes}, got {new_cli.model.num_classes}"
-    assert (
-        new_cli.model.learning_rate == cfg_lr
-    ), f"Config override failed! Expected LR {cfg_lr}, got {new_cli.model.learning_rate}"
-    assert (
-        new_cli.model.dropout == orig_dropout
-    ), f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
-    assert (
-        new_cli.model.backbone_hidden_dim == 128
-    ), f"Checkpoint restoration failed! Expected dim {128}, got {new_cli.model.backbone_hidden_dim}"
+    assert new_cli.model.num_classes == cli_classes, (
+        f"CLI priority failed! Expected num_classes {cli_classes}, got {new_cli.model.num_classes}"
+    )
+    assert new_cli.model.learning_rate == cfg_lr, (
+        f"Config override failed! Expected LR {cfg_lr}, got {new_cli.model.learning_rate}"
+    )
+    assert new_cli.model.dropout == orig_dropout, (
+        f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
+    )
+    assert new_cli.model.backbone_hidden_dim == 128, (
+        f"Checkpoint restoration failed! Expected dim {128}, got {new_cli.model.backbone_hidden_dim}"
+    )
 
 
 @pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
