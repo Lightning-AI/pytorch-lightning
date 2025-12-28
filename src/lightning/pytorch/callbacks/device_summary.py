@@ -59,8 +59,9 @@ class DeviceSummary(Callback):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Log device information at the start of any training stage.
 
-        The device summary is only logged once per Trainer instance, even if setup is called
-        multiple times (e.g., for fit then test).
+        The device summary is only logged once per Trainer instance, even if setup is called multiple times (e.g., for
+        fit then test).
+
         """
         if self._logged:
             return
