@@ -89,6 +89,7 @@ class ThroughputMonitor(Callback):
         self._lengths: dict[RunningStage, int] = {}
         self._samples: dict[RunningStage, int] = {}
         self._batches: dict[RunningStage, int] = {}
+        self._pl_has_attribute: bool | None = None
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
@@ -133,14 +134,15 @@ class ThroughputMonitor(Callback):
         if self.length_fn is not None:
             self._lengths[stage] += self.length_fn(batch)
 
-        if hasattr(pl_module, "flops_per_batch"):
-            flops_per_batch = pl_module.flops_per_batch
-        else:
-            rank_zero_warn(
-                "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
-                f" in {type(pl_module).__name__} to compute the FLOPs."
-            )
-            flops_per_batch = None
+        if self._pl_has_attribute is None:
+            self._pl_has_attribute = hasattr(pl_module, "flops_per_batch")
+            if not self._pl_has_attribute:
+                rank_zero_warn(
+                    "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
+                    f" in {type(pl_module).__name__} to compute the FLOPs."
+                )
+
+        flops_per_batch = pl_module.flops_per_batch if self._pl_has_attribute else None
 
         self._samples[stage] += self.batch_size_fn(batch)
         self._batches[stage] += 1
