@@ -588,6 +588,154 @@ def test_lightning_cli_submodules(cleandir):
     assert isinstance(cli.model.submodule2, BoringModel)
 
 
+class DemoModel(BoringModel):
+    def __init__(
+        self,
+        num_classes: int = 10,
+        learning_rate: float = 0.01,
+        dropout: float = 0.1,
+        backbone_hidden_dim: int = 128,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+        self.num_classes = num_classes
+        self.learning_rate = learning_rate
+        self.dropout = dropout
+        self.backbone_hidden_dim = backbone_hidden_dim
+
+
+def test_cli_args_override_checkpoint_hparams(cleandir):
+    """
+    Check priority: ckpt hparams < CLI Args
+
+    Scenario:
+    1. Save checkpoint with specific `dropout`, `backbone_hidden_dim`
+    2. Load checkpoint, but explicity override 'learning_rate` and `backbone_hidden_dim`
+    3. Verify that `num_classes` and `dropout` is restored from ckpt,
+        but `learning_rate` and `backbone_hidden_dim` is update from the CLI arg.
+    """
+
+    # --- Phase 1: Create a base checkpoint
+    orig_hidden_dim = 256
+    orig_dropout = 0.5
+
+    save_args = [
+        "fit",
+        f"--model.dropout={orig_dropout}",
+        f"--model.backbone_hidden_dim={orig_hidden_dim}",
+        "--trainer.devices=1",
+        "--trainer.max_steps=1",
+        "--trainer.limit_train_batches=1",
+        "--trainer.limit_val_batches=1",
+        "--trainer.default_root_dir=./",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + save_args):
+        cli = LightningCLI(DemoModel)
+
+    checkpoint_path = str(next(Path(cli.trainer.default_root_dir).rglob("*.ckpt")))
+
+    # --- Phase 2: Resume with CLI overrides ---
+    new_lr = 0.123
+    new_hidden_dim = 512
+    override_args = [
+        "predict",
+        "--trainer.devices=1",
+        f"--model.learning_rate={new_lr}",
+        f"--model.backbone_hidden_dim={new_hidden_dim}",
+        f"--ckpt_path={checkpoint_path}",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + override_args):
+        new_cli = LightningCLI(DemoModel)
+
+    # --- Phase 3: Assertions ---
+    target_classes = 10
+    assert (
+        new_cli.model.num_classes == target_classes
+    ), f"Checkpoint restoration failed! Expected num_classes {target_classes}, got {new_cli.model.num_classes}"
+    assert (
+        new_cli.model.learning_rate == new_lr
+    ), f"CLI override failed! Expected LR {new_lr}, got {new_cli.model.learning_rate}"
+
+    assert (
+        new_cli.model.dropout == orig_dropout
+    ), f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
+    assert (
+        new_cli.model.backbone_hidden_dim == new_hidden_dim
+    ), f"CLI override failed! Expected dim {new_hidden_dim}, got {new_cli.model.backbone_hidden_dim}"
+
+def test_cli_config_priority_over_checkpoint_hparams(cleandir):
+    """
+    Test the full priority hierarchy:
+        ckpt hparams < Config < CLI Args
+
+    Scenario:
+    1. Save checkpoint with specific `num_classes`, `learning_rate` and `dropout`
+    2. Load checkpoint, but explicity override:
+            num_classes by: config, cli
+            learning_rate: config
+    3. Verify that:
+        num_classes from: CLI Args
+        learning_rate:    Config
+        dropout:          dropout
+
+    """
+    orig_classes = 60_000
+    orig_lr = 1e-4
+    orig_dropout = 0.01
+    save_args = [
+        "fit",
+        f"--model.num_classes={orig_classes}",
+        f"--model.learning_rate={orig_lr}",
+        f"--model.dropout={orig_dropout}",
+        "--trainer.devices=1",
+        "--trainer.max_steps=1",
+        "--trainer.limit_train_batches=1",
+        "--trainer.limit_val_batches=1",
+        "--trainer.default_root_dir=./",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + save_args):
+        cli = LightningCLI(DemoModel)
+
+    cfg_lr = 2e-5
+    config = f"""
+    model:
+        num_classes: 1000
+        learning_rate: {cfg_lr}
+    """
+
+    config_path = Path("config.yaml")
+    config_path.write_text(config)
+
+    checkpoint_path = str(next(Path(cli.trainer.default_root_dir).rglob("*.ckpt")))
+
+    cli_classes = 1024
+    cli_args = [
+        "predict",
+        f"--config={config_path}",
+        f"--model.num_classes={cli_classes}",
+        "--trainer.devices=1",
+        f"--ckpt_path={checkpoint_path}",
+    ]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        new_cli = LightningCLI(DemoModel)
+
+    assert (
+        new_cli.model.num_classes == cli_classes
+    ), f"CLI priority failed! Expected num_classes {cli_classes}, got {new_cli.model.num_classes}"
+    assert (
+        new_cli.model.learning_rate == cfg_lr
+    ), f"Config override failed! Expected LR {cfg_lr}, got {new_cli.model.learning_rate}"
+    assert (
+        new_cli.model.dropout == orig_dropout
+    ), f"Checkpoint restoration failed! Expected dropout {orig_dropout}, got {new_cli.model.dropout}"
+    assert (
+        new_cli.model.backbone_hidden_dim == 128
+    ), f"Checkpoint restoration failed! Expected dim {128}, got {new_cli.model.backbone_hidden_dim}"
+
+
 @pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
 def test_lightning_cli_torch_modules(cleandir):
     class TestModule(BoringModel):

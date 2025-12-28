@@ -405,7 +405,7 @@ class LightningCLI:
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser, args)
-        self._parse_ckpt_path()
+        self._parse_ckpt_path(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -560,8 +560,18 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
-    def _parse_ckpt_path(self) -> None:
-        """If a checkpoint path is given, parse the hyperparameters from the checkpoint and update the config."""
+    def _parse_ckpt_path(self, parser, args) -> None:
+        """
+        Parses the checkpoint path, loads hyperparameters, and injects them as new defaults.
+
+        If `ckpt_path` is provided, this method:
+        1. Loads hyperparameters from the checkpoint file.
+        2. Sets them as new default values for the specific subcommand parser.
+        3. Re-runs argument parsing.
+
+        This ensures thre correct priority order:
+        __init__ defaults < ckpt hparams < cfg file < CLI args
+        """
         if not self.config.get("subcommand"):
             return
         ckpt_path = self.config[self.config.subcommand].get("ckpt_path")
@@ -576,12 +586,14 @@ class LightningCLI:
                     "class_path": hparams.pop("_class_path"),
                     "dict_kwargs": hparams,
                 }
-            hparams = {self.config.subcommand: {"model": hparams}}
+            hparams = {"model": hparams}
             try:
-                self.config = self.parser.parse_object(hparams, self.config)
+                subparser = parser._subcommands_action._name_parser_map[self.config.subcommand]
+                subparser.set_defaults(hparams)
             except SystemExit:
                 sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
                 raise
+            self.parse_arguments(parser, args)
 
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):
