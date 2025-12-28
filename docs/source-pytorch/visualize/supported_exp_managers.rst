@@ -1,3 +1,31 @@
+LitLogger
+=========
+To use `LitLogger <https://lightning.ai/docs/overview/experiment-management>`_ first install the litlogger package:
+
+.. code-block:: bash
+
+    pip install litlogger
+
+Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from lightning.pytorch.loggers import LitLogger
+
+    lit_logger = LitLogger(save_dir="logs/")
+    trainer = Trainer(logger=lit_logger)
+
+Access the litlogger logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            lit_logger = self.logger.experiment
+            lit_logger.log_file("generated_images.txt")
+
+Here's the full documentation for the :class:`~lightning.pytorch.loggers.LitLogger`.
+
 Comet.ml
 ========
 To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:

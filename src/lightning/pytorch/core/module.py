@@ -64,7 +64,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -1504,6 +1504,11 @@ class LightningModule(
         scripted you should override this method. In case you want to return multiple modules, we recommend using a
         dictionary.
 
+        .. deprecated::
+            ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
+            TorchScript is deprecated in PyTorch. Use ``torch.export.export()`` for model exporting instead.
+            See https://pytorch.org/docs/stable/export.html for more information.
+
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
@@ -1542,6 +1547,11 @@ class LightningModule(
             defined or not.
 
         """
+        rank_zero_deprecation(
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
+            "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
+            "See https://pytorch.org/docs/stable/export.html for more information."
+        )
         mode = self.training
 
         if method == "script":
