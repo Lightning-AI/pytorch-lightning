@@ -610,7 +610,7 @@ def test_cli_args_override_checkpoint_hparams(cleandir):
 
     Scenario:
     1. Save checkpoint with specific `dropout`, `backbone_hidden_dim`
-    2. Load checkpoint, but explicity override 'learning_rate` and `backbone_hidden_dim`
+    2. Load checkpoint, but explicitly override 'learning_rate` and `backbone_hidden_dim`
     3. Verify that `num_classes` and `dropout` is restored from ckpt,
         but `learning_rate` and `backbone_hidden_dim` is update from the CLI arg.
     """
@@ -673,7 +673,7 @@ def test_cli_config_priority_over_checkpoint_hparams(cleandir):
 
     Scenario:
     1. Save checkpoint with specific `num_classes`, `learning_rate` and `dropout`
-    2. Load checkpoint, but explicity override:
+    2. Load checkpoint, but explicitly override:
             num_classes by: config, cli
             learning_rate: config
     3. Verify that:

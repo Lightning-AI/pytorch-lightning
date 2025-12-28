@@ -568,7 +568,7 @@ class LightningCLI:
         2. Sets them as new default values for the specific subcommand parser.
         3. Re-runs argument parsing.
 
-        This ensures thre correct priority order:
+        This ensures the correct priority order:
         __init__ defaults < ckpt hparams < cfg file < CLI args
 
         """
