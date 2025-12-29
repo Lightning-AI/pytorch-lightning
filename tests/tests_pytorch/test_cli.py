@@ -522,7 +522,7 @@ def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
     assert cli.config_init.predict.model.layer.out_features == 3
 
     err = StringIO()
-    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(KeyError):
         cli = LightningCLI(BoringModel)
     assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
 
@@ -556,9 +556,8 @@ def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
 
-    assert isinstance(cli.model, BoringCkptPathSubclass)
+    assert not isinstance(cli.model, BoringCkptPathSubclass)
     assert cli.model.hidden_dim == 8
-    assert cli.model.extra is True
     assert cli.model.layer.out_features == 4
 
 

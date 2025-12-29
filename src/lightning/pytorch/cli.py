@@ -590,7 +590,7 @@ class LightningCLI:
             try:
                 subparser = parser._subcommands_action._name_parser_map[self.config.subcommand]
                 subparser.set_defaults(hparams)
-            except SystemExit:
+            except KeyError:
                 sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
                 raise
             self.parse_arguments(parser, args)
