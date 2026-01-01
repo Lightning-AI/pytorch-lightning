@@ -82,10 +82,8 @@ class _LoggerConnector:
                 )
                 logger_ = CSVLogger(save_dir=self.trainer.default_root_dir)  # type: ignore[assignment]
             self.trainer.loggers = [logger_]
-        elif isinstance(logger, Mapping):
+        elif isinstance(logger, (Mapping, Iterable)):
             self.trainer.loggers = logger
-        elif isinstance(logger, Iterable):
-            self.trainer.loggers = list(logger)
         else:
             self.trainer.loggers = [logger]
 
