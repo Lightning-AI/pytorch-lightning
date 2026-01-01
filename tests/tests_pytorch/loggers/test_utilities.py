@@ -15,7 +15,7 @@
 import pytest
 
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.loggers.utilities import _ListMap, _version
+from lightning.pytorch.loggers.utilities import Listmap, _version
 
 
 def test_version(tmp_path):
@@ -42,26 +42,26 @@ def test_version(tmp_path):
         [1, 2],
         {1, 2},
         range(2),
-        _ListMap({"a": 1, "b": 2}),
+        Listmap({"a": 1, "b": 2}),
     ],
 )
 def test_listmap_init(args):
     """Test initialization with different iterable types."""
-    lm = _ListMap(args)
+    lm = Listmap(args)
     assert len(lm) == len(args)
     assert isinstance(lm, list)
-    if isinstance(args, _ListMap):
+    if isinstance(args, Listmap):
         assert lm == args
 
 
 def test_listmap_init_wrong_type():
     with pytest.raises(TypeError):
-        _ListMap({1: 2, 3: 4})
+        Listmap({1: 2, 3: 4})
 
 
 def test_listmap_append():
     """Test appending loggers to the collection."""
-    lm = _ListMap()
+    lm = Listmap()
     lm.append(1)
     assert len(lm) == 1
     lm.append(2)
@@ -70,12 +70,12 @@ def test_listmap_append():
 
 def test_listmap_extend():
     # extent
-    lm = _ListMap([1, 2])
+    lm = Listmap([1, 2])
     lm.extend([1, 2, 3])
     assert len(lm) == 5
     assert lm == [1, 2, 1, 2, 3]
 
-    lm2 = _ListMap({"a": 1, "b": 2})
+    lm2 = Listmap({"a": 1, "b": 2})
     lm.extend(lm2)
     assert len(lm) == 7
     assert lm == [1, 2, 1, 2, 3, 1, 2]
@@ -84,7 +84,7 @@ def test_listmap_extend():
 
 
 def test_listmap_insert():
-    lm = _ListMap({"a": 1, "b": 2})
+    lm = Listmap({"a": 1, "b": 2})
     lm.insert(1, 3)
     assert len(lm) == 3
     assert lm == [1, 3, 2]
@@ -105,7 +105,7 @@ def test_listmap_insert():
 
 
 def test_listmap_pop():
-    lm = _ListMap([1, 2, 3, 4])
+    lm = Listmap([1, 2, 3, 4])
     item = lm.pop()
     assert item == 4
     assert len(lm) == 3
@@ -117,7 +117,7 @@ def test_listmap_pop():
 
 def test_listmap_getitem():
     """Test getting items from the collection."""
-    lm = _ListMap([1, 2])
+    lm = Listmap([1, 2])
     assert lm[0] == 1
     assert lm[1] == 2
     assert lm[-1] == 2
@@ -126,7 +126,7 @@ def test_listmap_getitem():
 
 def test_listmap_setitem():
     """Test setting items in the collection."""
-    lm = _ListMap([1, 2, 3])
+    lm = Listmap([1, 2, 3])
     lm[0] = 10
     assert lm == [10, 2, 3]
     lm[1:3] = [20, 30]
@@ -135,10 +135,10 @@ def test_listmap_setitem():
 
 def test_listmap_add():
     """Test adding two collections together."""
-    lm1 = _ListMap([1, 2])
-    lm2 = _ListMap({"3": 3, "5": 5})
+    lm1 = Listmap([1, 2])
+    lm2 = Listmap({"3": 3, "5": 5})
     combined = lm1 + lm2
-    assert isinstance(combined, _ListMap)
+    assert isinstance(combined, Listmap)
     assert len(combined) == 4
     assert combined is not lm1
     assert combined == [1, 2, 3, 5]
@@ -149,13 +149,13 @@ def test_listmap_add():
 
     lm1 += lm2
     assert ori_lm1_id == id(lm1)
-    assert isinstance(lm1, _ListMap)
+    assert isinstance(lm1, Listmap)
     assert len(lm1) == 4
     assert lm1 == [1, 2, 3, 5]
     assert lm1["3"] == 3
     assert lm1["5"] == 5
 
-    lm3 = _ListMap({"3": 3, "5": 5})
+    lm3 = Listmap({"3": 3, "5": 5})
     lm4 = lm2 + lm3
     assert len(lm4) == 4
     assert lm4 == [3, 5, 3, 5]
@@ -165,7 +165,7 @@ def test_listmap_add():
 
 def test_listmap_remove():
     """Test removing items from the collection."""
-    lm = _ListMap([1, 2, 3])
+    lm = Listmap([1, 2, 3])
     lm.remove(2)
     assert len(lm) == 2
     assert 2 not in lm
@@ -173,7 +173,7 @@ def test_listmap_remove():
 
 def test_listmap_reverse():
     """Test reversing the collection."""
-    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    lm = Listmap({"1": 1, "2": 2, "3": 3})
     lm.reverse()
     assert lm == [3, 2, 1]
     for (key, value), expected in zip(lm.items(), [("1", 1), ("2", 2), ("3", 3)]):
@@ -182,14 +182,14 @@ def test_listmap_reverse():
 
 def test_listmap_reversed():
     """Test reversed iterator of the collection."""
-    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    lm = Listmap({"1": 1, "2": 2, "3": 3})
     rev_lm = list(reversed(lm))
     assert rev_lm == [3, 2, 1]
 
 
 def test_listmap_clear():
     """Test clearing the collection."""
-    lm = _ListMap({"1": 1, "2": 2, "3": 3})
+    lm = Listmap({"1": 1, "2": 2, "3": 3})
     lm.clear()
     assert len(lm) == 0
     assert len(lm.keys()) == 0
@@ -197,7 +197,7 @@ def test_listmap_clear():
 
 def test_listmap_delitem():
     """Test deleting items from the collection."""
-    lm = _ListMap({"a": 1, "b": 2, "c": 3})
+    lm = Listmap({"a": 1, "b": 2, "c": 3})
     lm.extend([3, 4, 5])
     del lm["b"]
     assert len(lm) == 5
@@ -218,7 +218,7 @@ def test_listmap_delitem():
 
 # Dict type properties tests
 def test_listmap_keys():
-    lm = _ListMap({
+    lm = Listmap({
         "a": 1,
         "b": 2,
         "c": 3,
@@ -230,7 +230,7 @@ def test_listmap_keys():
 
 
 def test_listmap_values():
-    lm = _ListMap({
+    lm = Listmap({
         "a": 1,
         "b": 2,
         "c": 3,
@@ -240,7 +240,7 @@ def test_listmap_values():
 
 
 def test_listmap_dict_items():
-    lm = _ListMap({
+    lm = Listmap({
         "a": 1,
         "b": 2,
         "c": 3,
@@ -250,7 +250,7 @@ def test_listmap_dict_items():
 
 
 def test_listmap_dict_pop():
-    lm = _ListMap({
+    lm = Listmap({
         "a": 1,
         "b": 2,
         "c": 3,
@@ -269,7 +269,7 @@ def test_listmap_dict_pop():
 
 
 def test_listmap_dict_setitem():
-    lm = _ListMap({
+    lm = Listmap({
         "a": 1,
         "b": 2,
     })
@@ -281,7 +281,7 @@ def test_listmap_dict_setitem():
 
 
 def test_listmap_sort():
-    lm = _ListMap({"b": 1, "c": 3, "a": 2, "z": -7})
+    lm = Listmap({"b": 1, "c": 3, "a": 2, "z": -7})
 
     lm.extend([-1, -2, 5])
     lm.sort(key=lambda x: abs(x))
@@ -291,7 +291,7 @@ def test_listmap_sort():
     assert lm["c"] == 3
     assert lm["z"] == -7
 
-    lm = _ListMap({"b": 1, "c": 3, "a": 2, "z": -7})
+    lm = Listmap({"b": 1, "c": 3, "a": 2, "z": -7})
     lm.sort(reverse=True)
     assert lm == [3, 2, 1, -7]
     assert lm["a"] == 2
@@ -301,14 +301,14 @@ def test_listmap_sort():
 
 
 def test_listmap_get():
-    lm = _ListMap({"a": 1, "b": 2, "c": 3})
+    lm = Listmap({"a": 1, "b": 2, "c": 3})
     assert lm.get("b") == 2
     assert lm.get("d") is None
     assert lm.get("d", 10) == 10
 
 
 def test_listmap_setitem_append():
-    lm = _ListMap({"a": 1, "b": 2})
+    lm = Listmap({"a": 1, "b": 2})
     lm.append(3)
     lm["c"] = 3
 
@@ -326,7 +326,7 @@ def test_listmap_setitem_append():
 
 
 def test_listmap_repr():
-    lm = _ListMap({"a": 1, "b": 2})
+    lm = Listmap({"a": 1, "b": 2})
     lm.append(3)
     repr_str = repr(lm)
     assert repr_str == "_ListMap([1, 2, 3], keys=['a', 'b'])"
