@@ -1390,7 +1390,7 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def freeze(self) -> None:
+    def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
         Example::
@@ -1398,13 +1398,16 @@ class LightningModule(
             model = MyLightningModule(...)
             model.freeze()
 
+        Returns:
+            Self: The model with all parameters frozen.
+
         """
         for param in self.parameters():
             param.requires_grad = False
 
-        self.eval()
+        return self.eval()
 
-    def unfreeze(self) -> None:
+    def unfreeze(self) -> Self:
         """Unfreeze all parameters for training.
 
         .. code-block:: python
@@ -1412,11 +1415,14 @@ class LightningModule(
             model = MyLightningModule(...)
             model.unfreeze()
 
+        Returns:
+            Self: The model with all parameters unfrozen.
+
         """
         for param in self.parameters():
             param.requires_grad = True
 
-        self.train()
+        return self.train()
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
