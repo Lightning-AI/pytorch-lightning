@@ -68,7 +68,7 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init.reset_mock()
     WandbLogger(project="test_project").experiment
     wandb_mock.init.assert_called_once_with(
-        name=None, dir=None, id=None, project="test_project", resume="allow", anonymous=None
+        name=None, dir=".", id=None, project="test_project", resume="allow", anonymous=None
     )
 
     # test wandb.init set save_dir correctly after created
