@@ -27,6 +27,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
+from lightning.fabric.loggers.logger import _DummyExperiment
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_json_serializable,
@@ -36,7 +37,6 @@ from lightning.fabric.utilities.logger import (
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.loggers.logger import _DummyExperiment
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
