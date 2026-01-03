@@ -193,3 +193,26 @@ def litlogger_mock(monkeypatch):
 
     monkeypatch.setattr("lightning.pytorch.loggers.litlogger._LITLOGGER_AVAILABLE", True)
     return litlogger
+
+
+@pytest.fixture
+def trackio_mock(monkeypatch):
+    run_mock = Mock(
+        config={},
+        log_metric=Mock(),
+        log_artifact=Mock(),
+        log=Mock(),
+        finish=Mock(),
+    )
+
+    trackio = ModuleType("trackio")
+    trackio.init = Mock(return_value=run_mock)
+
+    trackio_run = ModuleType("trackio.run")
+    trackio_run.Run = Mock(return_value=run_mock)
+
+    trackio.Run = Mock(return_value=run_mock)
+    monkeypatch.setitem(sys.modules, "trackio.run", trackio_run)
+    monkeypatch.setitem(sys.modules, "trackio", trackio)
+    monkeypatch.setattr("lightning.pytorch.loggers.trackio._TRACKIO_AVAILABLE", True)
+    return trackio

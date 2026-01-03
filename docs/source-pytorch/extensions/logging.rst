@@ -34,6 +34,7 @@ The following are loggers we support:
     NeptuneLogger
     TensorBoardLogger
     WandbLogger
+    TrackioLogger
 
 The above loggers will normally plot an additional chart (**global_step VS epoch**). Depending on the loggers you use, there might be some additional charts too.
 
@@ -69,7 +70,7 @@ You can also pass a custom Logger to the :class:`~lightning.pytorch.trainer.trai
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     trainer = Trainer(logger=tb_logger)
 
-Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
+Choose from any of the others such as MLflow, Comet, Neptune, WandB, Trackio, etc.
 
 .. code-block:: python
 
