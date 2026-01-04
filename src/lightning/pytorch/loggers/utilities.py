@@ -111,7 +111,7 @@ _T = TypeVar("_T")
 _PT = TypeVar("_PT")
 
 
-class Listmap(list[_T]):
+class _ListMap(list[_T]):
     """A hybrid container allowing both index and name access.
 
     This class extends the built-in list to provide dictionary-like access to its elements
@@ -126,7 +126,7 @@ class Listmap(list[_T]):
         TypeError: If a Mapping is provided and any of its keys are not of type str.
 
     Example:
-        >>> listmap = Listmap({'obj1': 1, 'obj2': 2})
+        >>> listmap = _ListMap({'obj1': 1, 'obj2': 2})
         >>> listmap['obj1']  # Access by name
         1
         >>> listmap[0]  # Access by index
@@ -151,7 +151,7 @@ class Listmap(list[_T]):
             _dict = dict(zip(__iterable.keys(), range(len(__iterable))))
         else:
             default_dict: dict[str, int] = {}
-            if isinstance(__iterable, Listmap):
+            if isinstance(__iterable, _ListMap):
                 default_dict = __iterable._dict.copy()
             super().__init__(() if __iterable is None else __iterable)
             _dict = default_dict
@@ -159,17 +159,17 @@ class Listmap(list[_T]):
 
     def __eq__(self, other: Any) -> bool:
         list_eq = super().__eq__(other)
-        if isinstance(other, Listmap):
+        if isinstance(other, _ListMap):
             return list_eq and self._dict == other._dict
         return list_eq
 
-    def copy(self) -> "Listmap":
-        new_listmap = Listmap(self)
+    def copy(self) -> "_ListMap":
+        new_listmap = _ListMap(self)
         new_listmap._dict = self._dict.copy()
         return new_listmap
 
     def extend(self, __iterable: Iterable[_T]) -> None:
-        if isinstance(__iterable, Listmap):
+        if isinstance(__iterable, _ListMap):
             offset = len(self)
             for key, idx in __iterable._dict.items():
                 self._dict[key] = idx + offset
@@ -253,13 +253,13 @@ class Listmap(list[_T]):
             return self[self._dict[key]]
         return super().__getitem__(key)
 
-    def __add__(self, other: Union[list[_T], "Listmap[_T]"]) -> "Listmap[_T]":  # type: ignore[override]
+    def __add__(self, other: Union[list[_T], "_ListMap[_T]"]) -> "_ListMap[_T]":  # type: ignore[override]
         new_listmap = self.copy()
         new_listmap += other
         return new_listmap
 
     def __iadd__(self, other: Iterable[_T]) -> Self:  # type: ignore[override]
-        if isinstance(other, Listmap):
+        if isinstance(other, _ListMap):
             offset = len(self)
             for key, idx in other._dict.items():
                 # notes: if there are duplicate keys, the ones from other will overwrite self
@@ -334,7 +334,7 @@ class Listmap(list[_T]):
 
     def __repr__(self) -> str:
         ret = super().__repr__()
-        return f"_ListMap({ret}, keys={list(self._dict.keys())})"
+        return f"{type(self).__name__}({ret}, keys={list(self._dict.keys())})"
 
     def reverse(self) -> None:
         for key, idx in self._dict.items():

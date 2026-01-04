@@ -43,7 +43,7 @@ from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.loggers.utilities import Listmap, _log_hyperparams
+from lightning.pytorch.loggers.utilities import _ListMap, _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
@@ -96,7 +96,7 @@ class Trainer:
         devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
-        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        logger: Optional[Union[Logger, Iterable[Logger], dict[str, Logger], bool]] = None,
         callbacks: Optional[Union[list[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
@@ -494,7 +494,7 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: Listmap[Logger]
+        self._loggers: _ListMap[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
@@ -1682,7 +1682,7 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> Listmap[Logger]:
+    def loggers(self) -> _ListMap[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1694,8 +1694,8 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger], Listmap[Logger]]]) -> None:
-        self._loggers = Listmap(loggers)
+    def loggers(self, loggers: Optional[Union[list[Logger], Mapping[str, Logger], _ListMap[Logger]]]) -> None:
+        self._loggers = _ListMap(loggers)
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
