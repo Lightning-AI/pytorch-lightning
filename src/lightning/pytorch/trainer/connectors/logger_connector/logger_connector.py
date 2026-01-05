@@ -46,7 +46,7 @@ class _LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: Union[bool, Logger, Iterable[Logger]],
+        logger: Union[bool, Logger, Iterable[Logger], dict[str, Logger]],
         log_every_n_steps: int,
     ) -> None:
         self.configure_logger(logger)
