@@ -1110,7 +1110,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state, strict):
+    def mocked_load_checkpoint(path, state, strict, **kwargs):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})
@@ -1347,3 +1347,18 @@ def test_callback_kwargs_filtering_signature_inspection_failure():
         callback.on_test_hook.assert_called_with(arg1="value1", arg2="value2")
     finally:
         lightning.fabric.fabric.inspect.signature = original_signature
+
+def test_fabric_load_accepts_weights_only_false(tmp_path):
+    import torch
+    from lightning.fabric import Fabric
+
+    fabric = Fabric(accelerator="cpu")
+
+    ckpt = {"foo": 123}
+    path = tmp_path / "ckpt.pt"
+    torch.save(ckpt, path)
+
+    remainder = fabric.load(path, weights_only=False)
+
+    assert remainder["foo"] == 123
+

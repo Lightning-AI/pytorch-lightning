@@ -871,45 +871,29 @@ class Fabric:
         path: Union[str, Path],
         state: Optional[dict[str, Union[nn.Module, Optimizer, Any]]] = None,
         strict: bool = True,
+        *,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
-
         How and which processes load gets determined by the `strategy`.
         This method must be called on all processes!
-
-        Args:
-            path: A path to where the file is located.
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
-            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
-
-        Returns:
-            The remaining items that were not restored into the given state dictionary. If no state dictionary is
-            given, the full checkpoint will be returned.
-
-        Example::
-
-            # Load full checkpoint
-            checkpoint = fabric.load("checkpoint.pth")
-
-            # Load into existing objects
-            state = {"model": model, "optimizer": optimizer}
-            remainder = fabric.load("checkpoint.pth", state)
-            epoch = remainder.get("epoch", 0)
-
         """
         unwrapped_state = _unwrap_objects(state)
-        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state, strict=strict)
+        remainder = self._strategy.load_checkpoint(
+            path=path,
+            state=unwrapped_state,
+            strict=strict,
+            weights_only=weights_only,
+        )
         self.barrier()
         if state is not None:
-            # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
-            # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
                 obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
+
 
     def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
