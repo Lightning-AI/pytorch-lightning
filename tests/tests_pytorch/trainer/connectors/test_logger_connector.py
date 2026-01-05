@@ -4,8 +4,7 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.loggers import Logger
-from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
-from lightning.pytorch.trainer.connectors.logger_connector.logger_connector import _ListMap
+from lightning.pytorch.trainer.connectors.logger_connector import _ListMap, _LoggerConnector
 
 
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")

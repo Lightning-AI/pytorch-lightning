@@ -58,8 +58,8 @@ from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
+from lightning.pytorch.trainer.connectors.logger_connector import _ListMap
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from lightning.pytorch.trainer.connectors.logger_connector.logger_connector import _ListMap
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException

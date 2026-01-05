@@ -62,7 +62,7 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import (
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
 from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector.logger_connector import _ListMap, _LoggerConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _ListMap, _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
