@@ -874,9 +874,11 @@ class Fabric:
         *,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
-        How and which processes load gets determined by the `strategy`.
+        """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.) How and which
+        processes load gets determined by the `strategy`.
+
         This method must be called on all processes!
+
         """
         unwrapped_state = _unwrap_objects(state)
         remainder = self._strategy.load_checkpoint(
@@ -893,7 +895,6 @@ class Fabric:
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
-
 
     def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
