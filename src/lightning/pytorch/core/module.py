@@ -1399,7 +1399,7 @@ class LightningModule(
             model.freeze()
 
         Returns:
-            Self: The model with all parameters frozen.
+            :class:`LightningModule` with all parameters frozen.
 
         """
         for param in self.parameters():
@@ -1416,7 +1416,7 @@ class LightningModule(
             model.unfreeze()
 
         Returns:
-            Self: The model with all parameters unfrozen.
+            :class:`LightningModule` self with all parameters unfrozen.
 
         """
         for param in self.parameters():
