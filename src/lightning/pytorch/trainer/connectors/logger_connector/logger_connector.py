@@ -69,7 +69,7 @@ class _LoggerConnector:
         should_log = step % trainer.log_every_n_steps == 0
         return should_log or trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
+    def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger], dict[str, Logger]]) -> None:
         if not logger:
             # logger is None or logger is False
             self.trainer.loggers = []
