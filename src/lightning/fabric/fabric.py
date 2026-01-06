@@ -874,9 +874,33 @@ class Fabric:
         *,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
+        """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.).
+
         How and which processes load gets determined by the `strategy`.
         This method must be called on all processes!
+
+        Args:
+            path: A path to where the file is located.
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint. If ``None``,
+                the full checkpoint will be loaded and returned.
+            strict: Whether to enforce that the keys in ``state`` match the keys in the checkpoint.
+            weights_only: If ``True``, only model weights will be loaded. This is useful for loading checkpoints
+                that do not include optimizers, schedulers, or other non-tensor objects.
+                If ``None``, the default behavior of the underlying strategy is used.
+
+        Returns:
+            The remaining items that were not restored into the given ``state`` dictionary. If ``state`` is ``None``,
+            the full checkpoint is returned.
+
+        Example::
+
+            # Load full checkpoint
+            checkpoint = fabric.load("checkpoint.pth")
+
+            # Load into existing objects
+            state = {"model": model, "optimizer": optimizer}
+            remainder = fabric.load("checkpoint.pth", state)
+
         """
         unwrapped_state = _unwrap_objects(state)
         remainder = self._strategy.load_checkpoint(
