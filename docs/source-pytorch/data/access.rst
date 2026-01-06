@@ -85,4 +85,3 @@ Or directly from your LightningModule:
                 self.trainer.reload_dataloaders()
 
 The reload happens at the start of the next epoch, ensuring training state consistency.
-
