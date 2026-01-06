@@ -41,3 +41,48 @@ If you are using a :class:`~lightning.pytorch.utilities.CombinedLoader`. A flatt
         updated.append(new_dl)
     # it also allows you to easily replace the dataloaders
     combined_loader.flattened = updated
+
+
+Reloading DataLoaders During Training
+-------------------------------------
+
+Lightning provides two mechanisms for reloading dataloaders during training:
+
+**Automatic reload with** ``reload_dataloaders_every_n_epochs``
+
+Set ``reload_dataloaders_every_n_epochs`` in the Trainer to automatically reload dataloaders at regular intervals:
+
+.. code-block:: python
+
+    trainer = Trainer(reload_dataloaders_every_n_epochs=5)
+
+This is useful when your dataset changes periodically, such as in online learning scenarios.
+
+**Manual reload with** ``trainer.reload_dataloaders()``
+
+For dynamic scenarios like curriculum learning or adaptive training strategies, use
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.reload_dataloaders` to trigger a reload
+based on training metrics or other conditions:
+
+.. code-block:: python
+
+    class CurriculumCallback(Callback):
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.callback_metrics.get("train_loss", 1.0) < 0.5:
+                # Update datamodule parameters
+                trainer.datamodule.difficulty_level += 1
+                # Trigger reload for next epoch
+                trainer.reload_dataloaders(train=True, val=True)
+
+Or directly from your LightningModule:
+
+.. code-block:: python
+
+    class MyModel(LightningModule):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
+            if self.trainer.callback_metrics.get("train_loss", 1.0) < 0.5:
+                self.trainer.datamodule.sequence_length += 10
+                self.trainer.reload_dataloaders()
+
+The reload happens at the start of the next epoch, ensuring training state consistency.
+
