@@ -899,7 +899,7 @@ class Fabric:
 
             # Load into existing objects
             state = {"model": model, "optimizer": optimizer}
-            remainder = fabric.load("checkpoint.pth", state)
+            remainder = fabric.load("checkpoint.pth", state) 
 
         """
         unwrapped_state = _unwrap_objects(state)
@@ -911,6 +911,8 @@ class Fabric:
         )
         self.barrier()
         if state is not None:
+            # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
+            # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
                 obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
