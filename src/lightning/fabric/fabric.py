@@ -899,7 +899,7 @@ class Fabric:
 
             # Load into existing objects
             state = {"model": model, "optimizer": optimizer}
-            remainder = fabric.load("checkpoint.pth", state) 
+            remainder = fabric.load("checkpoint.pth", state)
 
         """
         unwrapped_state = _unwrap_objects(state)
@@ -919,7 +919,6 @@ class Fabric:
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
-
 
     def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
