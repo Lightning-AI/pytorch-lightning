@@ -1348,8 +1348,10 @@ def test_callback_kwargs_filtering_signature_inspection_failure():
     finally:
         lightning.fabric.fabric.inspect.signature = original_signature
 
+
 def test_fabric_load_accepts_weights_only_false(tmp_path):
     import torch
+
     from lightning.fabric import Fabric
 
     fabric = Fabric(accelerator="cpu")
@@ -1361,4 +1363,3 @@ def test_fabric_load_accepts_weights_only_false(tmp_path):
     remainder = fabric.load(path, weights_only=False)
 
     assert remainder["foo"] == 123
-
