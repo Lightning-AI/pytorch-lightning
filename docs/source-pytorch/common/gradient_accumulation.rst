@@ -45,9 +45,9 @@ When using :class:`~torch.nn.CrossEntropyLoss` with gradient accumulation, ensur
 
 Lightning will automatically normalize the accumulated loss based on the total number of valid targets across all micro-batches in the accumulation window.
 
-.. testcode::  python
+.. testcode::
 
-    class MyLightningModule(L.LightningModule):
+    class MyLightningModule(LightningModule):
         def training_step(self, batch, batch_idx):
             # batch is a dict with "labels" key from dataloader
             x = batch["input_ids"]
@@ -65,8 +65,9 @@ Lightning will automatically normalize the accumulated loss based on the total n
         labels = torch.stack([item["label"] for item in batch])
         return {"input_ids": input_ids, "labels": labels}
 
+    dataset = Dataset(...)
     dataloader = DataLoader(dataset, collate_fn=collate_fn)
-    trainer = L.Trainer(accumulate_grad_batches=4)
+    trainer = Trainer(accumulate_grad_batches=4)
 
 ..  warning::
 
