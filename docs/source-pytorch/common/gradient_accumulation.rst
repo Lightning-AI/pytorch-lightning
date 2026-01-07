@@ -65,7 +65,7 @@ Lightning will automatically normalize the accumulated loss based on the total n
         labels = torch.stack([item["label"] for item in batch])
         return {"input_ids": input_ids, "labels": labels}
 
-    dataset = Dataset(...)
+    dataset = Dataset()
     dataloader = DataLoader(dataset, collate_fn=collate_fn)
     trainer = Trainer(accumulate_grad_batches=4)
 
