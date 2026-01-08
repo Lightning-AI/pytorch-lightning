@@ -21,11 +21,14 @@ from copy import deepcopy
 from typing import Any, Optional, Union
 
 import torch
+from torch import Tensor, nn
+from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.optim.swa_utils import AveragedModel, get_ema_avg_fn
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.strategies.fsdp import FSDPStrategy
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -56,10 +59,11 @@ class WeightAveraging(Callback):
     provided by Lightning.
 
     Note:
-        To ensure that the :class:`AveragedModel` will contain all layers, ``setup()`` will call
-        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` before instantiating the
-        :class:`AveragedModel`. However, that hook is not called in a strategy aware context, sharded models do not work
-        with weight averaging, and a warning will be issued.
+        Sharded models are challenging for weight averaging. To ensure that the :class:`AveragedModel` will contain all
+        parameters, ``setup()`` will call :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` before
+        instantiating the :class:`AveragedModel`. However, that hook is not called in a strategy aware context, meaning
+        that the full model is initialized in CPU memory. Furthermore, every time the averaged model is updated, the
+        full parameters are summoned in GPU memory.
 
     Example::
 
@@ -149,8 +153,9 @@ class WeightAveraging(Callback):
             # AveragedModel. However, sharding will not be done and a warning will be issued.
             if is_overridden("configure_model", pl_module):
                 rank_zero_warn(
-                    "You're using the WeightAveraging callback with a model that overrides the configure_model "
-                    "callback. WeightAveraging doesn't support sharding model layers, so you may run out of memory."
+                    "You're using the WeightAveraging callback with a model that overrides the configure_model() hook. "
+                    "WeightAveraging will construct the model and the average model in CPU memory, so you may run out "
+                    "of memory during initialization."
                 )
                 pl_module.configure_model()
 
@@ -178,8 +183,7 @@ class WeightAveraging(Callback):
         # make step_idx consistent with epoch_idx, we'll pass a zero-based index.
         step_idx = trainer.global_step - 1
         if (trainer.global_step > self._latest_update_step) and self.should_update(step_idx=step_idx):
-            assert self._average_model is not None
-            self._average_model.update_parameters(pl_module)
+            self._update_average_model(trainer, pl_module)
             self._latest_update_step = trainer.global_step
 
     @override
@@ -194,8 +198,7 @@ class WeightAveraging(Callback):
 
         """
         if (trainer.current_epoch > self._latest_update_epoch) and self.should_update(epoch_idx=trainer.current_epoch):
-            assert self._average_model is not None
-            self._average_model.update_parameters(pl_module)
+            self._update_average_model(trainer, pl_module)
             self._latest_update_epoch = trainer.current_epoch
 
     @override
@@ -210,7 +213,7 @@ class WeightAveraging(Callback):
 
         """
         assert self._average_model is not None
-        self._copy_average_to_current(pl_module)
+        self._copy_average_to_current(trainer, pl_module)
 
     @override
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -224,7 +227,7 @@ class WeightAveraging(Callback):
 
         """
         if self._average_model is not None:
-            self._swap_models(pl_module)
+            self._swap_models(trainer, pl_module)
 
     @override
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -238,7 +241,7 @@ class WeightAveraging(Callback):
 
         """
         if self._average_model is not None:
-            self._swap_models(pl_module)
+            self._swap_models(trainer, pl_module)
 
     @override
     def state_dict(self) -> dict[str, Any]:
@@ -334,7 +337,23 @@ class WeightAveraging(Callback):
             )
             self._average_model.module.load_state_dict(deepcopy(checkpoint["state_dict"]), strict=False)
 
-    def _swap_models(self, pl_module: "pl.LightningModule") -> None:
+    def _update_average_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Updates the :class:`AveragedModel` parameters.
+
+        Args:
+            trainer: The current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
+            pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
+
+        """
+        assert self._average_model is not None
+        if isinstance(trainer.strategy, FSDPStrategy):
+            assert isinstance(trainer.strategy.model, nn.Module)
+            with FullyShardedDataParallel.summon_full_params(trainer.strategy.model):
+                self._average_model.update_parameters(trainer.strategy.model)
+        else:
+            self._average_model.update_parameters(pl_module)
+
+    def _swap_models(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.
 
         Args:
@@ -343,13 +362,25 @@ class WeightAveraging(Callback):
         """
         assert self._average_model is not None
         average_params = itertools.chain(self._average_model.module.parameters(), self._average_model.module.buffers())
-        current_params = itertools.chain(pl_module.parameters(), pl_module.buffers())
-        for average_param, current_param in zip(average_params, current_params):
-            tmp = average_param.data.clone()
-            average_param.data.copy_(current_param.data)
-            current_param.data.copy_(tmp)
 
-    def _copy_average_to_current(self, pl_module: "pl.LightningModule") -> None:
+        def _swap_param(a: nn.Parameter | Tensor, b: nn.Parameter | Tensor) -> None:
+            tmp = a.data.clone()
+            a.data.copy_(b.data)
+            b.data.copy_(tmp)
+
+        def _swap(model: nn.Module) -> None:
+            current_params = itertools.chain(model.parameters(), model.buffers())
+            for average_param, current_param in zip(average_params, current_params):
+                _swap_param(average_param, current_param)
+
+        if isinstance(trainer.strategy, FSDPStrategy):
+            assert isinstance(trainer.strategy.model, nn.Module)
+            with FullyShardedDataParallel.summon_full_params(trainer.strategy.model):
+                _swap(trainer.strategy.model)
+        else:
+            _swap(pl_module)
+
+    def _copy_average_to_current(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Copies the parameter values from the :class:`AveragedModel` to the current model.
 
         Args:
@@ -358,9 +389,18 @@ class WeightAveraging(Callback):
         """
         assert self._average_model is not None
         average_params = itertools.chain(self._average_model.module.parameters(), self._average_model.module.buffers())
-        current_params = itertools.chain(pl_module.parameters(), pl_module.buffers())
-        for average_param, current_param in zip(average_params, current_params):
-            current_param.data.copy_(average_param.data)
+
+        def _copy(model: nn.Module) -> None:
+            current_params = itertools.chain(model.parameters(), model.buffers())
+            for average_param, current_param in zip(average_params, current_params):
+                current_param.data.copy_(average_param.data)
+
+        if isinstance(trainer.strategy, FSDPStrategy):
+            assert isinstance(trainer.strategy.model, nn.Module)
+            with FullyShardedDataParallel.summon_full_params(trainer.strategy.model):
+                _copy(trainer.strategy.model)
+        else:
+            _copy(pl_module)
 
 
 class EMAWeightAveraging(WeightAveraging):
