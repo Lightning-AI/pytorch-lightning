@@ -1,6 +1,6 @@
 setuptools <80.9.1
 wheel <0.46.0
-awscli >=1.30.0, <1.44.0
+awscli >=1.30.0, <1.45.0
 twine ==6.2.0
 importlib-metadata <9.0.0
 wget
