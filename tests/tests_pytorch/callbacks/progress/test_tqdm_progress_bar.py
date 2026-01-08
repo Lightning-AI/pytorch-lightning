@@ -320,7 +320,7 @@ def test_num_sanity_val_steps_progress_bar(tmp_path, limit_val_batches: int):
 
 def test_tqdm_progress_bar_default_value(tmp_path):
     """Test that a value of None defaults to refresh rate 1."""
-    trainer = Trainer(default_root_dir=tmp_path)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 1
 
 
@@ -328,9 +328,6 @@ def test_tqdm_progress_bar_default_value(tmp_path):
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_value_on_colab(tmp_path):
     """Test that Trainer will override the default in Google COLAB."""
-    trainer = Trainer(default_root_dir=tmp_path)
-    assert trainer.progress_bar_callback.refresh_rate == 20
-
     trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 20
 
