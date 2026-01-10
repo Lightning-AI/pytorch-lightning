@@ -462,7 +462,7 @@ There are two ways to call ``predict()``:
 Inference in Research
 =====================
 
-If you want to perform inference with the system, you can add a ``forward`` method to the LightningModule.
+If you want to perform inference with the system, you must implement the ``forward`` method in the LightningModule.
 
 .. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
 
