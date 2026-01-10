@@ -80,8 +80,8 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         # Pointer to the trainer object
         self.trainer: Optional[pl.Trainer] = None
 
