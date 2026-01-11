@@ -1044,9 +1044,11 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
 
 
 def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(cleandir):
-    with mock.patch("sys.argv", ["any.py", "--trainer.max_epochs=1", "--model=TestModelSaveHparams"]):
+    with mock.patch(
+        "sys.argv", ["any.py", "--trainer.max_epochs=1", "--model=TestModelSaveHparams", "--data=TestDataSaveHparams"]
+    ):
         cli = LightningCLI(TestModelSaveHparams, run=False, auto_configure_optimizers=False, subclass_mode_model=True)
-    cli.trainer.fit(cli.model)
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
     expected_keys = ["_class_path", "_instantiator", "activation", "optimizer", "scheduler"]
     expected_instantiator = "lightning.pytorch.cli.instantiate_module"
@@ -1057,7 +1059,9 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
     assert checkpoint_path.is_file()
-    hparams = torch.load(checkpoint_path, weights_only=True)["hyper_parameters"]
+    loaded_checkpoint = torch.load(checkpoint_path, weights_only=True)
+    hparams = loaded_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    dm_hparams = loaded_checkpoint[LightningDataModule.CHECKPOINT_HYPER_PARAMS_KEY]
 
     assert sorted(hparams.keys()) == expected_keys
     assert hparams["_instantiator"] == expected_instantiator
@@ -1074,35 +1078,22 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
     assert isinstance(optimizer, torch.optim.Adam)
     assert isinstance(lr_scheduler, torch.optim.lr_scheduler.ConstantLR)
 
+    dm_expected_keys = ["_class_path", "_instantiator", "batch_size", "num_workers"]
+    dm_expected_instantiator = "lightning.pytorch.cli.instantiate_module"
+    dm_expected_class_path = f"{__name__}.TestDataSaveHparams"
+    dm_expected_batch_size = 32
+    dm_expected_num_workers = 4
 
-def test_lightning_cli_load_from_checkpoint_for_datamodule(cleandir):
-    with mock.patch(
-        "sys.argv", ["any.py", "--trainer.max_epochs=1", "--model=TestModelSaveHparams", "--data=TestDataSaveHparams"]
-    ):
-        cli = LightningCLI(run=False, auto_configure_optimizers=False)
-    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-
-    expected_keys = ["_class_path", "_instantiator", "batch_size", "num_workers"]
-    expected_instantiator = "lightning.pytorch.cli.instantiate_module"
-    expected_class_path = f"{__name__}.TestDataSaveHparams"
-    expected_batch_size = 32
-    expected_num_workers = 4
-
-    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
-    assert checkpoint_path.is_file()
-    loaded_checkpoint = torch.load(checkpoint_path, weights_only=True)
-    dm_hparams = loaded_checkpoint[LightningDataModule.CHECKPOINT_HYPER_PARAMS_KEY]
-
-    assert sorted(dm_hparams.keys()) == expected_keys
-    assert dm_hparams["_instantiator"] == expected_instantiator
-    assert dm_hparams["_class_path"] == expected_class_path
-    assert dm_hparams["batch_size"] == expected_batch_size
-    assert dm_hparams["num_workers"] == expected_num_workers
+    assert sorted(dm_hparams.keys()) == dm_expected_keys
+    assert dm_hparams["_instantiator"] == dm_expected_instantiator
+    assert dm_hparams["_class_path"] == dm_expected_class_path
+    assert dm_hparams["batch_size"] == dm_expected_batch_size
+    assert dm_hparams["num_workers"] == dm_expected_num_workers
 
     dm = LightningDataModule.load_from_checkpoint(checkpoint_path)
     assert isinstance(dm, TestDataSaveHparams)
-    dm.batch_size == expected_batch_size
-    dm.num_workers == expected_num_workers
+    assert dm.batch_size == dm_expected_batch_size
+    assert dm.num_workers == dm_expected_num_workers
 
 
 class TestModelSaveHparamsUntyped(BoringModel):
