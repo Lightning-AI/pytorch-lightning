@@ -1393,7 +1393,7 @@ class LightningModule(
     def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
-        Example::
+        .. code-block:: python
 
             model = MyLightningModule(...)
             model.freeze()
