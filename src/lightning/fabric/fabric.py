@@ -881,16 +881,18 @@ class Fabric:
 
         Args:
             path: A path to where the file is located.
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint. If ``None``,
-                the full checkpoint will be loaded and returned.
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                If no state is given, then the checkpoint will be returned in full.
             strict: Whether to enforce that the keys in ``state`` match the keys in the checkpoint.
-            weights_only: If ``True``, only model weights will be loaded. This is useful for loading checkpoints
-                that do not include optimizers, schedulers, or other non-tensor objects.
-                If ``None``, the default behavior of the underlying strategy is used.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Returns:
-            The remaining items that were not restored into the given ``state`` dictionary. If ``state`` is ``None``,
-            the full checkpoint is returned.
+            The remaining items that were not restored into the given state dictionary. If no state dictionary is
+            given, the full checkpoint will be returned.
 
         Example::
 
@@ -900,6 +902,7 @@ class Fabric:
             # Load into existing objects
             state = {"model": model, "optimizer": optimizer}
             remainder = fabric.load("checkpoint.pth", state)
+            epoch = remainder.get("epoch", 0)
 
         """
         unwrapped_state = _unwrap_objects(state)
@@ -939,6 +942,11 @@ class Fabric:
             obj: A :class:`~torch.nn.Module` or :class:`~torch.optim.Optimizer` instance.
             strict: Whether to enforce that the keys in the module's state-dict match the keys in the checkpoint.
                 Does not apply to optimizers.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         """
         obj = _unwrap_objects(obj)
