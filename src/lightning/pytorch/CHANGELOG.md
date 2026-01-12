@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added method chaining support to `LightningModule.freeze()` and `LightningModule.unfreeze()` by returning `self` ([#21469](https://github.com/Lightning-AI/pytorch-lightning/pull/21469))
 
 
 ### Deprecated
