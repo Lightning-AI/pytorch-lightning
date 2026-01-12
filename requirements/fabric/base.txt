@@ -2,7 +2,7 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 torch >=2.1.0, <2.10.0
-fsspec[http] >=2022.5.0, <2025.13.0
+fsspec[http] >=2022.5.0, <2026.2.0
 packaging >=23.0, <=25.0
 typing-extensions >4.5.0, <4.16.0
 lightning-utilities >=0.10.0, <0.16.0
