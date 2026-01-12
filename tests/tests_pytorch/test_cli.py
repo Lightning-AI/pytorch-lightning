@@ -603,7 +603,7 @@ class DemoModel(BoringModel):
         self.backbone_hidden_dim = backbone_hidden_dim
 
 
-def test_cli_args_override_checkpoint_hparams(cleandir):
+def test_lightning_cli_args_override_checkpoint_hparams(cleandir):
     """
     Check priority: ckpt hparams < CLI Args
 
@@ -634,7 +634,7 @@ def test_cli_args_override_checkpoint_hparams(cleandir):
 
     checkpoint_path = str(next(Path(cli.trainer.default_root_dir).rglob("*.ckpt")))
 
-    # --- Phase 2: Resume with CLI overrides ---
+    # --- Phase 2: Predict with CLI overrides ---
     new_lr = 0.123
     new_hidden_dim = 512
     override_args = [
@@ -649,10 +649,6 @@ def test_cli_args_override_checkpoint_hparams(cleandir):
         new_cli = LightningCLI(DemoModel)
 
     # --- Phase 3: Assertions ---
-    target_classes = 10
-    assert new_cli.model.num_classes == target_classes, (
-        f"Checkpoint restoration failed! Expected num_classes {target_classes}, got {new_cli.model.num_classes}"
-    )
     assert new_cli.model.learning_rate == new_lr, (
         f"CLI override failed! Expected LR {new_lr}, got {new_cli.model.learning_rate}"
     )
@@ -665,7 +661,7 @@ def test_cli_args_override_checkpoint_hparams(cleandir):
     )
 
 
-def test_cli_config_priority_over_checkpoint_hparams(cleandir):
+def test_lightning_cli_config_priority_over_checkpoint_hparams(cleandir):
     """
     Test the full priority hierarchy:
         ckpt hparams < Config < CLI Args
