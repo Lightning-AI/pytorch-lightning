@@ -1145,11 +1145,11 @@ def test_load_raw():
     wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
 
     fabric.load_raw(path="path0", obj=model)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True, weights_only=None)
     fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False, weights_only=None)
     fabric.load_raw(path="path2", obj=wrapped_optimizer)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True, weights_only=None)
 
 
 def test_barrier():
@@ -1363,3 +1363,28 @@ def test_fabric_load_accepts_weights_only_false(tmp_path):
     remainder = fabric.load(path, weights_only=False)
 
     assert remainder["foo"] == 123
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock(return_value={})
+
+    fabric.load("path.pt", weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=None, strict=True, weights_only=weights_only
+    )
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_raw_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load_raw()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    fabric.load_raw("path.pt", model, weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=model, strict=True, weights_only=weights_only
+    )
