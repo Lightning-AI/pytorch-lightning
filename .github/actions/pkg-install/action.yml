@@ -40,7 +40,7 @@ runs:
 
     - name: Install package (archive)
       if: ${{ inputs.install-from == 'archive' }}
-      working-directory: pypi/
+      working-directory: ${{ inputs.pkg-folder }}
       run: |
         set -ex
         pip install '${{ env.PKG_SOURCE }}${{ inputs.pkg-extras }}' \

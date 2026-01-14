@@ -24,42 +24,40 @@ jobs:
     timeout-minutes: 35
     env:
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      UV_TORCH_BACKEND: cpu
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v5
         with:
           submodules: recursive
-      - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
       - name: Set oldest dependencies
         if: matrix.requires == 'oldest'
         timeout-minutes: 20
         run: |
-          pip install -e '.[cli]'
+          uv pip install -e '.[cli]'
           python -m lightning_utilities.cli requirements set-oldest
-
-      - name: Complex 💽 caching
-        uses: ./.github/actions/cache
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         timeout-minutes: 20
         run: |
           set -e
-          pip install -e ".[cli]" -U -r requirements/_tests.txt -f $TORCH_URL
-          pip --version
-          pip list
+          uv pip install -e ".[cli]" -U -r requirements/_tests.txt -f $TORCH_URL
+          uv --version
+          uv pip list
 
       - name: Print 🖨️ dependencies
         uses: ./.github/actions/pip-list
 
       - name: Unittests
         working-directory: ./tests
-        run: python -m pytest unittests --cov=lightning_utilities --durations=50 --timeout=120
+        run: uv run python -m pytest unittests --cov=lightning_utilities --durations=50 --timeout=120
 
       - name: Statistics
         working-directory: ./tests
@@ -80,7 +78,10 @@ jobs:
 
       - name: test CI scripts
         working-directory: ./tests
-        run: python -m pytest scripts --durations=50 --timeout=120
+        run: uv run python -m pytest scripts --durations=50 --timeout=120
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   testing-guardian:
     runs-on: ubuntu-latest

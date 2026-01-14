@@ -29,6 +29,6 @@ jobs:
     with:
       scripts-ref: ${{ github.sha }} # use local version
       dry-run: ${{ github.event_name == 'pull_request' }}
-      # ise input if set of default...
+      # use input if set, otherwise default...
       pattern: ${{ inputs.pattern || 'pip|conda' }}
-      age-days: ${{ fromJSON(inputs.age-days) || 2 }}
+      age-days: ${{ inputs.age-days || 7 }}

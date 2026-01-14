@@ -38,10 +38,12 @@ jobs:
           submodules: recursive
           token: ${{ secrets.github-token || github.token }}
 
-      - name: Set up Python 🐍
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ inputs.python-version }}
+          enable-cache: true
 
       - name: Cache 💽 pre-commit
         if: ${{ inputs.use-cache == true }}
@@ -53,8 +55,11 @@ jobs:
       - name: Run pre-commit 🤖
         id: precommit
         run: |
-          pip install -q pre-commit
+          uv pip install -q pre-commit
           pre-commit run --all-files
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
       - name: Fixing Pull Request ↩️
         if: always() && inputs.push-fixes == true && steps.precommit.outcome == 'failure'

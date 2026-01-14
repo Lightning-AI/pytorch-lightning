@@ -31,24 +31,28 @@ defaults:
 jobs:
   mypy:
     runs-on: ubuntu-24.04
+    env:
+      UV_TORCH_BACKEND: cpu
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - name: Set up Python 🐍 ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ inputs.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ inputs.python-version }}
+          enable-cache: true
 
       - name: Install dependencies
         timeout-minutes: 20
         run: |
           # don't use --upgrade to respect the version installed via setup.py
-          pip install -e '.[${{ inputs.extra-typing }}]' mypy \
+          uv pip install -e '.[${{ inputs.extra-typing }}]' mypy types-requests \
             --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
+          uv pip list
 
       - name: Pull reusable 🤖 actions️
         if: ${{ inputs.actions-ref != '' }}
@@ -94,3 +98,6 @@ jobs:
             | sed 's/\.py//g;  s|${SOURCE_DIR}||g;  s|\/__init__||g;  s|\/|\.|g' \
             | xargs -I {} echo '"{}",' \
           || true
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci

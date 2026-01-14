@@ -41,6 +41,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          activate-environment: true
+          python-version: "3.10"
+          enable-cache: true
+
       - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v5
         with:
@@ -49,7 +56,7 @@ jobs:
           repository: Lightning-AI/utilities
       - name: install requirements
         timeout-minutes: 20
-        run: pip install -U -r ./.cicd/.github/scripts/find-unused-caches.txt
+        run: uv pip install -U -r ./.cicd/.github/scripts/find-unused-caches.txt
 
       - name: List and Filer 🔍 caches
         run: |
@@ -66,3 +73,6 @@ jobs:
               # delete each cache based on file...
               gh api --method DELETE  -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/actions/caches/ $line;
           done < "unused-cashes.txt"
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci

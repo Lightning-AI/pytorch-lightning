@@ -22,12 +22,14 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v5
-      - name: Set up Python 🐍
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: "3.10"
+          enable-cache: true
       - name: Prepare build env.
-        run: pip install -r ./requirements/gha-package.txt
+        run: uv pip install -r ./requirements/gha-package.txt
       - name: Create 📦 package
         uses: ./.github/actions/pkg-create
       - name: Upload 📤 packages
@@ -35,6 +37,9 @@ jobs:
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   upload-package:
     needs: build-package

@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -6,7 +7,7 @@ import pytest
 
 def test_version():
     """Prints the help message for the requirements commands."""
-    return_code = subprocess.call(["python", "-mlightning_utilities.cli", "version"])  # noqa: S607
+    return_code = subprocess.call([sys.executable, "-m", "lightning_utilities.cli", "version"])  # noqa: S603
     assert return_code == 0
 
 
@@ -14,7 +15,7 @@ def test_version():
 class TestRequirements:
     """Test requirements commands."""
 
-    BASE_CMD = ("python", "-m", "lightning_utilities.cli", "requirements")
+    BASE_CMD = (sys.executable, "-m", "lightning_utilities.cli", "requirements")
     REQUIREMENTS_SAMPLE = """
 # This is sample requirements file
 #  with multi line comments

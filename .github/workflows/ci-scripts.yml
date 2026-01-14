@@ -22,48 +22,57 @@ jobs:
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v5
-      - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
+          enable-cache: true
 
       - name: Install dependencies
         timeout-minutes: 5
         run: |
-          pip install -r requirements/_tests.txt
-          pip --version
-          pip list
+          uv pip install -r requirements/_tests.txt
+          uv --version
+          uv pip list
 
       - name: test Scripts
         working-directory: ./scripts
-        run: pytest . -v
+        run: uv run pytest . -v
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   standalone-run:
     runs-on: "ubuntu-22.04"
     timeout-minutes: 20
     env:
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      UV_TORCH_BACKEND: cpu
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v5
-      - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: "3.10"
-          cache: "pip"
+          enable-cache: true
       - name: Install dependencies
         timeout-minutes: 20
         run: |
           set -e
-          pip install -e ".[cli]" -U -r requirements/_tests.txt -f $TORCH_URL
-          pip --version
-          pip list
+          uv pip install -e ".[cli]" -U -r requirements/_tests.txt -f $TORCH_URL
+          uv --version
+          uv pip list
 
       - name: Run standalone script
         run: bash ./scripts/run_standalone_tests.sh "tests"
         env:
           COVERAGE_SOURCE: "lightning_utilities"
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   scripts-guardian:
     runs-on: ubuntu-latest

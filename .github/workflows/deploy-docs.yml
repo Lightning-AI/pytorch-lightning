@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      UV_TORCH_BACKEND: cpu
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v5
@@ -22,20 +23,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Set up Python 🐍
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: "3.10"
-          cache: "pip"
-
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache 💽 pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements/*.txt') }}
-          restore-keys: pip-
+          enable-cache: true
 
       #- name: Install texlive
       #  timeout-minutes: 20
@@ -48,9 +41,9 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 20
         run: |
-          pip --version
-          pip install -e . -U -q -r requirements/_docs.txt -f ${TORCH_URL}
-          pip list
+          uv --version
+          uv pip install -e . -U -q -r requirements/_docs.txt -f ${TORCH_URL}
+          uv pip list
         shell: bash
 
       - name: Make Documentation
@@ -67,3 +60,6 @@ jobs:
           clean: true # Automatically remove deleted files from the deploy branch
           target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
           single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci

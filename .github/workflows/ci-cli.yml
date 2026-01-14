@@ -22,15 +22,17 @@ jobs:
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v5
-      - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
       - name: install package
         run: |
-          pip install -e '.[cli]'
-          pip list
+          uv pip install -e '.[cli]'
+          uv pip list
 
       - name: run CLI
         working-directory: ./requirements
@@ -39,6 +41,9 @@ jobs:
           python -m lightning_utilities.cli --help
           python -m lightning_utilities.cli requirements set-oldest --req_files="cli.txt"
           python -m lightning_utilities.cli requirements set-oldest --req_files='["cli.txt", "docs.txt"]'
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   cli-guardian:
     runs-on: ubuntu-latest

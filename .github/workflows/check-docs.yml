@@ -55,6 +55,7 @@ defaults:
 env:
   # just use CPU version since running on CPU machine
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  UV_TORCH_BACKEND: cpu
   # default 0 means to keep for the maximum time
   KEEP_DAYS: 0
 
@@ -72,11 +73,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python 🐍 ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python 🐍 ${{ inputs.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ inputs.python-version }}
-          cache: "pip"
+          enable-cache: true
 
       - name: Install pandoc & texlive
         if: ${{ inputs.install-tex == 'true' }}
@@ -92,9 +94,9 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 20
         run: |
-          pip --version
-          pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}
-          pip list
+          uv --version
+          uv pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}
+          uv pip list
 
       - name: Pull reusable 🤖 actions️
         if: ${{ inputs.actions-ref != '' }}
@@ -123,3 +125,6 @@ jobs:
           path: ${{ inputs.docs-dir }}/build/
           retention-days: ${{ env.KEEP_DAYS }}
           include-hidden-files: true
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci

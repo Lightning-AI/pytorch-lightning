@@ -31,10 +31,12 @@ jobs:
         uses: actions/checkout@v5
         with:
           submodules: recursive
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: "3.10"
+          enable-cache: true
 
       # if actions version is given install defined versions
       - name: "[optional] Pull reusable 🤖 actions"
@@ -48,15 +50,16 @@ jobs:
         if: inputs.actions-ref != ''
         timeout-minutes: 5
         run: |
-          pip install -r ./.cicd/requirements/gha-schema.txt
-          pip list | grep "check-jsonschema"
+          uv pip install -r ./.cicd/requirements/gha-schema.txt
+          uv pip list | grep "check-jsonschema"
+
       # otherwise fall back to using the latest
       - name: "[default] Install recommended dependencies"
         if: inputs.actions-ref == ''
         timeout-minutes: 5
         run: |
-          pip install -q check-jsonschema
-          pip list | grep "check-jsonschema"
+          uv pip install -q check-jsonschema
+          uv pip list | grep "check-jsonschema"
 
       - name: Scan repo
         id: folders
@@ -92,3 +95,6 @@ jobs:
             echo $f;
             check-jsonschema -v $f --schemafile "$SCHEMA_FILE" --regex-variant="nonunicode";
           done
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
