@@ -183,6 +183,7 @@ def thread_police_duuu_daaa_duuu_daaa():
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
     monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(torch.cuda, "get_device_name", lambda _: "Mocked CUDA Device")
 
 
 @pytest.fixture
@@ -208,6 +209,9 @@ def cuda_count_4(monkeypatch):
 def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+    monkeypatch.setattr(
+        lightning.pytorch.accelerators.mps, "_get_mps_device_name", lambda: "Mocked MPS Device" if n > 0 else ""
+    )
 
 
 @pytest.fixture
@@ -245,6 +249,11 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    monkeypatch.setattr(
+        lightning.pytorch.accelerators.xla.XLAAccelerator,
+        "device_name",
+        lambda *_: "Mocked TPU Device",
+    )
 
 
 @pytest.fixture
