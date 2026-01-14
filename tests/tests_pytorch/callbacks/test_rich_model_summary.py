@@ -70,3 +70,34 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     # assert that the input summary data was converted correctly
     args, _ = mock_table_add_row.call_args_list[0]
     assert args[1:] == ("0", "layer", "Linear", "66  ", "train", "512  ", "[4, 32]", "[4, 2]")
+
+
+@RunIf(rich=True)
+def test_rich_summary_model_size_formatting():
+    """Ensure model_size uses get_formatted_model_size, not get_human_readable_count."""
+    from io import StringIO
+
+    from rich.console import Console
+
+    model_summary = RichModelSummary()
+    model = BoringModel()
+    summary = summarize(model)
+    summary_data = summary._get_summary_data()
+
+    output = StringIO()
+    console = Console(file=output, force_terminal=True)
+
+    with mock.patch("rich.get_console", return_value=console):
+        model_summary.summarize(
+            summary_data=summary_data,
+            total_parameters=1,
+            trainable_parameters=1,
+            model_size=5500.0,
+            total_training_modes=summary.total_training_modes,
+            total_flops=1,
+        )
+
+    result = output.getvalue()
+    # model_size=5500.0 should display as "5,500.000" (formatted), not "5.5 K" (human readable count)
+    assert "5,500.000" in result
+    assert "5.5 K" not in result
