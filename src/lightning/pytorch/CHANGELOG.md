@@ -41,6 +41,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix `_generate_seed_sequence_sampling` function not producing unique seeds ([#21399](https://github.com/Lightning-AI/pytorch-lightning/pull/21399))
 
 
+- Fix `ThroughputMonitor` callback emitting warnings too frequently ([#21453](https://github.com/Lightning-AI/pytorch-lightning/pull/21453))
+
+
 ---
 
 
