@@ -588,6 +588,8 @@ class LightningCLI:
                 }
             hparams = {"model": hparams}
             try:
+                if parser._subcommands_action is None:
+                    return
                 subparser = parser._subcommands_action._name_parser_map[self.config.subcommand]
                 subparser.set_defaults(hparams)
             except KeyError as ex:
