@@ -522,7 +522,7 @@ def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
     assert cli.config_init.predict.model.layer.out_features == 3
 
     err = StringIO()
-    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(KeyError):
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
         cli = LightningCLI(BoringModel)
     assert "Parsing of ckpt_path hyperparameters failed" in err.getvalue()
 

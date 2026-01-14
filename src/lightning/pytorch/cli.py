@@ -560,7 +560,7 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
-    def _parse_ckpt_path(self, parser, args) -> None:
+    def _parse_ckpt_path(self, parser: LightningArgumentParser, args: ArgsType) -> None:
         """Parses the checkpoint path, loads hyperparameters, and injects them as new defaults.
 
         If `ckpt_path` is provided, this method:
