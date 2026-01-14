@@ -52,6 +52,7 @@ jobs:
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.8" }
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
