@@ -37,6 +37,7 @@ on:
         default: |
           {
             "os": ["ubuntu-latest"],
+            "python-version": ["3.10", "3.13"]
           }
       testing-matrix:
         description: "what test configs to run in json format, expected keys are `os` and `python-version`"
