@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout 🛎
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Set up uv and Python
@@ -41,7 +41,7 @@ jobs:
       # if actions version is given install defined versions
       - name: "[optional] Pull reusable 🤖 actions"
         if: inputs.actions-ref != ''
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd

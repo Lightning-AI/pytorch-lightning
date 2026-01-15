@@ -76,7 +76,7 @@ jobs:
       matrix: ${{ fromJSON(inputs.build-matrix) }}
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # checkout entire history for all branches (required when using scm-based versioning)
           submodules: recursive
@@ -88,7 +88,7 @@ jobs:
           enable-cache: true
 
       - name: Pull reusable 🤖 actions️
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull reusable 🤖 actions️
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd
@@ -159,7 +159,7 @@ jobs:
       matrix: ${{ fromJSON(inputs.testing-matrix) }}
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       # NOTE: use pip as gold standard for package validation
@@ -169,7 +169,7 @@ jobs:
           python-version: ${{ matrix.python-version || '3.x' }}
 
       - name: Pull reusable 🤖 actions️
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd

@@ -27,7 +27,7 @@ jobs:
       UV_TORCH_BACKEND: cpu
     steps:
       - name: Checkout 🛎
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Set up uv and Python 🐍 ${{ matrix.python-version }}

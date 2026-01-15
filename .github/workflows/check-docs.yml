@@ -69,7 +69,7 @@ jobs:
         target: ${{ fromJSON(inputs.make-target) }}
     steps:
       - name: Checkout 🛎
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -100,7 +100,7 @@ jobs:
 
       - name: Pull reusable 🤖 actions️
         if: ${{ inputs.actions-ref != '' }}
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd

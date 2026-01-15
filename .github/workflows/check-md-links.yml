@@ -28,7 +28,7 @@ jobs:
       MODIFIED_ONLY: "no"
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Create local version of config
         if: ${{ inputs.config-file == '' }}
