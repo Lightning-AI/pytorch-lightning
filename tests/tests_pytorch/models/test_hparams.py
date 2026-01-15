@@ -838,7 +838,9 @@ def test_ignore_args_list_hparams(tmp_path, ignore):
 
     # test proper property assignments
     assert model.hparams.arg1 == 14
-    for arg in ignore:
+
+    ignore_args = ignore if isinstance(ignore, (list, tuple)) else [ignore]
+    for arg in ignore_args:
         assert arg not in model.hparams
 
     # verify we can train
@@ -854,7 +856,7 @@ def test_ignore_args_list_hparams(tmp_path, ignore):
     # verify that model loads correctly
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, arg2=123, arg3=100)
     assert model.hparams.arg1 == 14
-    for arg in ignore:
+    for arg in ignore_args:
         assert arg not in model.hparams
 
 
