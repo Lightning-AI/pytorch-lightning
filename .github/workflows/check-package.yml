@@ -131,7 +131,7 @@ jobs:
           uv pip list
 
       - name: Download 📥
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           # download all build artifacts
           pattern: ${{ inputs.artifact-name }}-build-*
@@ -176,7 +176,7 @@ jobs:
           repository: Lightning-AI/utilities
       - name: Download 📥 all packages
         if: ${{ inputs.artifact-name != '' }}
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
