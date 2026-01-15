@@ -1,4 +1,4 @@
 importlib-metadata >=4.0.0; python_version < '3.8'
-packaging >=17.1
+packaging >=22
 setuptools
 typing_extensions
