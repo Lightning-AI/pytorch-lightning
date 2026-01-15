@@ -121,6 +121,10 @@ class HyperparametersMixin:
             "arg3": 3.14
 
         """
+        # Reset hyperparameters before saving new ones
+        self.hparams.clear()
+        self._hparams.clear()
+
         self._log_hyperparams = logger
         given_hparams = _given_hyperparameters.get()
         # the frame needs to be created in this file.
