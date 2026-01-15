@@ -235,3 +235,19 @@ def test_collect_init_args():
     my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
     assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
+
+
+def test_save_hparams_ignore_persists_across_inheritance():
+    class Base(LightningModule):
+        def __init__(self, a, b):
+            super().__init__()
+            self.save_hyperparameters()
+
+    class Child(Base):
+        def __init__(self, a, b):
+            super().__init__(a, b)
+            self.save_hyperparameters(ignore="b")
+
+    model = Child(1, 2)
+    assert "b" not in model.hparams
+

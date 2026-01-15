@@ -150,15 +150,11 @@ def save_hyperparameters(
     frame: Optional[types.FrameType] = None,
     given_hparams: Optional[dict[str, Any]] = None,
 ) -> None:
-    """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
-
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
-        # args[0] is an empty container
         return
 
     if not frame:
         current_frame = inspect.currentframe()
-        # inspect.currentframe() return type is Optional[types.FrameType]: current_frame.f_back called only if available
         if current_frame:
             frame = current_frame.f_back
     if not isinstance(frame, types.FrameType):
@@ -171,11 +167,27 @@ def save_hyperparameters(
         init_args = {f.name: getattr(obj, f.name) for f in obj_fields if f.init}
     else:
         init_args = {}
-
         from lightning.pytorch.core.mixins import HyperparametersMixin
-
         for local_args in collect_init_args(frame, [], classes=(HyperparametersMixin,)):
             init_args.update(local_args)
+
+    # ===== BEGIN FIX =====
+    if not hasattr(obj, "_hparams_ignore"):
+        obj._hparams_ignore = set()
+
+    if ignore is not None:
+        if isinstance(ignore, (list, tuple, set)):
+            obj._hparams_ignore.update(arg for arg in ignore if isinstance(arg, str))
+        elif isinstance(ignore, str):
+            obj._hparams_ignore.add(ignore)
+
+    ignore = list(obj._hparams_ignore)
+
+    # Remove ignored keys from existing hparams (important for inheritance)
+    if hasattr(obj, "_hparams"):
+        for key in ignore:
+            obj._hparams.pop(key, None)
+    # ===== END FIX =====
 
     if ignore is None:
         ignore = []
@@ -186,6 +198,7 @@ def save_hyperparameters(
 
     ignore = list(set(ignore))
     init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
 
     if not args:
         # take all arguments
