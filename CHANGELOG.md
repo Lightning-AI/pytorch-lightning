@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UnReleased] - 2025-MM-DD
 
+### Changed
+
+- Dropped support for Python 3.9, now requires Python >=3.10 ([#463](https://github.com/Lightning-AI/utilities/pull/463))
+
 ### Fixed
 
 - Fixed `compare_version` if runtime error ([#427](https://github.com/Lightning-AI/utilities/pull/427))
