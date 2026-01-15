@@ -250,4 +250,3 @@ def test_save_hparams_ignore_persists_across_inheritance():
 
     model = Child(1, 2)
     assert "b" not in model.hparams
-

@@ -168,6 +168,7 @@ def save_hyperparameters(
     else:
         init_args = {}
         from lightning.pytorch.core.mixins import HyperparametersMixin
+
         for local_args in collect_init_args(frame, [], classes=(HyperparametersMixin,)):
             init_args.update(local_args)
 
@@ -198,7 +199,6 @@ def save_hyperparameters(
 
     ignore = list(set(ignore))
     init_args = {k: v for k, v in init_args.items() if k not in ignore}
-
 
     if not args:
         # take all arguments
