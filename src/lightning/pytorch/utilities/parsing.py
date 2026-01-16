@@ -204,8 +204,9 @@ def save_hyperparameters(
 
     # `hparams` are expected here
     obj._set_hparams(hp)
-    # drop existing hparams if ignored
-    obj.filter_hparams(ignore)
+    # Remove ignored hparams from the stored hyperparameters.
+    # Allows a derived class to drop hparams previously saved by a base class.
+    obj.remove_ignored_hparams(ignore)
 
     for k, v in obj._hparams.items():
         if isinstance(v, nn.Module):
