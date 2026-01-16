@@ -121,10 +121,6 @@ class HyperparametersMixin:
             "arg3": 3.14
 
         """
-        # Reset hyperparameters before saving new ones
-        self.hparams.clear()
-        self._hparams.clear()
-
         self._log_hyperparams = logger
         given_hparams = _given_hyperparameters.get()
         # the frame needs to be created in this file.
@@ -141,6 +137,16 @@ class HyperparametersMixin:
             self.hparams.update(hp)
         else:
             self._hparams = hp
+
+    def filter_hparams(self, ignore_list: Sequence[str]) -> None:
+        """Remove selected keys from the stored hyperparameters, including the initial snapshot if present.
+
+        Args:
+            ignore_list: Names of hyperparameters to delete.
+
+        """
+        for key in ignore_list:
+            self._hparams.pop(key, None)
 
     @staticmethod
     def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
