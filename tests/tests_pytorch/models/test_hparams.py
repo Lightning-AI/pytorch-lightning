@@ -877,6 +877,8 @@ def test_hparams_ignore_in_subclass_overrides_base(tmp_path, ignore):
 
     model = LocalModel(arg1=14, arg2=90, arg3=50)
 
+    # `arg1` was ignored by the base class,
+    # but the subclass did not ignore it, so it should be present.
     assert model.hparams.arg1 == 14
     ignore_args = ignore if isinstance(ignore, (list, tuple)) else [ignore]
     for arg in ignore_args:
