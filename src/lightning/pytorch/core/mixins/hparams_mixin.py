@@ -138,7 +138,7 @@ class HyperparametersMixin:
         else:
             self._hparams = hp
 
-    def remove_ignored_hparams(self, ignore_list: Sequence[str]) -> None:
+    def remove_ignored_hparams(self, ignore_list: list[str]) -> None:
         """Remove ignored hyperparameters from the stored state.
 
         This allows derived classes to drop hyperparameters previously saved
