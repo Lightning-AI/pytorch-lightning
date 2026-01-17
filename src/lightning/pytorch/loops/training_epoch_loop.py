@@ -16,6 +16,7 @@ import itertools
 import math
 import time
 from collections import OrderedDict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from itertools import islice
 from typing import Any, Optional, Union
@@ -97,6 +98,7 @@ class _TrainingEpochLoop(loops._Loop):
         self._restart_stage = RestartStage.NONE
         self._skip_next_val = False
         self._num_global_valid_tokens: Optional[int] = None
+        self._peekable_iter: Optional[Iterator[Any]] = None
 
     @property
     def total_batch_idx(self) -> int:
