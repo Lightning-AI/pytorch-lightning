@@ -9,13 +9,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Exposed `weights_only` argument for loading checkpoints in `Fabric.load()` and `Fabric.load_raw()` ([#21470](https://github.com/Lightning-AI/pytorch-lightning/pull/21470))
 
 ### Changed
 
 -
 
 ### Fixed
+
+- Fixed `DistributedSamplerWrapper` not forwarding `set_epoch` to the underlying sampler ([#21454](https://github.com/Lightning-AI/pytorch-lightning/pull/21454))
 
 - Fixed DDP notebook CUDA fork check to allow passive initialization when CUDA is not actively used ([#21402](https://github.com/Lightning-AI/pytorch-lightning/pull/21402))
 

@@ -195,7 +195,7 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
 
 
 @pytest.mark.parametrize("extended", [True, False])
-@patch("time.monotonic", return_value=70)
+@patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
