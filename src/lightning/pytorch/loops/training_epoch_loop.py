@@ -281,11 +281,6 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
-        # create a peekable iterator to look ahead without consuming the original data_fetcher
-        iterator = data_fetcher.iterator
-        assert iterator is not None
-        it1, self._peekable_iter = itertools.tee(iterator)
-        data_fetcher.iterator = it1
 
         if self.restarting and self._should_check_val_fx(data_fetcher):
             if self.val_loop.restarted_mid_evaluation:
@@ -356,35 +351,56 @@ class _TrainingEpochLoop(loops._Loop):
                     else OrderedDict(any=dataloader_iter)
                 )
 
-                # Count valid tokens across global batch when using grad accumulation when using cross entropy loss
-                # Only calculate at the first batch of accumulation window and then reuse
+                # Optionally compute the total number of valid tokens
+                # across the current gradient-accumulation window at the
+                # first micro-batch of that window.
                 if (
                     trainer.lightning_module.automatic_optimization
                     and trainer.accumulate_grad_batches > 1
                     and batch_idx % trainer.accumulate_grad_batches == 0
                 ):
-                    # require all batches in accumulation window to be properly formatted
                     total_valid_tokens = 0
-                    all_formatted_batches = True
-                    # Take next N batches without consuming the original data_fetcher
-                    peek_batches = list(islice(self._peekable_iter, trainer.accumulate_grad_batches))
-                    for batch in peek_batches:
-                        # unwrap Lightning's list/tuple wrapper
-                        if isinstance(batch, (list, tuple)):
-                            batch = batch[0]
-                        # require batch to be instance of dict and has labels, otherwise break
-                        if not isinstance(batch, dict):
-                            all_formatted_batches = False
-                            break
-                        labels = batch.get("labels")
-                        # break if labels missing or None
-                        if labels is None:
-                            all_formatted_batches = False
-                            break
-                        # safe to process
-                        labels = torch.as_tensor(labels)
-                        total_valid_tokens += int((labels != -100).sum().item())
-                    self._num_global_valid_tokens = total_valid_tokens if all_formatted_batches else None
+                    valid_format = True
+
+                    current = batch
+                    if isinstance(current, (list, tuple)):
+                        current = current[0]
+                    if isinstance(current, dict):
+                        labels = current.get("labels")
+                        if labels is not None:
+                            labels = torch.as_tensor(labels)
+                            total_valid_tokens += int((labels != -100).sum().item())
+                        else:
+                            valid_format = False
+                    else:
+                        valid_format = False
+
+                    if valid_format:
+                        if not hasattr(self, "_peekable_iter") or self._peekable_iter is None:
+                            iterator = data_fetcher.iterator
+                            it1, self._peekable_iter = itertools.tee(iterator)
+                            data_fetcher.iterator = it1
+
+                        remaining = trainer.accumulate_grad_batches - 1
+                        if remaining > 0:
+                            for b in islice(self._peekable_iter, remaining):
+                                if isinstance(b, (list, tuple)):
+                                    b = b[0]
+                                if not isinstance(b, dict):
+                                    valid_format = False
+                                    break
+                                labels = b.get("labels")
+                                if labels is None:
+                                    valid_format = False
+                                    break
+                                labels = torch.as_tensor(labels)
+                                total_valid_tokens += int((labels != -100).sum().item())
+
+                    # Expose the window-level token count for use in the
+                    # automatic-optimization loop (loss normalization).
+                    self._num_global_valid_tokens = (
+                        total_valid_tokens if valid_format and total_valid_tokens > 0 else None
+                    )
 
                 with trainer.profiler.profile("run_training_batch"):
                     if trainer.lightning_module.automatic_optimization:
