@@ -378,6 +378,7 @@ class _TrainingEpochLoop(loops._Loop):
                     if valid_format:
                         if not hasattr(self, "_peekable_iter") or self._peekable_iter is None:
                             iterator = data_fetcher.iterator
+                            assert iterator is not None
                             it1, self._peekable_iter = itertools.tee(iterator)
                             data_fetcher.iterator = it1
 
