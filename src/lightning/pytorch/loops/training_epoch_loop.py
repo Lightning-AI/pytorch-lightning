@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import itertools
 import math
 import time
 from collections import OrderedDict
+from collections.abc import Iterator
 from dataclasses import dataclass
+from itertools import islice
 from typing import Any, Optional, Union
 
 import torch
@@ -94,6 +97,8 @@ class _TrainingEpochLoop(loops._Loop):
         self._batches_that_stepped: int = 0
         self._restart_stage = RestartStage.NONE
         self._skip_next_val = False
+        self._num_global_valid_tokens: Optional[int] = None
+        self._peekable_iter: Optional[Iterator[Any]] = None
 
     @property
     def total_batch_idx(self) -> int:
@@ -278,6 +283,7 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
+
         if self.restarting and self._should_check_val_fx(data_fetcher):
             if self.val_loop.restarted_mid_evaluation:
                 # Go back and finish running validation
@@ -346,6 +352,59 @@ class _TrainingEpochLoop(loops._Loop):
                     if not using_dataloader_iter
                     else OrderedDict(any=dataloader_iter)
                 )
+
+                # Optionally compute the total number of valid tokens
+                # across the current gradient-accumulation window at the
+                # first micro-batch of that window.
+                if (
+                    trainer.lightning_module.automatic_optimization
+                    and trainer.accumulate_grad_batches > 1
+                    and batch_idx % trainer.accumulate_grad_batches == 0
+                ):
+                    total_valid_tokens = 0
+                    valid_format = True
+
+                    current = batch
+                    if isinstance(current, (list, tuple)):
+                        current = current[0]
+                    if isinstance(current, dict):
+                        labels = current.get("labels")
+                        if labels is not None:
+                            labels = torch.as_tensor(labels)
+                            total_valid_tokens += int((labels != -100).sum().item())
+                        else:
+                            valid_format = False
+                    else:
+                        valid_format = False
+
+                    if valid_format:
+                        if not hasattr(self, "_peekable_iter") or self._peekable_iter is None:
+                            iterator = data_fetcher.iterator
+                            assert iterator is not None
+                            it1, self._peekable_iter = itertools.tee(iterator)
+                            data_fetcher.iterator = it1
+
+                        remaining = trainer.accumulate_grad_batches - 1
+                        if remaining > 0:
+                            for b in islice(self._peekable_iter, remaining):
+                                if isinstance(b, (list, tuple)):
+                                    b = b[0]
+                                if not isinstance(b, dict):
+                                    valid_format = False
+                                    break
+                                labels = b.get("labels")
+                                if labels is None:
+                                    valid_format = False
+                                    break
+                                labels = torch.as_tensor(labels)
+                                total_valid_tokens += int((labels != -100).sum().item())
+
+                    # Expose the window-level token count for use in the
+                    # automatic-optimization loop (loss normalization).
+                    self._num_global_valid_tokens = (
+                        total_valid_tokens if valid_format and total_valid_tokens > 0 else None
+                    )
+
                 with trainer.profiler.profile("run_training_batch"):
                     if trainer.lightning_module.automatic_optimization:
                         # in automatic optimization, there can only be one optimizer

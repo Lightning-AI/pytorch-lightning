@@ -59,7 +59,9 @@ class ClosureResult(OutputResult):
             self.loss = self.closure_loss.detach().clone()
 
     @classmethod
-    def from_training_step_output(cls, training_step_output: STEP_OUTPUT, normalize: int = 1) -> "ClosureResult":
+    def from_training_step_output(
+        cls, training_step_output: STEP_OUTPUT, normalize: int = 1, num_global_valid_tokens: Optional[int] = None
+    ) -> "ClosureResult":
         closure_loss, extra = None, {}
 
         if isinstance(training_step_output, Mapping):
@@ -80,7 +82,10 @@ class ClosureResult(OutputResult):
         if closure_loss is not None:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
             # note: avoid in-place operation `x /= y` here on purpose
-            closure_loss = closure_loss / normalize
+            if num_global_valid_tokens is not None:
+                closure_loss = closure_loss / num_global_valid_tokens
+            elif normalize > 1:
+                closure_loss = closure_loss / normalize
 
         return cls(closure_loss, extra=extra)
 
@@ -315,6 +320,7 @@ class _AutomaticOptimization(_Loop):
 
         """
         trainer = self.trainer
+        num_global_valid_tokens = trainer.fit_loop.epoch_loop._num_global_valid_tokens
 
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
@@ -326,4 +332,6 @@ class _AutomaticOptimization(_Loop):
                 " place."
             )
 
-        return self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)
+        return self.output_result_cls.from_training_step_output(
+            training_step_output, trainer.accumulate_grad_batches, num_global_valid_tokens=num_global_valid_tokens
+        )
