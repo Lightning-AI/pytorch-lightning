@@ -320,7 +320,7 @@ class _AutomaticOptimization(_Loop):
 
         """
         trainer = self.trainer
-        num_global_valid_tokens = kwargs.pop("num_global_valid_tokens", None)
+        num_global_valid_tokens = trainer.fit_loop.epoch_loop._num_global_valid_tokens
 
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility

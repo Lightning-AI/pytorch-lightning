@@ -386,7 +386,6 @@ class _TrainingEpochLoop(loops._Loop):
                         total_valid_tokens += int((labels != -100).sum().item())
                     self._num_global_valid_tokens = total_valid_tokens if all_formatted_batches else None
 
-                kwargs["num_global_valid_tokens"] = self._num_global_valid_tokens
                 with trainer.profiler.profile("run_training_batch"):
                     if trainer.lightning_module.automatic_optimization:
                         # in automatic optimization, there can only be one optimizer
