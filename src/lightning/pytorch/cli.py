@@ -438,8 +438,13 @@ class LightningCLI:
         return any(arg.startswith("--ckpt_path") for arg in argv)
 
     def _relax_model_requirements(self) -> None:
-        self._removed_requirements = {}
-        for subparser in self.parser._subcommands_action._name_parser_map.values():
+        self._removed_requirements: dict[Any, list[str]] = {}
+        subcommands = self.parser._subcommands_action
+
+        if subcommands is None:
+            return
+
+        for subparser in subcommands._name_parser_map.values():
             self._removed_requirements[subparser] = []
 
             if "model" in subparser.required_args:
@@ -606,7 +611,7 @@ class LightningCLI:
         __init__ defaults < ckpt hparams < cfg file < CLI args
 
         """
-        if not self.config.get("subcommand"):
+        if not self.config.get("subcommand") or parser._subcommands_action is None:
             return
         ckpt_path = self.config[self.config.subcommand].get("ckpt_path")
         if ckpt_path and Path(ckpt_path).is_file():
@@ -622,8 +627,6 @@ class LightningCLI:
                 }
             hparams = {"model": hparams}
             try:
-                if parser._subcommands_action is None:
-                    return
                 subparser = parser._subcommands_action._name_parser_map[self.config.subcommand]
                 subparser.set_defaults(hparams)
             except KeyError as ex:
