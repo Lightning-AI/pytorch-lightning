@@ -408,7 +408,7 @@ class LightningCLI:
         ckpt_path_present = self._check_ckpt_path(args)
         if ckpt_path_present:
             self._relax_model_requirements()
-        
+
         self.parse_arguments(self.parser, args)
         if ckpt_path_present:
             self._enforce_model_requirements()
@@ -429,7 +429,7 @@ class LightningCLI:
             self._run_subcommand(self.subcommand)
 
     def _check_ckpt_path(self, args: ArgsType) -> bool:
-        """check if --ckpt_path is present in arguments."""
+        """Check if --ckpt_path is present in arguments."""
         argv = sys.argv[1:] if args is None else args
 
         if not isinstance(argv, list):
@@ -453,7 +453,7 @@ class LightningCLI:
                     subparser.required_args.add(arg_name)
 
         del self._removed_requirements
-    
+
     def _setup_parser_kwargs(self, parser_kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         subcommand_names = self.subcommands().keys()
         main_kwargs = {k: v for k, v in parser_kwargs.items() if k not in subcommand_names}

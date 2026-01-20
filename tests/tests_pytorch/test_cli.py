@@ -574,9 +574,7 @@ def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
     cli_args = ["predict", f"--ckpt_path={garbage_ckpt_path}"]
 
     err = StringIO()
-    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(
-        err
-    ), pytest.raises(SystemExit):
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(err), pytest.raises(SystemExit):
         CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
     output = err.getvalue()
     assert 'error: Parser key "model"' in output
