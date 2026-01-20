@@ -638,4 +638,5 @@ linkcheck_ignore = [
     "https://openai.com/blog/.*",
     "https://openai.com/index/*",
     "https://tinyurl.com/.*",  # has a human verification check on redirect
+    "https://docs.neptune.ai/.*",  # TODO: remove after dropping Neptune support
 ]
