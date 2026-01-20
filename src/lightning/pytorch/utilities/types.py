@@ -98,8 +98,7 @@ class LRSchedulerConfig:
         valid_intervals = ("epoch", "step", "batch")
         if self.interval not in valid_intervals:
             raise ValueError(
-                f"Invalid interval: {self.interval!r}. "
-                f"Supported intervals are: {', '.join(valid_intervals)}"
+                f"Invalid interval: {self.interval!r}. Supported intervals are: {', '.join(valid_intervals)}"
             )
 
 
