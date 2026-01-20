@@ -404,7 +404,15 @@ class LightningCLI:
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
+
+        ckpt_path_present = self._check_ckpt_path(args)
+        if ckpt_path_present:
+            self._relax_model_requirements()
+        
         self.parse_arguments(self.parser, args)
+        if ckpt_path_present:
+            self._enforce_model_requirements()
+
         self._parse_ckpt_path(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
@@ -420,6 +428,32 @@ class LightningCLI:
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
 
+    def _check_ckpt_path(self, args: ArgsType) -> bool:
+        """check if --ckpt_path is present in arguments."""
+        argv = sys.argv[1:] if args is None else args
+
+        if not isinstance(argv, list):
+            return False
+
+        return any(arg.startswith("--ckpt_path") for arg in argv)
+
+    def _relax_model_requirements(self) -> None:
+        self._removed_requirements = {}
+        for subparser in self.parser._subcommands_action._name_parser_map.values():
+            self._removed_requirements[subparser] = []
+
+            if "model" in subparser.required_args:
+                subparser.required_args.remove("model")
+                self._removed_requirements[subparser].append("model")
+
+    def _enforce_model_requirements(self) -> None:
+        for subparser, removed_args in self._removed_requirements.items():
+            for arg_name in removed_args:
+                if arg_name not in subparser.required_args:
+                    subparser.required_args.add(arg_name)
+
+        del self._removed_requirements
+    
     def _setup_parser_kwargs(self, parser_kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         subcommand_names = self.subcommands().keys()
         main_kwargs = {k: v for k, v in parser_kwargs.items() if k not in subcommand_names}

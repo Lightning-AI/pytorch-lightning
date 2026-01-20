@@ -556,9 +556,30 @@ def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
 
-    assert not isinstance(cli.model, BoringCkptPathSubclass)
+    assert isinstance(cli.model, BoringCkptPathSubclass)
     assert cli.model.hidden_dim == 8
+    assert cli.model.extra is True
     assert cli.model.layer.out_features == 4
+
+    # check that empty ckpt raising error parsing
+    garbage_ckpt_path = Path(cli.trainer.log_dir) / "garbage.ckpt"
+    torch.save(
+        {
+            "state_dict": {},
+            "hyper_parameters": {"useless_param": 42, "broken_conf": True},
+        },
+        garbage_ckpt_path,
+    )
+
+    cli_args = ["predict", f"--ckpt_path={garbage_ckpt_path}"]
+
+    err = StringIO()
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stderr(
+        err
+    ), pytest.raises(SystemExit):
+        CkptPathCLI(BoringCkptPathModel, subclass_mode_model=True)
+    output = err.getvalue()
+    assert 'error: Parser key "model"' in output
 
 
 def test_lightning_cli_submodules(cleandir):
