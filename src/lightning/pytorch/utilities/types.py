@@ -84,7 +84,7 @@ class LRSchedulerConfig:
     name: Optional[str] = None
     # after epoch is over (valid values: "epoch", "step", or "batch")
     interval: str = "epoch"
-    # every epoch/batch
+    # every epoch/step/batch
     frequency: int = 1
     # most often not ReduceLROnPlateau scheduler
     reduce_on_plateau: bool = False

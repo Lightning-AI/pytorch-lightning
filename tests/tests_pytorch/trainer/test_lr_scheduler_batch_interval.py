@@ -1,6 +1,6 @@
 """Tests for batch interval learning rate scheduler support."""
 
-from lightning.pytorch.demos.boring_model import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel
 from torch import optim
 from torch.optim.lr_scheduler import StepLR
 
