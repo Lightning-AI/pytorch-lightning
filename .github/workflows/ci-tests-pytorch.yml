@@ -51,12 +51,16 @@ jobs:
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
 
-          # Test "pytorch" package with PyTorch 2.6-2.9
+          # Test "pytorch" package with PyTorch 2.6-2.10
           - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.10" }
           - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.10" }
+          - { pkg-name: "pytorch", python-version: "3.14", pytorch-version: "2.10" }
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
