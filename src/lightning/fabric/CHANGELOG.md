@@ -5,16 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [Unreleased] - YYYY-MM-DD
 
 ### Added
 
+- Exposed `weights_only` argument for loading checkpoints in `Fabric.load()` and `Fabric.load_raw()` ([#21470](https://github.com/Lightning-AI/pytorch-lightning/pull/21470))
+
+### Changed
+
 -
 
+### Fixed
+
+- Fixed `DistributedSamplerWrapper` not forwarding `set_epoch` to the underlying sampler ([#21454](https://github.com/Lightning-AI/pytorch-lightning/pull/21454))
+
+- Fixed DDP notebook CUDA fork check to allow passive initialization when CUDA is not actively used ([#21402](https://github.com/Lightning-AI/pytorch-lightning/pull/21402))
 
 ### Removed
 
 -
+
+
+## [2.6.0] - 2025-11-28
+
+### Added
+
+- Added kwargs-filtering for `Fabric.call` to support different callback method signatures ([#21258](https://github.com/Lightning-AI/pytorch-lightning/pull/21258))
 
 
 ### Changed
@@ -25,7 +41,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed issue in detecting MPIEnvironment with partial mpi4py installation ([#21353](https://github.com/Lightning-AI/pytorch-lightning/pull/21353))
+
+- Learning rate scheduler is stepped at the end of epoch when `on_train_batch_start` returns -1 ([#21296](https://github.com/Lightning-AI/pytorch-lightning/issues/21296)).
+
+
+- Fixed FSDP mixed precision semantics and added user warning ([#21361](https://github.com/Lightning-AI/pytorch-lightning/pull/21361))
 
 
 ---

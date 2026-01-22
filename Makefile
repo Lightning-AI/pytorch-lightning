@@ -10,7 +10,7 @@ export PACKAGE_NAME=pytorch
 
 # In Lightning Studio, the `lightning` package comes pre-installed.
 # Uninstall it first to ensure the editable install works correctly.
-setup:
+setup: update
 	uv pip uninstall lightning pytorch-lightning lightning-fabric || true
 	uv pip install -r requirements.txt \
 	    -r requirements/pytorch/base.txt \
