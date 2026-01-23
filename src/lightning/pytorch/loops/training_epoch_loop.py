@@ -324,6 +324,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch)
 
+        # Update batch-interval schedulers before on_train_batch_start hook
+        # so that LR changes are visible to the hook
+        self.update_lr_schedulers("batch", update_plateau_schedulers=False)
+
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
         should_skip_rest_of_epoch = False
 
@@ -356,8 +360,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_processed()
 
         # update non-plateau LR schedulers
-        # update batch-interval ones after each batch, step-interval ones after optimizer step
-        self.update_lr_schedulers("batch", update_plateau_schedulers=False)
+        # step-interval schedulers after optimizer step (batch-interval already updated at batch start)
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
