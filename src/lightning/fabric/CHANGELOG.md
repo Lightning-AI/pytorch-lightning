@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed DDP notebook CUDA fork check to allow passive initialization when CUDA is not actively used ([#21402](https://github.com/Lightning-AI/pytorch-lightning/pull/21402))
 
+- Added logic to prevent numpy from trying to convert arrays with ndim > 0 to scalar in tensorboard, which is an error starting in numpy 2.4.0. ([#21503](https://github.com/Lightning-AI/pytorch-lightning/issues/21503))
+
 ### Removed
 
 -

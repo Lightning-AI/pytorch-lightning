@@ -202,9 +202,18 @@ class TensorBoardLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
         for k, v in metrics.items():
             if isinstance(v, Tensor):
                 v = v.item()
+
+            if _NUMPY_AVAILABLE:
+                if isinstance(v, (int, float, np.number)):
+                    v = np.array(v)
+                elif isinstance(v, np.ndarray) and v.ndim > 0 and v.size == 1:
+                    v = np.array(v.item())
 
             if isinstance(v, dict):
                 self.experiment.add_scalars(k, v, step)
