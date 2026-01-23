@@ -20,6 +20,7 @@ So the LR values recorded in `on_train_batch_start` are from the **previous** ba
 ### Why Tests Fail
 
 The test expects:
+
 ```python
 assert model.lr_history[0] > model.lr_history[-1]  # LR should decrease
 ```
@@ -35,14 +36,15 @@ Move the batch scheduler update to BEFORE `on_train_batch_start` is called, or t
 Update the batch scheduler BEFORE on_train_batch_start:
 
 1. Move `update_lr_schedulers("batch", ...)` to occur BEFORE the training_step
-2. This ensures LR changes are reflected in on_train_batch_start hook
-3. Maintains consistency with "step" interval behavior
+1. This ensures LR changes are reflected in on_train_batch_start hook
+1. Maintains consistency with "step" interval behavior
 
 ## Implementation
 
 The batch interval scheduler should be called at the beginning of the batch loop, not after the optimizer step.
 
 Current flow (WRONG):
+
 ```
 batch_start_hook()
   → training_step()
@@ -52,6 +54,7 @@ batch_end_hook()
 ```
 
 Should be (CORRECT):
+
 ```
 update_schedulers("batch")  ← Update first
 batch_start_hook()
@@ -65,6 +68,7 @@ batch_end_hook()
 File: `src/lightning/pytorch/loops/training_epoch_loop.py`
 
 Changes needed:
+
 1. Move batch scheduler update to earlier in the loop
-2. Ensure it runs before on_train_batch_start hook
-3. Keep epoch/step interval logic unchanged
+1. Ensure it runs before on_train_batch_start hook
+1. Keep epoch/step interval logic unchanged
