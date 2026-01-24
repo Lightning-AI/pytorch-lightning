@@ -498,6 +498,7 @@ nitpick_ignore = [
     ("py:func", "wandb.init"),
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
+    ("py:class", "litlogger.Experiment"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -604,7 +605,11 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.fabric.utilities.imports import _COMET_AVAILABLE, _MLFLOW_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE
+from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
+from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
+from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
+from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch.loggers.litlogger import _LITLOGGER_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 
@@ -633,4 +638,5 @@ linkcheck_ignore = [
     "https://openai.com/blog/.*",
     "https://openai.com/index/*",
     "https://tinyurl.com/.*",  # has a human verification check on redirect
+    "https://docs.neptune.ai/.*",  # TODO: remove after dropping Neptune support
 ]

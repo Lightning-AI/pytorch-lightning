@@ -100,9 +100,8 @@ def test_detect(monkeypatch):
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_AVAILABLE", True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_GREATER_EQUAL_2_1", True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
 def test_world_size_from_xla_runtime_greater_2_1(xla_available):
     """Test that world_size uses torch_xla.runtime when XLA >= 2.1."""
     env = XLAEnvironment()
@@ -114,9 +113,8 @@ def test_world_size_from_xla_runtime_greater_2_1(xla_available):
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_AVAILABLE", True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_GREATER_EQUAL_2_1", True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
 def test_global_rank_from_xla_runtime_greater_2_1(xla_available):
     """Test that global_rank uses torch_xla.runtime when XLA >= 2.1."""
     env = XLAEnvironment()
@@ -128,9 +126,8 @@ def test_global_rank_from_xla_runtime_greater_2_1(xla_available):
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_AVAILABLE", True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_GREATER_EQUAL_2_1", True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
 def test_local_rank_from_xla_runtime_greater_2_1(xla_available):
     """Test that local_rank uses torch_xla.runtime when XLA >= 2.1."""
     env = XLAEnvironment()
@@ -142,9 +139,8 @@ def test_local_rank_from_xla_runtime_greater_2_1(xla_available):
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_AVAILABLE", True)
-@mock.patch("pytorch_lightning_enterprise.utils.imports._XLA_GREATER_EQUAL_2_1", True)
 @mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
 def test_setters_readonly_when_xla_runtime_greater_2_1(xla_available):
     """Test that set_world_size and set_global_rank don't affect values when using XLA runtime >= 2.1."""
     env = XLAEnvironment()
