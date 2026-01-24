@@ -79,7 +79,11 @@ class ClosureResult(OutputResult):
 
         if closure_loss is not None:
             # Override normalization if specified (fixes CrossEntropyLoss accumulation)
-            if normalize > 1 and training_step_output.get("normalize") is not None:
+            if (
+                normalize > 1
+                and isinstance(training_step_output, Mapping)
+                and training_step_output.get("normalize") is not None
+            ):
                 normalize = training_step_output["normalize"]
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
             # note: avoid in-place operation `x /= y` here on purpose
