@@ -22,6 +22,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+import lightning.fabric
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
@@ -309,9 +310,9 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
-    monkeypatch.setattr("pytorch_lightning_enterprise.accelerators.xla._using_pjrt", lambda: True)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 
     mock = DeviceMock()
     monkeypatch.setattr(torch, "device", mock)

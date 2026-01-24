@@ -38,10 +38,8 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    monkeypatch.setattr("pytorch_lightning_enterprise.loggers.mlflow._MLFLOW_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._MLFLOW_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
     return mlflow
 
 
@@ -88,8 +86,7 @@ def wandb_mock(monkeypatch):
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
 
-    monkeypatch.setattr("pytorch_lightning_enterprise.loggers.wandb._WANDB_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._WANDB_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
     return wandb
 
 
@@ -112,8 +109,7 @@ def comet_mock(monkeypatch):
     comet.start = Mock(name="comet_ml.start", return_value=comet.Experiment())
     comet.config = Mock()
 
-    monkeypatch.setattr("pytorch_lightning_enterprise.loggers.comet._COMET_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._COMET_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
     return comet
 
 
@@ -127,9 +123,6 @@ def neptune_mock(monkeypatch):
             pass
 
         def __setitem__(self, key, value):
-            pass
-
-        def wait(self):
             pass
 
     run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
@@ -160,6 +153,43 @@ def neptune_mock(monkeypatch):
     neptune.types = neptune_types
     neptune.utils = neptune_utils
 
-    monkeypatch.setattr("pytorch_lightning_enterprise.loggers.neptune._NEPTUNE_AVAILABLE", True)
-    monkeypatch.setattr("pytorch_lightning_enterprise.utils.imports._NEPTUNE_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
     return neptune
+
+
+@pytest.fixture
+def litlogger_mock(monkeypatch):
+    """Mock litlogger module for unit testing LightningLogger."""
+    experiment_mock = MagicMock()
+    experiment_mock.url = "https://lightning.ai/test/experiments/test-experiment"
+    experiment_mock.name = "test-experiment"
+    experiment_mock.version = "2024-01-01T00:00:00.000Z"
+
+    litlogger = ModuleType("litlogger")
+    litlogger.experiment = None
+    litlogger.Experiment = MagicMock
+
+    def mock_init(**kwargs):
+        litlogger.experiment = experiment_mock
+        return experiment_mock
+
+    litlogger.init = Mock(side_effect=mock_init)
+    litlogger.log_metrics = Mock()
+    litlogger.log_file = Mock()
+    litlogger.get_file = Mock(return_value="/path/to/file")
+    litlogger.log_model = Mock()
+    litlogger.get_model = Mock(return_value=MagicMock())
+    litlogger.log_model_artifact = Mock()
+    litlogger.get_model_artifact = Mock(return_value="/path/to/artifact")
+    litlogger.finalize = Mock()
+    monkeypatch.setitem(sys.modules, "litlogger", litlogger)
+
+    # Create generator submodule
+    generator_module = ModuleType("litlogger.generator")
+    generator_module._create_name = Mock(return_value="generated-name")
+    monkeypatch.setitem(sys.modules, "litlogger.generator", generator_module)
+
+    litlogger.generator = generator_module
+
+    monkeypatch.setattr("lightning.pytorch.loggers.litlogger._LITLOGGER_AVAILABLE", True)
+    return litlogger
