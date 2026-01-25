@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -194,7 +194,7 @@ class SwanLabLogger(Logger):
         offline: bool = False,
         prefix: str = "",
         experiment: Optional[Any] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
         log_model: Union[Literal["all"], bool] = False,
         **kwargs: Any,
     ) -> None:
@@ -232,7 +232,6 @@ class SwanLabLogger(Logger):
         self._id = version
 
     def __getstate__(self) -> dict[str, Any]:
-        import swanlab
 
         # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
         # We create an experiment here in the main process, and attach to it in the worker process.
@@ -251,8 +250,8 @@ class SwanLabLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Any:
-        r"""Actual swanlab object. To use swanlab features in your :class:`~lightning.pytorch.core.LightningModule` do the
-        following.
+        r"""Actual swanlab object. To use swanlab features in your :class:`~lightning.pytorch.core.LightningModule` do
+        the following.
 
         Example::
 
@@ -265,7 +264,7 @@ class SwanLabLogger(Logger):
 
         if self._experiment is None:
             # Check if there's a valid swanlab run already in progress
-            existing_run = swanlab.run.get_run() if hasattr(swanlab.run, 'get_run') else None
+            existing_run = swanlab.run.get_run() if hasattr(swanlab.run, "get_run") else None
             if existing_run is not None:
                 # swanlab process already created in this instance
                 rank_zero_warn(
@@ -311,19 +310,18 @@ class SwanLabLogger(Logger):
         params = _convert_json_serializable(params)
 
         # Update config if experiment already exists
-        if self._experiment is not None:
-            if hasattr(self._experiment, "config"):
-                self._experiment.config.update(params)
+        if self._experiment is not None and hasattr(self._experiment, "config"):
+            self._experiment.config.update(params)
 
     @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
-        
+
         # Ensure experiment is initialized before logging
         _ = self.experiment
         import swanlab
-        
+
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         # Convert torch.Tensor to scalar if needed
@@ -556,6 +554,7 @@ class SwanLabLogger(Logger):
         if self._experiment is not None:
             try:
                 import swanlab
+
                 swanlab.finish()
             except RuntimeError:
                 # Ignore error if swanlab.init() was never called
