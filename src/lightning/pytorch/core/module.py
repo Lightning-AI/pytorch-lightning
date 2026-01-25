@@ -612,21 +612,39 @@ class LightningModule(
                 kwargs["copy_state"] = False
 
         for k, v in dictionary.items(**kwargs):
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                add_dataloader_idx=add_dataloader_idx,
-                batch_size=batch_size,
-                rank_zero_only=rank_zero_only,
-            )
+            if isinstance(v, dict):
+                # Recursive case
+                self.log_dict(
+                    dictionary=v,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    add_dataloader_idx=add_dataloader_idx,
+                    batch_size=batch_size,
+                    rank_zero_only=rank_zero_only,
+                )
+            else:
+                # Base case
+                self.log(
+                    name=k,
+                    value=v,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    add_dataloader_idx=add_dataloader_idx,
+                    batch_size=batch_size,
+                    rank_zero_only=rank_zero_only,
+                )
         return None
 
     def _log_dict_through_fabric(
