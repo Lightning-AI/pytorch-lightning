@@ -16,7 +16,7 @@ onnx >1.12.0, <1.21.0
 onnxruntime >=1.12.0, <1.24.0
 onnxscript >= 0.1.0, < 0.6.0
 psutil <7.3.0 # for `DeviceStatsMonitor`
-pandas >2.0, <2.4.0  # needed in benchmarks
+pandas >2.0, <3.1.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
