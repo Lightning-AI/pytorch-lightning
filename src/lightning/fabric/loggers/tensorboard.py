@@ -24,6 +24,7 @@ from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -202,9 +203,18 @@ class TensorBoardLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
         for k, v in metrics.items():
             if isinstance(v, Tensor):
                 v = v.item()
+
+            if _NUMPY_AVAILABLE:
+                if isinstance(v, (int, float, np.number)):
+                    v = np.array(v)
+                elif isinstance(v, np.ndarray) and v.ndim > 0 and v.size == 1:
+                    v = np.array(v.item())
 
             if isinstance(v, dict):
                 self.experiment.add_scalars(k, v, step)
