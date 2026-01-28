@@ -24,22 +24,25 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
+    module = Mock(spec=nn.Module)
     optimizer = Mock(spec=Optimizer)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
     precision.clip_grad_by_norm = Mock()
-    precision.clip_gradients(optimizer)
+    precision.clip_gradients(optimizer, module=module)
     precision.clip_grad_by_value.assert_not_called()
     precision.clip_grad_by_norm.assert_not_called()
 
-    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE)
+    precision.clip_gradients(
+        optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE, module=module
+    )
     precision.clip_grad_by_value.assert_called_once()
     precision.clip_grad_by_norm.assert_not_called()
 
     precision.clip_grad_by_value.reset_mock()
     precision.clip_grad_by_norm.reset_mock()
 
-    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM)
+    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM, module=module)
     precision.clip_grad_by_value.assert_not_called()
     precision.clip_grad_by_norm.assert_called_once()
 
@@ -48,11 +51,12 @@ def test_optimizer_amp_scaling_support_in_step_method():
     """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
     gradient clipping (example: fused Adam)."""
 
+    module = Mock(spec=nn.Module)
     optimizer = Mock(_step_supports_amp_scaling=True)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
-        precision.clip_gradients(optimizer, clip_val=1.0)
+        precision.clip_gradients(optimizer, clip_val=1.0, module=module)
 
 
 def test_amp_with_no_grad():

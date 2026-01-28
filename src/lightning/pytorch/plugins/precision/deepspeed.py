@@ -144,5 +144,6 @@ class DeepSpeedPrecision(Precision):
         optimizer: Optimizer,
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        module: Optional[Module] = None,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""
