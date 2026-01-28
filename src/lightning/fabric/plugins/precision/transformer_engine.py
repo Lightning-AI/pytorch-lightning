@@ -103,8 +103,7 @@ class TransformerEnginePrecision(Precision):
                 )
         elif self.replace_layers in (None, True):
             _convert_layers(module)
-        module = module.to(dtype=self.weights_dtype)
-        return module
+        return module.to(dtype=self.weights_dtype)
 
     @override
     def tensor_init_context(self) -> AbstractContextManager:
