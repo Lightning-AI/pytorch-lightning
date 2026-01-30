@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 import os
 from concurrent.futures import Future
@@ -27,22 +28,22 @@ from lightning.fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 
-
 CHECKPOINTER_TYPE = Literal["process", "thread", "PROCESS", "THREAD"]
 
 
 class DCPIO(CheckpointIO):
-    """CheckpointIO that utilizes :func:`torch.distributed.checkpoint.state_dict_saver.async_save` and
-    :func:`torch.distributed.checkpoint.state_dict_loader.load` to save and load checkpoints respectively, common for
-    most use cases.
+    """Experimental CheckpointIO backed by torch.distributed.checkpoint.
 
-    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+    Notes:
+        - Only supports saving/loading `state_dict`
+        - Only supports local filesystem paths
+        - Loading is in-place: caller must provide a pre-allocated `state_dict`
 
     """
 
     def __init__(self, checkpointer_type: CHECKPOINTER_TYPE = "process", enable_plan_caching: bool = True) -> None:
         if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError("DCPIO requires torch>=2.4.0 to use torch.distributed.checkpoint.")
+            raise ImportError("DCPIO requires torch>=2.4.0.")
 
         if checkpointer_type not in get_args(CHECKPOINTER_TYPE):
             raise ValueError(f"`checkpointer_type` must be one of {get_args(CHECKPOINTER_TYPE)}")
@@ -50,43 +51,39 @@ class DCPIO(CheckpointIO):
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
-        self.checkpoint_future = None
+        self.checkpoint_future: Optional[Future] = None
 
-        async_checkpointer_type = state_dict_saver.AsyncCheckpointerType(checkpointer_type.lower())
+        checkpointer_type = checkpointer_type.lower()
+        async_type = state_dict_saver.AsyncCheckpointerType(checkpointer_type)
 
-        # https://pytorch.org/blog/6x-faster-async-checkpointing/
         self.dcp_kwargs = {
-            "async_checkpointer_type": async_checkpointer_type,
+            "async_checkpointer_type": async_type,
             "planner": DefaultSavePlanner(enable_plan_caching=enable_plan_caching),
         }
+
+    def _wait(self) -> None:
+        if self.checkpoint_future is not None:
+            try:
+                self.checkpoint_future.result()
+            except Exception as ex:
+                raise RuntimeError("Async DCP checkpointing failed.") from ex
 
     @override
     def save_checkpoint(
         self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[dict[str, Any]] = None
     ) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            path: write-target path
-            storage_options: dict containing options to be used by `distributed.checkpoint.async_save`
-
-        """
         if storage_options is not None:
-            raise TypeError(
-                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
-                f" is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
-                " to define how you'd like to use `storage_options`."
-            )
+            raise TypeError("`storage_options` is not supported by DCPIO. Implement a custom CheckpointIO if needed.")
+
+        if not is_local_path(path):
+            raise ValueError("DCPIO only supports local filesystem paths.")
+
+        self._wait()
 
         fs = get_filesystem(path)
         fs.makedirs(path, exist_ok=True)
 
-        # waits for checkpointing to finish if one exists, avoiding queuing more then one checkpoint request at a time
-        if self.checkpoint_future is not None:
-            self.checkpoint_future.result()
-
-        self.checkpoint_future = _dcp_save(checkpoint, path, dcp_kwargs=self.dcp_kwargs)
+        self.checkpoint_future = _dcp_save(state_dict=checkpoint, filepath=path, dcp_kwargs=self.dcp_kwargs)
 
     @override
     def load_checkpoint(
@@ -97,52 +94,26 @@ class DCPIO(CheckpointIO):
         state_dict: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
-        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
+        self._wait()
 
-        Args:
-            path: Path to checkpoint
-            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
-                locations. This argument is currently not used when loading with DCP.
-            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
-                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
-                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
-                recommend using ``weights_only=True``. For more information, please refer to the
-                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
-                This argument is currently not used when loading with DCP.
-            state_dict: The state dict to be used during loading when using DCP. As DCP operates in place, meaning that
-                the model should allocate its data first and DCP uses that storage instead.
-            load_options: dict containing options to be used by `distributed.checkpoint.state_dict_loader.load
+        if state_dict is None:
+            raise ValueError("When using DCPIO, `state_dict` must be provided for in-place loading.")
 
-        Returns: The loaded checkpoint.
+        if not is_local_path(path):
+            raise ValueError("DCPIO only supports local filesystem paths.")
 
-        Raises:
-            FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
-
-        """
-        # waits for checkpointing to finish if one exists
-        if self.checkpoint_future is not None:
-            self.checkpoint_future.result()
-
-        assert state_dict is not None, "When using DCPIO, `state_dict` must be provided to load the checkpoint."
-
-        # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(path)
         if not fs.exists(path):
-            raise FileNotFoundError(f"Checkpoint file not found: {path}")
+            raise FileNotFoundError(f"Checkpoint not found: {path}")
 
-        return _dcp_load(path, state_dict=state_dict, dcp_kwargs=load_options)
+        _dcp_load(path, state_dict=state_dict, dcp_kwargs=load_options)
+
+        # Lightning expects a checkpoint dict
+        return {"state_dict": state_dict}
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:
-        """Remove checkpoint file from the filesystem.
-
-        Args:
-            path: Path to checkpoint
-
-        """
-        # waits for checkpointing to finish if one exists
-        if self.checkpoint_future is not None:
-            self.checkpoint_future.result()
+        self._wait()
 
         fs = get_filesystem(path)
         if fs.exists(path):
@@ -150,71 +121,51 @@ class DCPIO(CheckpointIO):
             log.debug(f"Removed checkpoint: {path}")
 
     def teardown(self) -> None:
-        """This method is called to teardown the process."""
-        # waits for checkpointing to finish if one exists
-        if self.checkpoint_future is not None:
-            self.checkpoint_future.result()
+        self._wait()
 
 
-def _dcp_save(checkpoint: dict[str, Any], filepath: _PATH, dcp_kwargs: Optional[dict[str, Any]] = None) -> Future:
-    """Saves a checkpoint to a given filepath using torch.distributed.checkpoint.
-
-    Args:
-        checkpoint: The object to save.
-            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
-            accepts.
-        filepath: The path to which the checkpoint will be saved.
-            This points to the file that the checkpoint will be stored in.
-        dcp_kwargs: Additional keyword arguments to pass to ``torch.distributed.checkpoint.state_dict_saver.async_save``
-            if ``use_dcp=True``.
-
-    """
+def _dcp_save(
+    state_dict: dict[str, Any],
+    filepath: _PATH,
+    dcp_kwargs: Optional[dict[str, Any]] = None,
+) -> Future:
     if not _TORCH_GREATER_EQUAL_2_4:
-        raise ImportError("Using `torch.distributed.checkpoint` for saving checkpoints requires torch>=2.4.0.")
-    if dcp_kwargs is None:
-        dcp_kwargs = {}
+        raise ImportError("torch>=2.4.0 required for DCP.")
 
-    # only local filepaths are supported for now
-    assert is_local_path(filepath), "DCP save currently only supports local filepaths."
+    if not is_local_path(filepath):
+        raise ValueError("DCP save only supports local filesystem paths.")
 
     from torch.distributed.checkpoint import state_dict_saver
 
-    return state_dict_saver.async_save(checkpoint, filepath, **dcp_kwargs)
+    return state_dict_saver.async_save(state_dict, filepath, **(dcp_kwargs or {}))
 
 
 def _dcp_load(
     path_or_url: _PATH,
     state_dict: dict[str, Any],
     dcp_kwargs: Optional[dict[str, Any]] = None,
-) -> Any:
-    """Loads a checkpoint.
-
-    Args:
-        path_or_url: Path or URL of the checkpoint.
-        state_dict: The state dict to be used during loading when ``use_dcp=True``.
-        dcp_kwargs: Additional keyword arguments to be passed to ``torch.distributed.checkpoint.state_dict_loader.load``
-
-    """
+) -> None:
     if not _TORCH_GREATER_EQUAL_2_4:
-        raise ImportError("Using `torch.distributed.checkpoint` for loading checkpoints requires torch>=2.4.0.")
-    if state_dict is None:
-        raise ValueError("When using `use_dcp=True`, `state_dict` must be provided to load the checkpoint.")
-    if dcp_kwargs is None:
-        dcp_kwargs = {}
+        raise ImportError("torch>=2.4.0 required for DCP.")
+
+    if not isinstance(path_or_url, (str, Path)):
+        raise ValueError("DCP loading only supports filesystem paths.")
+
+    if str(path_or_url).startswith(("http://", "https://", "s3://", "gs://", "ftp://", "hdfs://")):
+        raise ValueError("Remote paths are not supported by DCPIO.")
+
+    if not os.path.exists(path_or_url):
+        raise FileNotFoundError(f"Checkpoint not found: {path_or_url}")
 
     from torch.distributed.checkpoint import state_dict_loader
 
-    if not isinstance(path_or_url, (str, Path)):
-        raise ValueError("DCP loading from non-path objects is not supported.")
-    if str(path_or_url).startswith(("http", "s3://", "gs://", "ftp://", "hdfs://")):
-        raise ValueError("Loading checkpoints from a URL with `use_dcp=True` is not supported.")
-
-    assert os.path.exists(path_or_url), f"Checkpoint file not found: {path_or_url}"
-
-    return state_dict_loader.load(state_dict=state_dict, checkpoint_id=path_or_url, **dcp_kwargs)
+    state_dict_loader.load(
+        state_dict=state_dict,
+        checkpoint_id=path_or_url,
+        **(dcp_kwargs or {}),
+    )
 
 
-def is_local_path(filepath: str) -> bool:
-    """Check if filepath is local filesystem."""
+def is_local_path(filepath: _PATH) -> bool:
     fs, _ = fsspec.core.url_to_fs(str(filepath))
     return fs.protocol in ("file", "local")
