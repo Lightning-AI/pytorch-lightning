@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-_LITLOGGER_AVAILABLE = RequirementCache("litlogger>=0.1.7")
+_LITLOGGER_AVAILABLE = RequirementCache("litlogger>=0.1.0")
 
 
 def _create_experiment_name() -> str:
