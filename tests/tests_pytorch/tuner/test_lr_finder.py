@@ -607,18 +607,21 @@ def test_lr_finder_with_early_stopping(tmp_path):
 
 
 def test_gradient_correctness():
-    """Test that torch.gradient uses correct spacing parameter."""
+    """Test that gradients are computed with log-spaced learning rates in exponential mode."""
     lr_finder = _LRFinder(mode="exponential", lr_min=1e-6, lr_max=1e-1, num_training=20)
 
-    # Synthetic example
-    lrs = torch.linspace(0, 2 * math.pi, steps=1000)
+    lrs = torch.logspace(-6, -1, steps=1000)
     losses = torch.sin(lrs)
     lr_finder.results = {"lr": lrs.tolist(), "loss": losses.tolist()}
 
-    # Test the suggestion method
     suggestion = lr_finder.suggestion(skip_begin=2, skip_end=2)
     assert suggestion is not None
-    assert abs(suggestion - math.pi) < 1e-2, "Suggestion should be close to pi for this synthetic example"
+
+    losses_t = torch.tensor(lr_finder.results["loss"][2:-2])
+    lrs_t = torch.tensor(lr_finder.results["lr"][2:-2])
+    gradients = torch.gradient(losses_t, spacing=[torch.log10(lrs_t)])[0]
+    expected_idx = torch.argmin(gradients).item() + 2
+    assert math.isclose(suggestion, lrs[expected_idx].item())
 
 
 def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
@@ -738,15 +741,12 @@ def test_exponential_vs_linear_mode_gradient_difference(tmp_path):
         lrs_filtered = lrs[is_finite]
 
         if len(losses_filtered) >= 2:
-            # Test that gradient computation works and produces finite results
-            gradients = torch.gradient(losses_filtered, spacing=[lrs_filtered])[0]
+            spacing = [torch.log10(lrs_filtered)] if mode == "exponential" else [lrs_filtered]
+            gradients = torch.gradient(losses_filtered, spacing=spacing)[0]
             assert torch.isfinite(gradients).all(), f"Non-finite gradients in {mode} mode"
             assert len(gradients) == len(losses_filtered)
 
-            # Verify gradients with spacing differ from gradients without spacing
             gradients_no_spacing = torch.gradient(losses_filtered)[0]
-
-            # For exponential mode, these should definitely be different, for linear mode, they might be similar
             if mode == "exponential":
                 assert not torch.allclose(gradients, gradients_no_spacing, rtol=0.1), (
                     "Gradients should differ significantly in exponential mode when using proper spacing"
