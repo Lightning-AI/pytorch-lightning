@@ -83,6 +83,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added Torch-Tensorrt integration with `LightningModule` ([#20808](https://github.com/Lightning-AI/pytorch-lightning/pull/20808))
 
 
+- Added `sub_dir` argument to `CSVLogger` ([#21045](https://github.com/Lightning-AI/pytorch-lightning/pull/21045))
+
+
 - Added time-based validation support though `val_check_interval` ([#21071](https://github.com/Lightning-AI/pytorch-lightning/pull/21071))
 
 

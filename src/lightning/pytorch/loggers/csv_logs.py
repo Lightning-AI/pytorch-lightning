@@ -80,6 +80,9 @@ class CSVLogger(Logger, FabricCSVLogger):
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+        sub_dir: Sub-directory to group CSV logs. If a ``sub_dir`` argument is passed
+            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
+            logs are saved in ``/root_dir/name/version/``.
 
     """
 
@@ -92,6 +95,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
+        sub_dir: Optional[_PATH] = None,
     ):
         super().__init__(
             root_dir=save_dir,
@@ -99,6 +103,7 @@ class CSVLogger(Logger, FabricCSVLogger):
             version=version,
             prefix=prefix,
             flush_logs_every_n_steps=flush_logs_every_n_steps,
+            sub_dir=sub_dir,
         )
         self._save_dir = os.fspath(save_dir)
 
@@ -124,7 +129,12 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, version)
+        log_dir = os.path.join(self.root_dir, version)
+        if isinstance(self.sub_dir, str):
+            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
+        return log_dir
 
     @property
     @override
