@@ -92,6 +92,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for variable batch size in `ThroughputMonitor` ([#20236](https://github.com/Lightning-AI/pytorch-lightning/pull/20236))
 
 
+- Added `Callback.on_checkpoint_write_end` hook that triggers after checkpoint files are fully written to disk ([#XXXXX](https://github.com/Lightning-AI/pytorch-lightning/pull/XXXXX))
+
+
 - Added `EMAWeightAveraging` callback that wraps Lightning's `WeightAveraging` class ([#21260](https://github.com/Lightning-AI/pytorch-lightning/pull/21260))
 
 

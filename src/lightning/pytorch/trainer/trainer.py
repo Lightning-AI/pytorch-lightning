@@ -1464,6 +1464,9 @@ class Trainer:
             self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
             self.strategy.barrier("Trainer.save_checkpoint")
 
+        call._call_callback_hooks(self, "on_checkpoint_write_end", filepath)
+        call._call_lightning_module_hook(self, "on_checkpoint_write_end", filepath)
+
     """
     State properties
     """
