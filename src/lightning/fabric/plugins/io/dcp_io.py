@@ -21,7 +21,6 @@ import fsspec
 from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
-from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import _PATH
@@ -51,7 +50,6 @@ class DCPIO(CheckpointIO):
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
-        self._state_dict: Optional[dict[str, Any]] = None
         self.checkpoint_future = None
 
         async_checkpointer_type = state_dict_saver.AsyncCheckpointerType(checkpointer_type.lower())
@@ -61,18 +59,6 @@ class DCPIO(CheckpointIO):
             "async_checkpointer_type": async_checkpointer_type,
             "planner": DefaultSavePlanner(enable_plan_caching=enable_plan_caching),
         }
-
-    @property
-    def state_dict(self) -> dict[str, Any]:
-        """Returns the state dict saved during the last save_checkpoint call."""
-        if self._state_dict is None:
-            raise ValueError("No state_dict is available. Please set `state_dict` first.")
-        return self._state_dict
-
-    @state_dict.setter
-    def state_dict(self, state_dict: dict[str, Any]) -> None:
-        """Sets the state dict to be used during loading."""
-        self._state_dict = state_dict
 
     @override
     def save_checkpoint(
@@ -108,6 +94,7 @@ class DCPIO(CheckpointIO):
         path: _PATH,
         map_location: Optional[Callable] = lambda storage, loc: storage,
         weights_only: Optional[bool] = None,
+        state_dict: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
@@ -122,6 +109,8 @@ class DCPIO(CheckpointIO):
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
                 This argument is currently not used when loading with DCP.
+            state_dict: The state dict to be used during loading when using DCP. As DCP operates in place, meaning that
+                the model should allocate its data first and DCP uses that storage instead.
             load_options: dict containing options to be used by `distributed.checkpoint.state_dict_loader.load
 
         Returns: The loaded checkpoint.
@@ -134,13 +123,14 @@ class DCPIO(CheckpointIO):
         if self.checkpoint_future is not None:
             self.checkpoint_future.result()
 
-        state_dict = self.state_dict  # ensure state_dict is set before loading
+        assert state_dict is not None, "When using DCPIO, `state_dict` must be provided to load the checkpoint."
+
         # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(path)
         if not fs.exists(path):
             raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
-        return pl_load(path, use_dcp=True, state_dict=state_dict, dcp_kwargs=load_options)
+        return _dcp_load(path, state_dict=state_dict, dcp_kwargs=load_options)
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:
