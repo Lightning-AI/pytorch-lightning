@@ -6,8 +6,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] - YYYY-MM-DD
+## [unreleased] - YYYY-MM-DD
 
+### Added
+
+-
+
+
+### Removed
+
+-
+
+
+### Changed
+
+-
+
+
+### Fixed
+
+-
+
+
+---
+
+## [2.6.1] - 2026-01-30
 
 ### Added
 
