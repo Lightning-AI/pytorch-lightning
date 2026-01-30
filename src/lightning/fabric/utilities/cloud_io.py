@@ -62,6 +62,7 @@ def _load(
                 f"Defaulting to `weights_only=False` for remote checkpoint: {path_or_url}."
                 f" If loading a checkpoint from an untrustted source, we recommend using `weights_only=True`."
             )
+
         return torch.hub.load_state_dict_from_url(
             str(path_or_url),
             map_location=map_location,  # type: ignore[arg-type]
