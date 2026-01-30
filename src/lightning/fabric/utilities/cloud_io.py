@@ -26,7 +26,6 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
@@ -36,9 +35,6 @@ def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
     weights_only: Optional[bool] = None,
-    use_dcp: bool = False,
-    state_dict: Optional[dict[str, Any]] = None,
-    dcp_kwargs: Optional[dict[str, Any]] = None,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -50,25 +46,10 @@ def _load(
             ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
             ``weights_only=True``. For more information, please refer to the
             `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
-        use_dcp: Whether to use ``torch.distributed.checkpoint`` to load the checkpoint.
-        state_dict: The state dict to be used during loading when ``use_dcp=True``.
-        dcp_kwargs: Additional keyword arguments to be passed to ``torch.distributed.checkpoint.state_dict_loader.load``
-            when ``use_dcp=True``.
 
     """
-    if use_dcp:
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError("Using `torch.distributed.checkpoint` for loading checkpoints requires torch>=2.4.0.")
-        if state_dict is None:
-            raise ValueError("When using `use_dcp=True`, `state_dict` must be provided to load the checkpoint.")
-        if dcp_kwargs is None:
-            dcp_kwargs = {}
-        from torch.distributed.checkpoint import state_dict_loader
-
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similar
-        if use_dcp:
-            return state_dict_loader.load(state_dict=state_dict, checkpoint_id=path_or_url, **dcp_kwargs)
         return torch.load(
             path_or_url,
             map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
@@ -81,8 +62,6 @@ def _load(
                 f"Defaulting to `weights_only=False` for remote checkpoint: {path_or_url}."
                 f" If loading a checkpoint from an untrustted source, we recommend using `weights_only=True`."
             )
-        if use_dcp:
-            raise ValueError("Loading checkpoints from a URL with `use_dcp=True` is not supported.")
         return torch.hub.load_state_dict_from_url(
             str(path_or_url),
             map_location=map_location,  # type: ignore[arg-type]
@@ -90,8 +69,6 @@ def _load(
         )
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
-        if use_dcp:
-            return state_dict_loader.load(state_dict=state_dict, checkpoint_id=f, **dcp_kwargs)
         return torch.load(
             f,
             map_location=map_location,  # type: ignore[arg-type]
