@@ -51,6 +51,9 @@ def _load(
             ``weights_only=True``. For more information, please refer to the
             `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
         use_dcp: Whether to use ``torch.distributed.checkpoint`` to load the checkpoint.
+        state_dict: The state dict to be used during loading when ``use_dcp=True``.
+        dcp_kwargs: Additional keyword arguments to be passed to ``torch.distributed.checkpoint.state_dict_loader.load``
+            when ``use_dcp=True``.
 
     """
     if use_dcp:
@@ -114,7 +117,6 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     """
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
-
     torch.save(checkpoint, bytesbuffer)
 
     try:
