@@ -101,9 +101,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(
-    checkpoint: dict[str, Any], filepath: _PATH, use_dcp: bool = False, dcp_kwargs: Optional[dict[str, Any]] = None
-) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -112,24 +110,12 @@ def _atomic_save(
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
-        use_dcp: Whether to use ``torch.distributed.checkpoint`` to save the checkpoint.
-        dcp_kwargs: Additional keyword arguments to pass to ``torch.distributed.checkpoint.state_dict_saver.async_save``
-            if ``use_dcp=True``.
 
     """
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
-    if use_dcp:
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError("Using `torch.distributed.checkpoint` for saving checkpoints requires torch>=2.4.0.")
-        if dcp_kwargs is None:
-            dcp_kwargs = {}
 
-        from torch.distributed.checkpoint import state_dict_saver
-
-        state_dict_saver.async_save(checkpoint, filepath, **dcp_kwargs)
-    else:
-        torch.save(checkpoint, bytesbuffer)
+    torch.save(checkpoint, bytesbuffer)
 
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted

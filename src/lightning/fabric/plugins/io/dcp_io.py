@@ -117,3 +117,29 @@ class DCPIO(CheckpointIO):
         if fs.exists(path):
             fs.rm(path, recursive=True)
             log.debug(f"Removed checkpoint: {path}")
+
+    def teardown(self) -> None:
+        """This method is called to teardown the process."""
+
+
+def _dcp_save(checkpoint: dict[str, Any], filepath: _PATH, dcp_kwargs: Optional[dict[str, Any]] = None) -> None:
+    """Saves a checkpoint to a given filepath using torch.distributed.checkpoint.
+
+    Args:
+        checkpoint: The object to save.
+            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
+            accepts.
+        filepath: The path to which the checkpoint will be saved.
+            This points to the file that the checkpoint will be stored in.
+        dcp_kwargs: Additional keyword arguments to pass to ``torch.distributed.checkpoint.state_dict_saver.async_save``
+            if ``use_dcp=True``.
+
+    """
+    if not _TORCH_GREATER_EQUAL_2_4:
+        raise ImportError("Using `torch.distributed.checkpoint` for saving checkpoints requires torch>=2.4.0.")
+    if dcp_kwargs is None:
+        dcp_kwargs = {}
+
+    from torch.distributed.checkpoint import state_dict_saver
+
+    state_dict_saver.async_save(checkpoint, filepath, **dcp_kwargs)
