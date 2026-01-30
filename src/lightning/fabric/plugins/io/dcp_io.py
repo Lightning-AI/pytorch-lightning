@@ -56,6 +56,8 @@ class DCPIO(CheckpointIO):
         checkpointer_type = checkpointer_type.lower()
         async_type = state_dict_saver.AsyncCheckpointerType(checkpointer_type)
 
+        # https://pytorch.org/blog/6x-faster-async-checkpointing/
+        # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
         self.dcp_kwargs = {
             "async_checkpointer_type": async_type,
             "planner": DefaultSavePlanner(enable_plan_caching=enable_plan_caching),
