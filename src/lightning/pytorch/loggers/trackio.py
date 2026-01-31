@@ -41,12 +41,21 @@ class TrackioLogger(Logger):
         resume: Resume behavior, one of 'never', 'allow', or 'must'. Defaults to 'allow'.
         **kwargs: Additional keyword arguments passed to `trackio.init()`.
 
+    Raises:
+        ModuleNotFoundError: If trackio is not installed.
+
     Example:
-        >>> from lightning.pytorch.loggers import TrackioLogger
-        >>> logger = TrackioLogger(project="my_project", name="my_experiment")
-        >>> logger.log_hyperparams({"epochs": 10, "optimizer": "Adam"})
-        >>> logger.log_metrics({"acc": 0.95})
-        >>> logger.finalize()
+        .. testcode::
+            :skipif: not _TRACKIO_AVAILABLE
+
+            from lightning.pytorch.loggers import TrackioLogger
+            from lightning.pytorch import Trainer
+
+            trackio_logger = TrackioLogger(
+                project="my_project",
+                name="my_experiment",
+            )
+            trainer = Trainer(max_epochs=10, logger=trackio_logger)
 
     """
 
@@ -55,7 +64,7 @@ class TrackioLogger(Logger):
         project: str,
         name: Optional[str] = None,
         resume: Literal["never", "allow", "must"] = "allow",
-        **kwargs,
+        **kwargs: Any,
     ):
         if not _TRACKIO_AVAILABLE:
             raise ModuleNotFoundError(str(_TRACKIO_AVAILABLE))
@@ -113,9 +122,12 @@ class TrackioLogger(Logger):
 
     @override
     @rank_zero_only
-    def finalize(self, *args, **kwargs) -> None:
-        if self._experiment is not None and not self.experiment._stop_flag.is_set():
+    def finalize(self, status: str) -> None:
+        self._finish_experiment()
+
+    def _finish_experiment(self) -> None:
+        if self.experiment is not None and not self.experiment._stop_flag.is_set():
             self.experiment.finish()
 
-    def __del__(self):
-        self.finalize()
+    def __del__(self) -> None:
+        self._finish_experiment()
