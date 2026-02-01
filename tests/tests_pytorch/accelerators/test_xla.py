@@ -346,7 +346,7 @@ def test_tpu_device_name_exception(tpu_available, monkeypatch):
         ("2,", [2]),
     ],
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 
