@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 from typing_extensions import Self, TypeGuard, override
@@ -210,20 +209,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     else:
         op = reduce_op
 
-    # HPU doesn't support Long types, forcefully set it to float
-    # TODO: move this to the `lightning_habana` package
-    if (
-        package_available("habana_frameworks")
-        and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        and result.type()
-        in (
-            "torch.LongTensor",
-            "torch.hpu.LongTensor",
-        )
-    ):
-        rank_zero_info("Long tensor unsupported on HPU, casting to float")
-        result = result.float()
-
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
@@ -386,6 +371,14 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+    @override
+    def set_epoch(self, epoch: int) -> None:
+        super().set_epoch(epoch)
+        # Forward set_epoch to the original sampler if it supports it
+        original_sampler = self.dataset._sampler
+        if hasattr(original_sampler, "set_epoch") and callable(original_sampler.set_epoch):
+            original_sampler.set_epoch(epoch)
 
 
 def _suggested_max_num_threads(num_processes: int = 1) -> int:

@@ -87,6 +87,9 @@ class ThroughputMonitor(Callback):
         self._throughputs: dict[RunningStage, Throughput] = {}
         self._t0s: dict[RunningStage, float] = {}
         self._lengths: dict[RunningStage, int] = {}
+        self._samples: dict[RunningStage, int] = {}
+        self._batches: dict[RunningStage, int] = {}
+        self._module_has_flops: bool | None = None
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
@@ -106,8 +109,15 @@ class ThroughputMonitor(Callback):
     def _start(self, trainer: "Trainer") -> None:
         stage = trainer.state.stage
         assert stage is not None
-        self._throughputs[stage].reset()
-        self._lengths[stage] = 0
+
+        reset_needed = trainer.state.fn == TrainerFn.FITTING or stage not in self._samples
+
+        if reset_needed:
+            self._throughputs[stage].reset()
+            self._lengths[stage] = 0
+            self._samples[stage] = 0
+            self._batches[stage] = 0
+
         self._t0s[stage] = time.perf_counter()
 
     @torch.inference_mode()  # in case `length_fn` or `batch_size_fn` computes grads
@@ -124,21 +134,24 @@ class ThroughputMonitor(Callback):
         if self.length_fn is not None:
             self._lengths[stage] += self.length_fn(batch)
 
-        if hasattr(pl_module, "flops_per_batch"):
-            flops_per_batch = pl_module.flops_per_batch
-        else:
-            rank_zero_warn(
-                "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
-                f" in {type(pl_module).__name__} to compute the FLOPs."
-            )
-            flops_per_batch = None
+        if self._module_has_flops is None:
+            self._module_has_flops = hasattr(pl_module, "flops_per_batch")
+            if not self._module_has_flops:
+                rank_zero_warn(
+                    "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
+                    f" in {type(pl_module).__name__} to compute the FLOPs."
+                )
 
-        batch_size = self.batch_size_fn(batch)
+        flops_per_batch = pl_module.flops_per_batch if self._module_has_flops else None
+
+        self._samples[stage] += self.batch_size_fn(batch)
+        self._batches[stage] += 1
+
         throughput.update(
             time=elapsed,
-            batches=iter_num,
+            batches=self._batches[stage],
             # this assumes that all iterations used the same batch size
-            samples=iter_num * batch_size,
+            samples=self._samples[stage],
             lengths=None if self.length_fn is None else self._lengths[stage],
             flops=flops_per_batch,  # type: ignore[arg-type]
         )
@@ -193,10 +206,17 @@ class ThroughputMonitor(Callback):
     def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
             return
+
+        train_times = self._throughputs[RunningStage.TRAINING]._time
+        val_times = self._throughputs[RunningStage.VALIDATING]._time
+
+        train_elapsed = train_times[-1] if train_times else 0.0
+        val_elapsed = val_times[-1] if val_times else 0.0
+
         # add the validation time to the training time before continuing to avoid sinking the training throughput
-        training_finished = self._t0s[RunningStage.TRAINING] + sum(self._throughputs[RunningStage.TRAINING]._time)
+        training_finished = self._t0s[RunningStage.TRAINING] + train_elapsed
         time_between_train_and_val = self._t0s[RunningStage.VALIDATING] - training_finished
-        val_time = sum(self._throughputs[RunningStage.VALIDATING]._time)
+        val_time = val_elapsed
         self._t0s[RunningStage.TRAINING] += time_between_train_and_val + val_time
 
     @override
