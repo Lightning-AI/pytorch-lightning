@@ -59,3 +59,34 @@ def test_uses_batches_that_stepped(mock_convert):
     )
     logger.save.assert_called_once_with()
     mock_convert.return_value.setdefault.assert_called_once_with("epoch", trainer.current_epoch)
+
+
+@patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
+def test_logging_mode_is_exposed_to_loggers(mock_convert):
+    class LoggingModeLogger(Logger):
+        def __init__(self) -> None:
+            super().__init__()
+            self.modes = []
+
+        @property
+        def name(self) -> str:
+            return "logging-mode"
+
+        @property
+        def version(self) -> str:
+            return "0"
+
+        def log_metrics(self, metrics, step=None) -> None:
+            self.modes.append(self.logging_mode)
+
+        def log_hyperparams(self, params, *args, **kwargs) -> None:
+            pass
+
+    trainer = MagicMock(spec=Trainer)
+    trainer.loggers = [logger := LoggingModeLogger()]
+    connector = _LoggerConnector(trainer)
+    mock_convert.return_value.pop.return_value = None
+
+    connector.log_metrics({"some_metric": 123}, step=1, logging_mode="step")
+
+    assert logger.modes == ["step"]
