@@ -207,7 +207,13 @@ def test_simple_profiler_uses_math_fsum(monkeypatch):
 
     monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
 
+    # Test non-extended report
     profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
     assert fsum_calls == [[1.0, 2.0, 3.0]]
 
 
