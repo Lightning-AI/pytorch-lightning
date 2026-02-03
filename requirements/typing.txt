@@ -1,4 +1,4 @@
-torch==2.9.1
+torch==2.10.0
 mypy==1.19.1
 
 types-Markdown
