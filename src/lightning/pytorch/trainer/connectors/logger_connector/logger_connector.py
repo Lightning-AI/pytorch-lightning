@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
@@ -138,10 +139,8 @@ class _LoggerConnector:
                 logger.save()
             finally:
                 if logging_mode_set:
-                    try:
+                    with contextlib.suppress(AttributeError):
                         setattr(logger, "_logging_mode", previous_logging_mode)
-                    except AttributeError:
-                        pass
 
     """
     Evaluation metric updates
