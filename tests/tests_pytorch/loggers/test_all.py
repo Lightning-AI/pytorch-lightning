@@ -28,6 +28,7 @@ from lightning.pytorch.loggers import (
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
+    TrackioLogger,
     WandbLogger,
 )
 from lightning.pytorch.loggers.logger import DummyExperiment, Logger
@@ -44,8 +45,9 @@ ALL_LOGGER_CLASSES = (
     NeptuneLogger,
     TensorBoardLogger,
     WandbLogger,
+    TrackioLogger,
 )
-ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
+ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls not in (NeptuneLogger, TrackioLogger), ALL_LOGGER_CLASSES))
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -60,6 +62,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(mode="offline")
     if issubclass(logger_class, CometLogger):
         logger_args.update(online=False)
+    if issubclass(logger_class, TrackioLogger):
+        logger_args.update(project="test")
     return logger_args
 
 
@@ -72,7 +76,16 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 @mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path, monkeypatch):
+def test_loggers_fit_test_all(
+    logger_class,
+    mlflow_mock,
+    wandb_mock,
+    comet_mock,
+    neptune_mock,
+    trackio_mock,
+    tmp_path,
+    monkeypatch,
+):
     """Verify that basic functionality of all loggers."""
     monkeypatch.chdir(tmp_path)
 
@@ -127,9 +140,10 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
         limit_train_batches=1,
         limit_val_batches=1,
         log_every_n_steps=1,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
-    trainer.test()
+    trainer.test(model)
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
@@ -288,7 +302,7 @@ def _test_logger_initialization(tmp_path, logger_class):
 
 @mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
-def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path):
+def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path, trackio_mock):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 

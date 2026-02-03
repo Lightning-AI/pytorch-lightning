@@ -201,6 +201,41 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.WandbLo
 
 ----
 
+Trackio
+=======
+To use huggingface's `trackio <https://huggingface.co/docs/trackio/en/index>`_, first install the trackio package:
+
+.. code-block:: bash
+
+    pip install trackio
+
+Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from lightning.pytorch.loggers import TrackioLogger
+
+    logger = TrackioLogger(project="my_exp")
+    trainer = Trainer(logger=logger)
+
+Access the Trackio logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            trackio_logger = self.logger.experiment
+
+            fake_images = torch.randint(0, 256, (256, 256, 3), dtype=torch.uint8).numpy()
+            trackio_logger.log({
+                "image": trackio.Image(value=fake_image)
+            })
+
+Here's the full documentation for the :class:`~lightning.pytorch.loggers.TrackioLogger`.
+
+
+----
+
 Use multiple exp managers
 =========================
 To use multiple experiment managers at the same time, pass a list to the *logger* :class:`~lightning.pytorch.trainer.trainer.Trainer` argument.
