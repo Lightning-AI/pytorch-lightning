@@ -100,7 +100,7 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     try:
         # Get the filesystem backend and path
         fs, urlpath = fsspec.core.url_to_fs(str(filepath))
-        
+
         # Use fs.pipe() for optimized cloud uploads with multipart support
         # This is significantly faster than f.write() for cloud storage (GCS, S3, Azure)
         # as it allows the backend to use parallel uploads and optimized single-shot requests
