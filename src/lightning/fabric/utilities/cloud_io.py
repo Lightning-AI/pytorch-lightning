@@ -98,10 +98,19 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     torch.save(checkpoint, bytesbuffer)
 
     try:
-        # We use a transaction here to avoid file corruption if the save gets interrupted
+        # Get the filesystem backend and path
         fs, urlpath = fsspec.core.url_to_fs(str(filepath))
-        with fs.transaction, fs.open(urlpath, "wb") as f:
-            f.write(bytesbuffer.getvalue())
+
+        # Use fs.pipe() for optimized cloud uploads with multipart support
+        # This is significantly faster than f.write() for cloud storage (GCS, S3, Azure)
+        # as it allows the backend to use parallel uploads and optimized single-shot requests
+        if _is_object_storage(fs):
+            fs.pipe(urlpath, bytesbuffer.getvalue())
+        else:
+            # For local filesystems, use the traditional transaction approach
+            # to ensure atomicity across devices
+            with fs.transaction, fs.open(urlpath, "wb") as f:
+                f.write(bytesbuffer.getvalue())
     except PermissionError as e:
         if isinstance(e.__context__, OSError) and getattr(e.__context__, "errno", None) == errno.EXDEV:
             raise RuntimeError(
