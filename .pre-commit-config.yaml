@@ -64,12 +64,12 @@ repos:
         args: ["--in-place"]
 
   - repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v1.0.0
+    rev: v1.0.2
     hooks:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.3
+    rev: v0.14.10
     hooks:
       # try to fix what is possible
       - id: ruff
@@ -95,7 +95,7 @@ repos:
           )$
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.6.2
+    rev: v3.7.4
     hooks:
       - id: prettier
         # https://prettier.io/docs/en/options.html#print-width
