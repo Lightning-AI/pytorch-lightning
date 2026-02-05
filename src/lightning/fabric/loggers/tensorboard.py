@@ -18,7 +18,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import numpy as np
-
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
