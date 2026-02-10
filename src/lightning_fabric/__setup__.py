@@ -43,7 +43,7 @@ def _prepare_extras() -> dict[str, Any]:
         if p.name not in ("docs.txt", "base.txt")
     }
     for req_str in extras["strategies"]:
-        clean_req = req_str.split(" #")[0].strip()  # strip comments not valid in PEP 508
+        clean_req = req_str.split(" #")[0].strip()
         req = Requirement(clean_req)
         extras[req.name.lower()] = [clean_req]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
