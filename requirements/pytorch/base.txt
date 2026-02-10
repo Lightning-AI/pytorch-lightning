@@ -8,6 +8,5 @@ fsspec[http] >=2022.5.0, <2026.2.0
 torchmetrics >0.7.0, <1.9.0
 packaging >=23.0, <=25.0
 typing-extensions >4.5.0, <4.16.0
-# TODO: Pin to new version once released - use git URL for setuptools>=82, otherwise use stable version
-lightning-utilities >=0.10.0, <0.16.0 ; setuptools<82
-lightning-utilities @ git+https://github.com/bhimrazy/utilities.git@fix/remove-pkg-resources ; setuptools>=82
+# TODO: Revert to stable version once lightning-utilities >0.15.0 is released
+lightning-utilities @ git+https://github.com/bhimrazy/utilities.git@fix/remove-pkg-resources
