@@ -1044,9 +1044,11 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
 
 
 def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(cleandir):
-    with mock.patch("sys.argv", ["any.py", "--trainer.max_epochs=1", "--model=TestModelSaveHparams"]):
+    with mock.patch(
+        "sys.argv", ["any.py", "--trainer.max_epochs=1", "--model=TestModelSaveHparams", "--data=TestDataSaveHparams"]
+    ):
         cli = LightningCLI(TestModelSaveHparams, run=False, auto_configure_optimizers=False, subclass_mode_model=True)
-    cli.trainer.fit(cli.model)
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
     expected_keys = ["_class_path", "_instantiator", "activation", "optimizer", "scheduler"]
     expected_instantiator = "lightning.pytorch.cli.instantiate_module"
@@ -1057,7 +1059,9 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
     assert checkpoint_path.is_file()
-    hparams = torch.load(checkpoint_path, weights_only=True)["hyper_parameters"]
+    loaded_checkpoint = torch.load(checkpoint_path, weights_only=True)
+    hparams = loaded_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    dm_hparams = loaded_checkpoint[LightningDataModule.CHECKPOINT_HYPER_PARAMS_KEY]
 
     assert sorted(hparams.keys()) == expected_keys
     assert hparams["_instantiator"] == expected_instantiator
@@ -1073,6 +1077,23 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
     optimizer, lr_scheduler = model.configure_optimizers().values()
     assert isinstance(optimizer, torch.optim.Adam)
     assert isinstance(lr_scheduler, torch.optim.lr_scheduler.ConstantLR)
+
+    dm_expected_keys = ["_class_path", "_instantiator", "batch_size", "num_workers"]
+    dm_expected_instantiator = "lightning.pytorch.cli.instantiate_module"
+    dm_expected_class_path = f"{__name__}.TestDataSaveHparams"
+    dm_expected_batch_size = 32
+    dm_expected_num_workers = 4
+
+    assert sorted(dm_hparams.keys()) == dm_expected_keys
+    assert dm_hparams["_instantiator"] == dm_expected_instantiator
+    assert dm_hparams["_class_path"] == dm_expected_class_path
+    assert dm_hparams["batch_size"] == dm_expected_batch_size
+    assert dm_hparams["num_workers"] == dm_expected_num_workers
+
+    dm = LightningDataModule.load_from_checkpoint(checkpoint_path)
+    assert isinstance(dm, TestDataSaveHparams)
+    assert dm.batch_size == dm_expected_batch_size
+    assert dm.num_workers == dm_expected_num_workers
 
 
 class TestModelSaveHparamsUntyped(BoringModel):
@@ -1258,7 +1279,7 @@ def test_lightning_cli_model_short_arguments():
     ):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]),
@@ -1286,7 +1307,7 @@ def test_lightning_cli_datamodule_short_arguments():
     ):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]),
@@ -1307,7 +1328,7 @@ def test_lightning_cli_datamodule_short_arguments():
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY, ANY)
 
     with (
         mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]),
@@ -1483,7 +1504,7 @@ def test_lightning_cli_config_with_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1499,7 +1520,7 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1512,7 +1533,7 @@ def test_lightning_cli_config_before_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=None)
     assert cli.trainer.limit_val_batches == 1
 
     save_config_callback = cli.trainer.callbacks[0]
@@ -1530,7 +1551,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
     with (
@@ -1539,7 +1560,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ):
         cli = LightningCLI(BoringModel)
 
-    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo", weights_only=None)
     assert cli.trainer.limit_val_batches == 1
 
 
@@ -1551,7 +1572,7 @@ def test_lightning_cli_config_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar", weights_only=None)
     assert cli.trainer.limit_test_batches == 1
 
 
@@ -1564,7 +1585,9 @@ def test_lightning_cli_config_before_and_after_subcommand():
     ):
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar")
+    test_mock.assert_called_once_with(
+        cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar", weights_only=None
+    )
     assert cli.trainer.limit_test_batches == 1
     assert cli.trainer.fast_dev_run == 1
 

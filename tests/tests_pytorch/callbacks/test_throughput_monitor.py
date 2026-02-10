@@ -1,3 +1,4 @@
+import warnings
 from unittest import mock
 from unittest.mock import ANY, Mock, call
 
@@ -420,3 +421,93 @@ def test_throughput_monitor_variable_batch_size_with_validation(tmp_path):
             train_samples.append(metrics["train/samples"])
         elif "train|samples" in metrics:
             train_samples.append(metrics["train|samples"])
+
+
+def test_throughput_monitor_validation_with_many_epochs(tmp_path):
+    """Ensure ThroughputMonitor handles many epochs with validation and time increases monotonically."""
+
+    logger_mock = Mock()
+    logger_mock.save_dir = tmp_path
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)
+    model = BoringModel()
+    model.flops_per_batch = 10
+    num_epochs = 100
+
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=[monitor],
+        max_epochs=num_epochs,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        log_every_n_steps=1,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    timings = []
+    t = 0.0
+    for _ in range(num_epochs):
+        timings += [
+            t,  # train batch 1 start
+            t + 3.0,  # train batch 1 end and start batch 2
+            t + 6.0,  # train batch 2 end
+            t + 7.0,  # val start
+            t + 8.0,  # val end
+        ]
+        t += 10.0
+
+    with mock.patch("time.perf_counter", side_effect=timings):
+        try:
+            trainer.fit(model)
+        except Exception as e:
+            pytest.fail(f"ThroughputMonitor raised an unexpected exception: {e}")
+
+    start_train_timings_idx, end_train_timings_idx = 0, 1
+    batch_num = 1
+    cur_train = timings[end_train_timings_idx] - timings[start_train_timings_idx]
+    for c in logger_mock.log_metrics.mock_calls:
+        metrics = getattr(c, "kwargs", None) or {}
+        metrics = metrics.get("metrics", metrics)
+        for k, v in metrics.items():
+            if k.endswith("train/time"):
+                assert v == cur_train, f"Expected train/time {cur_train}, got {v}"
+                if batch_num == 1:
+                    start_train_timings_idx += 1
+                    end_train_timings_idx += 1
+                    batch_num = 2
+                else:
+                    start_train_timings_idx += 3
+                    end_train_timings_idx += 3
+                    batch_num = 1
+                if end_train_timings_idx < len(timings):
+                    cur_train += timings[end_train_timings_idx] - timings[start_train_timings_idx]
+
+
+def test_throughput_monitor_warn_once():
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)
+    model = BoringModel()
+
+    trainer = Trainer(
+        devices=1,
+        logger=False,
+        callbacks=[monitor],
+        max_epochs=1,
+        limit_train_batches=2,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        trainer.fit(model)
+
+    throughput_warnings = [
+        warn
+        for warn in w
+        if "When using the `ThroughputMonitor`, you need to define a `flops_per_batch`" in warn.message.args[0]
+    ]
+
+    assert len(throughput_warnings) == 1, "Expected exactly one warning about missing `flops_per_batch`."

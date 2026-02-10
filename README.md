@@ -7,7 +7,7 @@
 
 **The deep learning framework to pretrain and finetune AI models.**
 
-**Deploying models?** Check out [LitServe](https://github.com/Lightning-AI/litserve?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme), the PyTorch Lightning for inference engines
+**Serving models?** Use [LitServe](https://github.com/Lightning-AI/litserve?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) to build custom inference servers in pure Python.
 
 ______________________________________________________________________
 
@@ -55,20 +55,16 @@ ______________________________________________________________________
 
 &nbsp;
 
-# Looking for GPUs?
-Over 340,000 developers use [Lightning Cloud](https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) - purpose-built for PyTorch and PyTorch Lightning. 
-- [GPUs](https://lightning.ai/pricing?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) from $0.19.   
-- [Clusters](https://lightning.ai/clusters?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): frontier-grade training/inference clusters.   
-- [AI Studio (vibe train)](https://lightning.ai/studios?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): workspaces where AI helps you debug, tune and vibe train.
-- [AI Studio (vibe deploy)](https://lightning.ai/studios?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): workspaces where AI helps you optimize, and deploy models.     
-- [Notebooks](https://lightning.ai/notebooks?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): Persistent GPU workspaces where AI helps you code and analyze.
-- [Inference](https://lightning.ai/deploy?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme): Deploy models as inference APIs.   
-
+<a id="why-pytorch-lightning"></a>
 # Why PyTorch Lightning?   
-
-Training models in plain PyTorch is tedious and error-prone - you have to manually handle things like backprop, mixed precision, multi-GPU, and distributed training, often rewriting code for every new project. PyTorch Lightning organizes PyTorch code to automate those complexities so you can focus on your model and data, while keeping full control and scaling from CPU to multi-node without changing your core code. But if you want control of those things, you can still opt into [expert-level control](#lightning-fabric-expert-contro).   
+Training models in plain PyTorch requires writing and maintaining a lot of repetitive engineering code. Handling backpropagation, mixed precision, multi-GPU, and distributed training is error-prone and often reimplemented for every project. PyTorch Lightning organizes PyTorch code to automate this infrastructure while keeping full control over your model logic. You write the science. Lightning handles the engineering, and scales from CPU to multi-node GPUs without changing your core code. PyTorch experts can still opt into [expert-level control](#lightning-fabric-expert-control).   
 
 Fun analogy: If PyTorch is Javascript, PyTorch Lightning is ReactJS or NextJS.
+
+# Looking for GPUs?
+[Lightning Cloud](https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) is the easiest way to run PyTorch Lightning without managing infrastructure. Start training with one command and get GPUs, autoscaling, monitoring, and a free tier. No cloud setup required.
+
+You can also run PyTorch Lightning on your own hardware or cloud.
 
 # Lightning has 2 core packages
 
@@ -215,7 +211,7 @@ Explore various types of training possible with PyTorch Lightning. Pretrain and 
 
 | Task | Description | Run |
 |------|--------------|-----|
-| [Hello world](#hello-simple-model) | Pretrain - Hello world example | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Hello world](https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Pretrain - Hello world example | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
 | [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - ResNet-34 model to classify images of cars | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
 | [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - ResNet-50 model to segment images | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
 | [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme) | Finetune - Faster R-CNN model to detect objects | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
@@ -280,6 +276,9 @@ trainer = Trainer(precision=16)
 
 ```python
 from lightning import loggers
+
+# litlogger
+trainer = Trainer(logger=LitLogger())
 
 # tensorboard
 trainer = Trainer(logger=TensorBoardLogger("logs/"))

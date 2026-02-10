@@ -64,7 +64,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -1390,21 +1390,24 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def freeze(self) -> None:
+    def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
-        Example::
+        .. code-block:: python
 
             model = MyLightningModule(...)
             model.freeze()
+
+        Returns:
+            :class:`LightningModule` with all parameters frozen.
 
         """
         for param in self.parameters():
             param.requires_grad = False
 
-        self.eval()
+        return self.eval()
 
-    def unfreeze(self) -> None:
+    def unfreeze(self) -> Self:
         """Unfreeze all parameters for training.
 
         .. code-block:: python
@@ -1412,11 +1415,14 @@ class LightningModule(
             model = MyLightningModule(...)
             model.unfreeze()
 
+        Returns:
+            :class:`LightningModule` self with all parameters unfrozen.
+
         """
         for param in self.parameters():
             param.requires_grad = True
 
-        self.train()
+        return self.train()
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
@@ -1498,6 +1504,11 @@ class LightningModule(
         scripted you should override this method. In case you want to return multiple modules, we recommend using a
         dictionary.
 
+        .. deprecated::
+            ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
+            TorchScript is deprecated in PyTorch. Use ``torch.export.export()`` for model exporting instead.
+            See https://pytorch.org/docs/stable/export.html for more information.
+
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
@@ -1536,6 +1547,11 @@ class LightningModule(
             defined or not.
 
         """
+        rank_zero_deprecation(
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
+            "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
+            "See https://pytorch.org/docs/stable/export.html for more information."
+        )
         mode = self.training
 
         if method == "script":
@@ -1690,6 +1706,7 @@ class LightningModule(
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
         strict: Optional[bool] = None,
+        weights_only: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1723,6 +1740,11 @@ class LightningModule(
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Defaults to ``True`` unless ``LightningModule.strict_loading`` is
                 set, in which case it defaults to the value of ``LightningModule.strict_loading``.
+            weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other
+                primitive types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+                ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+                ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -1778,6 +1800,7 @@ class LightningModule(
             map_location,
             hparams_file,
             strict,
+            weights_only,
             **kwargs,
         )
         return cast(Self, loaded)
