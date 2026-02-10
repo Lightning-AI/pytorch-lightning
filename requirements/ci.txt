@@ -7,5 +7,3 @@ wget
 pkginfo ==1.12.1.2
 packaging <25.1
 tomlkit
-
-# trigegr ci
