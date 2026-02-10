@@ -5,7 +5,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from pkg_resources import parse_requirements
+from packaging.requirements import Requirement
 from setuptools import find_packages
 
 _PROJECT_ROOT = "."
@@ -42,8 +42,10 @@ def _prepare_extras() -> dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt")
     }
-    for req in parse_requirements(extras["strategies"]):
-        extras[req.key] = [str(req)]
+    for req_str in extras["strategies"]:
+        clean_req = req_str.split(" #")[0].strip()
+        req = Requirement(clean_req)
+        extras[req.name.lower()] = [clean_req]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
