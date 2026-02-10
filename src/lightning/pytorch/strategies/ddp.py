@@ -484,6 +484,19 @@ class MultiModelDDPStrategy(DDPStrategy):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
+    @classmethod
+    @override
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
+        entries = (
+            ("multi_model_ddp", "popen"),
+        )
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"MultiModelDDP strategy with `start_method` '{start_method}'",
+                start_method=start_method,
+            )
 
 class _DDPForwardRedirection(_ForwardRedirection):
     @override

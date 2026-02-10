@@ -19,6 +19,7 @@ tensorboard --logdir default
 
 """
 
+import os
 import math
 from argparse import ArgumentParser, Namespace
 
@@ -192,13 +193,13 @@ class GAN(LightningModule):
         return opt_g, opt_d
 
     def on_train_epoch_end(self):
-        z = self.validation_z.type_as(self.generator.model[0].weight)
+        z = self.validation_z.type_as(self.generator.module.model[0].weight)
 
         # log sampled images
         sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
-        for logger in self.loggers:
-            logger.experiment.add_image("generated_images", grid, self.current_epoch)
+        path = os.path.join(self.trainer.log_dir, f"epoch_{self.current_epoch:04d}.png")
+        torchvision.utils.save_image(grid.cpu(), path)
 
 
 def main(args: Namespace) -> None:
@@ -218,7 +219,7 @@ def main(args: Namespace) -> None:
         # 1) Activate `find_unused_parameters` option
         # 2) change from self.manual_backward(loss) to loss.backward()
         # Neither of them is desirable.
-        trainer = Trainer(accelerator="gpu", devices=-1, strategy=MultiModelDDPStrategy())
+        trainer = Trainer(accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy())
     else:
         # If you want to run on a single GPU, you can use the default strategy.
         trainer = Trainer(accelerator="gpu", devices=1)
