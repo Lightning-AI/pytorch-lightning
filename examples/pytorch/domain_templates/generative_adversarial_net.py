@@ -19,8 +19,8 @@ tensorboard --logdir default
 
 """
 
-import os
 import math
+import os
 from argparse import ArgumentParser, Namespace
 
 import torch

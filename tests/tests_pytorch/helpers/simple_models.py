@@ -20,7 +20,8 @@ from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
 from lightning.pytorch import LightningModule
-from .advanced_models import Generator, Discriminator
+
+from .advanced_models import Discriminator, Generator
 
 # using new API with task
 _TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")

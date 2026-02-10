@@ -487,9 +487,7 @@ class MultiModelDDPStrategy(DDPStrategy):
     @classmethod
     @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        entries = (
-            ("multi_model_ddp", "popen"),
-        )
+        entries = (("multi_model_ddp", "popen"),)
         for name, start_method in entries:
             strategy_registry.register(
                 name,
@@ -497,6 +495,7 @@ class MultiModelDDPStrategy(DDPStrategy):
                 description=f"MultiModelDDP strategy with `start_method` '{start_method}'",
                 start_method=start_method,
             )
+
 
 class _DDPForwardRedirection(_ForwardRedirection):
     @override

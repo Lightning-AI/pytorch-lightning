@@ -18,11 +18,10 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import lightning.pytorch as pl
-import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import MultiModelDDPStrategy
-from lightning.pytorch.callbacks import Callback, EarlyStopping
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.trainer import seed_everything
 from tests_pytorch.helpers.datamodules import MNISTDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -33,7 +32,9 @@ from tests_pytorch.helpers.simple_models import GenerationModel
 def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
     dm = MNISTDataModule()
     model = GenerationModel()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
+    )
     trainer.fit(model, datamodule=dm)
 
 
@@ -41,7 +42,9 @@ def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
 def test_multi_gpu_with_multi_model_ddp_test_only(tmp_path):
     dm = MNISTDataModule()
     model = GenerationModel()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
+    )
     trainer.test(model, datamodule=dm)
 
 
@@ -50,7 +53,9 @@ def test_multi_gpu_multi_model_ddp_fit_test(tmp_path):
     seed_everything(4321)
     dm = MNISTDataModule()
     model = GenerationModel()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy())
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
+    )
 
     before = trainer.test(model, datamodule=dm)
     trainer.fit(model, datamodule=dm)
