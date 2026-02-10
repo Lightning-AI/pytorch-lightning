@@ -14,7 +14,7 @@
 
 [build-system]
 requires = [
-    "setuptools<82",
+    "setuptools",
     "wheel",
     "packaging",
 ]
