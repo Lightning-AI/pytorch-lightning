@@ -103,7 +103,7 @@ jobs:
           uv pip install "cython<3.0" wheel
           uv pip install "pyyaml==5.4" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
-          uv pip install -r requirements/ci.txt
+          uv pip install -U -r requirements/ci.txt
           python .actions/assistant.py prune_pytest_as_errors
 
       - name: Adjust PyTorch versions in requirements files
