@@ -16,12 +16,14 @@ import operator
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import compare_version
+from torch.utils.data import DataLoader
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
 from lightning.pytorch import LightningModule
 
 from .advanced_models import Discriminator, Generator
+from .datasets import MNIST
 
 # using new API with task
 _TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")
@@ -130,7 +132,7 @@ class RegressionModel(LightningModule):
 
 
 class GenerationModel(LightningModule):
-    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.001, b1: float = 0.5, b2: float = 0.999):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0002, b1: float = 0.5, b2: float = 0.999):
         super().__init__()
         self.automatic_optimization = False
         self.hidden_dim = hidden_dim
@@ -168,18 +170,18 @@ class GenerationModel(LightningModule):
         # sample noise
         z = torch.randn(imgs.shape[0], self.hidden_dim, device=imgs.device, dtype=imgs.dtype)
 
+        valid = torch.ones(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+        fake = torch.zeros(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+
         # train generator
         self.toggle_optimizer(optimizer1)
         self.generated_imgs = self.generator(z)
 
-        valid = torch.ones(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
-        fake = torch.zeros(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
-
         # adversarial loss is binary cross-entropy
         g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
+        optimizer1.zero_grad()
         self.manual_backward(g_loss)
         optimizer1.step()
-        optimizer1.zero_grad()
         self.untoggle_optimizer(optimizer1)
 
         # train discriminator
@@ -189,9 +191,9 @@ class GenerationModel(LightningModule):
 
         # discriminator loss is the average of these
         d_loss = (real_loss + fake_loss) / 2
+        optimizer2.zero_grad()
         self.manual_backward(d_loss)
         optimizer2.step()
-        optimizer2.zero_grad()
         self.untoggle_optimizer(optimizer2)
 
         self.log("train/g_loss", g_loss, prog_bar=True, logger=True)
@@ -218,11 +220,6 @@ class GenerationModel(LightningModule):
         self.log("valid/g_loss", g_loss)
         self.log("valid/d_loss", d_loss)
 
-        return {
-            "valid/g_loss": g_loss.detach(),
-            "valid/d_loss": d_loss.detach(),
-        }
-
     def test_step(self, batch, batch_idx):
         imgs, _ = batch
         imgs = imgs.type_as(next(self.generator.parameters()))
@@ -247,7 +244,11 @@ class GenerationModel(LightningModule):
         self.log("test/g_loss", g_loss)
         self.log("test/d_loss", d_loss)
 
-        return {
-            "test/g_loss": g_loss.detach(),
-            "test/d_loss": d_loss.detach(),
-        }
+    def train_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=True), 32)
+
+    def val_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=False), 32)
+
+    def test_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=False), 32)
