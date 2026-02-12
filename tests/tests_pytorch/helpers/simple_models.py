@@ -16,8 +16,8 @@ import operator
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import compare_version
-from torch.utils.data import DataLoader
 from torch import nn
+from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanSquaredError
 
 from lightning.pytorch import LightningModule

@@ -28,8 +28,6 @@ from tests_pytorch.helpers.datamodules import MNISTDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import GenerationModel
 
-from ..helpers.advanced_models import Generator, Discriminator
-
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=False)
 def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
@@ -64,8 +62,8 @@ def test_multi_gpu_multi_model_ddp_fit_test(tmp_path):
     trainer.fit(model, datamodule=dm)
     after = trainer.test(model, datamodule=dm)
 
-    before_g, before_d = before[0]["test/g_loss"], before[0]["test/d_loss"]
-    after_g, after_d = after[0]["test/g_loss"], after[0]["test/d_loss"]
+    _before_g, before_d = before[0]["test/g_loss"], before[0]["test/d_loss"]
+    _after_g, after_d = after[0]["test/g_loss"], after[0]["test/d_loss"]
 
     # need to find a more appropriate assertion than this; the discriminator converges more easily than the generator.
     assert after_d <= before_d
