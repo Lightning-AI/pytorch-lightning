@@ -79,6 +79,19 @@ class CheckpointIO(ABC):
     def requires_cpu_collectives(self) -> bool:
         return False
 
+    @property
+    def _requires_state_conversion(self) -> bool:
+        """Whether the Strategy must pre-convert stateful objects into ``state_dict`` form before calling this
+        CheckpointIO.
+
+        CheckpointIO implementations that perform in-place loading may expect the provided
+        ``state`` to already contain plain dictionaries instead of high-level objects such
+        as ``nn.Module`` or ``Optimizer``. When this returns ``True``, the Strategy should
+        convert the state using its internal state-extraction logic prior to save/load.
+
+        """
+        return False
+
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:
         """Remove checkpoint file from the filesystem.

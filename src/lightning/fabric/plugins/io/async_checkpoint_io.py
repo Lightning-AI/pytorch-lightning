@@ -130,6 +130,11 @@ class AsyncCheckpointIO(CheckpointIO):
         except Exception as ex:
             raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
 
+    @override
+    @property
+    def _requires_state_conversion(self) -> bool:
+        return True
+
     @property
     @override
     def requires_cpu_collectives(self) -> bool:

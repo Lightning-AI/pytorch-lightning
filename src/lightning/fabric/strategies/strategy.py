@@ -336,6 +336,9 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
+        if self.checkpoint_io._requires_state_conversion and state is not None:
+            # update in_place so non-tensor objects get updated as well when using in-place loading
+            state = self._convert_stateful_objects_in_state(state, filter={}, in_place=True)
         checkpoint = self.checkpoint_io.load_checkpoint(path, state=state, weights_only=weights_only)
         if not state:
             return checkpoint
@@ -409,8 +412,16 @@ class Strategy(ABC):
         )
 
     def _convert_stateful_objects_in_state(
-        self, state: dict[str, Union[Module, Optimizer, Any]], filter: dict[str, Callable[[str, Any], bool]]
+        self,
+        state: dict[str, Union[Module, Optimizer, Any]],
+        filter: dict[str, Callable[[str, Any], bool]],
+        in_place: bool = False,
     ) -> dict[str, Any]:
+        if in_place and filter != {}:
+            raise ValueError(
+                "In-place conversion does not support filtering. Please set `in_place=False` to apply the filter."
+            )
+
         converted_state: dict[str, Any] = {}
         for key, obj in state.items():
             # convert the state
@@ -422,8 +433,12 @@ class Strategy(ABC):
                 converted = obj.state_dict()
             else:
                 converted = obj
-            _apply_filter(key, filter, converted, converted_state)
-        return converted_state
+
+            if in_place:
+                state[key] = converted
+            else:
+                _apply_filter(key, filter, converted, converted_state)
+        return converted_state if not in_place else state
 
 
 class _BackwardSyncControl(ABC):

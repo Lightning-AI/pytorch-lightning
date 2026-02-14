@@ -221,9 +221,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _setup_distributed(self) -> None:
         self._set_world_ranks()
-        print(f"{self._process_group_backend=}")
         self._process_group_backend = self._get_process_group_backend()
-        print(f"{self._process_group_backend=}")
         assert self.cluster_environment is not None
         kwargs: dict[str, Any] = {"timeout": self._timeout}
         if _TORCH_GREATER_EQUAL_2_3:
@@ -235,7 +233,7 @@ class DDPStrategy(ParallelStrategy):
             return self._process_group_backend
 
         default_pg_backend = _get_default_process_group_backend_for_device(self.root_device)
-        print(f"getted default pg backend {default_pg_backend} for device {self.root_device}")
+
         # if uses async checkpoint with process, then we also need to have a gloo backend
         if self.checkpoint_io.requires_cpu_collectives:
             if "cpu" in default_pg_backend or "gloo" in default_pg_backend:
