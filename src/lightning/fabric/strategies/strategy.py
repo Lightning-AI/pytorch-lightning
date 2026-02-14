@@ -340,6 +340,11 @@ class Strategy(ABC):
         if not state:
             return checkpoint
 
+        if checkpoint is None:
+            # In-place loaders (e.g., DCP) return None to signal that the state
+            # has already been fully restored by the CheckpointIO implementation.
+            return {}
+
         if isinstance(state, Module):
             self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
             return {}
