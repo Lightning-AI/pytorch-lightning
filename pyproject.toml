@@ -16,7 +16,6 @@
 requires = [
     "setuptools",
     "wheel",
-    "packaging",
 ]
 
 
