@@ -54,7 +54,7 @@ class CheckpointIO(ABC):
         state: Optional[dict[str, Any]] = None,
         map_location: Optional[Any] = None,
         weights_only: Optional[bool] = None,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any]:
         """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
         Args:

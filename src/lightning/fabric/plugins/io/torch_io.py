@@ -65,7 +65,7 @@ class TorchCheckpointIO(CheckpointIO):
         state: Optional[dict[str, Any]] = None,
         map_location: Optional[Callable] = lambda storage, loc: storage,
         weights_only: Optional[bool] = None,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
         Args:

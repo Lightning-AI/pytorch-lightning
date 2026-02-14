@@ -15,7 +15,7 @@
 import logging
 import warnings
 from concurrent.futures import Future
-from typing import Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import fsspec
 import torch.distributed as dist
@@ -25,6 +25,9 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import _PATH
+
+if TYPE_CHECKING:
+    from torch.distributed.checkpoint import AsyncSaveResponse
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +98,7 @@ class AsyncCheckpointIO(CheckpointIO):
             raise ValueError(f"`checkpointer_type` must be one of {get_args(CHECKPOINTER_TYPE)}")
 
         self._checkpointer_type = checkpointer_type
-        self.checkpoint_future: Optional[Future] = None
+        self.checkpoint_future: Optional[Union[Future, AsyncSaveResponse]] = None
 
         async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
 
@@ -175,7 +178,7 @@ class AsyncCheckpointIO(CheckpointIO):
         state: Optional[dict[str, Any]] = None,
         map_location: Optional[Any] = None,
         weights_only: Optional[bool] = None,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any]:
         if map_location is not None:
             raise TypeError(
                 "`map_location` is not supported by AsyncCheckpointIO. "
@@ -189,8 +192,8 @@ class AsyncCheckpointIO(CheckpointIO):
 
         _dcp_load(path, state_dict=state, dcp_kwargs=self.load_options)
 
-        # Return None per CheckpointIO contract to indicate the checkpoint was fully restored in-place.
-        return None
+        # Return empty dict to indicate the checkpoint was fully restored in-place.
+        return {}
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:
@@ -209,7 +212,7 @@ def _dcp_save(
     state_dict: dict[str, Any],
     filepath: _PATH,
     dcp_kwargs: Optional[dict[str, Any]] = None,
-) -> Future:
+) -> Union[Future, "AsyncSaveResponse"]:
     if not _TORCH_GREATER_EQUAL_2_4:
         raise ImportError("AsyncCheckpointIO requires torch>=2.4.0.")
 

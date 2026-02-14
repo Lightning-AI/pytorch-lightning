@@ -337,14 +337,21 @@ class Strategy(ABC):
         """
         torch.cuda.empty_cache()
         if self.checkpoint_io._requires_state_conversion and state is not None:
+            if not isinstance(state, dict):
+                raise ValueError(
+                    "When using a CheckpointIO that requires state conversion, the `state` argument must be a dict."
+                )
             # update in_place so non-tensor objects get updated as well when using in-place loading
             state = self._convert_stateful_objects_in_state(state, filter={}, in_place=True)
-        checkpoint = self.checkpoint_io.load_checkpoint(path, state=state, weights_only=weights_only)
+
+        # in-place loading requires state to be a dict
+        _state = state if isinstance(state, dict) else None
+        checkpoint = self.checkpoint_io.load_checkpoint(path, state=_state, weights_only=weights_only)
         if not state:
             return checkpoint
 
-        if checkpoint is None:
-            # In-place loaders (e.g., DCP) return None to signal that the state
+        if checkpoint == {}:
+            # In-place loaders (e.g., DCP) return {} to signal that the state
             # has already been fully restored by the CheckpointIO implementation.
             return {}
 
