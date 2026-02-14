@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import logging
+import warnings
 from concurrent.futures import Future
 from typing import Any, Literal, Optional
 
 import fsspec
+import torch.distributed as dist
 from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -41,17 +43,49 @@ class AsyncCheckpointIO(CheckpointIO):
 
     def __init__(
         self,
-        checkpointer_type: CHECKPOINTER_TYPE = "process",
+        checkpointer_type: Optional[CHECKPOINTER_TYPE] = None,
         enable_plan_caching: bool = True,
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Initialize the asynchronous checkpoint I/O plugin.
+
+        Args:
+            checkpointer_type: The async executor type used by
+                ``torch.distributed.checkpoint``. Can be ``"thread"`` or ``"process"``.
+                If ``None``, the executor is selected automatically:
+
+                - ``"thread"`` when ``torch.distributed`` is unavailable or not initialized
+                - ``"process"`` when running in a distributed environment
+
+                Thread mode is suitable for single-device training, while process mode
+                enables distributed async checkpointing.
+
+            enable_plan_caching: Whether to enable planner caching in
+                :class:`torch.distributed.checkpoint.DefaultSavePlanner`, which can
+                reduce overhead when saving repeatedly with the same state structure.
+
+            save_options: Optional keyword arguments forwarded to
+                ``torch.distributed.checkpoint.state_dict_saver.async_save``.
+                User-provided options override the defaults configured by this plugin.
+
+            load_options: Optional keyword arguments forwarded to
+                ``torch.distributed.checkpoint.state_dict_loader.load`` during loading.
+
+        Raises:
+            ImportError: If ``torch<2.4.0`` is installed.
+
+        """
         if not _TORCH_GREATER_EQUAL_2_4:
             raise ImportError("AsyncCheckpointIO requires torch>=2.4.0.")
 
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
+        self._no_dist = (not dist.is_available()) or (not dist.is_initialized())
+
+        if checkpointer_type is None:
+            checkpointer_type = "thread" if self._no_dist else "process"
 
         checkpointer_type = checkpointer_type.lower()
         if checkpointer_type not in get_args(CHECKPOINTER_TYPE):
@@ -69,6 +103,19 @@ class AsyncCheckpointIO(CheckpointIO):
         }
         self.save_options = {**default_save_options, **(save_options or {})}
         self.load_options = dict(load_options or {})
+        self._disable_safe_warnings()
+
+    def _disable_safe_warnings(self) -> None:
+        """Disable the suppression of warnings that are known to be emitted by torch.distributed.checkpoint."""
+        _safe_warnings = [
+            "TypedStorage is deprecated",
+        ]
+        if self._no_dist:
+            # This warning is emitted by DCP when it detects that torch.distributed is not initialized.
+            _safe_warnings.append("torch.distributed is disabled, unavailable or uninitialized")
+
+        for pattern in _safe_warnings:
+            warnings.filterwarnings("ignore", message=pattern, category=UserWarning)
 
     def _wait(self) -> None:
         if self.checkpoint_future is None:
@@ -148,7 +195,7 @@ def _dcp_save(
 
     from torch.distributed.checkpoint import state_dict_saver
 
-    return state_dict_saver.async_save(state_dict, filepath, **(dcp_kwargs or {}))
+    return state_dict_saver.async_save(state_dict=state_dict, checkpoint_id=filepath, **(dcp_kwargs or {}))
 
 
 def _dcp_load(
