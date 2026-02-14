@@ -906,6 +906,7 @@ class Fabric:
 
         """
         unwrapped_state = _unwrap_objects(state)
+        print(f"{unwrapped_state=}")
         remainder = self._strategy.load_checkpoint(
             path=path,
             state=unwrapped_state,

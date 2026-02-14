@@ -44,6 +44,7 @@ class AsyncCheckpointIO(CheckpointIO):
     def __init__(
         self,
         checkpointer_type: Optional[CHECKPOINTER_TYPE] = None,
+        no_dist: bool = True,
         enable_plan_caching: bool = True,
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
@@ -60,6 +61,8 @@ class AsyncCheckpointIO(CheckpointIO):
 
                 Thread mode is suitable for single-device training, while process mode
                 enables distributed async checkpointing.
+
+            no_dist: If True, this function will assume the intent is to save a checkpoint on a single rank/process.
 
             enable_plan_caching: Whether to enable planner caching in
                 :class:`torch.distributed.checkpoint.DefaultSavePlanner`, which can
@@ -82,7 +85,7 @@ class AsyncCheckpointIO(CheckpointIO):
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
-        self._no_dist = (not dist.is_available()) or (not dist.is_initialized())
+        self._no_dist = no_dist or (not dist.is_available()) or (not dist.is_initialized())
 
         if checkpointer_type is None:
             checkpointer_type = "thread" if self._no_dist else "process"
@@ -91,15 +94,17 @@ class AsyncCheckpointIO(CheckpointIO):
         if checkpointer_type not in get_args(CHECKPOINTER_TYPE):
             raise ValueError(f"`checkpointer_type` must be one of {get_args(CHECKPOINTER_TYPE)}")
 
+        self._checkpointer_type = checkpointer_type
         self.checkpoint_future: Optional[Future] = None
 
-        async_type = state_dict_saver.AsyncCheckpointerType(checkpointer_type)
+        async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
 
         # https://pytorch.org/blog/6x-faster-async-checkpointing/
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
         default_save_options = {
             "async_checkpointer_type": async_type,
             "planner": DefaultSavePlanner(enable_plan_caching=enable_plan_caching),
+            "no_dist": self._no_dist,
         }
         self.save_options = {**default_save_options, **(save_options or {})}
         self.load_options = dict(load_options or {})
@@ -121,11 +126,23 @@ class AsyncCheckpointIO(CheckpointIO):
         if self.checkpoint_future is None:
             return
         try:
-            self.checkpoint_future.result()
+            self.checkpoint_future.result(timeout=10)
         except Exception as ex:
             raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
-        finally:
-            self.checkpoint_future = None
+
+    @property
+    @override
+    def requires_cpu_collectives(self) -> bool:
+        """Async checkpointing requires CPU collectives to be available.
+
+        The process-based async executor in ``torch.distributed.checkpoint`` relies on
+        a CPU-capable process group to coordinate metadata exchange and background
+        save operations. When running with a CUDA-only backend (e.g., ``nccl``),
+        async checkpointing will fail unless a CPU backend such as ``gloo`` is also
+        enabled (e.g., ``"cpu:gloo,cuda:nccl"``).
+
+        """
+        return True
 
     @override
     def save_checkpoint(

@@ -221,7 +221,9 @@ class DDPStrategy(ParallelStrategy):
 
     def _setup_distributed(self) -> None:
         self._set_world_ranks()
+        print(f"{self._process_group_backend=}")
         self._process_group_backend = self._get_process_group_backend()
+        print(f"{self._process_group_backend=}")
         assert self.cluster_environment is not None
         kwargs: dict[str, Any] = {"timeout": self._timeout}
         if _TORCH_GREATER_EQUAL_2_3:
@@ -229,7 +231,22 @@ class DDPStrategy(ParallelStrategy):
         _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
+        if self._process_group_backend is not None:
+            return self._process_group_backend
+
+        default_pg_backend = _get_default_process_group_backend_for_device(self.root_device)
+        print(f"getted default pg backend {default_pg_backend} for device {self.root_device}")
+        # if uses async checkpoint with process, then we also need to have a gloo backend
+        if self.checkpoint_io.requires_cpu_collectives:
+            if "cpu" in default_pg_backend or "gloo" in default_pg_backend:
+                return default_pg_backend
+            if default_pg_backend == "nccl":
+                return "cpu:gloo,cuda:nccl"
+            raise ValueError(
+                f"{self.checkpoint_io.__class__.__name__} requires a process group backend that supports Gloo, "
+                "but the default backend for the device is not compatible."
+            )
+        return default_pg_backend
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is not None:

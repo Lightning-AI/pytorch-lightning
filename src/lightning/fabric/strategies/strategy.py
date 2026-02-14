@@ -336,7 +336,7 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
+        checkpoint = self.checkpoint_io.load_checkpoint(path, state=state, weights_only=weights_only)
         if not state:
             return checkpoint
 

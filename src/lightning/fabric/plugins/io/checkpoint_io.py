@@ -75,6 +75,10 @@ class CheckpointIO(ABC):
 
         """
 
+    @property
+    def requires_cpu_collectives(self) -> bool:
+        return False
+
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:
         """Remove checkpoint file from the filesystem.
