@@ -61,6 +61,8 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self,
         path: _PATH,
+        *,
+        state: Optional[dict[str, Any]] = None,
         map_location: Optional[Callable] = lambda storage, loc: storage,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
@@ -68,6 +70,8 @@ class TorchCheckpointIO(CheckpointIO):
 
         Args:
             path: Path to checkpoint
+            state: Not used in ``TorchCheckpointIO.load_checkpoint``.
+                This is for API consistency with other CheckpointIO implementations that require in-place loading.
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
                 locations.
             weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain

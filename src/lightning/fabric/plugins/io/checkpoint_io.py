@@ -48,12 +48,18 @@ class CheckpointIO(ABC):
 
     @abstractmethod
     def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Any] = None, weights_only: Optional[bool] = None
+        self,
+        path: _PATH,
+        *,
+        state: Optional[dict[str, Any]] = None,
+        map_location: Optional[Any] = None,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
         Args:
             path: Path to checkpoint
+            state: Optional dict to load the checkpoint into.
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
                 locations.
             weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
@@ -62,9 +68,29 @@ class CheckpointIO(ABC):
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
-        Returns: The loaded checkpoint.
+        Returns:
+            - A dictionary containing checkpoint contents that still need to be
+                applied by the caller, or
+            - ``None`` if the checkpoint was fully restored in-place into ``state``.
 
         """
+
+    @property
+    def requires_cpu_collectives(self) -> bool:
+        return False
+
+    @property
+    def _requires_state_conversion(self) -> bool:
+        """Whether the Strategy must pre-convert stateful objects into ``state_dict`` form before calling this
+        CheckpointIO.
+
+        CheckpointIO implementations that perform in-place loading may expect the provided
+        ``state`` to already contain plain dictionaries instead of high-level objects such
+        as ``nn.Module`` or ``Optimizer``. When this returns ``True``, the Strategy should
+        convert the state using its internal state-extraction logic prior to save/load.
+
+        """
+        return False
 
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:

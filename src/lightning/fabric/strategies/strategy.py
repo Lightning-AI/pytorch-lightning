@@ -336,9 +336,24 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
+        if self.checkpoint_io._requires_state_conversion and state is not None:
+            if not isinstance(state, dict):
+                raise ValueError(
+                    "When using a CheckpointIO that requires state conversion, the `state` argument must be a dict."
+                )
+            # update in_place so non-tensor objects get updated as well when using in-place loading
+            state = self._convert_stateful_objects_in_state(state, filter={}, in_place=True)
+
+        # in-place loading requires state to be a dict
+        _state = state if isinstance(state, dict) else None
+        checkpoint = self.checkpoint_io.load_checkpoint(path, state=_state, weights_only=weights_only)
         if not state:
             return checkpoint
+
+        if checkpoint == {}:
+            # In-place loaders (e.g., DCP) return {} to signal that the state
+            # has already been fully restored by the CheckpointIO implementation.
+            return {}
 
         if isinstance(state, Module):
             self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
@@ -404,8 +419,16 @@ class Strategy(ABC):
         )
 
     def _convert_stateful_objects_in_state(
-        self, state: dict[str, Union[Module, Optimizer, Any]], filter: dict[str, Callable[[str, Any], bool]]
+        self,
+        state: dict[str, Union[Module, Optimizer, Any]],
+        filter: dict[str, Callable[[str, Any], bool]],
+        in_place: bool = False,
     ) -> dict[str, Any]:
+        if in_place and filter != {}:
+            raise ValueError(
+                "In-place conversion does not support filtering. Please set `in_place=False` to apply the filter."
+            )
+
         converted_state: dict[str, Any] = {}
         for key, obj in state.items():
             # convert the state
@@ -417,8 +440,12 @@ class Strategy(ABC):
                 converted = obj.state_dict()
             else:
                 converted = obj
-            _apply_filter(key, filter, converted, converted_state)
-        return converted_state
+
+            if in_place:
+                state[key] = converted
+            else:
+                _apply_filter(key, filter, converted, converted_state)
+        return converted_state if not in_place else state
 
 
 class _BackwardSyncControl(ABC):
