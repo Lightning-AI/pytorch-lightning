@@ -100,7 +100,7 @@ jobs:
           uv pip install -U "lightning-utilities[cli]"
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
-          uv pip install "cython<3.0" wheel "setuptools<82.0.0" # ensure pkg_resources is available for older Python versions
+          uv pip install "cython<3.0" wheel
           uv pip install "pyyaml==5.4" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
@@ -130,6 +130,9 @@ jobs:
           uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
             --find-links="${TORCH_URL}"
+          if [ "${{ matrix.config.requires }}" == "oldest" ]; then
+            uv pip install "setuptools<80.10.3" # ensure pkg_resources is available for older Python versions
+          fi
           uv pip list
 
       - name: Adjust tests
