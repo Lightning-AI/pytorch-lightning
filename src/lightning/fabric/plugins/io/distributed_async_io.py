@@ -192,8 +192,8 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
 
         _dcp_load(path, state_dict=state, dcp_kwargs=self.load_options)
 
-        # Return empty dict to indicate the checkpoint was fully restored in-place.
-        return {}
+        # Return state
+        return state
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:

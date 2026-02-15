@@ -80,7 +80,8 @@ class _CheckpointConnector:
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
+            _current_state = self.dump_checkpoint(weights_only=weights_only)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only, state=_current_state)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
