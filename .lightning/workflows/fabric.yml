@@ -123,6 +123,8 @@ run: |
   extra=$(python -c "print({'lightning': 'fabric-'}.get('${PACKAGE_NAME}', ''))")
   uv pip install ".[${extra}dev]" --upgrade
 
+  uv pip install "setuptools<80.10.3" # ensure pkg_resources is available for older Python versions
+
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
   python -c "import bitsandbytes"
