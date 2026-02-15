@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 CHECKPOINTER_TYPE = Literal["process", "thread"]
 
 
-class AsyncCheckpointIO(CheckpointIO):
+class DistributedAsyncCheckpointIO(CheckpointIO):
     """Experimental asynchronous CheckpointIO backed by torch.distributed.checkpoint.
 
     Notes:
