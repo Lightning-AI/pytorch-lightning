@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.io.distributed_async_io import DistributedAsyncCheckpointIO
 from lightning.fabric.utilities import AttributeDict
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_7, _TORCH_GREATER_EQUAL_2_9
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -30,9 +31,11 @@ def test_async_checkpointio_save_options_forwarded(tmp_path):
 
     dcp_kwargs = kwargs["dcp_kwargs"]
     assert dcp_kwargs["foo"] == 123
-    assert "planner" in dcp_kwargs
-    assert "async_checkpointer_type" in dcp_kwargs
-    assert "no_dist" in dcp_kwargs
+    if _TORCH_GREATER_EQUAL_2_9:
+        assert "planner" in dcp_kwargs
+    if _TORCH_GREATER_EQUAL_2_7:
+        assert "async_checkpointer_type" in dcp_kwargs
+        assert "no_dist" in dcp_kwargs
 
 
 @RunIf(min_torch="2.4")
