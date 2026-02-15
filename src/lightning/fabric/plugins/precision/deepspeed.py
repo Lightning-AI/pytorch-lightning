@@ -86,6 +86,10 @@ class DeepSpeedPrecision(Precision):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     @override
+    def compute_dtype(self) -> torch.dtype:
+        return self._desired_dtype
+
+    @override
     def backward(self, tensor: Tensor, model: "DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
         model.backward(tensor, *args, **kwargs)

@@ -156,6 +156,10 @@ class BitsandbytesPrecision(Precision):
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return self.dtype
+
 
 def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_dict: OrderedDict, *_: Any) -> None:
     # There is only one key that ends with `*.weight`, the other one is the bias

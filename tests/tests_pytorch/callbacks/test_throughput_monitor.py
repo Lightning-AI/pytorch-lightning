@@ -7,8 +7,9 @@ import torch
 
 from lightning.fabric.utilities.throughput import measure_flops
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
+from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor, _plugin_to_compute_dtype
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import Precision
 
 
 def test_measure_flops():
@@ -511,3 +512,11 @@ def test_throughput_monitor_warn_once():
     ]
 
     assert len(throughput_warnings) == 1, "Expected exactly one warning about missing `flops_per_batch`."
+
+
+def test_plugin_to_compute_dtype_calls_precision_plugin_api() -> None:
+    plugin = Precision()
+    plugin.compute_dtype = Mock(return_value=torch.bfloat16)
+
+    assert _plugin_to_compute_dtype(plugin) is torch.bfloat16
+    plugin.compute_dtype.assert_called_once_with()
