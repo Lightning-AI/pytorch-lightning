@@ -137,7 +137,8 @@ run: |
     uv pip uninstall pytorch-lightning
   fi
 
-  uv pip install "setuptools<80.10.3" # ensure pkg_resources is available for older Python versions
+  # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+  uv pip install "setuptools<80.10.3"
 
   python requirements/collect_env_details.py
   python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
