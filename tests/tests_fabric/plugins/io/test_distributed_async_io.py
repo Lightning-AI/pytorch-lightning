@@ -203,8 +203,8 @@ def run_async_checkpoint_state_restoration(tmp_path, expected_strategy_name, acc
 
     # snapshot weights BEFORE save
     before = {k: v.detach().clone() for k, v in model.state_dict().items()}
-
-    state = AttributeDict(model=model, optimizer=optimizer, step=1)
+    _model = model.cpu() if fabric.device == "cpu" else model
+    state = AttributeDict(model=_model, optimizer=optimizer, step=1)
     ckpt_path = tmp_path / "ckpt"
     fabric.save(ckpt_path, state)
 
