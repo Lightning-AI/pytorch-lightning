@@ -22,7 +22,11 @@ from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_4,
+    _TORCH_GREATER_EQUAL_2_7,
+    _TORCH_GREATER_EQUAL_2_9,
+)
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
@@ -86,11 +90,11 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
-        self._no_dist = no_dist or (not dist.is_available()) or (not dist.is_initialized())
+        no_dist = no_dist or (not dist.is_available()) or (not dist.is_initialized())
         self.timeout = timeout
 
         if checkpointer_type is None:
-            checkpointer_type = "thread" if self._no_dist else "process"
+            checkpointer_type = "thread" if no_dist else "process"
 
         checkpointer_type = checkpointer_type.lower()
         if checkpointer_type not in get_args(CHECKPOINTER_TYPE):
@@ -99,15 +103,16 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         self._checkpointer_type = checkpointer_type
         self.checkpoint_future: Optional[Union[Future, AsyncSaveResponse]] = None
 
-        async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
-
         # https://pytorch.org/blog/6x-faster-async-checkpointing/
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
-        default_save_options = {
-            "async_checkpointer_type": async_type,
-            "planner": DefaultSavePlanner(enable_plan_caching=enable_plan_caching),
-            "no_dist": self._no_dist,
-        }
+        default_save_options = {}
+        if _TORCH_GREATER_EQUAL_2_9:
+            default_save_options["no_dist"] = no_dist
+        if _TORCH_GREATER_EQUAL_2_7:
+            async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
+            default_save_options["async_checkpointer_type"] = async_type
+            default_save_options["planner"] = DefaultSavePlanner(enable_plan_caching=enable_plan_caching)
+        print(f"{default_save_options=}")
         self.save_options = {**default_save_options, **(save_options or {})}
         self.load_options = dict(load_options or {})
         self._disable_safe_warnings()
@@ -116,13 +121,11 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         """Disable the suppression of warnings that are known to be emitted by torch.distributed.checkpoint."""
         _safe_warnings = [
             "TypedStorage is deprecated",
+            "torch.distributed is disabled, unavailable or uninitialized",
         ]
-        if self._no_dist:
-            # This warning is emitted by DCP when it detects that torch.distributed is not initialized.
-            _safe_warnings.append("torch.distributed is disabled, unavailable or uninitialized")
 
         for pattern in _safe_warnings:
-            warnings.filterwarnings("ignore", message=pattern, category=UserWarning)
+            warnings.filterwarnings("ignore", message=pattern)
 
     def _wait(self) -> None:
         if self.checkpoint_future is None:
