@@ -43,8 +43,11 @@ def _prepare_extras() -> dict[str, Any]:
         if p.name not in ("docs.txt", "base.txt")
     }
     for req_str in extras["strategies"]:
-        req = Requirement(req_str)
-        # req.name is the package name, normalized
+        # Strip comments before parsing
+        req_str_clean = req_str.split("#")[0].strip()
+        if not req_str_clean:  # Skip empty lines
+            continue
+        req = Requirement(req_str_clean)
         extras[req.name.lower().replace("-", "_")] = [req_str]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]
