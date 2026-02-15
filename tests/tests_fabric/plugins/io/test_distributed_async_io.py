@@ -13,6 +13,7 @@ from lightning.fabric.utilities import AttributeDict
 from tests_fabric.helpers.runif import RunIf
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_save_options_forwarded(tmp_path):
     plugin = DistributedAsyncCheckpointIO(save_options={"foo": 123})
 
@@ -34,6 +35,7 @@ def test_async_checkpointio_save_options_forwarded(tmp_path):
     assert "no_dist" in dcp_kwargs
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_load_options_forwarded(tmp_path):
     plugin = DistributedAsyncCheckpointIO(load_options={"bar": 999})
 
@@ -46,6 +48,7 @@ def test_async_checkpointio_load_options_forwarded(tmp_path):
     assert kwargs["dcp_kwargs"]["bar"] == 999
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_wait_uses_timeout():
     plugin = DistributedAsyncCheckpointIO(timeout=42)
 
@@ -57,6 +60,7 @@ def test_async_checkpointio_wait_uses_timeout():
     future.result.assert_called_once_with(timeout=42)
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_save_waits_on_existing_future(tmp_path):
     plugin = DistributedAsyncCheckpointIO(timeout=None)
 
@@ -69,6 +73,7 @@ def test_async_checkpointio_save_waits_on_existing_future(tmp_path):
     prev_future.result.assert_called_once()
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_remove_waits(tmp_path):
     plugin = DistributedAsyncCheckpointIO(timeout=None)
 
@@ -85,6 +90,7 @@ def test_async_checkpointio_remove_waits(tmp_path):
     prev_future.result.assert_called_once()
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_teardown_waits():
     plugin = DistributedAsyncCheckpointIO()
 
@@ -96,14 +102,17 @@ def test_async_checkpointio_teardown_waits():
     future.result.assert_called_once()
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_requires_cpu_collectives():
     assert DistributedAsyncCheckpointIO().requires_cpu_collectives is True
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_requires_state_conversion():
     assert DistributedAsyncCheckpointIO()._requires_state_conversion is True
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_load_requires_state(tmp_path):
     plugin = DistributedAsyncCheckpointIO()
 
@@ -111,6 +120,7 @@ def test_async_checkpointio_load_requires_state(tmp_path):
         plugin.load_checkpoint(tmp_path)
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_map_location_not_supported(tmp_path):
     plugin = DistributedAsyncCheckpointIO()
 
@@ -118,6 +128,7 @@ def test_async_checkpointio_map_location_not_supported(tmp_path):
         plugin.load_checkpoint(tmp_path, state={}, map_location="cpu")
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_storage_options_not_supported(tmp_path):
     plugin = DistributedAsyncCheckpointIO()
 
@@ -224,13 +235,14 @@ def run_async_checkpoint_state_restoration(tmp_path, expected_strategy_name, acc
         assert torch.allclose(before[k], after[k])
 
 
+@RunIf(min_torch="2.4")
 def test_async_checkpointio_state_restoration_cpu(tmp_path):
     run_async_checkpoint_state_restoration(
         tmp_path, expected_strategy_name="SingleDeviceStrategy", accelerator="cpu", devices=1
     )
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     ("expected_strategy_name", "devices"),
     [
