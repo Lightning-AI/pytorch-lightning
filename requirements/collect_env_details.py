@@ -52,7 +52,7 @@ def info_cuda() -> dict:
 
 def info_packages() -> dict[str, str]:
     """Get name and version of all installed packages."""
-    return {dist.metadata["Name"].lower(): dist.version for dist in distributions()}
+    return {dist.metadata["Name"]: dist.version for dist in distributions()}
 
 
 def nice_print(details: dict, level: int = 0) -> list:

@@ -1,11 +1,11 @@
 import glob
 import os
-from collections.abc import Iterator
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from packaging.requirements import Requirement
 from setuptools import find_packages
 
 _PROJECT_ROOT = "."
@@ -29,14 +29,6 @@ def _load_assistant() -> ModuleType:
     return _load_py_module("assistant", location)
 
 
-requirements_module = _load_py_module(os.path.join("install", "requirements.py"))
-
-
-def _parse_requirements(lines: list[str]) -> Iterator[str]:
-    """Parse requirements from lines using the canonical parser."""
-    return (str(req) for req in requirements_module._parse_requirements(lines))
-
-
 def _prepare_extras() -> dict[str, Any]:
     assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
@@ -50,8 +42,10 @@ def _prepare_extras() -> dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt")
     }
-    for req in _parse_requirements(extras["strategies"]):
-        extras[req.key] = [str(req)]
+    for req_str in extras["strategies"]:
+        req = Requirement(req_str)
+        # req.name is the package name, normalized
+        extras[req.name.lower().replace("-", "_")] = [req_str]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]
     return extras
