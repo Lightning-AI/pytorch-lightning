@@ -105,7 +105,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
 
         # https://pytorch.org/blog/6x-faster-async-checkpointing/
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
-        default_save_options = {}
+        default_save_options: dict[str, Any] = {}
         if _TORCH_GREATER_EQUAL_2_9:
             default_save_options["no_dist"] = no_dist
         if _TORCH_GREATER_EQUAL_2_7:
