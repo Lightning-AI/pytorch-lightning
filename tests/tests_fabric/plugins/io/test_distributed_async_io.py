@@ -32,10 +32,10 @@ def test_async_checkpointio_save_options_forwarded(tmp_path):
     dcp_kwargs = kwargs["dcp_kwargs"]
     assert dcp_kwargs["foo"] == 123
     if _TORCH_GREATER_EQUAL_2_9:
-        assert "planner" in dcp_kwargs
-    if _TORCH_GREATER_EQUAL_2_7:
-        assert "async_checkpointer_type" in dcp_kwargs
         assert "no_dist" in dcp_kwargs
+    if _TORCH_GREATER_EQUAL_2_7:
+        assert "planner" in dcp_kwargs
+        assert "async_checkpointer_type" in dcp_kwargs
 
 
 @RunIf(min_torch="2.4")
