@@ -17,7 +17,6 @@ import warnings
 from concurrent.futures import Future
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-import fsspec
 import torch.distributed as dist
 from typing_extensions import get_args, override
 
@@ -38,8 +37,6 @@ class AsyncCheckpointIO(CheckpointIO):
     """Experimental asynchronous CheckpointIO backed by torch.distributed.checkpoint.
 
     Notes:
-        - Only supports saving/loading `state_dict`
-        - Currently supports only local filesystem paths.
         - Loading is in-place: caller must provide a pre-allocated `state_dict`
 
     """
@@ -51,6 +48,7 @@ class AsyncCheckpointIO(CheckpointIO):
         enable_plan_caching: bool = True,
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
+        timeout: Optional[int] = None,
     ) -> None:
         """Initialize the asynchronous checkpoint I/O plugin.
 
@@ -89,6 +87,7 @@ class AsyncCheckpointIO(CheckpointIO):
 
         super().__init__()
         self._no_dist = no_dist or (not dist.is_available()) or (not dist.is_initialized())
+        self.timeout = timeout
 
         if checkpointer_type is None:
             checkpointer_type = "thread" if self._no_dist else "process"
@@ -129,7 +128,7 @@ class AsyncCheckpointIO(CheckpointIO):
         if self.checkpoint_future is None:
             return
         try:
-            self.checkpoint_future.result(timeout=10)
+            self.checkpoint_future.result(timeout=self.timeout)
         except Exception as ex:
             raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
 
@@ -162,8 +161,6 @@ class AsyncCheckpointIO(CheckpointIO):
             )
 
         self._wait()
-
-        local_path_checks(path)
 
         fs = get_filesystem(path)
         fs.makedirs(path, exist_ok=True)
@@ -216,8 +213,6 @@ def _dcp_save(
     if not _TORCH_GREATER_EQUAL_2_4:
         raise ImportError("AsyncCheckpointIO requires torch>=2.4.0.")
 
-    local_path_checks(filepath)
-
     from torch.distributed.checkpoint import state_dict_saver
 
     return state_dict_saver.async_save(state_dict=state_dict, checkpoint_id=filepath, **(dcp_kwargs or {}))
@@ -231,8 +226,6 @@ def _dcp_load(
     if not _TORCH_GREATER_EQUAL_2_4:
         raise ImportError("AsyncCheckpointIO requires torch>=2.4.0.")
 
-    local_path_checks(path_or_url, check_if_exists=True)
-
     from torch.distributed.checkpoint import state_dict_loader
 
     state_dict_loader.load(
@@ -240,21 +233,3 @@ def _dcp_load(
         checkpoint_id=path_or_url,
         **(dcp_kwargs or {}),
     )
-
-
-# TODO: Replace with remote filesystem support once async DCP readers support non-local paths.
-def local_path_checks(path: _PATH, check_if_exists: bool = False) -> None:
-    fs, _ = fsspec.core.url_to_fs(str(path))
-
-    protocol = fs.protocol
-    if isinstance(protocol, (tuple, list)):
-        # With fsspec, protocol can be a tuple in some implementations.
-        is_local = "file" in protocol or "local" in protocol
-    else:
-        is_local = protocol in ("file", "local")
-
-    if not is_local:
-        raise ValueError(f"AsyncCheckpointIO only supports local filesystem paths, but got: {path}")
-
-    if check_if_exists and not fs.exists(path):
-        raise FileNotFoundError(f"Checkpoint not found: {path}")
