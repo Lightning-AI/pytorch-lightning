@@ -131,7 +131,7 @@ jobs:
             --upgrade \
             --find-links="${TORCH_URL}"
           # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
-          uv pip install "setuptools<80.10.3"
+          uv pip install "setuptools<80.10.3" "onnx-ir<0.1.16" # temp pin onnx-ir
           uv pip list
 
       - name: Adjust tests

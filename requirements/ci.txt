@@ -7,4 +7,3 @@ wget
 pkginfo ==1.12.1.2
 packaging <25.1
 tomlkit
-onnx-ir<0.1.16 # temporary pin
