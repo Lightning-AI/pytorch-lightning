@@ -228,3 +228,29 @@ Access all loggers from any function (except the LightningModule *init*) to use 
 
             tensorboard_logger.add_image("generated_images", fake_images, 0)
             wandb_logger.add_image("generated_images", fake_images, 0)
+
+One could also access a logger by key if a dictionary was passed to the *logger* :class:`~lightning.pytorch.trainer.trainer.Trainer` argument.
+
+.. testcode::
+    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _WANDB_AVAILABLE
+
+    from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+
+    trainer = Trainer(logger={
+        "tensorboard": TensorBoardLogger(),
+        "wandb": WandbLogger()
+    })
+
+Then access the loggers by key:
+
+.. code-block:: python
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            tensorboard_logger = self.loggers["tensorboard"].experiment
+            wandb_logger = self.loggers["wandb"].experiment
+
+            fake_images = torch.Tensor(32, 3, 28, 28)
+
+            tensorboard_logger.add_image("generated_images", fake_images, 0)
+            wandb_logger.add_image("generated_images", fake_images, 0)
