@@ -83,6 +83,33 @@ class _CheckpointConnector:
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
+        try:
+            batch_progress = getattr(self.trainer, "batch_progress", None)
+            if batch_progress is not None:
+                global_step = int(getattr(self.trainer, "global_step", 0))
+
+                # Align total counters defensively so they are at least the restored global_step
+                try:
+                    batch_progress.total_ready = max(int(getattr(batch_progress, "total_ready", 0)), global_step)
+                    batch_progress.total_completed = max(
+                        int(getattr(batch_progress, "total_completed", 0)), global_step
+                    )
+                except Exception as exc:
+                    log.debug(f"BatchProgress restore fallback triggered: {exc}")
+
+                # Try to compute within-epoch counters when possible
+                try:
+                    epoch_len = getattr(self.trainer, "limit_train_batches", None)
+                    if isinstance(epoch_len, int) and epoch_len > 0:
+                        epoch_size = int(epoch_len)
+                        batch_progress.current_completed = global_step % max(1, epoch_size)
+                        batch_progress.current_ready = batch_progress.current_completed
+                except Exception as exc:
+                    log.debug(f"BatchProgress restore fallback triggered: {exc}")
+
+        except Exception as exc:
+            log.debug(f"BatchProgress restore fallback triggered: {exc}")
+
     def _select_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
     ) -> Optional[_PATH]:
@@ -291,7 +318,8 @@ class _CheckpointConnector:
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.
 
-        This includes the precision settings, loop progress, optimizer states and learning rate scheduler states.
+        This includes the precision settinglobal_step, loop progress, optimizer states and learning rate scheduler
+        states.
 
         """
         if not self._loaded_checkpoint:
