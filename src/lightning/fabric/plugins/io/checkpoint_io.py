@@ -96,6 +96,17 @@ class CheckpointIO(ABC):
         """
         return False
 
+    @property
+    def requires_state_on_load(self) -> bool:
+        """Whether the ``state`` argument of ``load_checkpoint`` is required for loading the checkpoint.
+
+        If ``True``, the Trainer will always pass a state dict containing the current model and optimizer
+        to the ``load_checkpoint`` method. This is for plugins that need to do in-place restoration of the
+        checkpoint into the provided state objects instead of returning a new checkpoint dict.
+
+        """
+        return self._restore_after_setup
+
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:
         """Remove checkpoint file from the filesystem.
