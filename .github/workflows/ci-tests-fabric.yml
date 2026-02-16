@@ -52,6 +52,7 @@ jobs:
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.8" }
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
@@ -129,6 +130,8 @@ jobs:
           uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
             --find-links="${TORCH_URL}"
+          # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+          uv pip install "setuptools<80.10.3"
           uv pip list
 
       - name: Adjust tests

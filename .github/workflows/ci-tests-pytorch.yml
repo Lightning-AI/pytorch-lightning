@@ -56,6 +56,7 @@ jobs:
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
@@ -132,6 +133,8 @@ jobs:
             --upgrade \
             --find-links="${TORCH_URL}" \
             --find-links="https://download.pytorch.org/whl/torch-tensorrt"
+          # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+          uv pip install "setuptools<80.10.3"
           uv pip list
 
       - name: Drop LAI from extensions

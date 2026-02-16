@@ -386,12 +386,14 @@ def test_model_checkpoint_only_weights(tmp_path):
 
 def test_model_freeze_unfreeze():
     model = BoringModel()
-    model.freeze()
+    freeze_ret = model.freeze()
+    assert freeze_ret is model
     assert not model.training
     for param in model.parameters():
         assert not param.requires_grad
 
-    model.unfreeze()
+    unfreeze_ret = model.unfreeze()
+    assert unfreeze_ret is model
     assert model.training
     for param in model.parameters():
         assert param.requires_grad
