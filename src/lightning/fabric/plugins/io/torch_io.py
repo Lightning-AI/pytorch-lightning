@@ -13,8 +13,10 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
+from torch.nn import Module
+from torch.optim import Optimizer
 from typing_extensions import override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -62,7 +64,7 @@ class TorchCheckpointIO(CheckpointIO):
         self,
         path: _PATH,
         *,
-        state: Optional[dict[str, Any]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         map_location: Optional[Callable] = lambda storage, loc: storage,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:

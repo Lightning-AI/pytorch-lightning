@@ -337,7 +337,7 @@ class Strategy(ABC):
         """
         torch.cuda.empty_cache()
         converted_state = state
-        if state is not None:
+        if state is not None and isinstance(state, dict):
             converted_state = self._convert_stateful_objects_in_state(
                 state,
                 filter={},

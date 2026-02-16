@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
@@ -329,7 +330,12 @@ class ModelParallelStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(
+        self,
+        checkpoint_path: _PATH,
+        weights_only: Optional[bool] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+    ) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
         state = {

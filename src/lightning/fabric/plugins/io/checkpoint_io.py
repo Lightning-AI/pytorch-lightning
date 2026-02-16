@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Union
+
+from torch.nn import Module
+from torch.optim import Optimizer
 
 from lightning.fabric.utilities.types import _PATH
 
@@ -51,7 +54,7 @@ class CheckpointIO(ABC):
         self,
         path: _PATH,
         *,
-        state: Optional[dict[str, Any]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         map_location: Optional[Any] = None,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:

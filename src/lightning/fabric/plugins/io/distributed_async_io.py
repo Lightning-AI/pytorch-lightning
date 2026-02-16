@@ -18,6 +18,8 @@ from concurrent.futures import Future
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch.distributed as dist
+from torch.nn import Module
+from torch.optim import Optimizer
 from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -176,7 +178,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         self,
         path: _PATH,
         *,
-        state: Optional[dict[str, Any]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         map_location: Optional[Any] = None,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
@@ -190,6 +192,8 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
 
         if state is None:
             raise ValueError("When using AsyncCheckpointIO, `state` must be provided for in-place loading.")
+        if not isinstance(state, dict):
+            raise TypeError("When using AsyncCheckpointIO, `state` must be a dict for in-place loading.")
 
         _dcp_load(path, state_dict=state, dcp_kwargs=self.load_options)
 
