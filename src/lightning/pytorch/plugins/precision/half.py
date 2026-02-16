@@ -69,3 +69,7 @@ class HalfPrecision(Precision):
     @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return self._desired_input_dtype

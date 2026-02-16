@@ -318,6 +318,22 @@ def test_throughput_monitor_world_size():
     ]
 
 
+def test_throughput_monitor_uses_precision_compute_dtype():
+    fabric_mock = Mock()
+    fabric_mock.world_size = 1
+    fabric_mock.device = torch.device("cpu")
+    fabric_mock._validate_launched = Mock()
+    fabric_mock.strategy.precision = Mock(spec=Precision)
+    fabric_mock.strategy.precision.compute_dtype.return_value = torch.bfloat16
+
+    with mock.patch("lightning.fabric.utilities.throughput.get_available_flops", return_value=100) as get_flops:
+        ThroughputMonitor(fabric_mock)
+
+    fabric_mock._validate_launched.assert_called_once_with()
+    fabric_mock.strategy.precision.compute_dtype.assert_called_once_with()
+    get_flops.assert_called_once_with(torch.device("cpu"), torch.bfloat16)
+
+
 def test_monotonic_window():
     w = _MonotonicWindow(maxlen=3)
     assert w == []
