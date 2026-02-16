@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added classmethod `Accelerator.device_name` so that users could see device information during setup. ([#21112](https://github.com/Lightning-AI/pytorch-lightning/pull/21112))
 
 
 ### Removed
