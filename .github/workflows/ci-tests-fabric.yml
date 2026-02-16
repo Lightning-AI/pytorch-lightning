@@ -130,6 +130,8 @@ jobs:
           uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
             --find-links="${TORCH_URL}"
+          # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+          uv pip install "setuptools<80.10.3"
           uv pip list
 
       - name: Adjust tests
