@@ -17,6 +17,7 @@ from argparse import Namespace
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
@@ -204,6 +205,9 @@ class TensorBoardLogger(Logger):
 
         for k, v in metrics.items():
             if isinstance(v, Tensor):
+                v = v.item()
+            elif isinstance(v, np.ndarray) and v.ndim == 0:
+                # Convert 0-dim numpy arrays to scalars (required for numpy >= 2.4.0)
                 v = v.item()
 
             if isinstance(v, dict):
