@@ -112,7 +112,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
             default_save_options["async_checkpointer_type"] = async_type
             default_save_options["planner"] = DefaultSavePlanner(enable_plan_caching=enable_plan_caching)
-        print(f"{default_save_options=}")
+
         self.save_options = {**default_save_options, **(save_options or {})}
         self.load_options = dict(load_options or {})
         self._disable_safe_warnings()
@@ -137,7 +137,8 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
 
     @override
     @property
-    def _requires_state_conversion(self) -> bool:
+    def _restore_after_setup(self) -> bool:
+        """Requires delayed restoration until after Strategy setup."""
         return True
 
     @property

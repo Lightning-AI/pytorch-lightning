@@ -80,14 +80,15 @@ class CheckpointIO(ABC):
         return False
 
     @property
-    def _requires_state_conversion(self) -> bool:
-        """Whether the Strategy must pre-convert stateful objects into ``state_dict`` form before calling this
-        CheckpointIO.
+    def _restore_after_setup(self) -> bool:
+        """Whether checkpoint restoration should be delayed until after the Strategy setup phase.
 
-        CheckpointIO implementations that perform in-place loading may expect the provided
-        ``state`` to already contain plain dictionaries instead of high-level objects such
-        as ``nn.Module`` or ``Optimizer``. When this returns ``True``, the Strategy should
-        convert the state using its internal state-extraction logic prior to save/load.
+        Some checkpoint implementations require the distributed environment, device placement,
+        or wrapped modules to be fully initialized before loading state. When this returns
+        ``True``, the Trainer/Strategy will restore the checkpoint only after setup has completed.
+
+        This is primarily used by distributed checkpointing backends that depend on collective
+        communication during load.
 
         """
         return False

@@ -457,7 +457,7 @@ class Strategy(ABC):
             If ``True``, restore checkpoint after strategy setup.
 
         """
-        return self.checkpoint_io._requires_state_conversion
+        return self.checkpoint_io._restore_after_setup
 
     @property
     def lightning_restore_optimizer(self) -> bool:

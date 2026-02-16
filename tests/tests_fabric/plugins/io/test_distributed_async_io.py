@@ -111,8 +111,8 @@ def test_async_checkpointio_requires_cpu_collectives():
 
 
 @RunIf(min_torch="2.4")
-def test_async_checkpointio_requires_state_conversion():
-    assert DistributedAsyncCheckpointIO()._requires_state_conversion is True
+def test_async_checkpointio_requires_restore_after_setup():
+    assert DistributedAsyncCheckpointIO()._restore_after_setup is True
 
 
 @RunIf(min_torch="2.4")
