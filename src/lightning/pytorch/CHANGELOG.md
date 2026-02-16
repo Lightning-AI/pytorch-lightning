@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed dataloader not reloading when resuming from checkpoint with `reload_dataloaders_every_n_epochs` ([#21492](https://github.com/Lightning-AI/pytorch-lightning/pull/21492))
+
 - Fixed `save_hyperparameters(ignore=...)` behavior so subclass ignore rules override base class rules (#[21490](https://github.com/Lightning-AI/pytorch-lightning/pull/21490))
 - Fixed `LightningDataModule.load_from_checkpoint` to restore the datamodule subclass and hyperparameters ([#21478](https://github.com/Lightning-AI/pytorch-lightning/pull/21478))
 - Fixed ``ModelParallelStrategy`` single-file checkpointing when ``torch.compile`` wraps the model so optimizer states no longer raise ``KeyError`` during save ([#21357](https://github.com/Lightning-AI/pytorch-lightning/issues/21357))
