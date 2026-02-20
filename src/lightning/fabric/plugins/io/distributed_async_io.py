@@ -14,6 +14,7 @@
 
 import logging
 import warnings
+from collections import deque
 from concurrent.futures import Future
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
@@ -103,7 +104,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             raise ValueError(f"`checkpointer_type` must be one of {get_args(CHECKPOINTER_TYPE)}")
 
         self._checkpointer_type = checkpointer_type
-        self.checkpoint_future: Optional[Union[Future, AsyncSaveResponse]] = None
+        self.checkpoint_futures: deque[Union[Future, AsyncSaveResponse]] = deque()
 
         # https://pytorch.org/blog/6x-faster-async-checkpointing/
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
@@ -130,12 +131,13 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             warnings.filterwarnings("ignore", message=pattern)
 
     def _wait(self) -> None:
-        if self.checkpoint_future is None:
-            return
-        try:
-            self.checkpoint_future.result(timeout=self.timeout)
-        except Exception as ex:
-            raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
+        """Wait for all queued checkpoint futures to complete."""
+        while self.checkpoint_futures:
+            checkpoint_future = self.checkpoint_futures.popleft()
+            try:
+                checkpoint_future.result(timeout=self.timeout)
+            except Exception as ex:
+                raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
 
     @override
     @property
@@ -166,12 +168,11 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
                 "`storage_options` is not supported by AsyncCheckpointIO. Implement a custom CheckpointIO if needed."
             )
 
-        self._wait()
-
         fs = get_filesystem(path)
         fs.makedirs(path, exist_ok=True)
 
-        self.checkpoint_future = _dcp_save(state_dict=checkpoint, filepath=path, dcp_kwargs=self.save_options)
+        future = _dcp_save(state_dict=checkpoint, filepath=path, dcp_kwargs=self.save_options)
+        self.checkpoint_futures.append(future)
 
     @override
     def load_checkpoint(

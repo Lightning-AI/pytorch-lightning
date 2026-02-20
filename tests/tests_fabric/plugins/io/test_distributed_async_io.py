@@ -23,7 +23,8 @@ def test_async_checkpointio_save_options_forwarded(tmp_path):
     with patch("lightning.fabric.plugins.io.distributed_async_io._dcp_save", return_value=fake_future) as save:
         plugin.save_checkpoint({"a": 1}, tmp_path)
 
-    assert plugin.checkpoint_future is fake_future
+    assert len(plugin.checkpoint_futures) == 1
+    assert plugin.checkpoint_futures[0] is fake_future
 
     kwargs = save.call_args.kwargs
     assert kwargs["state_dict"] == {"a": 1}
@@ -56,7 +57,7 @@ def test_async_checkpointio_wait_uses_timeout():
     plugin = DistributedAsyncCheckpointIO(timeout=42)
 
     future = MagicMock()
-    plugin.checkpoint_future = future
+    plugin.checkpoint_futures.append(future)
 
     plugin._wait()
 
@@ -64,24 +65,73 @@ def test_async_checkpointio_wait_uses_timeout():
 
 
 @RunIf(min_torch="2.4")
-def test_async_checkpointio_save_waits_on_existing_future(tmp_path):
+def test_async_checkpointio_multiple_checkpoints_queued(tmp_path):
+    """Test that multiple checkpoint futures can be queued without blocking."""
     plugin = DistributedAsyncCheckpointIO(timeout=None)
 
-    prev_future = MagicMock()
-    plugin.checkpoint_future = prev_future
+    future1 = MagicMock()
+    future2 = MagicMock()
+    future3 = MagicMock()
+
+    with patch("lightning.fabric.plugins.io.distributed_async_io._dcp_save", side_effect=[future1, future2, future3]):
+        # Save multiple checkpoints without waiting
+        plugin.save_checkpoint({"a": 1}, tmp_path / "ckpt1")
+        plugin.save_checkpoint({"b": 2}, tmp_path / "ckpt2")
+        plugin.save_checkpoint({"c": 3}, tmp_path / "ckpt3")
+
+    # All three futures should be queued
+    assert len(plugin.checkpoint_futures) == 3
+    assert plugin.checkpoint_futures[0] is future1
+    assert plugin.checkpoint_futures[1] is future2
+    assert plugin.checkpoint_futures[2] is future3
+
+    # None of the futures should have been waited on yet
+    future1.result.assert_not_called()
+    future2.result.assert_not_called()
+    future3.result.assert_not_called()
+
+
+@RunIf(min_torch="2.4")
+def test_async_checkpointio_save_waits_on_existing_future(tmp_path):
+    """Test that multiple checkpoints can be queued without blocking on save."""
+    plugin = DistributedAsyncCheckpointIO(timeout=None)
 
     with patch("lightning.fabric.plugins.io.distributed_async_io._dcp_save", return_value=MagicMock()):
         plugin.save_checkpoint({"x": 1}, tmp_path)
 
-    prev_future.result.assert_called_once()
+    # Future should be in the queue
+    assert len(plugin.checkpoint_futures) == 1
+    # But not waited on yet
+    plugin.checkpoint_futures[0].result.assert_not_called()
+
+
+@RunIf(min_torch="2.4")
+def test_async_checkpointio_wait_processes_queue_in_order(tmp_path):
+    """Test that _wait() processes futures in FIFO order."""
+    plugin = DistributedAsyncCheckpointIO(timeout=None)
+
+    futures = [MagicMock() for _ in range(3)]
+    for future in futures:
+        plugin.checkpoint_futures.append(future)
+
+    plugin._wait()
+
+    # All futures should have been waited on
+    for future in futures:
+        future.result.assert_called_once_with(timeout=None)
+
+    # Queue should be empty after waiting
+    assert len(plugin.checkpoint_futures) == 0
 
 
 @RunIf(min_torch="2.4")
 def test_async_checkpointio_remove_waits(tmp_path):
+    """Test that remove_checkpoint waits for all queued futures."""
     plugin = DistributedAsyncCheckpointIO(timeout=None)
 
-    prev_future = MagicMock()
-    plugin.checkpoint_future = prev_future
+    futures = [MagicMock() for _ in range(2)]
+    for future in futures:
+        plugin.checkpoint_futures.append(future)
 
     with patch("lightning.fabric.plugins.io.distributed_async_io.get_filesystem") as fs_mock:
         fs = MagicMock()
@@ -90,19 +140,25 @@ def test_async_checkpointio_remove_waits(tmp_path):
 
         plugin.remove_checkpoint(tmp_path)
 
-    prev_future.result.assert_called_once()
+    # All futures should have been waited on
+    for future in futures:
+        future.result.assert_called_once()
 
 
 @RunIf(min_torch="2.4")
 def test_async_checkpointio_teardown_waits():
+    """Test that teardown waits for all queued futures."""
     plugin = DistributedAsyncCheckpointIO()
 
-    future = MagicMock()
-    plugin.checkpoint_future = future
+    futures = [MagicMock() for _ in range(2)]
+    for future in futures:
+        plugin.checkpoint_futures.append(future)
 
     plugin.teardown()
 
-    future.result.assert_called_once()
+    # All futures should have been waited on
+    for future in futures:
+        future.result.assert_called_once()
 
 
 @RunIf(min_torch="2.4")
@@ -113,6 +169,26 @@ def test_async_checkpointio_requires_cpu_collectives():
 @RunIf(min_torch="2.4")
 def test_async_checkpointio_requires_restore_after_setup():
     assert DistributedAsyncCheckpointIO()._restore_after_setup is True
+
+
+@RunIf(min_torch="2.4")
+def test_async_checkpointio_load_waits_for_queue(tmp_path):
+    """Test that load_checkpoint waits for all queued futures before loading."""
+    plugin = DistributedAsyncCheckpointIO(timeout=None)
+
+    futures = [MagicMock() for _ in range(2)]
+    for future in futures:
+        plugin.checkpoint_futures.append(future)
+
+    with patch("lightning.fabric.plugins.io.distributed_async_io._dcp_load"):
+        plugin.load_checkpoint(tmp_path, state={"x": 1})
+
+    # All futures should have been waited on
+    for future in futures:
+        future.result.assert_called_once()
+
+    # Queue should be empty after waiting
+    assert len(plugin.checkpoint_futures) == 0
 
 
 @RunIf(min_torch="2.4")
