@@ -140,6 +140,16 @@ def test_async_checkpointio_storage_options_not_supported(tmp_path):
 
 
 # --- integration test to verify the checkpoint is actually saved and loaded asynchronously ---
+
+
+def _broadcast_from_rank0(fabric: Fabric, obj):
+    """Broadcast an object from rank0 once Fabric has launched."""
+    fabric.barrier("pre_broadcast")
+    obj = fabric.broadcast(obj)
+    fabric.barrier("post_broadcast")
+    return obj
+
+
 class SimpleModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -204,7 +214,11 @@ def run_async_checkpoint_state_restoration(tmp_path, expected_strategy_name, acc
     # snapshot weights BEFORE save
     before = {k: v.detach().clone() for k, v in model.state_dict().items()}
     state = AttributeDict(model=model, optimizer=optimizer, step=1)
+
+    # rank0 decides canonical checkpoint path
     ckpt_path = tmp_path / "ckpt"
+    ckpt_path = _broadcast_from_rank0(fabric, ckpt_path)
+
     fabric.save(ckpt_path, state)
 
     # Wait for DistributedAsyncCheckpointIO to finish writing checkpoint metadata.
