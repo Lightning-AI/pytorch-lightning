@@ -1,6 +1,12 @@
 from typing import Union
 
-from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import (
+    CheckpointIO,
+    ClusterEnvironment,
+    DistributedAsyncCheckpointIO,
+    TorchCheckpointIO,
+    XLACheckpointIO,
+)
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.amp import MixedPrecision
@@ -18,6 +24,7 @@ _PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO, LayerSync]
 __all__ = [
     "AsyncCheckpointIO",
     "CheckpointIO",
+    "DistributedAsyncCheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "BitsandbytesPrecision",
