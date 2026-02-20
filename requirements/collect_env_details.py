@@ -50,7 +50,7 @@ def info_cuda() -> dict:
     }
 
 
-def info_packages() -> dict[str, str]:
+def info_packages() -> dict:
     """Get name and version of all installed packages."""
     return {dist.metadata["Name"]: dist.version for dist in distributions()}
 
