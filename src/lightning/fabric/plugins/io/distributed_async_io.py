@@ -56,6 +56,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
         timeout: Optional[int] = None,
+        maxlen: int = 2,
     ) -> None:
         """Initialize the asynchronous checkpoint I/O plugin.
 
@@ -83,6 +84,12 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             load_options: Optional keyword arguments forwarded to
                 ``torch.distributed.checkpoint.state_dict_loader.load`` during loading.
 
+            timeout: Optional timeout (in seconds) for async checkpoint operations.
+                If an operation exceeds the timeout, an exception will be raised.
+
+            maxlen: The maximum number of concurrent async checkpoint operations to allow
+                before waiting for completion. Default is 2.
+
         Raises:
             ImportError: If ``torch<2.4.0`` is installed.
 
@@ -104,7 +111,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             raise ValueError(f"`checkpointer_type` must be one of {get_args(CHECKPOINTER_TYPE)}")
 
         self._checkpointer_type = checkpointer_type
-        self.checkpoint_futures: deque[Union[Future, AsyncSaveResponse]] = deque()
+        self.checkpoint_futures: deque[Union[Future, AsyncSaveResponse]] = deque(maxlen=maxlen)
 
         # https://pytorch.org/blog/6x-faster-async-checkpointing/
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
