@@ -27,6 +27,7 @@ from lightning.fabric.utilities.types import _PATH
 if TYPE_CHECKING:
     from deepspeed.io import FastFileWriterConfig
     from deepspeed.io.base_file_writer import BaseFileWriter
+    from deepspeed.ops.op_builder.async_io import AsyncIOBuilder
 
 
 log = logging.getLogger(__name__)
@@ -156,7 +157,7 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
         self._handler_type = handler
         self._use_double_io_buffer = use_double_io_buffer
         self._use_zipfile_format = use_zipfile_format
-        self._writer: Optional[BaseFileWriter] = None  # Initialized in _get_writer
+        self._writer: Optional[BaseFileWriter] = None
         self._writer_key: _SUPPORTED_WRITERS = writer
         self._writer_config = config
         self._aio_queue_depth = aio_queue_depth
@@ -205,7 +206,7 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
         """This method is called to teardown the process."""
         self._flush_writer()
 
-    def _flush_writer(self):
+    def _flush_writer(self) -> None:
         """Force flush the writer to ensure all data is written to storage."""
         if self._writer is not None:
             # close the writer to ensure all data is flushed before we attempt to store again
@@ -231,7 +232,7 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
                 )
             GDSBuilder().load(verbose=False)
 
-    def _get_handler(self):
+    def _get_handler(self) -> "AsyncIOBuilder":
         from deepspeed.ops.op_builder.async_io import AsyncIOBuilder
         from deepspeed.ops.op_builder.gds import GDSBuilder
 
@@ -261,7 +262,7 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
             )
         raise ValueError(f"Unsupported handler type: {self._handler_type}")
 
-    def _get_handler_and_pinned_memory(self):
+    def _get_handler_and_pinned_memory(self) -> tuple["AsyncIOBuilder", torch.Tensor]:
         from deepspeed.accelerator import get_accelerator
 
         handler = self._get_handler()
@@ -275,7 +276,7 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
 
     def _get_writer(
         self,
-        filename: str,
+        filename: _PATH,
     ) -> "BaseFileWriter":
         from deepspeed.io import BaseFileWriter, FastFileWriter, FastFileWriterConfig, MockFileWriter, PyFileWriter
 
