@@ -51,12 +51,15 @@ jobs:
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
 
-          # Test "pytorch" package with PyTorch 2.6-2.9
+          # Test "pytorch" package with PyTorch 2.6-2.10
           - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.10" }
           - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.10" }
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
@@ -99,7 +102,7 @@ jobs:
           uv pip install -U "lightning-utilities[cli]"
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/pytorch/base.txt', 'requirements/pytorch/extra.txt', 'requirements/pytorch/strategies.txt', 'requirements/pytorch/examples.txt', 'requirements/pytorch/test.txt']"
-          uv pip install "cython<3.0" wheel
+          uv pip install "cython<3.0" wheel setuptools
           uv pip install "pyyaml==5.4" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
