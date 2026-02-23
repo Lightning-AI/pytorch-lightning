@@ -168,8 +168,6 @@ class DeepNVMECheckpointIO(TorchCheckpointIO):
 
         self._load_io_ops()
         self._dnvme_handler, self._pinned_memory = self._get_handler_and_pinned_memory()
-        # Initialize DeepNVMe I/O operations here if needed
-        # For example, you might want to set up any necessary configurations or check for compatibility
 
     @override
     def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
