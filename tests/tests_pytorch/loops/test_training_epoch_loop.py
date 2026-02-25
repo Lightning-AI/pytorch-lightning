@@ -228,3 +228,57 @@ def test_resume_mid_epoch_warning(tmp_path):
 
     # Resume mid-epoch, stateful dataloader -> no warning
     train_and_resume(dataloader=StatefulIterable(), resume_step=1, expected_warning=False)
+
+
+def test_iterable_dataset_validation_on_exhaustion(tmp_path):
+    """Test that validation runs when IterableDataset exhausts before reported length.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/19624.
+
+    When an IterableDataset reports a length via __len__ but produces fewer batches
+    (e.g. due to drop_last=True with multiple workers, or shard boundary rounding),
+    StopIteration is raised before the expected batch count. This caused on_advance_end
+    to be skipped, permanently preventing validation from running.
+    """
+    from torch.utils.data import DataLoader, IterableDataset
+
+    class ShortIterableDataset(IterableDataset):
+        """Reports length=10 but only yields 8 samples."""
+
+        def __iter__(self):
+            for i in range(8):
+                yield torch.randn(32)
+
+        def __len__(self):
+            return 10
+
+    class CountingModel(BoringModel):
+        val_epoch_count = 0
+
+        def train_dataloader(self):
+            return DataLoader(ShortIterableDataset(), batch_size=2)
+
+        def val_dataloader(self):
+            return DataLoader(self.dataset, batch_size=2)
+
+        def on_validation_epoch_end(self):
+            self.val_epoch_count += 1
+
+    model = CountingModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        num_sanity_val_steps=0,
+        limit_val_batches=2,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+        accelerator="cpu",
+    )
+    trainer.fit(model)
+    # Should run validation once per epoch (2 epochs), not 0
+    assert model.val_epoch_count == 2, (
+        f"Expected validation to run 2 times (once per epoch), but got {model.val_epoch_count}. "
+        "Validation was likely skipped because StopIteration from exhausted IterableDataset "
+        "caused on_advance_end (and the validation check) to be bypassed."
+    )
