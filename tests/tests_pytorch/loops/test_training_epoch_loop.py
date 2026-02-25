@@ -239,6 +239,7 @@ def test_iterable_dataset_validation_on_exhaustion(tmp_path):
     (e.g. due to drop_last=True with multiple workers, or shard boundary rounding),
     StopIteration is raised before the expected batch count. This caused on_advance_end
     to be skipped, permanently preventing validation from running.
+
     """
     from torch.utils.data import DataLoader, IterableDataset
 
