@@ -56,7 +56,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
         timeout: Optional[int] = None,
-        maxlen: int = 2,
+        maxlen: Optional[int] = None,
     ) -> None:
         """Initialize the asynchronous checkpoint I/O plugin.
 
