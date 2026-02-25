@@ -251,12 +251,13 @@ def test_tensorboard_with_symlink(tmp_path, monkeypatch):
 
 def test_tensorboard_numpy_24_scalar_compatibility(tmp_path):
     """Test TensorBoard logger compatibility with numpy 2.4.0+ scalar handling.
-    
-    Addresses issue #21503: TensorBoard logging breaks with certain scalar values 
-    with numpy >= 2.4.0 due to changes in how .item() behaves on 0-dimensional arrays.
+
+    Addresses issue #21503: TensorBoard logging breaks with certain scalar values with numpy >= 2.4.0 due to changes in
+    how .item() behaves on 0-dimensional arrays.
+
     """
     logger = TensorBoardLogger(root_dir=tmp_path, name="numpy_compat_test")
-    
+
     # Test various numpy scalar types that could cause issues
     test_metrics = {
         "numpy_float64": np.array(3.14159),  # 0-dimensional float64 array
@@ -268,20 +269,20 @@ def test_tensorboard_numpy_24_scalar_compatibility(tmp_path):
         "native_float": 4.56,  # Native Python float (control)
         "native_int": 789,  # Native Python int (control)
     }
-    
+
     # All of these should log without raising exceptions
     logger.log_metrics(test_metrics, step=0)
-    
+
     # Test with a mock that simulates numpy 2.4.0 TypeError behavior
     problematic_array = np.array(9.87654)
-    
+
     # Temporarily replace the .item() method to raise TypeError like numpy 2.4.0
-    original_item = problematic_array.item
     def mock_item_raises_typeerror():
         raise TypeError("Cannot convert 0-d array to scalar")
-    
+
     import unittest.mock
-    with unittest.mock.patch.object(problematic_array, 'item', side_effect=mock_item_raises_typeerror):
+
+    with unittest.mock.patch.object(problematic_array, "item", side_effect=mock_item_raises_typeerror):
         # This should use the fallback mechanism and not raise an exception
         fallback_metrics = {"simulated_numpy24_error": problematic_array}
         logger.log_metrics(fallback_metrics, step=1)
@@ -289,16 +290,17 @@ def test_tensorboard_numpy_24_scalar_compatibility(tmp_path):
 
 def test_tensorboard_numpy_dtype_coverage(tmp_path):
     """Test TensorBoard logger with comprehensive numpy dtypes for robustness.
-    
-    Ensures that the numpy 2.4.0 compatibility fix works across all common numpy 
-    data types that users might log as metrics.
+
+    Ensures that the numpy 2.4.0 compatibility fix works across all common numpy data types that users might log as
+    metrics.
+
     """
     logger = TensorBoardLogger(root_dir=tmp_path, name="dtype_coverage_test")
-    
+
     # Test comprehensive numpy data types
     numpy_types_metrics = {
         "float16": np.array(1.0, dtype=np.float16),
-        "float32": np.array(2.0, dtype=np.float32), 
+        "float32": np.array(2.0, dtype=np.float32),
         "float64": np.array(3.0, dtype=np.float64),
         "int8": np.array(4, dtype=np.int8),
         "int16": np.array(5, dtype=np.int16),
@@ -311,6 +313,6 @@ def test_tensorboard_numpy_dtype_coverage(tmp_path):
         "bool_true": np.array(True, dtype=bool),
         "bool_false": np.array(False, dtype=bool),
     }
-    
+
     # All dtypes should log successfully without exceptions
     logger.log_metrics(numpy_types_metrics, step=0)
