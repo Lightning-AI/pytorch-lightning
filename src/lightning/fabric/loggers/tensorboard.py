@@ -39,6 +39,8 @@ if TYPE_CHECKING:
         from torch.utils.tensorboard import SummaryWriter
     else:
         from tensorboardX import SummaryWriter  # type: ignore[no-redef]
+    if _NUMPY_AVAILABLE:
+        import numpy as np
 
 
 class TensorBoardLogger(Logger):
@@ -198,7 +200,9 @@ class TensorBoardLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(
+        self, metrics: Mapping[str, Union[float, Tensor, int, "np.ndarray"]], step: Optional[int] = None
+    ) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
