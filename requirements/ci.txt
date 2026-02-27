@@ -1,4 +1,4 @@
-setuptools <80.9.1
+setuptools <80.10.3
 wheel <0.46.0
 awscli >=1.30.0, <1.45.0
 twine ==6.2.0
