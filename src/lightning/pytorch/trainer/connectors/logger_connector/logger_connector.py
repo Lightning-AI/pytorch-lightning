@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
@@ -94,7 +95,7 @@ class _LoggerConnector:
                 " which logs metrics and artifacts automatically to the Lightning Experiments platform."
             )
 
-    def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None, logging_mode: Optional[str] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
         metrics["step"] as a step.
 
@@ -103,6 +104,7 @@ class _LoggerConnector:
             step: Step for which metrics should be logged. If a `step` metric is logged, this value will
                 be used else will default to `self.global_step` during training or the total log step count
                 during validation and testing.
+            logging_mode: The logging mode for these metrics (``"step"`` or ``"epoch"``), if available.
 
         """
         if not self.trainer.loggers or not metrics:
@@ -124,8 +126,21 @@ class _LoggerConnector:
 
         # log actual metrics
         for logger in self.trainer.loggers:
-            logger.log_metrics(metrics=scalar_metrics, step=step)
-            logger.save()
+            previous_logging_mode = getattr(logger, "_logging_mode", None)
+            logging_mode_set = False
+            if logging_mode is not None:
+                try:
+                    setattr(logger, "_logging_mode", logging_mode)
+                    logging_mode_set = True
+                except AttributeError:
+                    logging_mode_set = False
+            try:
+                logger.log_metrics(metrics=scalar_metrics, step=step)
+                logger.save()
+            finally:
+                if logging_mode_set:
+                    with contextlib.suppress(AttributeError):
+                        setattr(logger, "_logging_mode", previous_logging_mode)
 
     """
     Evaluation metric updates
@@ -139,7 +154,7 @@ class _LoggerConnector:
     def update_eval_step_metrics(self, step: int) -> None:
         assert isinstance(self._first_loop_iter, bool)
         # logs user requested information to logger
-        self.log_metrics(self.metrics["log"], step=step)
+        self.log_metrics(self.metrics["log"], step=step, logging_mode="step")
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
         assert self._first_loop_iter is None
@@ -157,7 +172,7 @@ class _LoggerConnector:
             return
 
         # log all the metrics as a single dict
-        self.log_metrics(metrics)
+        self.log_metrics(metrics, logging_mode="epoch")
 
     """
     Train metric updates
@@ -170,12 +185,12 @@ class _LoggerConnector:
         # when metrics should be logged
         assert isinstance(self._first_loop_iter, bool)
         if self.should_update_logs or self.trainer.fast_dev_run:
-            self.log_metrics(self.metrics["log"])
+            self.log_metrics(self.metrics["log"], logging_mode="step")
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
         assert self._first_loop_iter is None
-        self.log_metrics(self.metrics["log"])
+        self.log_metrics(self.metrics["log"], logging_mode="epoch")
 
         # reset result collection for next epoch
         self.reset_results()
