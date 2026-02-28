@@ -9,7 +9,7 @@ sphinxcontrib-mockautodoc
 sphinx-autobuild
 sphinx-autodoc-typehints >=1.16
 sphinx-paramlinks >=0.5.1, <=0.6.0
-sphinx-togglebutton >=0.2, <=0.3.2
+sphinx-togglebutton >=0.2, <=0.4.4
 sphinx-copybutton >=0.3, <=0.5.2
 sphinx-multiproject
 sphinx-toolbox ==4.1.1
