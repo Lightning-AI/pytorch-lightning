@@ -333,10 +333,7 @@ def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs,
 
 
 def test_val_check_interval_with_limit_val_batches_zero(tmp_path):
-    """Test that val_check_interval > num training batches does not raise when limit_val_batches=0.
-
-
-    """
+    """Test that val_check_interval > num training batches does not raise when limit_val_batches=0."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
