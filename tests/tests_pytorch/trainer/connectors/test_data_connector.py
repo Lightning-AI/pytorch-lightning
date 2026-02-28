@@ -19,7 +19,7 @@ from unittest.mock import Mock
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
 import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
@@ -30,6 +30,8 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataHookSelector,
     _DataLoaderSource,
+    _is_simple_sampler_replaceable,
+    _resolve_overfit_batches,
     _worker_check,
     warning_cache,
 )
@@ -696,3 +698,49 @@ def test_iterable_check_on_known_iterators():
     dataloader.__iter__ = Mock()
     _check_dataloader_iterable(dataloader, Mock(), Mock())
     dataloader.__iter__.assert_not_called()
+
+
+def test_is_simple_sampler_replaceable():
+    """Test that _is_simple_sampler_replaceable correctly identifies simple vs custom samplers."""
+    dataset = RandomDataset(32, 64)
+
+    assert _is_simple_sampler_replaceable(SequentialSampler(dataset)) is True
+    assert _is_simple_sampler_replaceable(RandomSampler(dataset)) is True
+
+    class CustomSampler(Sampler):
+        def __init__(self, dataset):
+            self.dataset = dataset
+
+        def __iter__(self):
+            return iter([{"index": i, "param": 0.5} for i in range(len(self.dataset))])
+
+        def __len__(self):
+            return len(self.dataset)
+
+    assert _is_simple_sampler_replaceable(CustomSampler(dataset)) is False
+
+
+def test_resolve_overfit_batches_preserves_custom_sampler():
+    """Test that _resolve_overfit_batches does not alter custom samplers."""
+    dataset = RandomDataset(32, 64)
+
+    class CustomDictSampler(Sampler):
+        def __init__(self, dataset):
+            self.dataset = dataset
+
+        def __iter__(self):
+            return iter([{"index": i, "param": 0.5} for i in range(len(self.dataset))])
+
+        def __len__(self):
+            return len(self.dataset)
+
+    custom_sampler = CustomDictSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=custom_sampler, batch_size=2)
+    combined_loader = CombinedLoader([dataloader])
+    original_sampler = dataloader.sampler
+
+    _resolve_overfit_batches(combined_loader, RunningStage.TRAINING)
+
+    assert combined_loader.flattened[0].sampler is original_sampler
+    assert combined_loader.flattened[0].sampler is custom_sampler
+    assert isinstance(combined_loader.flattened[0].sampler, CustomDictSampler)
