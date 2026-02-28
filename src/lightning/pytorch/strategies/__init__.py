@@ -15,7 +15,7 @@ import sys
 
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.registry import _register_classes
-from lightning.pytorch.strategies.ddp import DDPStrategy
+from lightning.pytorch.strategies.ddp import DDPStrategy, MultiModelDDPStrategy
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
 from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
@@ -30,6 +30,7 @@ _register_classes(StrategyRegistry, "register_strategies", sys.modules[__name__]
 
 __all__ = [
     "DDPStrategy",
+    "MultiModelDDPStrategy",
     "DeepSpeedStrategy",
     "FSDPStrategy",
     "ModelParallelStrategy",
