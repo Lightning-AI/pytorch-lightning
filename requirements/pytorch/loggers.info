@@ -6,3 +6,4 @@ comet-ml >=3.31.0
 mlflow >=1.0.0
 wandb >=0.12.10
 tensorboard >=2.11
+trackio >= 0.13.1
