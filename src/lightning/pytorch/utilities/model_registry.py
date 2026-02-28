@@ -137,8 +137,7 @@ def _determine_model_folder(model_name: str, default_root_dir: str) -> str:
     # download the latest checkpoint from the model registry
     model_name = model_name.replace("/", "_")
     model_name = model_name.replace(":", "_")
-    local_model_dir = os.path.join(default_root_dir, model_name)
-    return local_model_dir
+    return os.path.join(default_root_dir, model_name)
 
 
 def find_model_local_ckpt_path(

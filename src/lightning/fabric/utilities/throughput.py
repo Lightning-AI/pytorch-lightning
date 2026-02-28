@@ -632,6 +632,7 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
             rank_zero_warn(f"FLOPs not found for TPU {device_name!r} with {dtype}")
             return None
         return int(_TPU_FLOPS[chip])
+    return None
 
 
 def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:

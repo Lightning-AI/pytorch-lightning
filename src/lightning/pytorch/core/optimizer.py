@@ -409,6 +409,7 @@ class _MockOptimizer(Optimizer):
     def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
         if closure is not None:
             return closure()
+        return None
 
     @override
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
