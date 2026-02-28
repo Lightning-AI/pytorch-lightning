@@ -178,14 +178,19 @@ def test_append_columns(tmp_path):
     # new key appears
     logger.log_metrics({"a": 1, "b": 2, "c": 3})
     with open(logger.experiment.metrics_file_path) as file:
-        header = file.readline().strip()
-        assert set(header.split(",")) == {"step", "a", "b", "c"}
+        lines = file.readlines()
+        header = lines[0].strip()
+        assert header.split(",") == ["a", "b", "c", "step"]
+        assert len(lines) == 3  # header + 2 data rows
 
     # key disappears
     logger.log_metrics({"a": 1, "c": 3})
+    logger.save()
     with open(logger.experiment.metrics_file_path) as file:
-        header = file.readline().strip()
-        assert set(header.split(",")) == {"step", "a", "b", "c"}
+        lines = file.readlines()
+        header = lines[0].strip()
+        assert header.split(",") == ["a", "b", "c", "step"]
+        assert len(lines) == 4  # header + 3 data rows
 
 
 @mock.patch(
@@ -193,21 +198,27 @@ def test_append_columns(tmp_path):
     "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
 )
 def test_rewrite_with_new_header(_, tmp_path):
-    # write a csv file manually
-    with open(tmp_path / "metrics.csv", "w") as file:
-        file.write("step,metric1,metric2\n")
-        file.write("0,1,22\n")
+    """Test that existing files get rewritten correctly when new columns are added."""
+    # write a csv file manually to simulate existing data
+    csv_path = tmp_path / "metrics.csv"
+    with open(csv_path, "w") as file:
+        file.write("a,b,step\n")
+        file.write("1,2,0\n")
 
     writer = _ExperimentWriter(log_dir=str(tmp_path))
-    new_columns = ["step", "metric1", "metric2", "metric3"]
-    writer._rewrite_with_new_header(new_columns)
 
-    # the rewritten file should have the new columns
-    with open(tmp_path / "metrics.csv") as file:
-        header = file.readline().strip().split(",")
-        assert header == new_columns
-        logs = file.readline().strip().split(",")
-        assert logs == ["0", "1", "22", ""]
+    # Add metrics with a new column
+    writer.log_metrics({"a": 2, "b": 3, "c": 4}, step=1)
+    writer.save()
+    # The rewritten file should have the new columns and preserve old data
+    with open(csv_path) as file:
+        lines = file.readlines()
+        assert len(lines) == 3  # header + 2 data rows
+        header = lines[0].strip()
+        assert header.split(",") == ["a", "b", "c", "step"]
+        # verify old data is preserved
+        assert lines[1].strip().split(",") == ["1", "2", "", "0"]  # old row with empty new column
+        assert lines[2].strip().split(",") == ["2", "3", "4", "1"]
 
 
 def test_log_metrics_column_order_sorted(tmp_path):
@@ -221,8 +232,66 @@ def test_log_metrics_column_order_sorted(tmp_path):
     logger.log_metrics({"d": 0.5})
     logger.save()
 
-    path_csv = os.path.join(logger.log_dir, _ExperimentWriter.NAME_METRICS_FILE)
-    with open(path_csv) as fp:
+    with open(logger.experiment.metrics_file_path) as fp:
         lines = fp.readlines()
 
     assert lines[0].strip() == "a,b,c,d,step"
+
+
+@mock.patch("lightning.fabric.loggers.csv_logs.get_filesystem")
+@mock.patch("lightning.fabric.loggers.csv_logs._ExperimentWriter._read_existing_metrics")
+def test_remote_filesystem_uses_write_mode(mock_read_existing, mock_get_fs, tmp_path):
+    """Test that remote filesystems use write mode."""
+    mock_fs = MagicMock()
+    mock_fs.isfile.return_value = False  # File doesn't exist
+    mock_fs.makedirs = MagicMock()
+    mock_get_fs.return_value = mock_fs
+
+    logger = CSVLogger(tmp_path)
+    assert not logger.experiment._is_local_fs
+
+    logger.log_metrics({"a": 0.3}, step=1)
+    logger.save()
+
+    # Verify _read_existing_metrics was NOT called (file doesn't exist)
+    mock_read_existing.assert_not_called()
+
+    # Verify write mode was used (remote FS should never use append)
+    mock_fs.open.assert_called()
+    call_args = mock_fs.open.call_args_list[-1]  # Get the last call
+
+    # Extract the mode parameter specifically
+    args, kwargs = call_args
+    mode = kwargs.get("mode", "r")  # Default to 'r' if mode not specified
+    assert mode == "w", f"Expected write mode 'w', but got mode: '{mode}'"
+
+
+@mock.patch("lightning.fabric.loggers.csv_logs.get_filesystem")
+@mock.patch("lightning.fabric.loggers.csv_logs._ExperimentWriter._read_existing_metrics")
+def test_remote_filesystem_preserves_existing_data(mock_read_existing, mock_get_fs, tmp_path):
+    """Test that remote filesystem reads existing data and preserves it when rewriting."""
+    # Mock remote filesystem with existing file
+    mock_fs = MagicMock()
+    mock_fs.isfile.return_value = True
+    mock_fs.makedirs = MagicMock()
+    mock_get_fs.return_value = mock_fs
+
+    # Mock existing data
+    mock_read_existing.return_value = [{"a": 0.1, "step": 0}, {"a": 0.2, "step": 1}]
+
+    logger = CSVLogger(tmp_path)
+    assert not logger.experiment._is_local_fs
+
+    # Add new metrics - should read existing and combine
+    logger.log_metrics({"a": 0.3}, step=2)
+    logger.save()
+
+    # Verify that _read_existing_metrics was called (should read existing data)
+    mock_read_existing.assert_called_once()
+
+    # Verify write mode was used
+    mock_fs.open.assert_called()
+    last_call = mock_fs.open.call_args_list[-1]
+    args, kwargs = last_call
+    mode = kwargs.get("mode", "r")
+    assert mode == "w", f"Expected write mode 'w', but got mode: '{mode}'"
