@@ -1414,3 +1414,126 @@ def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, t
 
     trainer = Trainer(default_root_dir=tmp_path, overfit_batches=1.0, max_epochs=1)
     trainer.fit(TestModel())
+
+
+def test_reload_dataloaders_every_n_epochs_with_checkpoint_resume(tmp_path):
+    """Test that dataloader is properly reloaded when resuming from a checkpoint.
+
+    Regression test for issue #21492: When loading from a checkpoint, the setup_data function
+    was setting _last_train_dl_reload_epoch incorrectly, causing the dataloader to not be
+    reloaded when it should be.
+
+    Scenario:
+    - reload_dataloaders_every_n_epochs = 2
+    - Train epochs 0 and 1 (first stage with ZeroDataset)
+    - Save checkpoint at end of epoch 1
+    - Resume from checkpoint - epoch 2 should reload dataloader and use OneDataset
+    - Bug: _last_train_dl_reload_epoch was set to 1 during resume, so (2 - 1) >= 2 is False
+           and dataloader was NOT reloaded, causing wrong data to be used
+
+    """
+
+    class ZeroDataset(Dataset):
+        """Dataset that returns zeros - used for first stage (epochs 0-1)."""
+
+        def __init__(self):
+            self.data = [torch.zeros(32) for _ in range(10)]
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+            return self.data[idx]
+
+    class OneDataset(Dataset):
+        """Dataset that returns ones - used for second stage (epochs >= 2)."""
+
+        def __init__(self):
+            self.data = [torch.ones(32) for _ in range(10)]
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+            return self.data[idx]
+
+    class StageAwareModel(BoringModel):
+        """Model that uses different datasets based on current epoch."""
+
+        def __init__(self, reload_every_n_epochs, checkpoint_path=None):
+            super().__init__()
+            self.reload_every_n_epochs = reload_every_n_epochs
+            self.checkpoint_path = checkpoint_path
+            self.train_dataloader_call_epochs = []
+
+        def training_step(self, batch, batch_idx):
+            # Verify data correctness based on current epoch
+            expected_value = 0.0 if self.current_epoch < self.reload_every_n_epochs else 1.0
+            actual_value = batch.mean().item()
+            assert actual_value == expected_value, (
+                f"Epoch {self.current_epoch}: Expected data to be {expected_value}, got {actual_value}. "
+                f"Dataloader was not properly reloaded after checkpoint resume."
+            )
+            return super().training_step(batch, batch_idx)
+
+        def on_train_epoch_end(self):
+            # Save checkpoint at end of epoch (reload_every_n_epochs - 1)
+            # This mimics the issue scenario where checkpoint is saved just before
+            # the epoch where dataloader should be reloaded
+            if self.checkpoint_path and self.current_epoch == self.reload_every_n_epochs - 1:
+                self.trainer.save_checkpoint(self.checkpoint_path)
+
+        def train_dataloader(self):
+            self.train_dataloader_call_epochs.append(self.current_epoch)
+            if self.current_epoch < self.reload_every_n_epochs:
+                return DataLoader(ZeroDataset(), batch_size=2)
+            return DataLoader(OneDataset(), batch_size=2)
+
+        validation_step = None
+
+    reload_every_n_epochs = 2
+    checkpoint_path = tmp_path / "checkpoint.ckpt"
+
+    # Phase 1: Train first stage and save checkpoint at end of epoch 1
+    model1 = StageAwareModel(reload_every_n_epochs, checkpoint_path=checkpoint_path)
+    trainer1 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=reload_every_n_epochs,  # Train epochs 0 and 1
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=reload_every_n_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    trainer1.fit(model1)
+
+    # Verify checkpoint was created and first phase completed
+    assert checkpoint_path.exists(), "Checkpoint should have been saved"
+    assert model1.train_dataloader_call_epochs == [0], (
+        f"Expected train_dataloader called at epoch 0, got {model1.train_dataloader_call_epochs}"
+    )
+
+    # Phase 2: Resume from checkpoint - dataloader MUST be reloaded for second stage
+    # This is where the bug manifests: the dataloader should be reloaded at epoch 2
+    # but due to incorrect _last_train_dl_reload_epoch, it may not be
+    model2 = StageAwareModel(reload_every_n_epochs)
+    trainer2 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=reload_every_n_epochs + 2,  # Continue to epochs 2 and 3
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=reload_every_n_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+
+    # This will raise AssertionError if the bug is present:
+    # - Dataloader not reloaded -> ZeroDataset used instead of OneDataset
+    # - training_step asserts expected=1.0 but gets actual=0.0
+    trainer2.fit(model2, ckpt_path=checkpoint_path)
+
+    # Additional verification: train_dataloader should have been called at epoch 2
+    assert reload_every_n_epochs in model2.train_dataloader_call_epochs, (
+        f"Expected train_dataloader to be called at epoch {reload_every_n_epochs} after resume, "
+        f"but it was only called at epochs {model2.train_dataloader_call_epochs}"
+    )

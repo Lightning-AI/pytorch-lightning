@@ -33,7 +33,7 @@ def test_loops_state_dict_structure():
     state_dict = trainer._checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
-            "state_dict": {},
+            "state_dict": {"_last_train_dl_reload_epoch": float("-inf")},
             "epoch_loop.state_dict": {"_batches_that_stepped": 0},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
