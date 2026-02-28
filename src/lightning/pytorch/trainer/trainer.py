@@ -23,7 +23,7 @@
 import logging
 import math
 import os
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -62,7 +62,7 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import (
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
 from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
+from lightning.pytorch.trainer.connectors.logger_connector import _ListMap, _LoggerConnector
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -96,7 +96,7 @@ class Trainer:
         devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
-        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        logger: Optional[Union[Logger, Iterable[Logger], dict[str, Logger], bool]] = None,
         callbacks: Optional[Union[list[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
@@ -494,7 +494,7 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: list[Logger]
+        self._loggers: _ListMap[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps)
 
         # init debugging flags
@@ -1682,7 +1682,7 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> list[Logger]:
+    def loggers(self) -> _ListMap[Logger]:
         """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
@@ -1694,8 +1694,8 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[list[Logger]]) -> None:
-        self._loggers = loggers if loggers else []
+    def loggers(self, loggers: Optional[Union[Iterable[Logger], Mapping[str, Logger], _ListMap[Logger]]]) -> None:
+        self._loggers = _ListMap(loggers)
 
     @property
     def callback_metrics(self) -> _OUT_DICT:
