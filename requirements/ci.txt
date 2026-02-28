@@ -1,5 +1,5 @@
 setuptools <80.10.3
-wheel <0.46.0
+wheel <0.47.0
 awscli >=1.30.0, <1.45.0
 twine ==6.2.0
 importlib-metadata <9.0.0
