@@ -101,7 +101,7 @@ jobs:
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
           uv pip install "cython<3.0" wheel
-          uv pip install "pyyaml==5.4" --no-build-isolation
+          uv pip install "pyyaml==6.0.0" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
           python .actions/assistant.py prune_pytest_as_errors
