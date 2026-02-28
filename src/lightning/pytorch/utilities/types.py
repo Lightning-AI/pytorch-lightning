@@ -82,9 +82,9 @@ class LRSchedulerConfig:
     scheduler: Union[LRScheduler, ReduceLROnPlateau]
     # no custom name
     name: Optional[str] = None
-    # after epoch is over
+    # after epoch is over (valid values: "epoch", "step", or "batch")
     interval: str = "epoch"
-    # every epoch/batch
+    # every epoch/step/batch
     frequency: int = 1
     # most often not ReduceLROnPlateau scheduler
     reduce_on_plateau: bool = False
@@ -92,6 +92,14 @@ class LRSchedulerConfig:
     monitor: Optional[str] = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate interval is one of the supported values."""
+        valid_intervals = ("epoch", "step", "batch")
+        if self.interval not in valid_intervals:
+            raise ValueError(
+                f"Invalid interval: {self.interval!r}. Supported intervals are: {', '.join(valid_intervals)}"
+            )
 
 
 class LRSchedulerConfigType(TypedDict, total=False):
