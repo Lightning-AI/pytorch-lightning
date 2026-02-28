@@ -205,6 +205,31 @@ def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
 
+def mock_musa_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning.fabric.accelerators.musa, "num_musa_devices", lambda: n)
+    monkeypatch.setattr(lightning.pytorch.accelerators.musa, "num_musa_devices", lambda: n)
+
+
+@pytest.fixture
+def musa_count_0(monkeypatch):
+    mock_musa_count(monkeypatch, 0)
+
+
+@pytest.fixture
+def musa_count_1(monkeypatch):
+    mock_musa_count(monkeypatch, 1)
+
+
+@pytest.fixture
+def musa_count_2(monkeypatch):
+    mock_musa_count(monkeypatch, 2)
+
+
+@pytest.fixture
+def musa_count_4(monkeypatch):
+    mock_musa_count(monkeypatch, 4)
+
+
 def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)

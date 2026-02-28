@@ -128,3 +128,4 @@ Accelerator API
     CUDAAccelerator
     MPSAccelerator
     XLAAccelerator
+    MUSAAccelerator
