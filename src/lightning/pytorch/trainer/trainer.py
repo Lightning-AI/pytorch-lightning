@@ -1063,7 +1063,7 @@ class Trainer:
 
         if self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
+            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path, weights_only)
 
         # restore optimizers, etc.
         log.debug(f"{self.__class__.__name__}: restoring training state")

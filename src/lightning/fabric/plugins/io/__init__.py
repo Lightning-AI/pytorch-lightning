@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
+from lightning.fabric.plugins.io.distributed_async_io import DistributedAsyncCheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 
-__all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
+__all__ = ["DistributedAsyncCheckpointIO", "CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]

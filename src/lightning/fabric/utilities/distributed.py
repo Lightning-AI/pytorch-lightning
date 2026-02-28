@@ -282,7 +282,7 @@ def _init_dist_connection(
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
-    if torch_distributed_backend == "nccl":
+    if any(b.strip().endswith("nccl") for b in torch_distributed_backend.split(",")):
         # PyTorch >= 2.4 warns about undestroyed NCCL process group, so we need to do it at program exit
         atexit.register(_destroy_dist_connection)
 

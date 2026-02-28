@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Union
+
+from torch.nn import Module
+from torch.optim import Optimizer
 
 from lightning.fabric.utilities.types import _PATH
 
@@ -48,12 +51,18 @@ class CheckpointIO(ABC):
 
     @abstractmethod
     def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Any] = None, weights_only: Optional[bool] = None
+        self,
+        path: _PATH,
+        *,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
+        map_location: Optional[Any] = None,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
         Args:
             path: Path to checkpoint
+            state: Optional dict to load the checkpoint into.
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
                 locations.
             weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
@@ -62,9 +71,41 @@ class CheckpointIO(ABC):
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
-        Returns: The loaded checkpoint.
+        Returns:
+            - A dictionary containing checkpoint contents that still need to be
+                applied by the caller, or
+            - ``None`` if the checkpoint was fully restored in-place into ``state``.
 
         """
+
+    @property
+    def requires_cpu_collectives(self) -> bool:
+        return False
+
+    @property
+    def _restore_after_setup(self) -> bool:
+        """Whether checkpoint restoration should be delayed until after the Strategy setup phase.
+
+        Some checkpoint implementations require the distributed environment, device placement,
+        or wrapped modules to be fully initialized before loading state. When this returns
+        ``True``, the Trainer/Strategy will restore the checkpoint only after setup has completed.
+
+        This is primarily used by distributed checkpointing backends that depend on collective
+        communication during load.
+
+        """
+        return False
+
+    @property
+    def requires_state_on_load(self) -> bool:
+        """Whether the ``state`` argument of ``load_checkpoint`` is required for loading the checkpoint.
+
+        If ``True``, the Trainer will always pass a state dict containing the current model and optimizer
+        to the ``load_checkpoint`` method. This is for plugins that need to do in-place restoration of the
+        checkpoint into the provided state objects instead of returning a new checkpoint dict.
+
+        """
+        return self._restore_after_setup
 
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:
