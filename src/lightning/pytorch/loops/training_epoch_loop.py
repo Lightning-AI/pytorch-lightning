@@ -157,6 +157,25 @@ class _TrainingEpochLoop(loops._Loop):
             finally:
                 self.on_iteration_done()
 
+        # When the data iterator is exhausted (StopIteration), `on_advance_end`
+        # is skipped for the final iteration, which means the end-of-epoch
+        # validation check never runs. This commonly happens with IterableDatasets
+        # (e.g. webdataset) that report a length via `__len__` but produce fewer
+        # batches due to shard boundaries, rounding, or `drop_last=True` with
+        # multiple workers. Since `_DataFetcher` sets `done=True` before
+        # re-raising StopIteration, we can detect this case and run validation.
+        # See: https://github.com/Lightning-AI/pytorch-lightning/issues/19624
+        if data_fetcher.done and self._should_check_val_epoch() and not self._skip_next_val:
+            self.batch_progress.is_last_batch = True
+            if self._should_check_val_fx(data_fetcher):
+                self.trainer.validating = True
+                first_loop_iter = self.trainer._logger_connector._first_loop_iter
+                if not self._should_accumulate():
+                    call._call_lightning_module_hook(self.trainer, "on_validation_model_zero_grad")
+                self.val_loop.run()
+                self.trainer.training = True
+                self.trainer._logger_connector._first_loop_iter = first_loop_iter
+
     @property
     def restarted_on_train_batch_end(self) -> bool:
         return self._restart_stage == RestartStage.RESTARTED_ON_TRAIN_BATCH_END
