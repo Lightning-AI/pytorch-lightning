@@ -27,6 +27,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
+from lightning.fabric.loggers.logger import _DummyExperiment
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_json_serializable,
@@ -562,7 +563,9 @@ class WandbLogger(Logger):
             The path to the save directory.
 
         """
-        return self._save_dir
+        if isinstance(self.experiment, _DummyExperiment):
+            return None
+        return self.experiment.dir
 
     @property
     @override
