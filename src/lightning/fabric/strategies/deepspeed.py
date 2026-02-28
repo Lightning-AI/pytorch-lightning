@@ -394,6 +394,19 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         import deepspeed
 
         assert self._config_initialized
+        assert self.config is not None
+
+        if (
+            "zero_optimization" in self.config
+            and "mics_shard_size" in self.config["zero_optimization"]
+            and self.config["zero_optimization"]["mics_shard_size"] > 0
+            and self.zero_stage_3
+        ):
+            return deepspeed.zero.MiCS_Init(
+                enabled=self.zero_stage_3,
+                remote_device=self.remote_device,
+                config_dict_or_path=self.config,
+            )
         return deepspeed.zero.Init(
             enabled=self.zero_stage_3,
             remote_device=self.remote_device,
