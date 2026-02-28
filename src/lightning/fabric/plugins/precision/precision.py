@@ -14,6 +14,7 @@
 from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Literal, Optional, Union
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -86,6 +87,10 @@ class Precision:
 
         """
         return data
+
+    def compute_dtype(self) -> torch.dtype:
+        """Return the compute dtype used for throughput / FLOPs measurement."""
+        return torch.float32
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.

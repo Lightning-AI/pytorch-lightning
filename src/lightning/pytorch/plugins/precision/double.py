@@ -60,6 +60,10 @@ class DoublePrecision(Precision):
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)
 
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return torch.double
+
 
 class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
     """LightningModule wrapper which converts incoming floating point data in ``*_step`` and ``forward`` to double

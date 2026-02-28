@@ -147,6 +147,10 @@ class TransformerEnginePrecision(Precision):
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return torch.int8
+
 
 def _convert_layers(module: torch.nn.Module) -> None:
     import transformer_engine.pytorch as te

@@ -132,3 +132,7 @@ class MixedPrecision(Precision):
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return torch.bfloat16 if self.precision == "bf16-mixed" else torch.half

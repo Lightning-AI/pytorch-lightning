@@ -89,6 +89,10 @@ class XLAPrecision(Precision):
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)
 
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return self._desired_dtype
+
     def _xla_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
         import torch_xla.core.xla_model as xm
 

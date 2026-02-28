@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+from typing_extensions import override
+
 from lightning.fabric.plugins.precision.bitsandbytes import BitsandbytesPrecision as FabricBNBPrecision
 from lightning.pytorch.plugins.precision.precision import Precision
 
@@ -30,3 +33,7 @@ class BitsandbytesPrecision(Precision, FabricBNBPrecision):
             This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
             "transformer.blocks" will ignore all linear layers in all of the transformer blocks.
     """
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return self.dtype
