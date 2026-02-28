@@ -731,3 +731,109 @@ def test_profiler_invalid_table_kwargs(tmp_path):
         with pytest.raises(KeyError) as exc_info:
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmp_path, filename="profile")
         assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
+
+
+def test_advanced_profiler_multiple_trainers_test_only_one(tmp_path):
+    """Test that AdvancedProfiler handles multiple trainers where only one runs test.
+
+    This reproduces the bug reported in issue #9136 where having multiple trainers
+    with AdvancedProfiler and only running test on one would cause:
+    ValueError: Attempting to stop recording an action (run_test_evaluation) which was never started.
+
+    """
+    # Create a shared profiler instance
+    profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
+
+    # Create multiple trainers that could be used in a grid search scenario
+    model1 = BoringModel()
+    model2 = BoringModel()
+
+    trainer1 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        profiler=profiler,
+        logger=False,
+        enable_checkpointing=False,
+    )
+
+    trainer2 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        profiler=profiler,
+        logger=False,
+        enable_checkpointing=False,
+    )
+
+    # Simulate grid search where we fit multiple trainers
+    trainer1.fit(model1)
+    trainer2.fit(model2)
+
+    # Simulate finding the "best" trainer and running test only on it
+    # This should not raise ValueError about stopping non-started action
+    test_results = trainer1.test(model1)
+    assert test_results is not None
+
+    # Test should complete without errors
+    assert len(test_results) > 0
+
+
+def test_advanced_profiler_reused_trainer_test(tmp_path):
+    """Test that AdvancedProfiler handles reused trainer calling test multiple times.
+
+    This tests another scenario that could trigger the bug: reusing the same trainer
+    for multiple test calls with profiling.
+
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        profiler=profiler,
+        logger=False,
+        enable_checkpointing=False,
+    )
+
+    # Train the model
+    trainer.fit(model)
+
+    # Run test multiple times - this should not cause profiler state issues
+    test_results1 = trainer.test(model)
+    test_results2 = trainer.test(model)
+
+    assert test_results1 is not None
+    assert test_results2 is not None
+    assert len(test_results1) > 0
+    assert len(test_results2) > 0
+
+
+@pytest.mark.parametrize("stage", ["validation", "test"])
+def test_advanced_profiler_stop_nonexistent_action_no_error(advanced_profiler, stage):
+    """Test that stopping a non-existent action doesn't raise ValueError.
+
+    This test verifies that the defensive fix works: attempting to stop
+    a profiling action that was never started should not crash, but instead
+    log a debug message and continue gracefully.
+
+    """
+    # This should not raise ValueError
+    advanced_profiler.stop(f"run_{stage}_evaluation")
+    advanced_profiler.stop("some_nonexistent_action")
+
+    # Verify the profiler is still functional
+    with advanced_profiler.profile("test_action"):
+        pass
+
+    # Should be able to get summary without issues
+    summary = advanced_profiler.summary()
+    assert isinstance(summary, str)
