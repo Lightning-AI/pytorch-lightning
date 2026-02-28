@@ -336,7 +336,6 @@ def test_val_check_interval_with_limit_val_batches_zero(tmp_path):
     """Test that val_check_interval > num training batches does not raise when limit_val_batches=0.
 
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21553
-
     """
     model = BoringModel()
     trainer = Trainer(
