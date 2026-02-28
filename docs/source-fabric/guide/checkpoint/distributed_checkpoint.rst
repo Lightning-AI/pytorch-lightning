@@ -45,6 +45,8 @@ The distributed checkpoint format is the default when you train with the :doc:`F
     # DON'T do this (inefficient):
     # torch.save("path/to/checkpoint/file", state)
 
+This method must be called on all processes.
+
 With ``state_dict_type="sharded"``, each process/GPU will save its own file into a folder at the given path.
 This reduces memory peaks and speeds up the saving to disk.
 
@@ -137,6 +139,8 @@ You can easily load a distributed checkpoint in Fabric if your script uses :doc:
 
     # DON'T do this (inefficient):
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
+
+This method must be called on all processes.
 
 Note that you can load the distributed checkpoint even if the world size has changed, i.e., you are running on a different number of GPUs than when you saved the checkpoint.
 
