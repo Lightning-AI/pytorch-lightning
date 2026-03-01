@@ -330,3 +330,17 @@ def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs,
     assert len(trainer.lr_scheduler_configs) == 1
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     assert init_lr * 0.1**max_epochs == adjusted_lr[0]
+
+
+def test_val_check_interval_with_limit_val_batches_zero(tmp_path):
+    """Test that val_check_interval > num training batches does not raise when limit_val_batches=0."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=5,
+        val_check_interval=10,  # greater than limit_train_batches
+        limit_val_batches=0,  # validation disabled
+    )
+    # Should not raise ValueError
+    trainer.fit(model)
