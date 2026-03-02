@@ -146,8 +146,8 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
             except Exception as ex:
                 raise RuntimeError("AsyncCheckpointIO checkpointing failed.") from ex
 
-    @override
     @property
+    @override
     def _restore_after_setup(self) -> bool:
         """Requires delayed restoration until after Strategy setup."""
         return True
