@@ -332,7 +332,8 @@ def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs,
     assert init_lr * 0.1**max_epochs == adjusted_lr[0]
 
 
-def test_val_check_interval_with_limit_val_batches_zero(tmp_path):
+@pytest.mark.parametrize("limit_val_batches", [0, 0.0])
+def test_val_check_interval_with_limit_val_batches_zero(tmp_path, limit_val_batches):
     """Test that val_check_interval > num training batches does not raise when limit_val_batches=0."""
     model = BoringModel()
     trainer = Trainer(
@@ -340,7 +341,7 @@ def test_val_check_interval_with_limit_val_batches_zero(tmp_path):
         max_epochs=1,
         limit_train_batches=5,
         val_check_interval=10,  # greater than limit_train_batches
-        limit_val_batches=0,  # validation disabled
+        limit_val_batches=limit_val_batches,  # validation disabled
     )
     # Should not raise ValueError
     trainer.fit(model)

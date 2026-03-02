@@ -284,18 +284,19 @@ class _FitLoop(_Loop):
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
 
-        if trainer.limit_val_batches == 0:
-            # Skip val_check_interval validation entirely when validation is disabled
-            trainer.val_check_batch = float("inf")
-        elif getattr(trainer, "_val_check_time_interval", None) is not None:
-            # If time-based validation is enabled, disable batch-based scheduling here.
-            # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
+        # If time-based validation is enabled, disable batch-based scheduling here.
+        # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
+        if getattr(trainer, "_val_check_time_interval", None) is not None:
             trainer.val_check_batch = None
             trainer._train_start_time = time.monotonic()
             trainer._last_val_time = trainer._train_start_time
         elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
-            if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
+            if (
+                trainer.val_check_batch > self.max_batches
+                and trainer.check_val_every_n_epoch is not None
+                and trainer.limit_val_batches > 0
+            ):
                 raise ValueError(
                     f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
                     f" to the number of the training batches ({self.max_batches})."
