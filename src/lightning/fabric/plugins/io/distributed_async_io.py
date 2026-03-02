@@ -128,7 +128,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         self._disable_safe_warnings()
 
     def _disable_safe_warnings(self) -> None:
-        """Disable the suppression of warnings that are known to be emitted by torch.distributed.checkpoint."""
+        """Suppress known harmless warnings emitted by torch.distributed.checkpoint."""
         _safe_warnings = [
             "TypedStorage is deprecated",
             "torch.distributed is disabled, unavailable or uninitialized",
