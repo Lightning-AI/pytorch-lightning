@@ -88,7 +88,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
                 If an operation exceeds the timeout, an exception will be raised.
 
             maxlen: The maximum number of concurrent async checkpoint operations to allow
-                before waiting for completion. Default is 2.
+                before waiting for completion. Default is None.
 
         Raises:
             ImportError: If ``torch<2.4.0`` is installed.
@@ -155,15 +155,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
     @property
     @override
     def requires_cpu_collectives(self) -> bool:
-        """Async checkpointing requires CPU collectives to be available.
-
-        The process-based async executor in ``torch.distributed.checkpoint`` relies on
-        a CPU-capable process group to coordinate metadata exchange and background
-        save operations. When running with a CUDA-only backend (e.g., ``nccl``),
-        async checkpointing will fail unless a CPU backend such as ``gloo`` is also
-        enabled (e.g., ``"cpu:gloo,cuda:nccl"``).
-
-        """
+        """Async checkpointing requires CPU collectives to be available."""
         return True
 
     @override
