@@ -51,7 +51,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
     def __init__(
         self,
         checkpointer_type: Optional[CHECKPOINTER_TYPE] = None,
-        no_dist: bool = True,
+        single_rank_checkpoints: bool = True,
         enable_plan_caching: bool = True,
         save_options: Optional[dict[str, Any]] = None,
         load_options: Optional[dict[str, Any]] = None,
@@ -71,7 +71,8 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
                 Thread mode is suitable for single-device training, while process mode
                 enables distributed async checkpointing.
 
-            no_dist: If True, this function will assume the intent is to save a checkpoint on a single rank/process.
+            single_rank_checkpoints: If True, this function will assume the intent is to save a checkpoint
+                on a single rank/process.
 
             enable_plan_caching: Whether to enable planner caching in
                 :class:`torch.distributed.checkpoint.DefaultSavePlanner`, which can
@@ -100,11 +101,11 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         from torch.distributed.checkpoint import DefaultSavePlanner, state_dict_saver
 
         super().__init__()
-        no_dist = no_dist or (not dist.is_available()) or (not dist.is_initialized())
+        single_rank_checkpoints = single_rank_checkpoints or (not dist.is_available()) or (not dist.is_initialized())
         self.timeout = timeout
 
         if checkpointer_type is None:
-            checkpointer_type = "thread" if no_dist else "process"
+            checkpointer_type = "thread" if single_rank_checkpoints else "process"
 
         checkpointer_type = checkpointer_type.lower()
         if checkpointer_type not in get_args(CHECKPOINTER_TYPE):
@@ -117,7 +118,7 @@ class DistributedAsyncCheckpointIO(CheckpointIO):
         # https://pytorch.org/blog/distributed-checkpoint-efficient-checkpointing-in-large-scale-jobs/
         default_save_options: dict[str, Any] = {}
         if _TORCH_GREATER_EQUAL_2_9:
-            default_save_options["no_dist"] = no_dist
+            default_save_options["no_dist"] = single_rank_checkpoints
         if _TORCH_GREATER_EQUAL_2_7:
             async_type = state_dict_saver.AsyncCheckpointerType(self._checkpointer_type)
             default_save_options["async_checkpointer_type"] = async_type
