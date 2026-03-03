@@ -160,6 +160,7 @@ to perform a step, Lightning won't be able to support accelerators, precision an
 
 -----
 
+
 Bring your own Custom Learning Rate Schedulers
 ==============================================
 
@@ -172,13 +173,16 @@ If you are using native PyTorch schedulers, there is no need to override this ho
 
     from timm.scheduler import TanhLRScheduler
 
+
     def configure_optimizers(self):
         optimizer = ...
         scheduler = TanhLRScheduler(optimizer, ...)
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
 
+
     def lr_scheduler_step(self, scheduler, metric):
         scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
+
 
 .. _configure_gradient_clipping:
 
@@ -208,6 +212,7 @@ For example, here we will apply a stronger gradient clipping after a certain num
 
         # Lightning will handle the gradient clipping
         self.clip_gradients(optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
+
 
 Total Stepping Batches
 ======================
