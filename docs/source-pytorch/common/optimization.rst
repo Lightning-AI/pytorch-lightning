@@ -61,8 +61,7 @@ Manual optimization is required if you wish to work with multiple optimizers.
 Learning Rate Scheduling
 ========================
 
-Lightning supports learning rate schedulers configured via
-:meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`.
+Lightning supports learning rate schedulers configured via :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 In **automatic optimization**, Lightning will call ``scheduler.step()`` for you automatically —
 you do not need to call it manually.
 
@@ -113,8 +112,7 @@ The ``interval`` and ``frequency`` keys control when ``scheduler.step()`` is cal
     automatically. You are responsible for stepping the scheduler yourself inside
     ``training_step()`` or ``on_train_epoch_end()`` at the appropriate point.
 
-For the full list of supported return formats, see
-:meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`.
+For the full list of supported return formats, see :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
 .. _gradient_accumulation:
 
