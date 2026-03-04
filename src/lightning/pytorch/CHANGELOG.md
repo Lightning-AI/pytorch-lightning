@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed redundant host-device sync in progressbar printing ([#21233](https://github.com/Lightning-AI/pytorch-lightning/pull/21233))
 
 
 ---
