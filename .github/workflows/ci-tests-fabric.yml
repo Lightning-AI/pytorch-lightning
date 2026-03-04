@@ -101,7 +101,7 @@ jobs:
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
           uv pip install "cython<3.0" wheel
-          uv pip install "pyyaml==5.4" --no-build-isolation
+          uv pip install "pyyaml==6.0.0" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
           python .actions/assistant.py prune_pytest_as_errors
@@ -130,6 +130,8 @@ jobs:
           uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
             --find-links="${TORCH_URL}"
+          # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+          uv pip install "setuptools<80.10.3"
           uv pip list
 
       - name: Adjust tests
