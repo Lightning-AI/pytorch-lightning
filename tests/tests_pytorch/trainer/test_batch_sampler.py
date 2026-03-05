@@ -24,7 +24,7 @@ class DistribBatchSamplerCallback(Callback):
 
 @pytest.mark.parametrize("batch_size", [1, 5])
 @pytest.mark.parametrize("drop_last", [False, True])
-@RunIf(min_cuda_gpus=2, skip_windows=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_dataloader_distributed_batch_sampler(tmp_path, batch_size, drop_last):
     """Test BatchSampler and it's arguments for DDP backend."""
     seed_everything(123)
