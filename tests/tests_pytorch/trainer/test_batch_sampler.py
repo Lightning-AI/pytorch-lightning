@@ -1,13 +1,14 @@
 import pytest
-from torch.utils.data import RandomSampler, BatchSampler
+from torch.utils.data import BatchSampler, RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+
 from lightning.pytorch import Callback, Trainer, seed_everything
-from tests_pytorch.helpers.runif import RunIf
 from lightning.pytorch.demos.boring_classes import (
     BoringModel,
     RandomDataset,
 )
+from tests_pytorch.helpers.runif import RunIf
 
 
 class DistribBatchSamplerCallback(Callback):
