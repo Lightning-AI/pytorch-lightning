@@ -835,7 +835,6 @@ def test_dataloader_distributed_batch_sampler(tmp_path, batch_size, drop_last):
     sampler = RandomSampler(dataset)
     batch_sampler = BatchSampler(sampler, batch_size=batch_size, drop_last=drop_last)
     dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
-    print(batch_sampler.drop_last, dataloader.drop_last)
     model = BoringModel()
     trainer = Trainer(
         accelerator="gpu",
