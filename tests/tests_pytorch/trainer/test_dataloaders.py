@@ -18,7 +18,7 @@ import numpy
 import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import RandomSampler, BatchSampler
+from torch.utils.data import BatchSampler, RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
