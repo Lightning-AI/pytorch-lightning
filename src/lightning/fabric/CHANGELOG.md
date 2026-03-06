@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added async-checkpoint integration for both distributed (DCP) and non-distributed checkpoints, enabling non-blocking checkpoint writes when async checkpointing is enabled. ([#21515](https://github.com/Lightning-AI/pytorch-lightning/pull/21515))
 
 
 ### Removed

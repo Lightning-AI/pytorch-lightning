@@ -229,7 +229,22 @@ class DDPStrategy(ParallelStrategy):
         _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
+        if self._process_group_backend is not None:
+            return self._process_group_backend
+
+        default_pg_backend = _get_default_process_group_backend_for_device(self.root_device)
+
+        # if uses async checkpoint with process, then we also need to have a gloo backend
+        if self.checkpoint_io.requires_cpu_collectives:
+            if "cpu" in default_pg_backend or "gloo" in default_pg_backend:
+                return default_pg_backend
+            if default_pg_backend == "nccl":
+                return "cpu:gloo,cuda:nccl"
+            raise ValueError(
+                f"{self.checkpoint_io.__class__.__name__} requires a process group backend that supports Gloo, "
+                "but the default backend for the device is not compatible."
+            )
+        return default_pg_backend
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is not None:

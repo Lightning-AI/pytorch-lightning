@@ -336,7 +336,14 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
+        converted_state = state
+        if state is not None and isinstance(state, dict):
+            converted_state = self._convert_stateful_objects_in_state(
+                state,
+                filter={},
+            )
+
+        checkpoint = self.checkpoint_io.load_checkpoint(path, state=converted_state, weights_only=weights_only)
         if not state:
             return checkpoint
 
@@ -404,7 +411,9 @@ class Strategy(ABC):
         )
 
     def _convert_stateful_objects_in_state(
-        self, state: dict[str, Union[Module, Optimizer, Any]], filter: dict[str, Callable[[str, Any], bool]]
+        self,
+        state: dict[str, Union[Module, Optimizer, Any]],
+        filter: dict[str, Callable[[str, Any], bool]],
     ) -> dict[str, Any]:
         converted_state: dict[str, Any] = {}
         for key, obj in state.items():
@@ -417,6 +426,7 @@ class Strategy(ABC):
                 converted = obj.state_dict()
             else:
                 converted = obj
+
             _apply_filter(key, filter, converted, converted_state)
         return converted_state
 

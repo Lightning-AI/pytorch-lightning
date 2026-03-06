@@ -18,7 +18,9 @@ class _CaptureCheckpointIO(CheckpointIO):
         # Store the received checkpoint object (not a deep copy) to inspect tensor values
         self.saved = checkpoint
 
-    def load_checkpoint(self, path: str, map_location: Optional[Any] = None) -> dict[str, Any]:
+    def load_checkpoint(
+        self, path: str, map_location: Optional[Any] = None, state: Optional[Any] = None
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
     def remove_checkpoint(self, path: str) -> None:
