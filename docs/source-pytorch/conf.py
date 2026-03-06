@@ -113,21 +113,13 @@ if _PIN_RELEASE_VERSIONS:
         "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
     )
     adjust_linked_external_docs(
-        "https://lightning.ai/docs/torchmetrics/stable/",
-        "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/",
-        _PATH_ROOT,
-        version_digits=3,
+        "https://lightning.ai/docs/torchmetrics/stable/", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
     )
     adjust_linked_external_docs(
-        "https://lightning.ai/docs/fabric/stable/",
-        "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/",
-        _PATH_ROOT,
-        version_digits=3,
+        "https://lightning.ai/docs/fabric/stable/", "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/", _PATH_ROOT, version_digits=3
     )
     adjust_linked_external_docs(
-        "https://tensorboardx.readthedocs.io/en/stable/",
-        "https://tensorboardx.readthedocs.io/en/v{tensorboard.__version__}/",
-        _PATH_ROOT,
+        "https://tensorboardx.readthedocs.io/en/stable/", "https://tensorboardx.readthedocs.io/en/v{tensorboard.__version__}/", _PATH_ROOT
     )
 
 # -- Project information -----------------------------------------------------
@@ -171,7 +163,7 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "lai_sphinx_theme.extensions.lightning",
-    "sphinx.ext.mathjax",
+    'sphinx.ext.mathjax',
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -322,7 +314,9 @@ texinfo_documents = [
 
 # MathJax configuration
 mathjax3_config = {
-    "tex": {"packages": {"[+]": ["ams", "newcommand", "configMacros"]}},
+    'tex': {
+        'packages': {'[+]': ['ams', 'newcommand', 'configMacros']}
+    },
 }
 
 # -- Options for Epub output -------------------------------------------------
@@ -369,7 +363,7 @@ nitpick_ignore = [
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
-    ("py:class", "tensorboardX.SummaryWriter"),
+    ('py:class', 'tensorboardX.SummaryWriter'),
     ("py:class", "AveragedModel"),
     ("py:class", "CometExperiment"),
     ("py:meth", "DataModule.__init__"),
@@ -637,7 +631,7 @@ linkcheck_ignore = [
     r"^../common/trainer.html#trainer-flags$",
     "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
-    "https://www.supermicro.com",  # returns 403 error
+    "https://www.supermicro.com", # returns 403 error
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
@@ -646,5 +640,5 @@ linkcheck_ignore = [
     "https://tinyurl.com/.*",  # has a human verification check on redirect
     "https://docs.neptune.ai/.*",  # TODO: remove after dropping Neptune support
     "https://app.neptune.ai/*",
-    "https://www.neptune.ai/*",
+    "https://www.neptune.ai/*"
 ]
