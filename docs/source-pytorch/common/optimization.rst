@@ -57,6 +57,63 @@ Should you still require the flexibility of calling ``.zero_grad()``, ``.backwar
 always switch to :ref:`manual optimization <manual_optimization>`.
 Manual optimization is required if you wish to work with multiple optimizers.
 
+.. _lr_scheduling:
+
+Learning Rate Scheduling
+========================
+
+Lightning supports learning rate schedulers configured via :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
+In **automatic optimization**, Lightning will call ``scheduler.step()`` for you automatically —
+you do not need to call it manually.
+
+A simple example returning both an optimizer and a scheduler:
+
+.. code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "epoch",  # "epoch" (default) or "step"
+                "frequency": 1,       # how often to call scheduler.step(); default is 1
+            },
+        }
+
+The ``interval`` and ``frequency`` keys control when ``scheduler.step()`` is called:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 15 70
+
+   * - ``interval``
+     - ``frequency``
+     - Behavior
+   * - ``"epoch"`` (default)
+     - 1 (default)
+     - ``scheduler.step()`` is called once at the end of every epoch
+   * - ``"epoch"``
+     - N
+     - ``scheduler.step()`` is called at the end of every N epochs
+   * - ``"step"``
+     - 1 (default)
+     - ``scheduler.step()`` is called after every training batch (step)
+   * - ``"step"``
+     - N
+     - ``scheduler.step()`` is called after every N training steps
+
+.. note::
+    If ``interval`` and ``frequency`` are not specified, Lightning defaults to
+    ``interval="epoch"`` and ``frequency=1``, stepping the scheduler once per epoch.
+
+.. note::
+    If you are using **manual optimization**, Lightning will **not** call ``scheduler.step()``
+    automatically. You are responsible for stepping the scheduler yourself inside
+    ``training_step()`` or ``on_train_epoch_end()`` at the appropriate point.
+
+For the full list of supported return formats, see :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
 .. _gradient_accumulation:
 
