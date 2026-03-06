@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
+
 -
 
 
