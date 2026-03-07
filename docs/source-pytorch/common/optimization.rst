@@ -131,7 +131,7 @@ configured in your :meth:`~lightning.pytorch.core.LightningModule.configure_opti
 You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer
 to perform a step, Lightning won't be able to support accelerators, precision and profiling for you.
 
-.. testcode:: python
+.. code-block:: python
     :emphasize-lines: 9,20-21
 
     # function hook in LightningModule
@@ -170,7 +170,7 @@ relying on a different API from Native PyTorch ones, you should override the :me
 If you are using native PyTorch schedulers, there is no need to override this hook since Lightning will handle it automatically by default.
 
 .. code-block:: python
-    :emphasize-lines: 6-7,11-12
+    :emphasize-lines: 5-6,10-11
 
     from timm.scheduler import TanhLRScheduler
 
@@ -205,7 +205,7 @@ the arguments along with your optimizer.
 
 For example, here we will apply a stronger gradient clipping after a certain number of epochs:
 
-.. testcode:: python
+.. code-block:: python
     :emphasize-lines: 2,6
 
     def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
