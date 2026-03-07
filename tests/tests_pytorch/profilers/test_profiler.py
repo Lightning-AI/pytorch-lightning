@@ -194,8 +194,31 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+def test_simple_profiler_uses_math_fsum(monkeypatch):
+    profiler = SimpleProfiler()
+    profiler.recorded_durations["action"] = [1.0, 2.0, 3.0]
+    profiler.start_time = 0.0
+
+    fsum_calls: list[list[float]] = []
+
+    def _fake_fsum(values):
+        fsum_calls.append(list(values))
+        return sum(values)
+
+    monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
+
+    # Test non-extended report
+    profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+
 @pytest.mark.parametrize("extended", [True, False])
-@patch("time.monotonic", return_value=70)
+@patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
