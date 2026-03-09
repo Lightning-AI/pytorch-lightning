@@ -679,3 +679,37 @@ def test_lr_monitor_update_callback_metrics(tmp_path):
     assert min(lr_monitor.lrs[monitor_key][expected_stop_epoch:]) < stop_threshold
     assert trainer.current_epoch - 1 == expected_stop_epoch
     assert lr_es.stopped_epoch == expected_stop_epoch
+
+
+def test_lr_monitor_with_float64_lr(tmp_path):
+    """Test that LearningRateMonitor works when optimizer lr is np.float64.
+
+    This verifies the fix for #20250: on MPS devices, float64 tensors are not supported, so the lr monitor must convert
+    values to float32-compatible Python floats before creating tensors on the device.
+
+    """
+    import numpy as np
+
+    class Float64LRModel(BoringModel):
+        def configure_optimizers(self):
+            return optim.SGD(self.parameters(), lr=np.float64(0.01))
+
+    model = Float64LRModel()
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert lr_monitor.lrs, "No learning rates logged"
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
+    # Verify the logged value is correct
+    assert lr_monitor.lrs["lr-SGD"][0] == pytest.approx(0.01)
+    # Verify the callback metric tensor was created successfully
+    assert "lr-SGD" in trainer.callback_metrics
+    assert isinstance(trainer.callback_metrics["lr-SGD"], torch.Tensor)
