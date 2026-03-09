@@ -22,10 +22,8 @@ from typing import Any
 
 
 class NeptuneLogger:
-    """Deprecated: NeptuneLogger is no longer supported.
-
-    .. deprecated::
-       Use :class:`LitLogger` instead.
+    """
+    .. deprecated:: Use :class:`LitLogger` instead.
 
     Neptune has been sunset and this logger is no longer maintained.
     Please migrate to **LitLogger**, the recommended logging solution for
