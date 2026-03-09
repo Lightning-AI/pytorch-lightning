@@ -1206,6 +1206,60 @@ class Trainer:
         if self.local_rank == 0:
             print(*args, **kwargs)
 
+    def reload_dataloaders(self, train: bool = True, val: bool = False) -> None:
+        """Manually trigger a reload of dataloaders during training.
+
+        This method allows dynamic reconfiguration of DataLoaders without exiting the ``fit()`` loop.
+        It's useful for curriculum learning, adaptive training strategies, or any scenario where
+        DataLoader parameters need to change based on training metrics or progress.
+
+        The reload will occur at the start of the next epoch during training.
+
+        Args:
+            train: If ``True``, reload the train dataloader. Default: ``True``.
+            val: If ``True``, reload the validation dataloader. Default: ``False``.
+
+        Example::
+
+            # In a callback
+            def on_train_epoch_end(self, trainer, pl_module):
+                if trainer.current_epoch == 5:
+                    # Update datamodule parameters
+                    trainer.datamodule.sequence_length += 10
+                    # Trigger reload for next epoch
+                    trainer.reload_dataloaders(train=True, val=True)
+
+            # In a LightningModule
+            def on_train_batch_end(self, outputs, batch, batch_idx):
+                if self.trainer.callback_metrics.get('train_loss', 1.0) < 0.5:
+                    self.trainer.datamodule.unroll_steps += 1
+                    self.trainer.reload_dataloaders()
+
+        Raises:
+            RuntimeError: If called outside of a ``fit()`` call.
+
+        .. note::
+
+            The actual reload happens at the beginning of the next training epoch,
+            not immediately when this method is called. This ensures training state
+            consistency and proper synchronization in distributed settings.
+
+        """
+        if not self.training:
+            raise RuntimeError(
+                "`trainer.reload_dataloaders()` can only be called during training (inside `trainer.fit()`)."
+            )
+
+        if train:
+            # Setting to -inf ensures _should_reload_train_dl returns True
+            self.fit_loop._last_train_dl_reload_epoch = float("-inf")
+            rank_zero_info("Train dataloader will be reloaded at the start of the next epoch.")
+
+        if val:
+            # Setting to -inf ensures _should_reload_val_dl returns True
+            self.fit_loop.epoch_loop.val_loop._last_val_dl_reload_epoch = float("-inf")
+            rank_zero_info("Validation dataloader will be reloaded at the next validation check.")
+
     """
     Accelerator properties
     """
