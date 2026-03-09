@@ -28,6 +28,11 @@ class Logger(ABC):
     """Base class for experiment loggers."""
 
     @property
+    def logging_mode(self) -> Optional[str]:
+        """Return the current logging mode (``"step"`` or ``"epoch"``) if set by the caller."""
+        return getattr(self, "_logging_mode", None)
+
+    @property
     @abstractmethod
     def name(self) -> Optional[str]:
         """Return the experiment name."""
