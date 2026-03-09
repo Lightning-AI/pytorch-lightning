@@ -13,6 +13,7 @@
 # limitations under the License.
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
+from lightning.fabric.plugins.io.distributed_async_io import DistributedAsyncCheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision.amp import MixedPrecision
@@ -28,6 +29,7 @@ from lightning.fabric.plugins.precision.xla import XLAPrecision
 __all__ = [
     "ClusterEnvironment",
     "CheckpointIO",
+    "DistributedAsyncCheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "BitsandbytesPrecision",
