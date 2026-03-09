@@ -218,7 +218,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
-        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if self.root_device.type == "cuda":
@@ -442,6 +442,59 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class MultiModelDDPStrategy(DDPStrategy):
+    """Specific strategy for training on multiple models with multiple optimizers (e.g. GAN training).
+
+    This strategy wraps each individual child module in :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
+    module. Ensures manual backward only updates parameters of the targeted child module, preventing cross-references
+    between modules' parameters.
+
+    """
+
+    @override
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        device_ids = self.determine_ddp_device_ids()
+        log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        with ctx:
+            for name, module in model.named_children():
+                if isinstance(module, Module):
+                    ddp_module = DistributedDataParallel(module, device_ids=device_ids, **self._ddp_kwargs)
+                    setattr(model, name, ddp_module)
+            return model
+
+    @override
+    def _register_ddp_hooks(self) -> None:
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
+        # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
+        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
+        if self.root_device.type != "cuda":
+            return
+        assert isinstance(self.model, Module)
+
+        for name, module in self.model.named_children():
+            assert isinstance(module, DistributedDataParallel)
+            _register_ddp_comm_hook(
+                model=module,
+                ddp_comm_state=self._ddp_comm_state,
+                ddp_comm_hook=self._ddp_comm_hook,
+                ddp_comm_wrapper=self._ddp_comm_wrapper,
+            )
+
+    @classmethod
+    @override
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
+        entries = (("multi_model_ddp", "popen"),)
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"MultiModelDDP strategy with `start_method` '{start_method}'",
+                start_method=start_method,
+            )
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
