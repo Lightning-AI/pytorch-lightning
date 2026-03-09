@@ -114,50 +114,6 @@ def comet_mock(monkeypatch):
 
 
 @pytest.fixture
-def neptune_mock(monkeypatch):
-    class RunType:  # to make isinstance checks pass
-        def get_root_object(self):
-            pass
-
-        def __getitem__(self, item):
-            pass
-
-        def __setitem__(self, key, value):
-            pass
-
-    run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
-    run_mock.get_root_object.return_value = run_mock
-
-    neptune = ModuleType("neptune")
-    neptune.init_run = Mock(return_value=run_mock)
-    neptune.Run = RunType
-    monkeypatch.setitem(sys.modules, "neptune", neptune)
-
-    neptune_handler = ModuleType("handler")
-    neptune_handler.Handler = RunType
-    monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
-
-    neptune_types = ModuleType("types")
-    neptune_types.File = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.types", neptune_types)
-
-    neptune_utils = ModuleType("utils")
-    neptune_utils.stringify_unsupported = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
-
-    neptune_exceptions = ModuleType("exceptions")
-    neptune_exceptions.InactiveRunException = Exception
-    monkeypatch.setitem(sys.modules, "neptune.exceptions", neptune_exceptions)
-
-    neptune.handler = neptune_handler
-    neptune.types = neptune_types
-    neptune.utils = neptune_utils
-
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
-    return neptune
-
-
-@pytest.fixture
 def litlogger_mock(monkeypatch):
     """Mock litlogger module for unit testing LightningLogger."""
     experiment_mock = MagicMock()

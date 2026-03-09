@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Removed support for Neptune logger ([#21572](https://github.com/Lightning-AI/pytorch-lightning/pull/21572))
 
 
 ### Changed
@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
 
--
+- Fixed pkg-resources deprecation issue ([#21538](https://github.com/Lightning-AI/pytorch-lightning/pull/21538))
 
 - Fixed ``RichModelSummary`` model size display formatting ([#21467](https://github.com/Lightning-AI/pytorch-lightning/pull/21467))
 
