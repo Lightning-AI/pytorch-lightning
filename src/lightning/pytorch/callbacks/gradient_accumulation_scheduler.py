@@ -78,9 +78,7 @@ class GradientAccumulationScheduler(Callback):
         super().__init__()
 
         if mode not in ("epoch", "step"):
-            raise MisconfigurationException(
-                f"`mode` must be 'epoch' or 'step'. Got {mode!r}."
-            )
+            raise MisconfigurationException(f"`mode` must be 'epoch' or 'step'. Got {mode!r}.")
 
         if not scheduling:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
@@ -98,9 +96,7 @@ class GradientAccumulationScheduler(Callback):
 
         minimal_threshold = min(scheduling.keys())
         if minimal_threshold < 0:
-            raise IndexError(
-                f"{threshold_name}s are non-negative, {minimal_threshold} cannot be interpreted correct"
-            )
+            raise IndexError(f"{threshold_name}s are non-negative, {minimal_threshold} cannot be interpreted correct")
         if minimal_threshold != 0:  # if user didn't define first threshold accumulation factor
             scheduling = {**scheduling, 0: 1}
 
