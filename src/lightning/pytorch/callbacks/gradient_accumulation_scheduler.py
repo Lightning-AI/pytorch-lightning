@@ -20,7 +20,7 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from typing_extensions import override
 
@@ -35,44 +35,58 @@ class GradientAccumulationScheduler(Callback):
     r"""Change gradient accumulation factor according to scheduling.
 
     Args:
-        scheduling: scheduling in format {epoch: accumulation_factor}
+        scheduling: Scheduling in format ``{threshold: accumulation_factor}``. When ``mode="epoch"``,
+            keys are zero-indexed epoch numbers. When ``mode="step"``, keys are global step numbers.
+        mode: Whether to schedule by ``"epoch"`` or ``"step"``. Defaults to ``"epoch"`` for
+            backward compatibility.
 
     Note:
-        The argument scheduling is a dictionary. Each key represent an epoch and
-        its associated accumulation factor value.
-        Warning: Epoch are zero-indexed c.f it means if you want to change
-        the accumulation factor after 4 epochs, set ``Trainer(accumulate_grad_batches={4: factor})``
-        or ``GradientAccumulationScheduler(scheduling={4: factor})``.
-        For more info check the example below.
+        The argument scheduling is a dictionary. When ``mode="epoch"``, each key represents an epoch
+        and its associated accumulation factor value (epochs are zero-indexed). When ``mode="step"``,
+        each key represents a global training step. For example, if you want to change the accumulation
+        factor after 4 epochs, use ``scheduling={4: factor}`` with ``mode="epoch"``; for step-based
+        scheduling use e.g. ``scheduling={0: 8, 1000: 4, 5000: 1}`` with ``mode="step"``.
 
     Raises:
         TypeError:
             If ``scheduling`` is an empty ``dict``,
             or not all keys and values of ``scheduling`` are integers.
+        MisconfigurationException:
+            If ``mode`` is not ``"epoch"`` or ``"step"``, or if keys/values are invalid.
         IndexError:
-            If ``minimal_epoch`` is less than 0.
+            If minimal threshold is less than 0.
 
     Example::
 
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
-        # from epoch 5, it starts accumulating every 2 batches. Here we have 4 instead of 5
-        # because epoch (key) should be zero-indexed.
+        # Epoch-based: from epoch 5, accumulate every 2 batches (use 4 for zero-indexed).
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
+        >>> trainer = Trainer(callbacks=[accumulator])
+
+        # Step-based: for single-epoch pretraining, schedule by global step.
+        >>> accumulator = GradientAccumulationScheduler(
+        ...     scheduling={0: 8, 1000: 4, 5000: 1},
+        ...     mode="step",
+        ... )
         >>> trainer = Trainer(callbacks=[accumulator])
 
     """
 
-    def __init__(self, scheduling: dict[int, int]):
+    def __init__(self, scheduling: dict[int, int], mode: Literal["epoch", "step"] = "epoch"):
         super().__init__()
+
+        if mode not in ("epoch", "step"):
+            raise MisconfigurationException(f"`mode` must be 'epoch' or 'step'. Got {mode!r}.")
 
         if not scheduling:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
 
+        threshold_name = "Epoch" if mode == "epoch" else "Step"
         if any(not isinstance(key, int) or key < 0 for key in scheduling):
             raise MisconfigurationException(
-                f"Epoch should be an int greater than or equal to 0. Got {list(scheduling.keys())}."
+                f"{threshold_name} should be an int greater than or equal to 0. Got {list(scheduling.keys())}."
             )
 
         if any(not isinstance(value, int) or value < 1 for value in scheduling.values()):
@@ -80,14 +94,15 @@ class GradientAccumulationScheduler(Callback):
                 f"Accumulation factor should be an int greater than 0. Got {list(scheduling.values())}."
             )
 
-        minimal_epoch = min(scheduling.keys())
-        if minimal_epoch < 0:
-            raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
-        if minimal_epoch != 0:  # if user didn't define first epoch accumulation factor
-            scheduling.update({0: 1})
+        minimal_threshold = min(scheduling.keys())
+        if minimal_threshold < 0:
+            raise IndexError(f"{threshold_name}s are non-negative, {minimal_threshold} cannot be interpreted correct")
+        if minimal_threshold != 0:  # if user didn't define first threshold accumulation factor
+            scheduling = {**scheduling, 0: 1}
 
         self.scheduling = scheduling
-        self.epochs = sorted(scheduling.keys())
+        self.mode = mode
+        self.epochs = sorted(self.scheduling.keys())
 
     def going_to_accumulate_grad_batches(self) -> bool:
         return any(v > 1 for v in self.scheduling.values())
@@ -135,6 +150,17 @@ class GradientAccumulationScheduler(Callback):
                 " callback. Either remove `accumulate_grad_batches` from the Trainer or remove the callback."
             )
 
+        if self.mode == "step":
+            trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(0)
+
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
-        trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
+        if self.mode == "epoch":
+            trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
+
+    @override
+    def on_train_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
+    ) -> None:
+        if self.mode == "step":
+            trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.global_step)

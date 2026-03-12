@@ -18,7 +18,9 @@ effective batch size is increased but there is no memory overhead.
     trainer = Trainer(accumulate_grad_batches=7)
 
 Optionally, you can make the ``accumulate_grad_batches`` value change over time by using the :class:`~lightning.pytorch.callbacks.gradient_accumulation_scheduler.GradientAccumulationScheduler`.
-Pass in a scheduling dictionary, where the key represents the epoch at which the value for gradient accumulation should be updated.
+Pass in a scheduling dictionary. By default, the key represents the **epoch** (zero-indexed) at which the value for gradient accumulation should be updated. You can also schedule by **global step** using ``mode="step"``.
+
+**Epoch-based scheduling (default):**
 
 .. testcode::
 
@@ -28,6 +30,19 @@ Pass in a scheduling dictionary, where the key represents the epoch at which the
         # till 9th epoch it will accumulate every 4 batches and after that no accumulation
         # will happen. Note that you need to use zero-indexed epoch keys here
         accumulator = GradientAccumulationScheduler(scheduling={0: 8, 4: 4, 8: 1})
+        trainer = Trainer(callbacks=accumulator)
+
+**Step-based scheduling** (e.g. for single-epoch pretraining):
+
+.. testcode::
+
+        from lightning.pytorch.callbacks import GradientAccumulationScheduler
+
+        # Keys are global training steps: accum 8 until step 1000, then 4 until 5000, then 1
+        accumulator = GradientAccumulationScheduler(
+            scheduling={0: 8, 1000: 4, 5000: 1},
+            mode="step",
+        )
         trainer = Trainer(callbacks=accumulator)
 
 Note: Not all strategies and accelerators support variable gradient accumulation windows.

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added step-based scheduling for `GradientAccumulationScheduler` via a new ``mode`` parameter (``"epoch"`` or ``"step"``). When ``mode="step"``, scheduling dictionary keys are global training steps instead of epochs, enabling finer-grained control for single-epoch pretraining ([#21534](https://github.com/Lightning-AI/pytorch-lightning/issues/21534))
 
 
 ### Removed
