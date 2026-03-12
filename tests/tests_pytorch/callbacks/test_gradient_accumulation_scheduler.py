@@ -140,3 +140,34 @@ def test_raises_when_accumulate_grad_batches_with_callback(tmp_path):
     )
     with pytest.raises(ValueError, match="`accumulate_grad_batches` and are using the `GradientAccumulationScheduler`"):
         trainer.fit(BoringModel())
+
+
+def test_invalid_mode_for_grad_accum_scheduler():
+    """Test that an invalid mode raises MisconfigurationException."""
+    with pytest.raises(MisconfigurationException, match="`mode` must be 'epoch' or 'step'"):
+        GradientAccumulationScheduler(scheduling={0: 2}, mode="invalid")
+
+
+def test_step_mode_invalid_keys_raises():
+    """Test that step mode uses 'Step' in error message for invalid keys."""
+    with pytest.raises(MisconfigurationException, match="Step should be an int"):
+        GradientAccumulationScheduler(scheduling={0: 2, -1: 1}, mode="step")
+
+
+def test_trainer_accumulate_grad_batches_with_callback_step_mode(tmp_path):
+    """Test step-based scheduling: schedule {0: 2, 3: 1} over 20 batches gives 17 optimizer steps."""
+    # Steps 0,1,2 use accum 2 (6 batches -> 3 opt steps); steps 3+ use accum 1 (14 batches -> 14 opt steps).
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            limit_train_batches=20,
+            limit_val_batches=1,
+            max_epochs=1,
+            enable_model_summary=False,
+            callbacks=GradientAccumulationScheduler(scheduling={0: 2, 3: 1}, mode="step"),
+        )
+        assert trainer.accumulate_grad_batches == 1
+        trainer.fit(model)
+        # 3 + 14 = 17 optimizer steps
+        assert sgd_zero_grad.call_count == 17
