@@ -50,14 +50,14 @@ class TestModel(BoringModel):
 class LargeTestModel(BoringModel):
     def __init__(self):
         super().__init__()
-        self.layer = None
+        self.layer: Optional[nn.Module] = None
 
     def configure_model(self):
-        print("XXX configure_model")
-        self.layer = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        if self.layer is None:
+            self.layer = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=0.01)
+        return torch.optim.AdamW(self.parameters(), lr=0.1)
 
 
 class EMAAveragingFunction:
@@ -279,6 +279,14 @@ def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
     callback = EMATestCallback()
     _train(model, dataset, tmp_path, callback, strategy=strategy, accelerator=accelerator, devices=devices)
     assert isinstance(callback._average_model.module.layer, nn.Sequential)
+
+
+@pytest.mark.filterwarnings("ignore::FutureWarning")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+def test_ema_fsdp(tmp_path):
+    model = LargeTestModel()
+    dataset = RandomIterableDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback(), strategy="fsdp", accelerator="gpu", devices=2)
 
 
 def _train(
