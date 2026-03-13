@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added VisualDL logger support for both Fabric and PyTorch Lightning ([#Unknown](https://github.com/Lightning-AI/pytorch-lightning/pull/Unknown))
+- Added VisualDL logger support for both Fabric and PyTorch Lightning ([#21584](https://github.com/Lightning-AI/pytorch-lightning/pull/21584))
 
 ## [2.6.1] - 2026-01-30
 
