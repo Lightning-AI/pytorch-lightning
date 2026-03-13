@@ -101,6 +101,7 @@ loggers
     mlflow
     neptune
     tensorboard
+    visualdl
     wandb
 
 plugins

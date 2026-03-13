@@ -283,6 +283,9 @@ trainer = Trainer(logger=LitLogger())
 # tensorboard
 trainer = Trainer(logger=TensorBoardLogger("logs/"))
 
+# visualdl
+trainer = Trainer(logger=VisualDLLogger("logs/"))
+
 # weights and biases
 trainer = Trainer(logger=loggers.WandbLogger())
 
