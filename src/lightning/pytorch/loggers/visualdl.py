@@ -20,10 +20,8 @@ import os
 from argparse import Namespace
 from typing import Any, Optional, Union
 
-from torch import Tensor
 from typing_extensions import override
 
-import lightning.pytorch as pl
 from lightning.fabric.loggers.visualdl import _VISUALDL_AVAILABLE
 from lightning.fabric.loggers.visualdl import VisualDLLogger as FabricVisualDLLogger
 from lightning.fabric.utilities.cloud_io import _is_dir
@@ -124,25 +122,15 @@ class VisualDLLogger(Logger, FabricVisualDLLogger):
     @property
     @override
     def root_dir(self) -> str:
-        """Parent directory for all VisualDL checkpoint subdirectories.
-
-        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
-        be saved in "save_dir/version"
-
-        """
-        return os.path.join(super().root_dir, self.name)
+        """Parent directory for all VisualDL checkpoint subdirectories."""
+        return os.path.join(super().root_dir, self.name)  # save_dir/name
 
     @property
     @override
     def log_dir(self) -> str:
-        """The directory for this run's VisualDL checkpoint.
-
-        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
-        constructor's version parameter instead of ``None`` or an int.
-
-        """
+        """The directory for this run's VisualDL checkpoint."""
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
+        log_dir = os.path.join(self.root_dir, version)  # save_dir/name/version
         if isinstance(self.sub_dir, str):
             log_dir = os.path.join(log_dir, self.sub_dir)
         log_dir = os.path.expandvars(log_dir)
@@ -193,25 +181,6 @@ class VisualDLLogger(Logger, FabricVisualDLLogger):
             self.hparams.update(params)
 
         return super().log_hyperparams(params=params, metrics=metrics, step=step)
-
-    @override
-    @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        """Log the model graph to VisualDL.
-
-        Note:
-            VisualDL graph logging requires manual export of the model. You can use the VisualDL Graph component
-            separately by launching visualdl with the --model parameter pointing to your saved model file.
-
-        """
-        if not self._log_graph:
-            return
-
-        rank_zero_warn(
-            "VisualDL graph logging requires manual export of the model. "
-            "You can use the VisualDL Graph component separately by launching "
-            "visualdl with the --model parameter pointing to your saved model file."
-        )
 
     @override
     @rank_zero_only

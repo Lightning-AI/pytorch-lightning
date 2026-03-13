@@ -29,7 +29,6 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _fla
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
-from lightning.fabric.wrappers import _unwrap_objects
 
 _VISUALDL_AVAILABLE = RequirementCache("visualdl")
 
@@ -290,35 +289,17 @@ class VisualDLLogger(Logger):
     @override
     @rank_zero_only
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
-        """Log the model graph. Note: VisualDL supports graph visualization through its Graph component.
-
-        Args:
-            model: The model to log
-            input_array: Input tensor to trace the model graph
+        """Log the model graph to VisualDL.
 
         Note:
-            VisualDL supports both static and dynamic graph visualization. This method attempts
-            to use the dynamic graph visualization if input_array is provided.
+            VisualDL doesn't support automatic graph logging. Users need to manually
+            export and visualize the model using VisualDL's Graph component.
 
         """
-        model_example_input = getattr(model, "example_input_array", None)
-        input_array = model_example_input if input_array is None else input_array
-        model = _unwrap_objects(model)
-
-        if input_array is None:
-            rank_zero_warn(
-                "Could not log computational graph to VisualDL: The `model.example_input_array` attribute"
-                " is not set or `input_array` was not given."
-            )
-            return
-
-        # VisualDL doesn't have a direct add_graph method like TensorBoard
-        # Instead, we can attempt to log the model structure as text or use a custom approach
-        # For now, we'll log a message about graph logging limitations
         rank_zero_warn(
-            "VisualDL graph logging requires manual export of the model. "
-            "You can use the VisualDL Graph component separately by launching "
-            "visualdl with the --model parameter pointing to your saved model file."
+            "VisualDL does not support automatic graph logging. "
+            "You can manually export your model and visualize it using "
+            "VisualDL's Graph component by running: visualdl --model <path_to_model>"
         )
 
     @override
@@ -451,7 +432,7 @@ class VisualDLLogger(Logger):
         values: Union[Tensor, np.ndarray],
         step: Optional[int] = None,
         walltime: Optional[int] = None,
-        buckets: Optional[int] = None,
+        buckets: Optional[int] = 100,
     ) -> None:
         """Log a histogram of values.
 

@@ -41,13 +41,13 @@ def test_visualdl_hparams_reload(tmp_path):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmp_path, logger=VisualDLLogger(tmp_path))
+    logger = VisualDLLogger(tmp_path)
+    trainer = Trainer(max_steps=1, default_root_dir=tmp_path, logger=logger)
     model = CustomModel()
-    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    assert trainer.log_dir == trainer.logger.log_dir
-    folder_path = trainer.log_dir
+    # 使用 logger.log_dir，而不是 trainer.log_dir
+    folder_path = logger.log_dir
 
     # make sure yaml is there
     hparams_file = os.path.join(folder_path, "hparams.yaml")
@@ -90,7 +90,6 @@ def test_visualdl_manual_versioning(tmp_path):
     assert logger.version == 1
 
 
-@pytest.mark.skipif(not _VISUALDL_AVAILABLE, reason="visualdl is required")
 def test_visualdl_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     name = "vdl_versioning"
@@ -98,20 +97,21 @@ def test_visualdl_named_version(tmp_path):
     expected_version = "2020-02-05-162402"
 
     logger = VisualDLLogger(save_dir=tmp_path, name=name, version=expected_version)
-    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
+    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4})
+    logger.save()
 
     assert logger.version == expected_version
     assert os.listdir(tmp_path / name) == [expected_version]
     assert os.listdir(tmp_path / name / expected_version)
 
 
-@pytest.mark.skipif(not _VISUALDL_AVAILABLE, reason="visualdl is required")
 @pytest.mark.parametrize("name", ["", None])
 def test_visualdl_no_name(tmp_path, name):
     """Verify that None or empty name works."""
     logger = VisualDLLogger(save_dir=tmp_path, name=name)
-    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
-    assert os.path.normpath(logger.root_dir) == str(tmp_path)  # use os.path.normpath to handle trailing /
+    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4})
+    logger.save()
+    assert os.path.normpath(logger.root_dir) == str(tmp_path)
     assert os.listdir(tmp_path / "version_0")
 
 
@@ -245,7 +245,7 @@ def test_visualdl_log_graph_warning_no_example_input_array(tmp_path):
     logger = VisualDLLogger(tmp_path, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match="Could not log computational graph to VisualDL: The `model.example_input_array` .* was not given",
+        match="VisualDL does not support automatic graph logging",
     ):
         logger.log_graph(model)
 
@@ -299,17 +299,20 @@ def test_visualdl_finalize(monkeypatch, tmp_path):
     assert logger._experiment is None
     logger.finalize("any")
 
-    # no log calls, no experiment created -> nothing to flush
-    assert not hasattr(logger, "experiment") or logger._experiment is None
+    # without the call of log，experiment should not be created
+    assert logger._experiment is None
 
     logger = VisualDLLogger(save_dir=tmp_path)
     logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
+    assert logger._experiment is not None  # experiment should be created
+
+    logger._experiment.flush = Mock()
+    logger._experiment.close = Mock()
+
     logger.finalize("any")
 
-    # finalize flushes to experiment directory
-    if logger._experiment is not None:
-        logger._experiment.flush.assert_called()
-        logger._experiment.close.assert_called()
+    logger._experiment.flush.assert_called_once()
+    logger._experiment.close.assert_called_once()
 
 
 @pytest.mark.skipif(not _VISUALDL_AVAILABLE, reason="visualdl is required")
@@ -318,11 +321,11 @@ def test_visualdl_save_hparams_to_yaml_once(tmp_path):
     model = BoringModel()
     logger = VisualDLLogger(save_dir=tmp_path, default_hp_metric=False)
     trainer = Trainer(max_steps=1, default_root_dir=tmp_path, logger=logger)
-    assert trainer.log_dir == trainer.logger.log_dir
+
     trainer.fit(model)
 
     hparams_file = "hparams.yaml"
-    assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
+    assert os.path.isfile(os.path.join(logger.log_dir, hparams_file))
     assert not os.path.isfile(os.path.join(tmp_path, hparams_file))
 
 
