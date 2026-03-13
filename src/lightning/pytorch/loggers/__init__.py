@@ -18,6 +18,7 @@ from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.loggers.mlflow import MLFlowLogger
 from lightning.pytorch.loggers.neptune import NeptuneLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.loggers.visualdl import VisualDLLogger
 from lightning.pytorch.loggers.wandb import WandbLogger
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "Logger",
     "MLFlowLogger",
     "TensorBoardLogger",
+    "VisualDLLogger",
     "WandbLogger",
     "NeptuneLogger",
 ]
