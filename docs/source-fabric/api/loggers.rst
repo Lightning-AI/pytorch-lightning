@@ -29,3 +29,5 @@ Third-party Loggers
 
    * - :doc:`WandbLogger <../guide/loggers/wandb>`
      - Log to `Weights & Biases <https://www.wandb.ai/>`_.
+   * - :doc:`VisualDLLogger <../guide/loggers/visualdl>`
+     - Log to `VisualDL <https://www.paddlepaddle.org.cn/paddle/visualdl>`_.

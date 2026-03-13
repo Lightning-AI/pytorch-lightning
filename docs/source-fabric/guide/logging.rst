@@ -38,6 +38,7 @@ Loggers you can choose from:
 - :class:`~lightning.fabric.loggers.CSVLogger`
 - :doc:`LitLogger <loggers/litlogger>`
 - :doc:`WandbLogger <loggers/wandb>`
+- :doc:`VisualDLLogger <loggers/visualdl>`
 
 |
 
