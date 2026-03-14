@@ -100,6 +100,3 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
             logger.log_hyperparams(hparams_initial)
         logger.log_graph(pl_module)
         logger.save()
-
-
-class _ListMap: ...

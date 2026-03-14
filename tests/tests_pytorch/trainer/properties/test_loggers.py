@@ -23,7 +23,6 @@ def test_trainer_loggers_property():
     """Test for correct initialization of loggers in Trainer."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    CustomLogger()
 
     # trainer.loggers should be a copy of the input list
     trainer = Trainer(logger=[logger1, logger2])
@@ -56,7 +55,6 @@ def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    CustomLogger()
 
     trainer = Trainer()
     assert type(trainer.logger) is TensorBoardLogger
