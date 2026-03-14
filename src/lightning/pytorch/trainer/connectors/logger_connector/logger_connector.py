@@ -324,7 +324,7 @@ class _ListMap(list[_T]):
             list_eq &= other._dict_map == self._dict_map
         return list_eq
 
-    def pop(self, index: SupportsIndex = -1, /):
+    def pop(self, index: SupportsIndex = -1, /) -> _T:
         if self._dict_map:
             index_int = index.__index__()
             if index_int < 0:

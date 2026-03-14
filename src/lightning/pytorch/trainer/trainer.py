@@ -23,7 +23,7 @@
 import logging
 import math
 import os
-from collections.abc import Generator, Iterable, Mapping
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -1694,7 +1694,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[Union[Iterable[Logger], Mapping[str, Logger], _ListMap[Logger]]]) -> None:
+    def loggers(self, loggers: Optional[Union[Iterable[Logger], dict[str, Logger], _ListMap[Logger]]]) -> None:
         self._loggers = _ListMap(loggers)
 
     @property
