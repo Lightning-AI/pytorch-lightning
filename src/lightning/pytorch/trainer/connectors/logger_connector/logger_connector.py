@@ -284,7 +284,7 @@ class _ListMap(list[_T]):
 
     This class extends the built-in list to provide dictionary-like access to its elements
     using string keys. It maintains an internal mapping of string keys to list indices,
-    allowing users to retrieve, set, and delete elements by their associated names.
+    allowing users to retrieve elements by their associated names.
 
     Args:
         __iterable (Union[Iterable[_T], Mapping[str, _T]], optional): An iterable of objects or a mapping
@@ -299,9 +299,6 @@ class _ListMap(list[_T]):
         1
         >>> listmap[0]  # Access by index
         1
-        >>> listmap['obj2'] = 3  # Set by name
-        >>> listmap[1]  # Now returns obj3
-        3
         >>> listmap.append(4)  # Append by index
         >>> listmap[2]
         4
