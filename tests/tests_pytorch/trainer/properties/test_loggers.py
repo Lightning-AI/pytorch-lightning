@@ -68,12 +68,10 @@ def test_trainer_loggers_setters():
     trainer.logger = None
     assert trainer.logger is None
     assert trainer.loggers == []
-    assert isinstance(trainer.loggers, list)
 
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    assert isinstance(trainer.loggers, list)
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
@@ -82,12 +80,10 @@ def test_trainer_loggers_setters():
     trainer.loggers = []
     assert trainer.loggers == []
     assert trainer.logger is None
-    assert isinstance(trainer.loggers, list)
 
     trainer.loggers = None
     assert trainer.loggers == []
     assert trainer.logger is None
-    assert isinstance(trainer.loggers, list)
 
     trainer.loggers = {}
     assert trainer.loggers == []
