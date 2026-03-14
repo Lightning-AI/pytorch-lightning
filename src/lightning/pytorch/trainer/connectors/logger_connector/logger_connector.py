@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Iterable, KeysView, Mapping
-from typing import TYPE_CHECKING, Any, Optional, SupportsIndex, TypeVar, Union
+from typing import Any, Optional, SupportsIndex, TypeVar, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -28,9 +28,6 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _METRIC
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info
 
 warning_cache = WarningCache()
-
-if TYPE_CHECKING:
-    pass
 
 
 class _LoggerConnector:
@@ -355,10 +352,10 @@ class _ListMap(list[_T]):
     @overload
     def __getitem__(self, key: slice, /) -> list[_T]: ...
 
-    def __getitem__(self, key, /):
-        if self._dict_map and isinstance(key, str):
+    def __getitem__(self, key: Union[SupportsIndex, str, slice], /) -> Union[_T, list[_T]]:
+        if isinstance(key, str) and key in self._dict_map:
             return self[self._dict_map[key]]
-        return super().__getitem__(key)
+        return super().__getitem__(key)  # type: ignore[index]
 
     def __contains__(self, item: Union[object, str]) -> bool:
         if isinstance(item, str):
