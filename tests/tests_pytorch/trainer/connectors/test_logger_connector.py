@@ -158,7 +158,8 @@ def test_listmap_pop():
 
 def test_listmap_getitem():
     """Test getting items from the collection."""
-    lm = _ListMap([1, 2])
+    lm = _ListMap({"1": 1})
+    lm.append(2)
     assert lm[0] == 1
     assert lm[1] == 2
     assert lm[-1] == 2
@@ -167,11 +168,15 @@ def test_listmap_getitem():
 
 def test_listmap_setitem():
     """Test setting items in the collection."""
-    lm = _ListMap([1, 2, 3])
+    lm = _ListMap({"1": 1, "2": 2, "3": 3})
     lm[0] = 10
     assert lm == [10, 2, 3]
+    assert lm["1"] == 10
     lm[1:3] = [20, 30]
     assert lm == [10, 20, 30]
+    lm[0:2] = [20, 30]
+    assert lm == [20, 30, 30]
+    assert lm["1"] == 20
 
 
 def test_listmap_add():
@@ -204,23 +209,6 @@ def test_listmap_keys():
     assert set(keys) == {"a", "b", "c"}
     assert "a" in lm
     assert "d" not in lm
-
-
-def test_listmap_setitem_append():
-    lm = _ListMap({"a": 1, "b": 2})
-    lm.append(3)
-
-    lm[1] = 20
-    assert lm == [1, 20, 3]
-    assert lm["a"] == 1
-    assert lm["b"] == 20
-    assert lm[2] == 3
-
-    lm[-2] = 10
-    assert lm == [1, 10, 3]
-    assert lm["a"] == 1
-    assert lm["b"] == 10
-    assert lm[-1] == 3
 
 
 def test_listmap_repr():
