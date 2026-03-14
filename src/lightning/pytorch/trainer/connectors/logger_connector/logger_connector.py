@@ -355,7 +355,7 @@ class _ListMap(list[_T]):
     @overload
     def __getitem__(self, key: slice, /) -> list[_T]: ...
 
-    def __getitem__(self, key: Union[SupportsIndex, str, slice], /) -> Union[_T, list[_T]]:
+    def __getitem__(self, key, /):
         if self._dict_map and isinstance(key, str):
             return self[self._dict_map[key]]
         return super().__getitem__(key)
