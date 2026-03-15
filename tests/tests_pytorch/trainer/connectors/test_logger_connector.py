@@ -120,42 +120,6 @@ def test_listmap_extend():
     assert lm2[3] == 6
 
 
-def test_listmap_insert():
-    lm = _ListMap({"a": 1, "b": 2})
-    lm.insert(1, 3)
-    assert len(lm) == 3
-    assert lm == [1, 3, 2]
-    assert lm["a"] == 1
-    assert lm["b"] == 2
-
-    lm.insert(-1, 5)
-    assert len(lm) == 4
-    assert lm == [1, 3, 5, 2]
-    assert lm["a"] == 1
-    assert lm["b"] == 2
-
-    lm.insert(-2, 10)
-    assert len(lm) == 5
-    assert lm == [1, 3, 10, 5, 2]
-    assert lm["a"] == 1
-    assert lm["b"] == 2
-
-
-def test_listmap_pop():
-    lm = _ListMap({"1": 1, "2": 2})
-    lm.extend([3, 4])
-    item = lm.pop()
-    assert item == 4
-    assert len(lm) == 3
-    item = lm.pop(1)
-    assert item == 2
-    assert len(lm) == 2
-
-    target = _ListMap({"1": 1})
-    target.append(3)
-    assert lm == target
-
-
 def test_listmap_getitem():
     """Test getting items from the collection."""
     lm = _ListMap({"1": 1})

@@ -321,31 +321,6 @@ class _ListMap(list[_T]):
             list_eq &= other._dict_map == self._dict_map
         return list_eq
 
-    def pop(self, index: SupportsIndex = -1, /) -> _T:
-        if self._dict_map:
-            index_int = index.__index__()
-            if index_int < 0:
-                index_int += len(self)
-
-            for key, idx in list(self._dict_map.items()):
-                if idx == index_int:
-                    self._dict_map.pop(key)
-                elif idx > index_int:
-                    self._dict_map[key] -= 1
-        return super().pop(index)
-
-    def insert(self, index: SupportsIndex, __object: _T, /) -> None:
-        if self._dict_map:
-            index_int = index.__index__()
-            if index_int < 0:
-                index_int += len(self)
-
-            for key, idx in list(self._dict_map.items()):
-                if idx >= index_int:
-                    self._dict_map[key] += 1
-
-        return super().insert(index, __object)
-
     @overload
     def __getitem__(self, key: Union[SupportsIndex, str], /) -> _T: ...
 
