@@ -60,6 +60,9 @@ repos:
     rev: v1.7.7
     hooks:
       - id: docformatter
+        # TODO: remove language_version pin once docformatter drops the `untokenize` dependency
+        # which uses `ast.Constant.s` — removed in Python 3.14, causing pre-commit.ci to fail
+        # language_version: python3.12
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
