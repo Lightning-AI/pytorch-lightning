@@ -24,7 +24,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
+- Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
 
 ---
 
