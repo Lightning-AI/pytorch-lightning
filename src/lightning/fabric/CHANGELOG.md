@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `FSDPPrecision.module_init_context()` initializing parameters in low precision (bf16/fp16) instead of fp32 when using mixed precision (`bf16-mixed`, `16-mixed`) ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
 -
 
 ---
