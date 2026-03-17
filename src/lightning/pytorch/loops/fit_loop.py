@@ -299,7 +299,11 @@ class _FitLoop(_Loop):
             trainer._last_val_time = trainer._train_start_time
         elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
-            if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
+            if (
+                trainer.val_check_batch > self.max_batches
+                and trainer.check_val_every_n_epoch is not None
+                and trainer.limit_val_batches > 0
+            ):
                 raise ValueError(
                     f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
                     f" to the number of the training batches ({self.max_batches})."
