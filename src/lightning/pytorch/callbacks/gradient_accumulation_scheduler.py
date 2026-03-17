@@ -53,8 +53,6 @@ class GradientAccumulationScheduler(Callback):
             or not all keys and values of ``scheduling`` are integers.
         MisconfigurationException:
             If ``mode`` is not ``"epoch"`` or ``"step"``, or if keys/values are invalid.
-        IndexError:
-            If minimal threshold is less than 0.
 
     Example::
 
@@ -95,8 +93,6 @@ class GradientAccumulationScheduler(Callback):
             )
 
         minimal_threshold = min(scheduling.keys())
-        if minimal_threshold < 0:
-            raise IndexError(f"{threshold_name}s are non-negative, {minimal_threshold} cannot be interpreted correct")
         if minimal_threshold != 0:  # if user didn't define first threshold accumulation factor
             scheduling = {**scheduling, 0: 1}
 
