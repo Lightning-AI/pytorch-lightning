@@ -1,4 +1,4 @@
-coverage ==7.13.1; python_version >= "3.10"
+coverage ==7.13.4; python_version >= "3.10"
 coverage ==7.10.7; python_version < "3.10"
 pytest ==9.0.2
 pytest-cov ==7.0.0
@@ -17,11 +17,10 @@ onnxruntime >=1.12.0, <1.24.0
 onnxscript >= 0.1.0, < 0.6.0
 onnx-ir < 0.1.16
 psutil <7.3.0 # for `DeviceStatsMonitor`
-pandas >2.0, <2.4.0  # needed in benchmarks
+pandas >2.0, <3.1.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
 tensorboard >=2.11, <2.21.0  # for `TensorBoardLogger`
 
-torch-tensorrt; platform_system != "Darwin" and python_version >= "3.12"
 huggingface-hub
