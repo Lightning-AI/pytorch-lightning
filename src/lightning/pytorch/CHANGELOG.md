@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
 
-- Fixed `FSDPPrecision.module_init_context()` initializing parameters in low precision (bf16/fp16) instead of fp32 when using mixed precision (`bf16-mixed`, `16-mixed`) ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
 
 -
 
