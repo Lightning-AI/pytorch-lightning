@@ -316,7 +316,6 @@ def test_dataloader_reinit_for_subclass():
 
     class CustomSampler(Sampler):
         def __init__(self, data_source: Sized) -> None:
-            super().__init__(data_source)
             self.data_source = data_source
 
         def __len__(self):
