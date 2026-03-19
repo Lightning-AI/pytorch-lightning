@@ -107,7 +107,7 @@ class _FitLoop(_Loop):
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
-        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_train_dl_reload_epoch: Optional[float] = float("-inf")
         self._restart_stage = RestartStage.NONE
 
     @property
