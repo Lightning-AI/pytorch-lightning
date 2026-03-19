@@ -15,6 +15,7 @@ setup: update
 	uv pip install -r requirements.txt \
 	    -r requirements/pytorch/base.txt \
 	    -r requirements/pytorch/test.txt \
+		-r requirements/pytorch/test_gpu.txt \
 	    -r requirements/pytorch/extra.txt \
 	    -r requirements/pytorch/strategies.txt \
 	    -r requirements/fabric/base.txt \

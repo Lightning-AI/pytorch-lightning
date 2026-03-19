@@ -4,28 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-
 ## [unreleased] - YYYY-MM-DD
 
 ### Added
 
 -
 
+### Changed
+
+-
 
 ### Removed
 
 -
 
-
-### Changed
-
--
-
-
 ### Fixed
 
 - Added logic to prevent numpy from trying to convert arrays with ndim > 0 to scalar in tensorboard, which is an error starting in numpy 2.4.0. ([#21503](https://github.com/Lightning-AI/pytorch-lightning/issues/21503))
 
+
+--
+
+## [2.6.2] - 2026-03-19
+
+### Fixed
+
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
+- Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
 
 ---
 
