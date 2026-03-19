@@ -164,24 +164,23 @@ def litlogger_mock(monkeypatch):
     experiment_mock.url = "https://lightning.ai/test/experiments/test-experiment"
     experiment_mock.name = "test-experiment"
     experiment_mock.version = "2024-01-01T00:00:00.000Z"
+    experiment_mock.get_file.return_value = "/path/to/file"
+    experiment_mock.get_model.return_value = MagicMock()
+    experiment_mock.get_model_artifact.return_value = "/path/to/artifact"
+    experiment_mock.series_mocks = {}
+
+    def get_series(key):
+        if key not in experiment_mock.series_mocks:
+            experiment_mock.series_mocks[key] = MagicMock()
+        return experiment_mock.series_mocks[key]
+
+    experiment_mock.__getitem__.side_effect = get_series
 
     litlogger = ModuleType("litlogger")
     litlogger.experiment = None
-    litlogger.Experiment = MagicMock
-
-    def mock_init(**kwargs):
-        litlogger.experiment = experiment_mock
-        return experiment_mock
-
-    litlogger.init = Mock(side_effect=mock_init)
-    litlogger.log_metrics = Mock()
-    litlogger.log_file = Mock()
-    litlogger.get_file = Mock(return_value="/path/to/file")
-    litlogger.log_model = Mock()
-    litlogger.get_model = Mock(return_value=MagicMock())
-    litlogger.log_model_artifact = Mock()
-    litlogger.get_model_artifact = Mock(return_value="/path/to/artifact")
-    litlogger.finalize = Mock()
+    litlogger.Experiment = Mock(return_value=experiment_mock)
+    litlogger.File = Mock()
+    litlogger.Model = Mock()
     monkeypatch.setitem(sys.modules, "litlogger", litlogger)
 
     # Create generator submodule
