@@ -77,6 +77,7 @@ def test_litlogger_experiment_property(litlogger_mock, tmp_path):
     call_kwargs = litlogger_mock.Experiment.call_args[1]
     assert call_kwargs["name"].startswith("test-")
     assert call_kwargs["name"].endswith(logger.version)
+    assert ":" not in logger.version
     assert call_kwargs["log_dir"] == os.path.join(str(tmp_path), "test")
     assert call_kwargs["teamspace"] == "my-teamspace"
     assert call_kwargs["store_step"] is True
@@ -267,6 +268,7 @@ def test_litlogger_version_property(litlogger_mock, tmp_path):
     # After accessing experiment, version is set
     _ = logger.experiment
     assert logger.version is not None
+    assert ":" not in logger.version
 
 
 def test_litlogger_with_trainer(litlogger_mock, tmp_path):
@@ -310,6 +312,7 @@ def test_litlogger_metadata_in_init(litlogger_mock, tmp_path):
     call_kwargs = litlogger_mock.Experiment.call_args[1]
     assert call_kwargs["name"].startswith("test-")
     assert call_kwargs["name"].endswith(logger.version)
+    assert ":" not in logger.version
     assert call_kwargs["metadata"] == {"experiment_type": "test", "version": "1.0"}
 
 

@@ -209,7 +209,7 @@ class LitLogger(Logger):
         if self.version is None:
             # Generate version as proper RFC 3339 timestamp with Z suffix (required by protobuf)
             timestamp = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
-            self._version = timestamp.replace("+00:00", "Z")
+            self._version = timestamp.replace(":", "-").replace("+00:00", "Z")
 
         self._experiment = litlogger.Experiment(
             name=self._experiment_name,
