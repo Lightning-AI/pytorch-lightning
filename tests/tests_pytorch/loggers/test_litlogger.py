@@ -21,6 +21,7 @@ import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.litlogger import LitLogger
+from lightning.pytorch.loggers.neptune import NeptuneLogger
 
 
 def test_litlogger_init(litlogger_mock, tmp_path):
@@ -360,3 +361,8 @@ def test_litlogger_save_logs_option(litlogger_mock, tmp_path):
 
     call_kwargs = litlogger_mock.Experiment.call_args[1]
     assert call_kwargs["save_logs"] is True
+
+
+def test_neptune_logger_raises_runtime_error():
+    with pytest.raises(RuntimeError, match="NeptuneLogger is no longer supported"):
+        NeptuneLogger()
