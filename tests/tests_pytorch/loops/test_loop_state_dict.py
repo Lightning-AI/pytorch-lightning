@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+from torch.utils.data import DataLoader
+
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _FitLoop
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.trainer.trainer import Trainer
 
 
@@ -99,3 +104,40 @@ def test_loops_state_dict_structure():
         },
     }
     assert state_dict == expected
+
+
+@pytest.mark.parametrize(
+    ("current_epoch", "expected_last_reload_epoch", "expected_next_reload_epoch"),
+    [
+        (1, 0, 2),
+        (2, 2, 4),
+    ],
+)
+def test_fit_loop_legacy_checkpoint_infers_last_train_dl_reload_epoch(
+    current_epoch, expected_last_reload_epoch, expected_next_reload_epoch
+):
+    trainer = Trainer(
+        reload_dataloaders_every_n_epochs=2,
+        limit_train_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    model = BoringModel()
+    trainer.strategy.connect(model)
+    trainer._data_connector.attach_data(model, train_dataloaders=DataLoader(RandomDataset(32, 8)))
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.state.stage = RunningStage.TRAINING
+
+    fit_loop = trainer.fit_loop
+    fit_loop.epoch_progress.current.completed = current_epoch
+    fit_loop._resuming_from_checkpoint = True
+    fit_loop._last_train_dl_reload_epoch = None
+
+    fit_loop.setup_data()
+
+    assert fit_loop._last_train_dl_reload_epoch == expected_last_reload_epoch
+    assert not fit_loop._should_reload_train_dl
+
+    fit_loop.epoch_progress.current.completed = expected_next_reload_epoch
+    assert fit_loop._should_reload_train_dl
