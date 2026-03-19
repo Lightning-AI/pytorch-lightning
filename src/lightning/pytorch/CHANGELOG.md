@@ -10,7 +10,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- 
+
+### Changed
+
+- 
+
+### Removed
+
+- 
+
+### Fixed
+
+- 
+
+---
+
+## [2.6.2] - 2026-03-19
 
 
 ### Removed
@@ -20,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Raise minimum `LitLogger` version to `2026-03-17` ([#21591](https://github.com/Lightning-AI/pytorch-lightning/pull/21591))
 
 
 ### Fixed
