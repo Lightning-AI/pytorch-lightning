@@ -154,8 +154,6 @@ jobs:
 
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@v1.5.1
-        permissions:
-          id-token: write
         with:
           packages_dir: dist/${{ steps.folder.outputs.pkg }}
           verbose: true
