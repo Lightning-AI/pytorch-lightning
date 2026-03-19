@@ -108,7 +108,7 @@ class LitLogger(Logger):
         self._sub_dir = None
         self._prefix = ""
         self._fs = get_filesystem(self._root_dir)
-        self._experiment: Optional["Experiment"] = None
+        self._experiment: Optional[Experiment] = None
         self._step = -1
         self._metadata = metadata or {}
         self._is_ready = False
