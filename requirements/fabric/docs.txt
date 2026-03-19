@@ -1,4 +1,3 @@
 -r ../docs.txt
 
 tensorboard
-numpy
