@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 import torch
@@ -71,15 +71,18 @@ def test_litlogger_experiment_property(litlogger_mock, tmp_path):
     experiment = logger.experiment
 
     assert experiment is not None
-    litlogger_mock.init.assert_called_once()
+    litlogger_mock.Experiment.assert_called_once()
 
-    # Check init was called with correct arguments
-    call_kwargs = litlogger_mock.init.call_args[1]
-    assert call_kwargs["name"] == "test"
-    assert call_kwargs["root_dir"] == str(tmp_path)
+    # Check Experiment was called with correct arguments
+    call_kwargs = litlogger_mock.Experiment.call_args[1]
+    assert call_kwargs["name"].startswith("test-")
+    assert call_kwargs["name"].endswith(logger.version)
+    assert ":" not in logger.version
+    assert call_kwargs["log_dir"] == os.path.join(str(tmp_path), "test")
     assert call_kwargs["teamspace"] == "my-teamspace"
     assert call_kwargs["store_step"] is True
     assert call_kwargs["store_created_at"] is True
+    experiment.print_url.assert_called_once_with()
 
 
 def test_litlogger_experiment_reuses_existing(litlogger_mock, tmp_path):
@@ -90,8 +93,8 @@ def test_litlogger_experiment_reuses_existing(litlogger_mock, tmp_path):
     _ = logger.experiment
     _ = logger.experiment
 
-    # init should only be called once
-    assert litlogger_mock.init.call_count == 1
+    # Experiment should only be created once
+    assert litlogger_mock.Experiment.call_count == 1
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
@@ -102,13 +105,18 @@ def test_litlogger_log_metrics(litlogger_mock, tmp_path, step_idx):
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
 
-    litlogger_mock.log_metrics.assert_called_once()
-    call_args = litlogger_mock.log_metrics.call_args
-    logged_metrics = call_args[0][0]
+    experiment = litlogger_mock.Experiment.return_value
+    expected_step = 0 if step_idx is None else step_idx
 
     # Verify tensors are converted to Python scalars
-    assert isinstance(logged_metrics["FloatTensor"], float)
-    assert isinstance(logged_metrics["IntTensor"], int)
+    experiment.series_mocks["float"].append.assert_called_once_with(0.3, step=expected_step)
+    experiment.series_mocks["int"].append.assert_called_once_with(1, step=expected_step)
+    float_tensor_call = experiment.series_mocks["FloatTensor"].append.call_args
+    int_tensor_call = experiment.series_mocks["IntTensor"].append.call_args
+    assert isinstance(float_tensor_call.args[0], float)
+    assert isinstance(int_tensor_call.args[0], int)
+    assert float_tensor_call.kwargs == {"step": expected_step}
+    assert int_tensor_call.kwargs == {"step": expected_step}
 
 
 def test_litlogger_log_metrics_with_prefix(litlogger_mock, tmp_path):
@@ -118,11 +126,7 @@ def test_litlogger_log_metrics_with_prefix(litlogger_mock, tmp_path):
 
     logger.log_metrics({"loss": 0.5}, step=1)
 
-    litlogger_mock.log_metrics.assert_called_once()
-    call_args = litlogger_mock.log_metrics.call_args
-    logged_metrics = call_args[0][0]
-
-    assert "train-loss" in logged_metrics
+    litlogger_mock.Experiment.return_value.series_mocks["train-loss"].append.assert_called_once_with(0.5, step=1)
 
 
 def test_litlogger_log_hyperparams_dict(litlogger_mock, tmp_path):
@@ -131,8 +135,11 @@ def test_litlogger_log_hyperparams_dict(litlogger_mock, tmp_path):
     hparams = {"learning_rate": 0.001, "batch_size": 32}
     logger.log_hyperparams(hparams)
 
-    assert logger._metadata["learning_rate"] == 0.001
-    assert logger._metadata["batch_size"] == 32
+    experiment = litlogger_mock.Experiment.return_value
+    assert experiment.__setitem__.mock_calls == [
+        call("learning_rate", "0.001"),
+        call("batch_size", "32"),
+    ]
 
 
 def test_litlogger_log_hyperparams_namespace(litlogger_mock, tmp_path):
@@ -141,8 +148,11 @@ def test_litlogger_log_hyperparams_namespace(litlogger_mock, tmp_path):
     hparams = Namespace(learning_rate=0.001, batch_size=32)
     logger.log_hyperparams(hparams)
 
-    assert logger._metadata["learning_rate"] == 0.001
-    assert logger._metadata["batch_size"] == 32
+    experiment = litlogger_mock.Experiment.return_value
+    assert experiment.__setitem__.mock_calls == [
+        call("learning_rate", "0.001"),
+        call("batch_size", "32"),
+    ]
 
 
 def test_litlogger_log_graph_warning(litlogger_mock, tmp_path):
@@ -163,7 +173,7 @@ def test_litlogger_finalize(litlogger_mock, tmp_path):
 
     logger.finalize("success")
 
-    litlogger_mock.finalize.assert_called_once_with("success")
+    litlogger_mock.Experiment.return_value.finalize.assert_called_once_with("success")
 
 
 def test_litlogger_finalize_no_experiment(litlogger_mock, tmp_path):
@@ -174,7 +184,7 @@ def test_litlogger_finalize_no_experiment(litlogger_mock, tmp_path):
     logger.finalize("success")
 
     # finalize should not be called since experiment is None
-    litlogger_mock.finalize.assert_not_called()
+    litlogger_mock.Experiment.return_value.finalize.assert_not_called()
 
 
 def test_litlogger_log_file(litlogger_mock, tmp_path):
@@ -182,7 +192,8 @@ def test_litlogger_log_file(litlogger_mock, tmp_path):
     logger = LitLogger(name="test", root_dir=tmp_path)
     logger.log_file("config.yaml")
 
-    litlogger_mock.log_file.assert_called_once_with("config.yaml")
+    litlogger_mock.File.assert_called_once_with("config.yaml")
+    litlogger_mock.Experiment.return_value.__setitem__.assert_any_call("config.yaml", litlogger_mock.File.return_value)
 
 
 def test_litlogger_get_file(litlogger_mock, tmp_path):
@@ -190,8 +201,9 @@ def test_litlogger_get_file(litlogger_mock, tmp_path):
     logger = LitLogger(name="test", root_dir=tmp_path)
     result = logger.get_file("config.yaml", verbose=True)
 
-    litlogger_mock.get_file.assert_called_once_with("config.yaml", verbose=True)
-    assert result == "/path/to/file"
+    litlogger_mock.Experiment.return_value.__getitem__.assert_any_call("config.yaml")
+    litlogger_mock.Experiment.return_value.series_mocks["config.yaml"].save.assert_called_once_with("config.yaml")
+    assert result == litlogger_mock.Experiment.return_value.series_mocks["config.yaml"].save.return_value
 
 
 def test_litlogger_log_model(litlogger_mock, tmp_path):
@@ -200,16 +212,21 @@ def test_litlogger_log_model(litlogger_mock, tmp_path):
     model = torch.nn.Linear(10, 10)
     logger.log_model(model, staging_dir="/tmp", verbose=True, version="v1", metadata={"epoch": 10})
 
-    litlogger_mock.log_model.assert_called_once_with(model, "/tmp", True, "v1", {"epoch": 10})
+    litlogger_mock.Model.assert_called_once_with(model, version="v1", metadata={"epoch": 10}, staging_dir="/tmp")
+    litlogger_mock.Experiment.return_value.__setitem__.assert_any_call(
+        logger._experiment_name, litlogger_mock.Model.return_value
+    )
 
 
-def test_litlogger_get_model(litlogger_mock, tmp_path):
-    """Test get_model method."""
+def test_litlogger_log_model_uses_step_as_default_version(litlogger_mock, tmp_path):
+    """Test log_model defaults the model version to the current step."""
     logger = LitLogger(name="test", root_dir=tmp_path)
-    result = logger.get_model(staging_dir="/tmp", verbose=True, version="v1")
+    logger._step = 7
+    model = torch.nn.Linear(10, 10)
 
-    litlogger_mock.get_model.assert_called_once_with("/tmp", True, "v1")
-    assert result is not None
+    logger.log_model(model)
+
+    litlogger_mock.Model.assert_called_once_with(model, version="7", metadata=None, staging_dir=None)
 
 
 def test_litlogger_log_model_artifact(litlogger_mock, tmp_path):
@@ -217,16 +234,20 @@ def test_litlogger_log_model_artifact(litlogger_mock, tmp_path):
     logger = LitLogger(name="test", root_dir=tmp_path)
     logger.log_model_artifact("/path/to/model.ckpt", verbose=True, version="v1")
 
-    litlogger_mock.log_model_artifact.assert_called_once_with("/path/to/model.ckpt", True, "v1")
+    litlogger_mock.Model.assert_called_once_with("/path/to/model.ckpt", version="v1")
+    litlogger_mock.Experiment.return_value.__setitem__.assert_any_call(
+        logger._experiment_name, litlogger_mock.Model.return_value
+    )
 
 
-def test_litlogger_get_model_artifact(litlogger_mock, tmp_path):
-    """Test get_model_artifact method."""
+def test_litlogger_log_model_artifact_uses_step_as_default_version(litlogger_mock, tmp_path):
+    """Test log_model_artifact defaults the model version to the current step."""
     logger = LitLogger(name="test", root_dir=tmp_path)
-    result = logger.get_model_artifact("/path/to/model", verbose=True, version="v1")
+    logger._step = 11
 
-    litlogger_mock.get_model_artifact.assert_called_once_with("/path/to/model", True, "v1")
-    assert result == "/path/to/artifact"
+    logger.log_model_artifact("/path/to/model.ckpt")
+
+    litlogger_mock.Model.assert_called_once_with("/path/to/model.ckpt", version="11")
 
 
 def test_litlogger_url_property(litlogger_mock, tmp_path):
@@ -247,6 +268,7 @@ def test_litlogger_version_property(litlogger_mock, tmp_path):
     # After accessing experiment, version is set
     _ = logger.experiment
     assert logger.version is not None
+    assert ":" not in logger.version
 
 
 def test_litlogger_with_trainer(litlogger_mock, tmp_path):
@@ -274,11 +296,11 @@ def test_litlogger_with_trainer(litlogger_mock, tmp_path):
     trainer.fit(model)
 
     # Verify metrics were logged
-    assert litlogger_mock.log_metrics.called
+    assert any(series.append.called for series in litlogger_mock.Experiment.return_value.series_mocks.values())
 
 
 def test_litlogger_metadata_in_init(litlogger_mock, tmp_path):
-    """Test metadata is passed to litlogger.init."""
+    """Test metadata is passed to litlogger.Experiment."""
     logger = LitLogger(
         name="test",
         root_dir=tmp_path,
@@ -287,7 +309,10 @@ def test_litlogger_metadata_in_init(litlogger_mock, tmp_path):
 
     _ = logger.experiment
 
-    call_kwargs = litlogger_mock.init.call_args[1]
+    call_kwargs = litlogger_mock.Experiment.call_args[1]
+    assert call_kwargs["name"].startswith("test-")
+    assert call_kwargs["name"].endswith(logger.version)
+    assert ":" not in logger.version
     assert call_kwargs["metadata"] == {"experiment_type": "test", "version": "1.0"}
 
 
@@ -328,10 +353,10 @@ def test_litlogger_after_save_checkpoint_enabled(litlogger_mock, tmp_path):
 
 
 def test_litlogger_save_logs_option(litlogger_mock, tmp_path):
-    """Test save_logs option is passed to init."""
+    """Test save_logs option is passed to Experiment."""
     logger = LitLogger(name="test", root_dir=tmp_path, save_logs=True)
 
     _ = logger.experiment
 
-    call_kwargs = litlogger_mock.init.call_args[1]
+    call_kwargs = litlogger_mock.Experiment.call_args[1]
     assert call_kwargs["save_logs"] is True
