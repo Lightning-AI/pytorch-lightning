@@ -29,7 +29,7 @@ class NeptuneLogger:
     Please migrate to **LitLogger**, the recommended logging solution for
     tracking AI experiments, metrics, inputs, outputs, and artifacts.
 
-    See: https://github.com/lightning-ai/litlogger
+    See: https://github.com/Lightning-AI/LitLogger
 
     Raises:
         RuntimeError: Always raised when attempting to instantiate this logger.
