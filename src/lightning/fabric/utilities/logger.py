@@ -25,7 +25,7 @@ from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
 if TYPE_CHECKING:
     if _NUMPY_AVAILABLE:
-        from numpy import ndarray
+        import numpy as np
 
 
 def _convert_params(params: Optional[Union[dict[str, Any], Namespace]]) -> dict[str, Any]:
@@ -169,8 +169,8 @@ def _is_json_serializable(value: Any) -> bool:
 
 
 def _add_prefix(
-    metrics: Mapping[str, Union[Tensor, float, "ndarray"]], prefix: str, separator: str
-) -> Mapping[str, Union[Tensor, float, "ndarray"]]:
+    metrics: Mapping[str, Union[Tensor, float, "np.ndarray"]], prefix: str, separator: str
+) -> Mapping[str, Union[Tensor, float, "np.ndarray"]]:
     """Insert prefix before each key in a dict, separated by the separator.
 
     Args:
