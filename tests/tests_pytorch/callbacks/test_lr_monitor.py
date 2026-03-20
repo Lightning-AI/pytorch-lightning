@@ -682,7 +682,7 @@ def test_lr_monitor_update_callback_metrics(tmp_path):
 
 
 def test_lr_monitor_with_float64_lr(tmp_path):
-    """Test that LearningRateMonitor correctly logs learning rates when the optimizer is configured with np.float64
+    """Test that LearningRateMonitor correctly logs learning rates when the optimizer is configured with `float64`
     values."""
     import numpy as np
 
