@@ -113,7 +113,7 @@ def test_loops_state_dict_structure():
         (2, 2, 4),
     ],
 )
-def test_fit_loop_legacy_checkpoint_infers_last_train_dl_reload_epoch(
+def test_fit_loop_infers_last_train_dl_reload_epoch_when_reload_state_is_missing(
     current_epoch, expected_last_reload_epoch, expected_next_reload_epoch
 ):
     trainer = Trainer(

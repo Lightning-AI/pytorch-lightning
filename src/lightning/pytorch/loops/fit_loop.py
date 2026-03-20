@@ -172,8 +172,8 @@ class _FitLoop(_Loop):
             return False
         return n_epochs and self.trainer.current_epoch - last_train_dl_reload_epoch >= n_epochs
 
-    def _legacy_last_train_dl_reload_epoch(self) -> int:
-        """Infer the last reload epoch for checkpoints created before this state was persisted."""
+    def _inferred_last_train_dl_reload_epoch(self) -> int:
+        """Infer the last reload epoch when the checkpoint did not save this state."""
         current_epoch = self.trainer.current_epoch
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
         if not n_epochs:
@@ -238,7 +238,7 @@ class _FitLoop(_Loop):
         # Track if this is a reload (vs initial setup when resuming from checkpoint)
         is_reload = self._combined_loader is not None and self._should_reload_train_dl
         is_initial_setup_not_resuming = self._combined_loader is None and not self.is_resuming
-        is_initial_setup_legacy_checkpoint = (
+        is_initial_setup_with_missing_reload_state = (
             self._combined_loader is None and self.is_resuming and self._last_train_dl_reload_epoch is None
         )
 
@@ -304,8 +304,8 @@ class _FitLoop(_Loop):
         # When resuming, we preserve the checkpoint value so _should_reload_train_dl works correctly
         if is_reload or is_initial_setup_not_resuming:
             self._last_train_dl_reload_epoch = trainer.current_epoch
-        elif is_initial_setup_legacy_checkpoint:
-            self._last_train_dl_reload_epoch = self._legacy_last_train_dl_reload_epoch()
+        elif is_initial_setup_with_missing_reload_state:
+            self._last_train_dl_reload_epoch = self._inferred_last_train_dl_reload_epoch()
 
         # If time-based validation is enabled, disable batch-based scheduling here.
         # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
