@@ -923,8 +923,8 @@ class Fabric:
 
     def load_raw(
         self,
-        path: Union[str, Path],
-        obj: Union[nn.Module, Optimizer],
+        path: str | Path,
+        obj: nn.Module | Optimizer,
         strict: bool = True,
         *,
         weights_only: bool | None = None,

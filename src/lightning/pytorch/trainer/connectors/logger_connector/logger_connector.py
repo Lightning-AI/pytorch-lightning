@@ -94,7 +94,7 @@ class _LoggerConnector:
                 " which logs metrics and artifacts automatically to the Lightning Experiments platform."
             )
 
-    def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: _OUT_DICT, step: int | None = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
         metrics["step"] as a step.
 
