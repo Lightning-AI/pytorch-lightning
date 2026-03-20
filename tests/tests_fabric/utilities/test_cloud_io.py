@@ -112,15 +112,25 @@ def test_atomic_save_uses_pipe_for_s3(tmp_path):
 
 def test_atomic_save_uses_write_for_azure(tmp_path):
     """Test that _atomic_save uses f.write() for Azure filesystems."""
+    import sys
+    import types
+
     checkpoint = {"key": torch.tensor([1, 2, 3])}
     filepath = "azure://container/checkpoint.ckpt"
 
-    mock_fs = mock.MagicMock()
-    type(mock_fs).__name__ = "AzureBlobFileSystem"
+    # Create a fake adlfs module so isinstance check works
+    AzureBlobFileSystem = type("AzureBlobFileSystem", (), {})
+    fake_adlfs = types.ModuleType("adlfs")
+    fake_adlfs.AzureBlobFileSystem = AzureBlobFileSystem
 
-    with mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True):
-        with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "container/checkpoint.ckpt")):
-            _atomic_save(checkpoint, filepath)
+    mock_fs = mock.MagicMock()
+    mock_fs.__class__ = AzureBlobFileSystem
+
+    with mock.patch.dict(sys.modules, {"adlfs": fake_adlfs}):
+        with mock.patch("lightning.fabric.utilities.cloud_io.module_available", return_value=True):
+            with mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True):
+                with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "container/checkpoint.ckpt")):
+                    _atomic_save(checkpoint, filepath)
 
     mock_fs.pipe.assert_not_called()
     mock_fs.open.assert_called_once()
