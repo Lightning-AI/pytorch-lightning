@@ -12,20 +12,38 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
+### Changed
+
+-
 
 ### Removed
 
 -
 
+### Fixed
+
+-
+
+---
+
+## [2.6.2] - 2026-03-19
+
+
+### Removed
+
+- Removed support for Neptune logger ([#21572](https://github.com/Lightning-AI/pytorch-lightning/pull/21572))
+
 
 ### Changed
 
--
+- Raise minimum `LitLogger` version to `2026-03-17` ([#21591](https://github.com/Lightning-AI/pytorch-lightning/pull/21591))
 
 
 ### Fixed
 
 - Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
+
+- Fixed pkg-resources deprecation issue ([#21538](https://github.com/Lightning-AI/pytorch-lightning/pull/21538))
 
 - Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
 
