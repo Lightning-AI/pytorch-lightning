@@ -102,9 +102,11 @@ def test_atomic_save_uses_pipe_for_s3(tmp_path):
     mock_fs = mock.MagicMock()
     mock_fs.__class__.__name__ = "S3FileSystem"
 
-    with mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True):
-        with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "bucket/checkpoint.ckpt")):
-            _atomic_save(checkpoint, filepath)
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True),
+        mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "bucket/checkpoint.ckpt")),
+    ):
+        _atomic_save(checkpoint, filepath)
 
     mock_fs.pipe.assert_called_once()
     mock_fs.open.assert_not_called()
@@ -126,11 +128,13 @@ def test_atomic_save_uses_write_for_azure(tmp_path):
     mock_fs = mock.MagicMock()
     mock_fs.__class__ = AzureBlobFileSystem
 
-    with mock.patch.dict(sys.modules, {"adlfs": fake_adlfs}):
-        with mock.patch("lightning.fabric.utilities.cloud_io.module_available", return_value=True):
-            with mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True):
-                with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "container/checkpoint.ckpt")):
-                    _atomic_save(checkpoint, filepath)
+    with (
+        mock.patch.dict(sys.modules, {"adlfs": fake_adlfs}),
+        mock.patch("lightning.fabric.utilities.cloud_io.module_available", return_value=True),
+        mock.patch("lightning.fabric.utilities.cloud_io._is_object_storage", return_value=True),
+        mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "container/checkpoint.ckpt")),
+    ):
+        _atomic_save(checkpoint, filepath)
 
     mock_fs.pipe.assert_not_called()
     mock_fs.open.assert_called_once()
