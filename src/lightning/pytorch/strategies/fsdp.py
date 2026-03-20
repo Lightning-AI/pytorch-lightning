@@ -153,7 +153,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
-        device_mesh: Optional[Union[tuple[int, int], "DeviceMesh"]] = None,
+        device_mesh: Union[tuple[int, int], "DeviceMesh"] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(

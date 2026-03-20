@@ -870,7 +870,7 @@ class Fabric:
         state: dict[str, nn.Module | Optimizer | Any] | None = None,
         strict: bool = True,
         *,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.).
 
@@ -927,7 +927,7 @@ class Fabric:
         obj: Union[nn.Module, Optimizer],
         strict: bool = True,
         *,
-        weights_only: Optional[bool] = None,
+        weights_only: bool | None = None,
     ) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
 
