@@ -682,12 +682,8 @@ def test_lr_monitor_update_callback_metrics(tmp_path):
 
 
 def test_lr_monitor_with_float64_lr(tmp_path):
-    """Test that LearningRateMonitor works when optimizer lr is np.float64.
-
-    This verifies the fix for #20250: on MPS devices, float64 tensors are not supported, so the lr monitor must convert
-    values to float32-compatible Python floats before creating tensors on the device.
-
-    """
+    """Test that LearningRateMonitor correctly logs learning rates when the optimizer is configured with np.float64
+    values."""
     import numpy as np
 
     class Float64LRModel(BoringModel):
