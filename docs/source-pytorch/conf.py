@@ -351,7 +351,6 @@ intersphinx_mapping = {
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
     # "comet_ml": ("https://www.comet.com/docs/v2/", None),
-    # "neptune": ("https://docs.neptune.ai/", None),
     # "wandb": ("https://docs.wandb.ai//", None),
 }
 nitpicky = True
@@ -457,8 +456,6 @@ nitpick_ignore = [
     ("py:class", "mlflow.tracking.MlflowClient"),
     ("py:attr", "model"),
     ("py:meth", "move_data_to_device"),
-    ("py:class", "neptune.Run"),
-    ("py:class", "neptune.handler.Handler"),
     ("py:meth", "on_after_batch_transfer"),
     ("py:meth", "on_before_batch_transfer"),
     ("py:meth", "on_save_checkpoint"),
@@ -498,6 +495,7 @@ nitpick_ignore = [
     ("py:func", "wandb.init"),
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
+    ("py:class", "litlogger.Experiment"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -604,10 +602,10 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
 from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
 from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch.loggers.litlogger import _LITLOGGER_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 

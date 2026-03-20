@@ -251,3 +251,78 @@ def test_meta_device_materialization():
         strategy.setup(Mock())
     assert all(not p.is_meta for p in model.parameters())
     assert all(not b.is_meta for b in model.buffers())
+
+
+@RunIf(min_torch="2.4")
+def test_align_compiled_param_names_with_module():
+    """Test that optimizer state dict keys are aligned with compiled submodule parameter names."""
+    from lightning.pytorch.strategies.model_parallel import _align_compiled_param_names_with_module
+
+    class SimpleModule(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Sequential(nn.Linear(32, 64), nn.ReLU(), nn.Linear(64, 32))
+
+        def forward(self, x):
+            return self.model(x)
+
+    # Test with compiled submodule
+    m = SimpleModule()
+    m.model = torch.compile(m.model)
+
+    # Simulate optimizer state dict without _orig_mod in keys (includes both state and param_groups)
+    state_dict = {
+        "state": {
+            "model.0.weight": {"step": 1},
+            "model.0.bias": {"step": 1},
+            "model.2.weight": {"step": 1},
+            "model.2.bias": {"step": 1},
+        },
+        "param_groups": [{"params": ["model.0.weight", "model.0.bias", "model.2.weight", "model.2.bias"], "lr": 0.01}],
+    }
+
+    result = _align_compiled_param_names_with_module(state_dict, m)
+
+    # Verify state keys now have _orig_mod inserted
+    expected_keys = {
+        "model._orig_mod.0.weight",
+        "model._orig_mod.0.bias",
+        "model._orig_mod.2.weight",
+        "model._orig_mod.2.bias",
+    }
+    assert set(result["state"].keys()) == expected_keys
+
+    # Verify param_groups params also have _orig_mod inserted
+    assert set(result["param_groups"][0]["params"]) == expected_keys
+
+    # Verify they match the module's named_parameters
+    param_names = {name for name, _ in m.named_parameters()}
+    assert set(result["state"].keys()) == param_names
+
+
+@RunIf(min_torch="2.4")
+def test_align_compiled_param_names_no_compile():
+    """Test that non-compiled modules pass through unchanged."""
+    from lightning.pytorch.strategies.model_parallel import _align_compiled_param_names_with_module
+
+    class SimpleModule(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.model = nn.Sequential(nn.Linear(32, 64), nn.Linear(64, 32))
+
+        def forward(self, x):
+            return self.model(x)
+
+    m = SimpleModule()  # Not compiled
+
+    state_dict = {
+        "state": {
+            "model.0.weight": {"step": 1},
+            "model.0.bias": {"step": 1},
+        }
+    }
+
+    result = _align_compiled_param_names_with_module(state_dict, m)
+
+    # Keys should be unchanged
+    assert set(result["state"].keys()) == {"model.0.weight", "model.0.bias"}

@@ -1,5 +1,5 @@
-mypy==1.18.2
-torch==2.8.0
+torch==2.9.1
+mypy==1.19.1
 
 types-Markdown
 types-PyYAML
