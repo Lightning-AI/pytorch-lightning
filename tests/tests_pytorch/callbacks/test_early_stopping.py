@@ -16,7 +16,6 @@ import logging
 import math
 import os
 import pickle
-from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
 
@@ -334,7 +333,7 @@ def test_early_stopping_mode_options():
 
 
 class EarlyStoppingModel(BoringModel):
-    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool, dist_diverge_epoch: Optional[int] = None):
+    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool, dist_diverge_epoch: int | None = None):
         super().__init__()
         self.expected_end_epoch = expected_end_epoch
         self.early_stop_on_train = early_stop_on_train
@@ -414,7 +413,7 @@ def test_multiple_early_stopping_callbacks(
     check_on_train_epoch_end: bool,
     strategy: str,
     devices: int,
-    dist_diverge_epoch: Optional[int],
+    dist_diverge_epoch: int | None,
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 

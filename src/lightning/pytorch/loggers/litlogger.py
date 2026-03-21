@@ -20,7 +20,7 @@ import warnings
 from argparse import Namespace
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -57,14 +57,14 @@ class LitLogger(Logger):
 
     def __init__(
         self,
-        root_dir: Optional[_PATH] = None,
-        name: Optional[str] = None,
-        teamspace: Optional[str] = None,
-        metadata: Optional[dict[str, str]] = None,
+        root_dir: _PATH | None = None,
+        name: str | None = None,
+        teamspace: str | None = None,
+        metadata: dict[str, str] | None = None,
         store_step: bool = True,
         log_model: bool = False,
         save_logs: bool = True,
-        checkpoint_name: Optional[str] = None,
+        checkpoint_name: str | None = None,
     ) -> None:
         """Initialize the LightningLogger.
 
@@ -103,18 +103,18 @@ class LitLogger(Logger):
         """
         self._root_dir = os.fspath(root_dir or "./lightning_logs")
         self._name = name or _create_experiment_name()
-        self._version: Optional[str] = None
+        self._version: str | None = None
         self._teamspace = teamspace
         self._sub_dir = None
         self._prefix = ""
         self._fs = get_filesystem(self._root_dir)
-        self._experiment: Optional[Experiment] = None
+        self._experiment: Experiment | None = None
         self._step = -1
         self._metadata = metadata or {}
         self._is_ready = False
         self._log_model = log_model
         self._save_logs = save_logs
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._checkpoint_callback: ModelCheckpoint | None = None
         self._logged_model_time: dict[str, float] = {}
         self._checkpoint_name = checkpoint_name
 
@@ -130,7 +130,7 @@ class LitLogger(Logger):
 
     @property
     @override
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Get the experiment version - its time of creation."""
         return self._version
 
@@ -160,7 +160,7 @@ class LitLogger(Logger):
         return self.log_dir
 
     @property
-    def sub_dir(self) -> Optional[str]:
+    def sub_dir(self) -> str | None:
         """Gets the sub directory where the TensorBoard experiments are saved."""
         return self._sub_dir
 
@@ -183,7 +183,7 @@ class LitLogger(Logger):
         return self._experiment_name
 
     @staticmethod
-    def _model_version(version: Optional[str], step: Optional[int]) -> Optional[str]:
+    def _model_version(version: str | None, step: int | None) -> str | None:
         if version is not None:
             return version
         if step is not None and step >= 0:
@@ -241,7 +241,7 @@ class LitLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         # Ensure experiment is initialized
@@ -258,8 +258,8 @@ class LitLogger(Logger):
     @rank_zero_only
     def log_hyperparams(
         self,
-        params: Union[dict[str, Any], Namespace],
-        metrics: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | Namespace,
+        metrics: dict[str, Any] | None = None,
     ) -> None:
         """Log hyperparams."""
         if isinstance(params, Namespace):
@@ -270,7 +270,7 @@ class LitLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         warnings.warn("LitLogger does not support `log_graph`", UserWarning, stacklevel=2)
 
     @override
@@ -280,7 +280,7 @@ class LitLogger(Logger):
 
     @override
     @rank_zero_only
-    def finalize(self, status: Optional[str] = None) -> None:
+    def finalize(self, status: str | None = None) -> None:
         if self._experiment is not None:
             # log checkpoints as artifacts before finalizing
             if self._checkpoint_callback:
@@ -294,7 +294,7 @@ class LitLogger(Logger):
     @rank_zero_only
     def log_metadata(
         self,
-        params: Union[dict[str, Any], Namespace],
+        params: dict[str, Any] | Namespace,
     ) -> None:
         """Log hyperparams."""
         if isinstance(params, Namespace):
@@ -307,10 +307,10 @@ class LitLogger(Logger):
     def log_model(
         self,
         model: Any,
-        staging_dir: Optional[str] = None,
+        staging_dir: str | None = None,
         verbose: bool = False,
-        version: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        version: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Save and upload a model object to cloud storage.
 
@@ -327,7 +327,7 @@ class LitLogger(Logger):
         self._require_experiment()[self._model_key()] = Model(
             model,
             version=self._model_version(version, self._step),
-            metadata=cast(Optional[dict[str, str]], metadata),
+            metadata=cast(dict[str, str] | None, metadata),
             staging_dir=staging_dir,
         )
 
@@ -336,7 +336,7 @@ class LitLogger(Logger):
         self,
         path: str,
         verbose: bool = False,
-        version: Optional[str] = None,
+        version: str | None = None,
     ) -> None:
         """Upload a model file or directory to cloud storage using litmodels.
 

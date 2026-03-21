@@ -15,7 +15,6 @@ import logging
 import os
 from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -90,7 +89,7 @@ class SwaTestCallback(StochasticWeightAveraging):
     update_parameters_calls: int = 0
     transfer_weights_calls: int = 0
     # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0
-    first_epoch: Optional[int] = None
+    first_epoch: int | None = None
 
     def update_parameters(self, *args, **kwargs):
         self.update_parameters_calls += 1

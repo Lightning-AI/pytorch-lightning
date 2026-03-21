@@ -66,7 +66,7 @@ if _RICH_AVAILABLE:
         """
 
         @property
-        def time_remaining(self) -> Optional[float]:
+        def time_remaining(self) -> float | None:
             return None
 
     class _RefreshThread(_RichRefreshThread):
@@ -116,7 +116,7 @@ if _RICH_AVAILABLE:
             self,
             description: str,
             start: bool = True,
-            total: Optional[float] = 100.0,
+            total: float | None = 100.0,
             completed: int = 0,
             visible: bool = True,
             **fields: Any,
@@ -150,7 +150,7 @@ if _RICH_AVAILABLE:
         # Only refresh twice a second to prevent jitter
         max_refresh = 0.5
 
-        def __init__(self, style: Union[str, Style]) -> None:
+        def __init__(self, style: str | Style) -> None:
             self.style = style
             super().__init__()
 
@@ -162,7 +162,7 @@ if _RICH_AVAILABLE:
             return Text(f"{elapsed_delta} • {remaining_delta}", style=self.style)
 
     class BatchesProcessedColumn(ProgressColumn):
-        def __init__(self, style: Union[str, Style]):
+        def __init__(self, style: str | Style):
             self.style = style
             super().__init__()
 
@@ -171,7 +171,7 @@ if _RICH_AVAILABLE:
             return Text(f"{int(task.completed)}/{total}", style=self.style)
 
     class ProcessingSpeedColumn(ProgressColumn):
-        def __init__(self, style: Union[str, Style]):
+        def __init__(self, style: str | Style):
             self.style = style
             super().__init__()
 
@@ -190,9 +190,9 @@ if _RICH_AVAILABLE:
             metrics_format: str,
         ):
             self._trainer = trainer
-            self._tasks: dict[Union[int, TaskID], Any] = {}
+            self._tasks: dict[int | TaskID, Any] = {}
             self._current_task_id = 0
-            self._metrics: dict[Union[str, Style], Any] = {}
+            self._metrics: dict[str | Style, Any] = {}
             self._style = style
             self._text_delimiter = text_delimiter
             self._metrics_format = metrics_format
@@ -304,7 +304,7 @@ class RichProgressBar(ProgressBar):
         refresh_rate: int = 100,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[dict[str, Any]] = None,
+        console_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
@@ -314,17 +314,17 @@ class RichProgressBar(ProgressBar):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
-        self._console: Optional[Console] = None
+        self._console: Console | None = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
-        self.progress: Optional[CustomProgress] = None
-        self.train_progress_bar_id: Optional[TaskID]
-        self.val_sanity_progress_bar_id: Optional[TaskID] = None
-        self.val_progress_bar_id: Optional[TaskID]
-        self.test_progress_bar_id: Optional[TaskID]
-        self.predict_progress_bar_id: Optional[TaskID]
+        self.progress: CustomProgress | None = None
+        self.train_progress_bar_id: TaskID | None
+        self.val_sanity_progress_bar_id: TaskID | None = None
+        self.val_progress_bar_id: TaskID | None
+        self.test_progress_bar_id: TaskID | None
+        self.predict_progress_bar_id: TaskID | None
         self._reset_progress_bar_ids()
-        self._metric_component: Optional[MetricsTextColumn] = None
+        self._metric_component: MetricsTextColumn | None = None
         self._progress_stopped: bool = False
         self.theme = theme
 
@@ -500,7 +500,7 @@ class RichProgressBar(ProgressBar):
 
         self.refresh()
 
-    def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
+    def _add_task(self, total_batches: int | float, description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
         return self.progress.add_task(
             f"[{self.theme.description}]{description}" if self.theme.description else description,
@@ -679,7 +679,7 @@ class RichProgressBar(ProgressBar):
     @override
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> dict[str, Union[int, str, float, dict[str, float]]]:
+    ) -> dict[str, int | str | float | dict[str, float]]:
         items = super().get_metrics(trainer, pl_module)
         # convert all metrics to float before sending to rich
         return apply_to_collection(items, torch.Tensor, lambda x: x.item())

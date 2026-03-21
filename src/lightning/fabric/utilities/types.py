@@ -12,29 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Optional,
     Protocol,
+    TypeAlias,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias, overload
+from typing_extensions import overload
 
 UntypedStorage: TypeAlias = torch.UntypedStorage
 
-_PATH = Union[str, Path]
-_DEVICE = Union[torch.device, str, int]
-_MAP_LOCATION_TYPE = Optional[
-    Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], dict[_DEVICE, _DEVICE]]
-]
+_PATH = str | Path
+_DEVICE = torch.device | str | int
+_MAP_LOCATION_TYPE = _DEVICE | Callable[[UntypedStorage, str], UntypedStorage | None] | dict[_DEVICE, _DEVICE] | None
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 if torch.distributed.is_available():
@@ -74,7 +70,7 @@ class Steppable(Protocol):
     @overload
     def step(self, closure: Callable[[], float]) -> float: ...
 
-    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]: ...
+    def step(self, closure: Callable[[], float] | None = ...) -> float | None: ...
 
 
 @runtime_checkable

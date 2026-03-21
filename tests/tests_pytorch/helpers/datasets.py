@@ -17,7 +17,6 @@ import random
 import time
 import urllib.request
 from collections.abc import Sequence
-from typing import Optional
 
 import torch
 from torch import Tensor
@@ -136,7 +135,7 @@ class TrialMNIST(MNIST):
 
     """
 
-    def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
+    def __init__(self, root: str, num_samples: int = 100, digits: Sequence | None = (0, 1, 2), **kwargs):
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset

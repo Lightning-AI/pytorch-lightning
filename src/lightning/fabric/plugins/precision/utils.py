@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Mapping
-from typing import Any, Union
+from typing import Any
 
 import torch
 from torch import Tensor
 
 
-def _convert_fp_tensor(tensor: Tensor, dst_type: Union[str, torch.dtype]) -> Tensor:
+def _convert_fp_tensor(tensor: Tensor, dst_type: str | torch.dtype) -> Tensor:
     return tensor.to(dst_type) if torch.is_floating_point(tensor) else tensor
 
 

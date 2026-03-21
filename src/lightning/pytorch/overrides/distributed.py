@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from collections.abc import Iterable, Iterator, Sized
-from typing import Any, Callable, Optional, Union, cast
+from collections.abc import Callable, Iterable, Iterator, Sized
+from typing import Any, cast
 
 import torch
 from torch import Tensor
@@ -27,8 +27,8 @@ from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(
-    obj: Union[Tensor, list, tuple, dict, Any],
-) -> Union[list[Tensor], itertools.chain]:  # pragma: no-cover
+    obj: Tensor | list | tuple | dict | Any,
+) -> list[Tensor] | itertools.chain:  # pragma: no-cover
     """Recursively find all tensors contained in the specified object."""
     if isinstance(obj, Tensor):
         return [obj]
@@ -61,9 +61,9 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
 
 def _register_ddp_comm_hook(
     model: DistributedDataParallel,
-    ddp_comm_state: Optional[object] = None,
-    ddp_comm_hook: Optional[Callable] = None,
-    ddp_comm_wrapper: Optional[Callable] = None,
+    ddp_comm_state: object | None = None,
+    ddp_comm_hook: Callable | None = None,
+    ddp_comm_wrapper: Callable | None = None,
 ) -> None:
     """Function to register communication hook for DDP model https://pytorch.org/docs/master/ddp_comm_hooks.html.
 
@@ -223,7 +223,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
 class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
     """Equivalent class to ``DistributedSamplerWrapper`` but for the ``UnrepeatedDistributedSampler``."""
 
-    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, sampler: Sampler | Iterable, *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
     @override
@@ -245,7 +245,7 @@ class _IndexBatchSamplerWrapper:
             if k not in ("__next__", "__iter__", "__len__", "__getstate__")
         }
         self._batch_sampler = batch_sampler
-        self._iterator: Optional[Iterator[list[int]]] = None
+        self._iterator: Iterator[list[int]] | None = None
 
     def __next__(self) -> list[int]:
         assert self._iterator is not None

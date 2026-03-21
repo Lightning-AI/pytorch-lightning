@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import torch
 import torch.distributed
@@ -55,13 +55,13 @@ class DDPStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[list[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        accelerator: Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision: Precision | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
         **kwargs: Any,
     ) -> None:
@@ -73,8 +73,8 @@ class DDPStrategy(ParallelStrategy):
             precision=precision,
         )
         self._num_nodes = 1
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
         self._start_method = start_method
         self._backward_sync_control = _DDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
@@ -104,7 +104,7 @@ class DDPStrategy(ParallelStrategy):
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @override
@@ -134,9 +134,7 @@ class DDPStrategy(ParallelStrategy):
         module.to(self.root_device)
 
     @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def all_reduce(self, tensor: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -182,15 +180,13 @@ class DDPStrategy(ParallelStrategy):
         return obj[0]
 
     @override
-    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Any | Tensor]:
         if isinstance(module, DistributedDataParallel):
             module = module.module
         return super().get_module_state_dict(module)
 
     @override
-    def load_module_state_dict(
-        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
-    ) -> None:
+    def load_module_state_dict(self, module: Module, state_dict: dict[str, Any | Tensor], strict: bool = True) -> None:
         if isinstance(module, DistributedDataParallel):
             module = module.module
         super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)
@@ -239,7 +235,7 @@ class DDPStrategy(ParallelStrategy):
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
-    def _determine_ddp_device_ids(self) -> Optional[list[int]]:
+    def _determine_ddp_device_ids(self) -> list[int] | None:
         return None if self.root_device.type == "cpu" else [self.root_device.index]
 
 

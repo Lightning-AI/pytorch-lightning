@@ -32,7 +32,6 @@ or show all options you can change:
 """
 
 import os
-from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -65,7 +64,7 @@ class ImageNetLightningModel(LightningModule):
         self,
         data_path: str,
         arch: str = "resnet18",
-        weights: Optional[str] = None,
+        weights: str | None = None,
         lr: float = 0.1,
         momentum: float = 0.9,
         weight_decay: float = 1e-4,
@@ -82,8 +81,8 @@ class ImageNetLightningModel(LightningModule):
         self.batch_size = batch_size
         self.workers = workers
         self.model = get_torchvision_model(self.arch, weights=self.weights)
-        self.train_dataset: Optional[Dataset] = None
-        self.eval_dataset: Optional[Dataset] = None
+        self.train_dataset: Dataset | None = None
+        self.eval_dataset: Dataset | None = None
         # ToDo: this number of classes hall be parsed when the dataset is loaded from folder
         self.train_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
         self.train_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)

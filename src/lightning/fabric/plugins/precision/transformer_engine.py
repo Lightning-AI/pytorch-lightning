@@ -14,7 +14,7 @@
 import logging
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, ExitStack
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -68,9 +68,9 @@ class TransformerEnginePrecision(Precision):
         self,
         *,
         weights_dtype: torch.dtype,
-        recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None,
-        replace_layers: Optional[bool] = None,
-        fallback_compute_dtype: Optional[torch.dtype] = None,
+        recipe: Union[Mapping[str, Any], "DelayedScaling"] | None = None,
+        replace_layers: bool | None = None,
+        fallback_compute_dtype: torch.dtype | None = None,
     ) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))

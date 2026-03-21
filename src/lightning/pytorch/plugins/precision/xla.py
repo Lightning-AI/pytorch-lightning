@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable
+from typing import Any, get_args
 
 import torch
-from typing_extensions import get_args, override
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE

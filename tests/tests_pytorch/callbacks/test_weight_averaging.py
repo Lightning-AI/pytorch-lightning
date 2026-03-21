@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 import torch
@@ -84,7 +84,7 @@ class EMATestCallback(WeightAveraging):
         self.swap_calls = 0
         self.copy_calls = 0
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
-        self.first_epoch: Optional[int] = None
+        self.first_epoch: int | None = None
 
     def _swap_models(self, *args: Any, **kwargs: Any):
         self.swap_calls += 1
@@ -130,9 +130,9 @@ class SWATestCallback(WeightAveraging):
         self.swap_calls = 0
         self.copy_calls = 0
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
-        self.first_epoch: Optional[int] = None
+        self.first_epoch: int | None = None
 
-    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+    def should_update(self, step_idx: int | None = None, epoch_idx: int | None = None) -> bool:
         return epoch_idx in (3, 5, 7)
 
     def _swap_models(self, *args: Any, **kwargs: Any):
@@ -289,7 +289,7 @@ def _train(
     strategy: str = "auto",
     accelerator: str = "cpu",
     devices: int = 1,
-    checkpoint_path: Optional[str] = None,
+    checkpoint_path: str | None = None,
     will_crash: bool = False,
 ) -> None:
     deterministic = accelerator == "cpu"

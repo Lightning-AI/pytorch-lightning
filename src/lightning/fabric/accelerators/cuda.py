@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import lru_cache
-from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -43,7 +42,7 @@ class CUDAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -156,7 +155,7 @@ def is_cuda_available() -> bool:
     return torch.cuda.is_available()
 
 
-def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
+def _is_ampere_or_later(device: torch.device | None = None) -> bool:
     major, _ = torch.cuda.get_device_capability(device)
     return major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
 
