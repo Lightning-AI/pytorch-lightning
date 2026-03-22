@@ -19,8 +19,7 @@ class SimpleModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        loss = torch.nn.functional.mse_loss(self(x), y)
-        return loss
+        return torch.nn.functional.mse_loss(self(x), y)
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)
@@ -79,7 +78,7 @@ def test_gradient_logging_called(tmp_path, mocker):
         enable_checkpointing=False,
         logger=True,
     )
-    
+
     spy = mocker.spy(model, "log_dict")
 
     trainer.fit(model, loader)
@@ -110,7 +109,7 @@ def test_per_layer_logging(tmp_path, mocker):
     trainer.fit(model, loader)
 
     logged = spy.call_args[0][0]
-    assert any("grad/" in k for k in logged.keys())
+    assert any("grad/" in k for k in logged)
 
 
 # -------------------------
