@@ -124,7 +124,7 @@ run: |
 
   # Use find-links to prefer CUDA-specific packages from PyTorch index
   uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" --prerelease=allow
   uv pip list
 
   echo "Ensure only a single package is installed"
