@@ -474,7 +474,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> Union[float, list[float | Tensor]]:
         return self._lr
 
 
@@ -499,7 +499,7 @@ class _ExponentialLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> list[float]:
+    def get_lr(self) -> list[float | Tensor]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -511,7 +511,7 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> Union[float, list[float | Tensor]]:
         return self._lr
 
 
