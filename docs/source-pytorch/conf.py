@@ -496,6 +496,10 @@ nitpick_ignore = [
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
     ("py:class", "litlogger.Experiment"),
+    ("py:class", "torch.jit.ScriptModule"),
+    ("py:func",  "torch.jit.script"),
+    ("py:func",  "torch.jit.trace"),
+    ("py:mod",   "torch.jit"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
