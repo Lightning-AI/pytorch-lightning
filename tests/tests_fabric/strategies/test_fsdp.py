@@ -402,3 +402,15 @@ def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
     with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=4):
         assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
         assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
+
+
+def test_device_mesh_type_annotation():
+    """Test that ``device_mesh`` type hint accepts a 2-element tuple via jsonargparse (#21580)."""
+    jsonargparse = pytest.importorskip("jsonargparse")
+    from inspect import signature
+
+    annot = signature(FSDPStrategy).parameters["device_mesh"].annotation
+    parser = jsonargparse.ArgumentParser()
+    parser.add_argument("--device_mesh", type=annot)
+    args = parser.parse_args(["--device_mesh=[1, 4]"])
+    assert args.device_mesh == (1, 4)
