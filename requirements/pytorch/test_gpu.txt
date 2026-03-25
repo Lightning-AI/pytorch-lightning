@@ -1,1 +1,0 @@
-torch-tensorrt; platform_system != "Darwin" and python_version >= "3.12"
