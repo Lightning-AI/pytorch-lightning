@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21590](https://github.com/Lightning-AI/pytorch-lightning/issues/21590))
 
 ### Changed
 
