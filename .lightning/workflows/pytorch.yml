@@ -6,7 +6,7 @@ trigger:
 
 timeout: "60" # minutes
 machine: "L4_X_2"
-image: "nvidia/cuda:12.9.0-devel-ubuntu22.04" # torch-tensorrt 2.10 requires cuda >= 12.9
+image: "nvidia/cuda:13.0.0-devel-ubuntu22.04" # torch-tensorrt 2.10 requires cuda >= 12.9
 parametrize:
   matrix: {}
   include:
@@ -124,7 +124,8 @@ run: |
 
   # Use find-links to prefer CUDA-specific packages from PyTorch index
   uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" --prerelease=allow
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
   uv pip list
 
   echo "Ensure only a single package is installed"
