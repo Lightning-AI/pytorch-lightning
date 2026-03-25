@@ -125,7 +125,7 @@ run: |
   # Use find-links to prefer CUDA-specific packages from PyTorch index
   uv pip install -e ".[${extra}dev]" --upgrade \
     --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
-  uv pip install torch-tensorrt --no-deps
+  uv pip install --upgrade torch-tensorrt --no-deps
   uv pip list
 
   echo "Ensure only a single package is installed"
