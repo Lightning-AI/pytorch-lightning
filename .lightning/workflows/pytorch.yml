@@ -6,7 +6,7 @@ trigger:
 
 timeout: "60" # minutes
 machine: "L4_X_2"
-image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+image: "nvidia/cuda:13.0.0-devel-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
@@ -16,7 +16,7 @@ parametrize:
       python_version: "3.10"
     - PACKAGE_NAME: "pytorch"
       python_version: "3.12"
-    #- image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+    #- image: "nvidia/cuda:13.0.0-devel-ubuntu22.04"
     #  PACKAGE_NAME: "pytorch"
     - PACKAGE_NAME: "lightning"
       python_version: "3.12"
