@@ -76,7 +76,7 @@ class GradientStatsMonitor(Callback):
             per_layer: bool = False,
             track_stats: bool = True,
             track_sparsity: bool = True,
-            explosion_threshold: float = 1e3,
+            explosion_threshold: float = 1,
             log_histogram: bool = False,
             
         ):
