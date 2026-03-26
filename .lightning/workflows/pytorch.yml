@@ -123,9 +123,16 @@ run: |
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
 
   # Use find-links to prefer CUDA-specific packages from PyTorch index
-  uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade --prerelease=allow \
+
+  uv pip install -e ".[${extra}dev]" --upgrade \
     --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
     --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
+
+  if [ "${CUDA_VERSION_MM}" -ge 129 ]; then
+    uv pip install "torch-tensorrt==2.10"
+  else
+    uv pip install torch-tensorrt --upgrade
+  fi
   uv pip list
 
   echo "Ensure only a single package is installed"
