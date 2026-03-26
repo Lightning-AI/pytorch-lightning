@@ -14,8 +14,8 @@ numpy >1.21.0, <1.27.0; python_version < "3.12"
 numpy >2.1.0, <2.4.2; python_version >= "3.12"
 onnx >1.12.0, <1.21.0
 onnxruntime >=1.12.0, <1.24.0
-onnxscript >= 0.1.0, < 0.6.0
-onnx-ir < 0.1.16
+onnxscript >= 0.6.0, < 0.7.0
+onnx-ir >= 0.1.16, < 0.3.0
 psutil <7.3.0 # for `DeviceStatsMonitor`
 pandas >2.0, <3.1.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
