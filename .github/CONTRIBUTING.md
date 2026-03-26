@@ -233,8 +233,8 @@ def log_hyperparams(self, params):
 New training lifecycle events must be added in three places:
 
 1. The `Callback` base class (`src/lightning/pytorch/callbacks/callback.py`)
-2. The relevant loop file in `src/lightning/pytorch/loops/`
-3. `src/lightning/pytorch/trainer/connectors/callback_connector.py`
+1. The relevant loop file in `src/lightning/pytorch/loops/`
+1. `src/lightning/pytorch/trainer/connectors/callback_connector.py`
 
 #### Backward-compatibility policy
 

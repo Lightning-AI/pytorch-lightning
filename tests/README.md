@@ -87,15 +87,15 @@ def test_distributed():
 
 Common `RunIf` kwargs:
 
-| Kwarg | What it guards |
-|---|---|
-| `min_cuda_gpus=N` | at least N CUDA GPUs available |
-| `min_torch="2.1"` | PyTorch >= version |
-| `mps=True` | Apple Silicon (MPS) backend |
-| `skip_windows=True` | skip on Windows |
-| `standalone=True` | marks test as standalone (see below) |
-| `deepspeed=True` | DeepSpeed installed |
-| `bf16_cuda=True` | GPU supports bfloat16 |
+| Kwarg               | What it guards                       |
+| ------------------- | ------------------------------------ |
+| `min_cuda_gpus=N`   | at least N CUDA GPUs available       |
+| `min_torch="2.1"`   | PyTorch >= version                   |
+| `mps=True`          | Apple Silicon (MPS) backend          |
+| `skip_windows=True` | skip on Windows                      |
+| `standalone=True`   | marks test as standalone (see below) |
+| `deepspeed=True`    | DeepSpeed installed                  |
+| `bf16_cuda=True`    | GPU supports bfloat16                |
 
 GPU tests require that the environment variable `RUN_ONLY_CUDA_TESTS=1` is set; this is done automatically by CI.
 
