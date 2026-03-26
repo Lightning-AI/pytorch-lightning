@@ -111,7 +111,7 @@ ______________________________________________________________________
 
 ### Development environment
 
-**Python version**: Python 3.9 or newer is required (the project targets `py39` in its lint/type configs).
+**Python version**: Python 3.10 or newer is required (the project targets `py310` in its lint/type configs).
 
 **Repository layout**: this repo contains two distinct packages under the `lightning` namespace:
 
@@ -192,7 +192,7 @@ These are enforced by CI — familiarise yourself with them before your first PR
 
 #### Linting and formatting
 
-We use [Ruff](https://docs.astral.sh/ruff/) for both linting and formatting. The active rule sets are: `E`, `W` (pycodestyle), `F` (pyflakes), `S` (bandit), `UP` (pyupgrade), `I` (isort), `C4` (flake8-comprehensions), `SIM` (flake8-simplify), `RET` (flake8-return), `PT` (flake8-pytest-style), `RUF100` (unused noqa).
+We use [Ruff](https://docs.astral.sh/ruff/) for both linting and formatting. The active rule sets are: `E`, `W` (pycodestyle), `F` (pyflakes), `S` (bandit), `UP` (pyupgrade), `I` (isort), `C4` (flake8-comprehensions), `SIM` (flake8-simplify), `RET` (flake8-return), `PT` (flake8-pytest-style), `RUF018` (assignment-in-assert), `RUF100` (unused noqa).
 
 ```bash
 ruff check src/ tests/   # lint

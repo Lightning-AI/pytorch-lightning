@@ -72,9 +72,9 @@ python -m coverage report -m
 Hardware- or package-gated tests use the `RunIf` helper instead of a bare `pytest.mark.skipif`:
 
 ```python
-from tests.helpers.runif import RunIf  # tests_pytorch
+from tests_pytorch.helpers.runif import RunIf  # tests_pytorch
 # or
-from tests.helpers.runif import RunIf  # tests_fabric
+from tests_fabric.helpers.runif import RunIf  # tests_fabric
 
 @RunIf(min_cuda_gpus=1)
 def test_something_that_needs_a_gpu():
