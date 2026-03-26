@@ -129,9 +129,13 @@ run: |
     --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
 
   if [ "${CUDA_VERSION_MM}" -ge 129 ]; then
-    uv pip install "torch-tensorrt==2.10"
+    echo "Install torch-tensorrt for CUDA ${CUDA_VERSION}"
+    uv pip install "torch-tensorrt==2.10" --prerelease=allow \
+      --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
   else
-    uv pip install torch-tensorrt --upgrade
+    echo "Install torch-tensorrt for CUDA ${CUDA_VERSION}"
+    uv pip install torch-tensorrt --upgrade \
+      --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
   fi
   uv pip list
 
