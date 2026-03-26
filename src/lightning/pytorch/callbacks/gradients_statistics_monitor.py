@@ -72,22 +72,21 @@ class GradientStatsMonitor(Callback):
     """
 
     def __init__(
-            self,
-            log_every_n_steps: int = 1,
-            per_layer: bool = False,
-            track_stats: bool = True,
-            track_sparsity: bool = True,
-            explosion_threshold: float = 1e4,
-            log_histogram: bool = False,
-            
-        ):
-            super().__init__()
-            self.log_every_n_steps = log_every_n_steps
-            self.per_layer = per_layer
-            self.track_stats = track_stats
-            self.track_sparsity = track_sparsity
-            self.explosion_threshold = explosion_threshold
-            self.log_histogram = log_histogram
+        self,
+        log_every_n_steps: int = 1,
+        per_layer: bool = False,
+        track_stats: bool = True,
+        track_sparsity: bool = True,
+        explosion_threshold: float = 1e4,
+        log_histogram: bool = False,
+    ):
+        super().__init__()
+        self.log_every_n_steps = log_every_n_steps
+        self.per_layer = per_layer
+        self.track_stats = track_stats
+        self.track_sparsity = track_sparsity
+        self.explosion_threshold = explosion_threshold
+        self.log_histogram = log_histogram
 
     # -------------------------
     # State key
