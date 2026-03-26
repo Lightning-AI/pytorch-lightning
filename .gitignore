@@ -133,6 +133,9 @@ env/
 venv/
 ENV/
 
+# UV environment
+uv.lock
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -205,3 +208,8 @@ requirements/base.txt
 
 # sourced notebooks from tutorials
 _notebooks/.notebooks/
+
+# AI assistants
+*.local.*
+.claude/logs/
+.claude/state/
