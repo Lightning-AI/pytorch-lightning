@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
 
 import torch
+
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
+
 class GradientStatsMonitor(Callback):
-    """
-    A PyTorch Lightning callback that monitors and logs gradient statistics during training.
+    """A PyTorch Lightning callback that monitors and logs gradient statistics during training.
 
     This callback collects gradients after each training batch and computes a set of
     useful metrics to help diagnose training behavior, such as gradient flow, vanishing
@@ -70,13 +70,14 @@ class GradientStatsMonitor(Callback):
         - Designed to be lightweight and not interfere with the training loop.
 
     """
+
     def __init__(
             self,
             log_every_n_steps: int = 1,
             per_layer: bool = False,
             track_stats: bool = True,
             track_sparsity: bool = True,
-            explosion_threshold: float = 1,
+            explosion_threshold: float = 1e4,
             log_histogram: bool = False,
             
         ):
@@ -101,12 +102,11 @@ class GradientStatsMonitor(Callback):
             explosion_threshold=self.explosion_threshold,
             log_histogram=self.log_histogram,
         )
-    
 
     # -------------------------
     # Core hook
     # -------------------------
-     
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         EPS = 1e-6
         if trainer.global_step % self.log_every_n_steps != 0:
@@ -115,8 +115,8 @@ class GradientStatsMonitor(Callback):
         total_norm = 0.0
         all_grads = []
 
-        layer_norms: Dict[str, float] = {}
-        metrics: Dict[str, float] = {}
+        layer_norms: dict[str, float] = {}
+        metrics: dict[str, float] = {}
 
         # -------------------------
         # Collect gradients
@@ -132,19 +132,21 @@ class GradientStatsMonitor(Callback):
 
             # Norm
             param_norm = grad.norm(2).item()
-            total_norm += param_norm ** 2 # for the global norm over the layers 
+            total_norm += param_norm**2  # for the global norm over the layers
 
             if self.per_layer:
-                safe_name = name.replace(".", "/")# Replace "." to make names compatible with hierarchical loggers (e.g., TensorBoard)
+                safe_name = name.replace(
+                    ".", "/"
+                )  # Replace "." to make names compatible with hierarchical loggers (e.g., TensorBoard)
                 layer_norms[f"grad/{safe_name}_norm"] = param_norm
 
         if len(all_grads) == 0:
             return
-        
+
         # -------------------------
         # Global norm
         # -------------------------
-        total_norm = total_norm ** 0.5
+        total_norm = total_norm**0.5
         metrics["grad/global_norm"] = total_norm
 
         # -------------------------
@@ -159,7 +161,6 @@ class GradientStatsMonitor(Callback):
             metrics["grad/mean"] = all_grads_tensor.mean().item()
             metrics["grad/std"] = all_grads_tensor.std(unbiased=False).item()
 
-
         # -------------------------
         # Sparsity (fraction near zero)
         # -------------------------
@@ -171,9 +172,7 @@ class GradientStatsMonitor(Callback):
         # Explosion warning
         # -------------------------
         if total_norm > self.explosion_threshold:
-            rank_zero_warn(
-                f"Gradient norm is very high ({total_norm:.2f}). Possible exploding gradients."
-            )
+            rank_zero_warn(f"Gradient norm is very high ({total_norm:.2f}). Possible exploding gradients.")
 
         # -------------------------
         # Per-layer norms
@@ -191,8 +190,8 @@ class GradientStatsMonitor(Callback):
             if self.log_histogram and trainer.logger is not None:
                 exp = getattr(trainer.logger, "experiment", None)
                 if exp is not None and hasattr(exp, "add_histogram"):
-                        exp.add_histogram(
-                            "grad/all",
-                            all_grads_tensor,
-                            global_step=trainer.global_step,
-                        )
+                    exp.add_histogram(
+                        "grad/all",
+                        all_grads_tensor,
+                        global_step=trainer.global_step,
+                    )
