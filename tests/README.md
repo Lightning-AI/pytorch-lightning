@@ -1,85 +1,149 @@
-# PyTorch-Lightning Tests
+# PyTorch Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc.). Want to add a new test case and not sure how? [Talk to us on Discord!](https://discord.gg/VptPCZkGNa)
+
+## Test directory layout
+
+```
+tests/
+├── tests_pytorch/   # Tests for PyTorch Lightning (Trainer, LightningModule, callbacks, …)
+├── tests_fabric/    # Tests for Lightning Fabric (low-level distributed primitives)
+├── parity_pytorch/  # Output parity checks: validates results match vanilla PyTorch
+├── parity_fabric/   # Output parity checks for Fabric
+└── legacy/          # Backward-compatibility tests for checkpoints from old releases
+```
+
+Each `tests_pytorch/` and `tests_fabric/` subtree mirrors the corresponding source layout under `src/lightning/`.
 
 ## Running tests
 
-**Local:** Testing your work locally will help you speed up the process since it allows you to focus on particular (failing) test-cases.
-To setup a local development environment, install both local and test dependencies:
+### Quick setup
 
 ```bash
-# clone the repo
-git clone https://github.com/Lightning-AI/lightning.git
-cd lightning
-
-# install required dependencies
-export PACKAGE_NAME=pytorch
-python -m pip install ".[dev, examples]"
-# install pre-commit (optional)
-python -m pip install pre-commit
-pre-commit install
+# Clone, install all dev dependencies, and configure pre-commit in one step
+make setup
 ```
 
-Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
-
-```bash
-bash .actions/pull_legacy_checkpoints.sh
-```
-
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/pytorch-lightning/tree/master/tests/legacy/README.md).
-
-You can run the full test suite in your terminal via this make script:
+### Run the full test suite
 
 ```bash
 make test
 ```
 
-Note: if your computer does not have multi-GPU or TPU these tests are skipped.
+This runs both packages with coverage. Note: GPU and TPU tests are skipped automatically on machines without the required hardware.
 
-**GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
-This is useful if you do not test against all required dependency versions.
-
-**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/r/pytorchlightning/pytorch_lightning/tags?name=cuda). You can then run:
+### Run tests for one package
 
 ```bash
-python -m pytest src/lightning/pytorch tests/tests_pytorch -v
+# PyTorch Lightning only
+pytest tests/tests_pytorch/ -v
+
+# Lightning Fabric only
+pytest tests/tests_fabric/ -v
 ```
 
-You can also run a single test as follows:
+### Run a single file or test
 
 ```bash
-python -m pytest -v tests/tests_pytorch/trainer/test_trainer_cli.py::test_default_args
+# Single file
+pytest tests/tests_pytorch/trainer/test_trainer.py -v
+
+# Single test function
+pytest tests/tests_pytorch/trainer/test_trainer.py::TestClass::test_method -v
+
+# Match by keyword
+pytest tests/tests_pytorch/ -k "test_trainer_fit" -v
 ```
 
-### Conditional Tests
+### Run with coverage
 
-To test models that require GPU make sure to run the above command on a GPU machine.
-The GPU machine must have at least 2 GPUs to run distributed tests.
+```bash
+# PyTorch Lightning
+python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
+python -m coverage report -m
 
-Note that this setup will not run tests that require specific packages installed
-You can rely on our CI to make sure all these tests pass.
+# Lightning Fabric
+python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
+python -m coverage report -m
+```
 
-### Standalone Tests
+## Conditional tests and the `RunIf` decorator
 
-There are certain standalone tests, which you can run using:
+Hardware- or package-gated tests use the `RunIf` helper instead of a bare `pytest.mark.skipif`:
+
+```python
+from tests.helpers.runif import RunIf  # tests_pytorch
+# or
+from tests.helpers.runif import RunIf  # tests_fabric
+
+@RunIf(min_cuda_gpus=1)
+def test_something_that_needs_a_gpu():
+    ...
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_distributed():
+    ...
+```
+
+Common `RunIf` kwargs:
+
+| Kwarg | What it guards |
+|---|---|
+| `min_cuda_gpus=N` | at least N CUDA GPUs available |
+| `min_torch="2.1"` | PyTorch >= version |
+| `mps=True` | Apple Silicon (MPS) backend |
+| `skip_windows=True` | skip on Windows |
+| `standalone=True` | marks test as standalone (see below) |
+| `deepspeed=True` | DeepSpeed installed |
+| `bf16_cuda=True` | GPU supports bfloat16 |
+
+GPU tests require that the environment variable `RUN_ONLY_CUDA_TESTS=1` is set; this is done automatically by CI.
+
+## Standalone tests
+
+Some distributed tests must run in a separate process to avoid interference. Mark them with `@RunIf(standalone=True)`. To run them locally:
+
+```bash
+PL_RUN_STANDALONE_TESTS=1 pytest tests/tests_pytorch/ -v
+```
+
+The CI helper script can also be used:
 
 ```bash
 cd tests/
-wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
-./tests/run_standalone_tests.sh tests_pytorch/
+bash tests_pytorch/run_standalone_tasks.sh
 ```
 
-## Running Coverage
+## Pytest markers
 
-Make sure to run coverage on a GPU machine with at least 2 GPUs.
+The only custom marker registered in `pyproject.toml` is:
+
+- `cloud` — tests that require cloud infrastructure (run in CI only)
+
+Because pytest is configured with `--strict-markers`, **any new marker must be registered** in the `[tool.pytest.ini_options] markers` list in `pyproject.toml` before it can be used. Unregistered markers cause a collection error.
+
+## Legacy (backward-compatibility) tests
+
+The `legacy/` directory tests that checkpoints from older PyTorch Lightning releases can still be loaded. To pull the archived checkpoints from the public AWS storage:
 
 ```bash
-# generate coverage (coverage is also installed as part of dev dependencies)
-coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
-
-# print coverage stats
-coverage report -m
-
-# exporting results
-coverage xml
+bash .actions/pull_legacy_checkpoints.sh
 ```
+
+See [tests/legacy/README.md](legacy/README.md) for details on generating checkpoints for a new release.
+
+## Docker
+
+You can also run tests inside the [pytorch-lightning CUDA Docker image](https://hub.docker.com/r/pytorchlightning/pytorch_lightning/tags?name=cuda):
+
+```bash
+# PyTorch Lightning
+python -m pytest src/lightning/pytorch tests/tests_pytorch -v
+
+# Lightning Fabric
+python -m pytest src/lightning/fabric tests/tests_fabric -v
+```
+
+## GitHub Actions
+
+Each push to a fork triggers CI automatically. This is useful for testing against all required dependency versions without a local GPU.

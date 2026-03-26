@@ -7,7 +7,7 @@ List any dependencies that are required for this change.
 
 If we didn't discuss your PR in Github issues there's a high chance it will not be merged.
 
-The following links the related issue to the PR (https://docs.github.com/en/free-pro-team@latest/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
+The following links the related issue to the PR (https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue)
 -->
 
 Fixes #\<issue_number>
@@ -33,7 +33,7 @@ Fixes #\<issue_number>
 ## PR review
 
 Anyone in the community is welcome to review the PR.
-Before you start reviewing, make sure you have read the [review guidelines](https://github.com/Lightning-AI/lightning/wiki/Review-guidelines). In short, see the following bullet-list:
+Before you start reviewing, make sure you have read the [contributor guidelines](https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). In short, see the following bullet-list:
 
 <details>
   <summary>Reviewer checklist</summary>

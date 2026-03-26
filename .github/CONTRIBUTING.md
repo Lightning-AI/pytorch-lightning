@@ -3,7 +3,7 @@
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices
 and integrations that the amazing PyTorch team and other research organization rolls out!
 
-If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a).
+If you are new to open source, check out [GitHub's guide to contributing to open source projects](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project).
 
 ## Main Core Value: One less thing to remember
 
@@ -103,13 +103,22 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Join us on Discord!](https://discord.gg/VptPCZkGNa)
 
 ______________________________________________________________________
 
 ## Guidelines
 
 ### Development environment
+
+**Python version**: Python 3.9 or newer is required (the project targets `py39` in its lint/type configs).
+
+**Repository layout**: this repo contains two distinct packages under the `lightning` namespace:
+
+- **Lightning Fabric** (`src/lightning/fabric/`) — low-level distributed primitives; users keep their own training loops
+- **PyTorch Lightning** (`src/lightning/pytorch/`) — high-level `Trainer`/`LightningModule` framework built on top of Fabric
+
+There are also thin backward-compatibility shims at `src/pytorch_lightning/` and `src/lightning_fabric/` that re-export from the canonical locations above. Keep these in sync when adding public APIs.
 
 To set up a local development environment, we recommend using `uv`, which can be installed following their [instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
@@ -155,11 +164,12 @@ If you would like more information regarding the uv commands, please refer to uv
 
 ### Developments scripts
 
-To build the documentation locally, simply execute the following commands from project root (only for Unix):
+To build the documentation locally, execute the following from the project root (Unix only):
 
-- `make clean` cleans repo from temp/generated files
-- `make docs` builds documentation under _docs/build/html_
-- `make test` runs all project's tests with coverage
+- `make clean` — cleans repo from temp/generated files
+- `make docs-pytorch` — builds PyTorch Lightning docs under `docs/source-pytorch/`
+- `make docs-fabric` — builds Lightning Fabric docs under `docs/source-fabric/`
+- `make test` — runs all project tests with coverage (both packages)
 
 ### Original code
 
@@ -169,8 +179,66 @@ In case you are adding new dependencies, make sure that they are compatible with
 
 ### Coding Style
 
-1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`).
-1. You can use [pre-commit](https://pre-commit.com/) to make sure your code style is correct.
+1. Use f-strings for output formation (except logging, where we stay with lazy `logging.info("Hello %s!", name)`).
+1. Run `pre-commit run --all-files` to check and auto-fix style before pushing.
+
+### Project Conventions
+
+These are enforced by CI — familiarise yourself with them before your first PR.
+
+#### Line length
+
+120 characters. Configured in `pyproject.toml` for Ruff, Black, and Prettier.
+
+#### Linting and formatting
+
+We use [Ruff](https://docs.astral.sh/ruff/) for both linting and formatting. The active rule sets are: `E`, `W` (pycodestyle), `F` (pyflakes), `S` (bandit), `UP` (pyupgrade), `I` (isort), `C4` (flake8-comprehensions), `SIM` (flake8-simplify), `RET` (flake8-return), `PT` (flake8-pytest-style), `RUF100` (unused noqa).
+
+```bash
+ruff check src/ tests/   # lint
+ruff format src/ tests/  # format
+```
+
+#### Type annotations
+
+All public interfaces in `src/lightning/` require type annotations. MyPy is configured with `disallow_untyped_defs = true`. Run:
+
+```bash
+mypy src/lightning/
+```
+
+#### Distributed / rank-aware code
+
+Code that may run across multiple processes must use the rank-aware utilities from `lightning.fabric.utilities` rather than bare `print` or `warnings.warn`:
+
+```python
+from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
+
+rank_zero_warn("something the user should know")   # warning on rank 0 only
+rank_zero_info("training started")                  # info on rank 0 only
+```
+
+For logic that must execute only once per run, use the `@rank_zero_only` decorator:
+
+```python
+from lightning.fabric.utilities.rank_zero import rank_zero_only
+
+@rank_zero_only
+def log_hyperparams(self, params):
+    ...
+```
+
+#### Adding a new callback hook
+
+New training lifecycle events must be added in three places:
+
+1. The `Callback` base class (`src/lightning/pytorch/callbacks/callback.py`)
+2. The relevant loop file in `src/lightning/pytorch/loops/`
+3. `src/lightning/pytorch/trainer/connectors/callback_connector.py`
+
+#### Backward-compatibility policy
+
+We avoid breaking the public API without a proper deprecation cycle. See the "Backward-compatible API" design principle above. When replacing a public function or argument, deprecate it in a minor release and remove it in the next major.
 
 ### Documentation
 
