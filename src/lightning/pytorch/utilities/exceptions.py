@@ -27,6 +27,9 @@ class SIGTERMException(SystemExit):
 
     """
 
+    def __init__(self) -> None:
+        super().__init__(143)
+
 
 class _TunerExitException(Exception):
     """Exception used to exit early while tuning."""
