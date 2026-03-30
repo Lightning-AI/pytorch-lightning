@@ -205,3 +205,6 @@ requirements/base.txt
 
 # sourced notebooks from tutorials
 _notebooks/.notebooks/
+
+# local markdown files
+*.local.md
