@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
@@ -461,7 +462,7 @@ class _LinearLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> list[float]:
+    def get_lr(self) -> list[float | Tensor]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -473,7 +474,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> Union[float, list[float | Tensor]]:
         return self._lr
 
 
@@ -498,7 +499,7 @@ class _ExponentialLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> list[float]:
+    def get_lr(self) -> list[float | Tensor]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -510,7 +511,7 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, list[float]]:
+    def lr(self) -> Union[float, list[float | Tensor]]:
         return self._lr
 
 
