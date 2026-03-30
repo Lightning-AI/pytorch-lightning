@@ -28,7 +28,7 @@ class SIGTERMException(SystemExit):
     """
 
     def __init__(self) -> None:
-        code = 128 + 15  # see https://tldp.org/LDP/abs/html/exitcodes.html
+        pass  # see https://tldp.org/LDP/abs/html/exitcodes.html
 
 
 class _TunerExitException(Exception):
