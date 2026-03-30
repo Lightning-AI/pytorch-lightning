@@ -33,7 +33,7 @@ Fixes #\<issue_number>
 ## PR review
 
 Anyone in the community is welcome to review the PR.
-Before you start reviewing, make sure you have read the [contributor guidelines](https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). In short, see the following bullet-list:
+Before you start reviewing, make sure you have read the [contributor guidelines](CONTRIBUTING.md). In short, see the following bullet-list:
 
 <details>
   <summary>Reviewer checklist</summary>
