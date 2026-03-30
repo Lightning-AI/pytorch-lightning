@@ -1498,10 +1498,11 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, dict[str, ScriptModule]]:
-        """By default compiles the whole model to a ``torch.jit.ScriptModule``. If you want to use tracing, please
-        provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is provided,
-        or the model has :attr:`example_input_array` set. If you would like to customize the modules that are scripted
-        you should override this method. In case you want to return multiple modules, we recommend using a dictionary.
+        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
+        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
+        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
+        scripted you should override this method. In case you want to return multiple modules, we recommend using a
+        dictionary.
 
         .. deprecated::
             ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
@@ -1513,15 +1514,15 @@ class LightningModule(
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
-            **kwargs: Additional arguments that will be passed to the ``torch.jit.script`` or
-              ``torch.jit.trace`` function.
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
+              :func:`torch.jit.trace` function.
 
         Note:
             - Requires the implementation of the
               :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
-              to use this feature without limitations. See also the ``torch.jit``
+              to use this feature without limitations. See also the :mod:`torch.jit`
               documentation for supported features.
 
         Example::
