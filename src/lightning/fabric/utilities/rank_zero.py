@@ -54,4 +54,4 @@ class LightningDeprecationWarning(FutureWarning):
     """Deprecation warnings raised by Lightning."""
 
 
-rank_zero_module.rank_zero_deprecation_category = LightningDeprecationWarning
+rank_zero_module.rank_zero_deprecation_category = LightningDeprecationWarning  # type: ignore[assignment]
