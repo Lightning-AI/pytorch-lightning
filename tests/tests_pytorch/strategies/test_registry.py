@@ -132,7 +132,7 @@ def test_custom_registered_strategy_to_strategy_flag():
         def save_checkpoint(self, checkpoint, path):
             pass
 
-        def load_checkpoint(self, path):
+        def load_checkpoint(self, path, state):
             pass
 
         def remove_checkpoint(self, path):
