@@ -110,8 +110,8 @@ PL_RUN_STANDALONE_TESTS=1 pytest tests/tests_pytorch/ -v
 The CI helper script can also be used:
 
 ```bash
-cd tests/
-bash tests_pytorch/run_standalone_tasks.sh
+cd tests/tests_pytorch/
+bash run_standalone_tasks.sh
 ```
 
 ## Pytest markers
