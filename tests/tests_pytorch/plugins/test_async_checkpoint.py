@@ -51,3 +51,19 @@ def test_async_checkpoint_should_snapshot_values_before_mutation():
         "AsyncCheckpointIO must snapshot the checkpoint (clone tensors) on the main thread "
         "to avoid races with parameter mutation; got mutated value instead"
     )
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_async_checkpoint_clones_tensors_to_cpu():
+    """Verify that _clone_tensor moves tensors to CPU to avoid doubling GPU memory usage."""
+    from lightning.pytorch.plugins.io.async_plugin import _clone_tensor
+
+    t = torch.tensor([1.0, 2.0, 3.0])
+    cloned = _clone_tensor(t)
+
+    # cloned tensor should be on CPU
+    assert cloned.device == torch.device("cpu"), f"Expected CPU tensor, got {cloned.device}"
+    # values should match
+    assert torch.equal(cloned, t)
+    # cloned tensor should not share storage with the original
+    assert cloned.data_ptr() != t.data_ptr()

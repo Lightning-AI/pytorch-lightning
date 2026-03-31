@@ -95,6 +95,8 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
 def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
-    """Clones a tensor on the caller thread."""
-    # detach to avoid autograd history and clone to take a point-in-time copy
-    return t.detach().clone()
+    """Clones a tensor to CPU on the caller thread."""
+    # detach to avoid autograd history, move to CPU to avoid doubling GPU memory usage, and clone to take a
+    # point-in-time copy. Moving to CPU first is important because clone() on a CUDA tensor allocates new GPU memory,
+    # which can cause OOM errors for large model checkpoints.
+    return t.detach().cpu().clone()
