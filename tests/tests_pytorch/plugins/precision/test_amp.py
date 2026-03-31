@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_clip_gradients():
@@ -117,6 +118,43 @@ def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
             assert loss.grad_fn is None
             with pytest.raises(RuntimeError, match="does not require grad"):
                 loss.backward()
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
+def test_torch_autocast_cache_behavior_with_no_grad_cuda(cache_enabled, expect_grad):
+    """Document the same autocast cache behavior on CUDA, where the reported regression happens."""
+    layer = nn.Linear(2, 1, device="cuda")
+    x = torch.randn(1, 2, device="cuda")
+
+    with torch.autocast("cuda", dtype=torch.float16, cache_enabled=cache_enabled):
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        if expect_grad:
+            loss.backward()
+            assert loss.grad_fn is not None
+        else:
+            assert loss.grad_fn is None
+            with pytest.raises(RuntimeError, match="does not require grad"):
+                loss.backward()
+
+
+@RunIf(min_cuda_gpus=1)
+def test_amp_with_no_grad_cuda():
+    """Test the Lightning workaround on the CUDA path used by the reported regression."""
+    layer = nn.Linear(2, 1, device="cuda")
+    x = torch.randn(1, 2, device="cuda")
+    amp = MixedPrecision(precision="16-mixed", device="cuda")
+
+    with amp.forward_context():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None
 
 
 def test_amp_autocast_context_manager_disables_cache():
