@@ -29,6 +29,7 @@ def test_default_attributes():
     assert env.world_size() == 1
     assert env.local_rank() == 0
     assert env.node_rank() == 0
+    assert env.num_nodes() == 1
 
 
 @mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "500", "LOCAL_RANK": "2", "NODE_RANK": "3"})
@@ -82,6 +83,20 @@ def test_teardown():
     assert "WORLD_SIZE" in os.environ
     env.teardown()
     assert "WORLD_SIZE" not in os.environ
+
+
+@mock.patch.dict(os.environ, {"NUM_NODES": "4"})
+def test_num_nodes():
+    """Test that num_nodes reads the NUM_NODES environment variable."""
+    env = LightningEnvironment()
+    assert env.num_nodes() == 4
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_num_nodes_default():
+    """Test that num_nodes defaults to 1 when NUM_NODES is not set."""
+    env = LightningEnvironment()
+    assert env.num_nodes() == 1
 
 
 def test_detect():

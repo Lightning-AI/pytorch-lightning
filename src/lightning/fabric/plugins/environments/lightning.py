@@ -100,6 +100,10 @@ class LightningEnvironment(ClusterEnvironment):
         return int(os.environ.get("NODE_RANK", group_rank))
 
     @override
+    def num_nodes(self) -> int:
+        return int(os.environ.get("NUM_NODES", 1))
+
+    @override
     def teardown(self) -> None:
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
