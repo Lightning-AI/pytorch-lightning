@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `num_nodes()` abstract method to `ClusterEnvironment` to allow querying the number of nodes from the cluster ([#7361](https://github.com/Lightning-AI/pytorch-lightning/issues/7361))
+
 -
 
 ### Changed
