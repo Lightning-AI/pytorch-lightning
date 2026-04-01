@@ -34,6 +34,8 @@ from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.callbacks.weight_averaging import EMAWeightAveraging, WeightAveraging
 
+from .gradients_statistics_monitor import GradientStatsMonitor
+
 __all__ = [
     "BackboneFinetuning",
     "BaseFinetuning",
@@ -61,4 +63,5 @@ __all__ = [
     "TQDMProgressBar",
     "EMAWeightAveraging",
     "WeightAveraging",
+    "GradientStatsMonitor",
 ]
