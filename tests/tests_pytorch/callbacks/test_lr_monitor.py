@@ -709,3 +709,111 @@ def test_lr_monitor_with_float64_lr(tmp_path):
     # Verify the callback metric tensor was created successfully
     assert "lr-SGD" in trainer.callback_metrics
     assert isinstance(trainer.callback_metrics["lr-SGD"], torch.Tensor)
+
+
+def test_lr_monitor_log_key_prefix(tmp_path):
+    """Test that learning rate metric names are correctly prefixed when log_key_prefix is set."""
+    model = BoringModel()
+
+    lr_monitor = LearningRateMonitor(log_key_prefix="optim/")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert lr_monitor.lrs, "No learning rates logged"
+    assert list(lr_monitor.lrs) == ["optim/lr-SGD"]
+    assert "optim/lr-SGD" in trainer.callback_metrics
+
+
+def test_lr_monitor_log_key_prefix_with_momentum_and_weight_decay(tmp_path):
+    """Test that prefix is applied to momentum and weight decay metric names as well."""
+
+    class CustomModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = optim.Adam(self.parameters(), lr=1e-2, betas=(0.9, 0.999), weight_decay=0.01)
+            lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = CustomModel()
+    lr_monitor = LearningRateMonitor(log_momentum=True, log_weight_decay=True, log_key_prefix="train/")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=2,
+        limit_train_batches=5,
+        log_every_n_steps=1,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert list(lr_monitor.lrs) == ["train/lr-Adam"]
+    assert all(k == "train/lr-Adam-momentum" for k in lr_monitor.last_momentum_values)
+    assert all(k == "train/lr-Adam-weight_decay" for k in lr_monitor.last_weight_decay_values)
+
+
+def test_lr_monitor_log_key_prefix_multi_optimizers(tmp_path):
+    """Test that prefix is applied correctly with multiple optimizers."""
+
+    class MultiOptModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+
+            loss = self.loss(self.step(batch))
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
+            optimizer2 = optim.SGD(self.parameters(), lr=1e-2)
+            return [optimizer1, optimizer2]
+
+    model = MultiOptModel()
+    lr_monitor = LearningRateMonitor(log_key_prefix="hparams/")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=5,
+        log_every_n_steps=1,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert lr_monitor.lrs, "No learning rates logged"
+    assert list(lr_monitor.lrs) == ["hparams/lr-Adam", "hparams/lr-SGD"]
+
+
+def test_lr_monitor_log_key_prefix_none(tmp_path):
+    """Test that when log_key_prefix is None (default), metric names are unchanged."""
+    model = BoringModel()
+
+    lr_monitor = LearningRateMonitor(log_key_prefix=None)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
