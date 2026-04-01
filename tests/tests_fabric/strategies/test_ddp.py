@@ -145,9 +145,9 @@ def test_module_init_context(precision, expected_dtype):
 
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "0"})
 @mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
-@mock.patch("torch.cuda.Stream")
 @mock.patch("torch.cuda.stream")
-def test_setup_with_cuda_stream(cuda_stream_mock, *_):
+def test_setup_uses_default_stream(cuda_stream_mock, *_):
+    """DDP setup uses default stream to avoid AccumulateGrad stream mismatch warning."""
     model = torch.nn.Linear(2, 2)
     strategy = DDPStrategy(parallel_devices=[torch.device("cpu")], cluster_environment=LightningEnvironment())
     strategy.setup_module(model)
@@ -155,7 +155,7 @@ def test_setup_with_cuda_stream(cuda_stream_mock, *_):
 
     strategy = DDPStrategy(parallel_devices=[torch.device("cuda", 0)], cluster_environment=LightningEnvironment())
     strategy.setup_module(model)
-    cuda_stream_mock.assert_called_once()
+    cuda_stream_mock.assert_not_called()
 
 
 @mock.patch("torch.distributed.init_process_group")
