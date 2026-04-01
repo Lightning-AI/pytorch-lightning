@@ -103,6 +103,7 @@ def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
     For CUDA tensors ``cpu()`` already allocates a new host-memory copy, so an
     extra ``clone()`` is unnecessary.  For CPU tensors ``cpu()`` is a no-op, so
     ``clone()`` is required to break storage sharing.
+
     """
     if t.is_cuda:
         return t.detach().cpu()
