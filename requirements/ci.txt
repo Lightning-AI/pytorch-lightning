@@ -2,7 +2,7 @@ setuptools <80.10.3
 wheel <0.47.0
 awscli >=1.30.0, <1.45.0
 twine ==6.2.0
-importlib-metadata <9.0.0
+importlib-metadata <10.0.0
 wget
 pkginfo ==1.12.1.2
 packaging <25.1
