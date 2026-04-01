@@ -55,7 +55,7 @@ def test_async_checkpoint_should_snapshot_values_before_mutation():
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_async_checkpoint_clones_tensors_to_cpu():
-    """Verify that _clone_tensor moves tensors to CPU to avoid doubling GPU memory usage."""
+    """Verify that _clone_tensor produces a CPU snapshot that does not share storage."""
     from lightning.pytorch.plugins.io.async_plugin import _clone_tensor
 
     t = torch.tensor([1.0, 2.0, 3.0])
@@ -67,3 +67,6 @@ def test_async_checkpoint_clones_tensors_to_cpu():
     assert torch.equal(cloned, t)
     # cloned tensor should not share storage with the original
     assert cloned.data_ptr() != t.data_ptr()
+    # mutation of the original must not affect the clone
+    t.add_(1.0)
+    assert torch.equal(cloned, torch.tensor([1.0, 2.0, 3.0]))
