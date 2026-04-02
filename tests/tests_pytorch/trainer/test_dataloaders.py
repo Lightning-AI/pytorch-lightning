@@ -1414,3 +1414,67 @@ def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, t
 
     trainer = Trainer(default_root_dir=tmp_path, overfit_batches=1.0, max_epochs=1)
     trainer.fit(TestModel())
+
+
+def test_reload_dataloaders_every_n_epochs_with_checkpoint_resume(tmp_path):
+    """Regression test for issue #21492.
+
+    When resuming from a checkpoint, ``setup_data`` runs once before ``current_epoch`` gets updated from the restored
+    state. The regression was that this initial resume path overwrote ``_last_train_dl_reload_epoch``, preventing the
+    actual reload from happening once training continued at the next epoch.
+
+    """
+
+    class StageAwareModel(BoringModel):
+        def __init__(self, reload_every_n_epochs, checkpoint_path=None):
+            super().__init__()
+            self.reload_every_n_epochs = reload_every_n_epochs
+            self.checkpoint_path = checkpoint_path
+            self.train_dataloader_call_epochs = []
+
+        def on_train_epoch_end(self):
+            if self.checkpoint_path and self.current_epoch == self.reload_every_n_epochs - 1:
+                self.trainer.save_checkpoint(self.checkpoint_path)
+
+        def train_dataloader(self):
+            self.train_dataloader_call_epochs.append(self.current_epoch)
+            return super().train_dataloader()
+
+        validation_step = None
+
+    reload_every_n_epochs = 2
+    checkpoint_path = tmp_path / "checkpoint.ckpt"
+
+    # Phase 1: Train epochs 0 and 1 and save a checkpoint at epoch end.
+    model1 = StageAwareModel(reload_every_n_epochs, checkpoint_path=checkpoint_path)
+    trainer1 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=reload_every_n_epochs,
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=reload_every_n_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    trainer1.fit(model1)
+
+    assert checkpoint_path.exists()
+    assert model1.train_dataloader_call_epochs == [0]
+
+    # Phase 2: Resume from the checkpoint and continue through epochs 2 and 3.
+    model2 = StageAwareModel(reload_every_n_epochs)
+    trainer2 = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=reload_every_n_epochs + 2,
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=reload_every_n_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+
+    trainer2.fit(model2, ckpt_path=checkpoint_path)
+
+    # On resume, setup_data gets called once at the restored epoch (1) before current_epoch is advanced. The
+    # regression was that this would suppress the real reload that still needs to happen when training continues at 2.
+    assert model2.train_dataloader_call_epochs == [1, 2]

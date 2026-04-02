@@ -107,7 +107,7 @@ class _FitLoop(_Loop):
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
-        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_train_dl_reload_epoch: Optional[float] = float("-inf")
         self._restart_stage = RestartStage.NONE
 
     @property
@@ -167,7 +167,18 @@ class _FitLoop(_Loop):
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and self.trainer.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
+        last_train_dl_reload_epoch = self._last_train_dl_reload_epoch
+        if last_train_dl_reload_epoch is None:
+            return False
+        return n_epochs and self.trainer.current_epoch - last_train_dl_reload_epoch >= n_epochs
+
+    def _inferred_last_train_dl_reload_epoch(self) -> int:
+        """Infer the last reload epoch when the checkpoint did not save this state."""
+        current_epoch = self.trainer.current_epoch
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        if not n_epochs:
+            return current_epoch
+        return current_epoch - current_epoch % n_epochs
 
     @property
     def done(self) -> bool:
@@ -224,6 +235,13 @@ class _FitLoop(_Loop):
         self.on_run_end()
 
     def setup_data(self) -> None:
+        # Track if this is a reload (vs initial setup when resuming from checkpoint)
+        is_reload = self._combined_loader is not None and self._should_reload_train_dl
+        is_initial_setup_not_resuming = self._combined_loader is None and not self.is_resuming
+        is_initial_setup_with_missing_reload_state = (
+            self._combined_loader is None and self.is_resuming and self._last_train_dl_reload_epoch is None
+        )
+
         if self._combined_loader is not None and not self._should_reload_train_dl:
             return
 
@@ -282,7 +300,12 @@ class _FitLoop(_Loop):
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = trainer.current_epoch
+        # Only update when this is an actual reload or initial setup (not when resuming from checkpoint)
+        # When resuming, we preserve the checkpoint value so _should_reload_train_dl works correctly
+        if is_reload or is_initial_setup_not_resuming:
+            self._last_train_dl_reload_epoch = trainer.current_epoch
+        elif is_initial_setup_with_missing_reload_state:
+            self._last_train_dl_reload_epoch = self._inferred_last_train_dl_reload_epoch()
 
         # If time-based validation is enabled, disable batch-based scheduling here.
         # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
@@ -522,11 +545,15 @@ class _FitLoop(_Loop):
         state_dict = super().on_save_checkpoint()
         if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
             state_dict["combined_loader"] = loader_states
+        state_dict["_last_train_dl_reload_epoch"] = (
+            self._last_train_dl_reload_epoch if self._last_train_dl_reload_epoch is not None else float("-inf")
+        )
         return state_dict
 
     @override
     def on_load_checkpoint(self, state_dict: dict) -> None:
         self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
+        self._last_train_dl_reload_epoch = state_dict.get("_last_train_dl_reload_epoch")
         super().on_load_checkpoint(state_dict)
 
     def _warn_if_modules_in_eval_mode(self) -> None:
