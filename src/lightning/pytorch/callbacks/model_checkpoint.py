@@ -36,12 +36,20 @@ from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import _is_dir, _is_local_file_protocol, get_filesystem
-from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import (
+    WarningCache,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_fabric.utilities.cloud_io import (
+    _is_dir,
+    _is_local_file_protocol,
+    get_filesystem,
+)
+from lightning_fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -294,6 +302,7 @@ class ModelCheckpoint(Checkpoint):
         self.best_k_models: dict[str, Tensor] = {}
         self.kth_best_model_path = ""
         self.best_model_score: Optional[Tensor] = None
+        self.best_model_metrics: Optional[dict[str, Tensor]] = None
         self.best_model_path = ""
         self.last_model_path = ""
         self._last_checkpoint_saved = ""
@@ -543,6 +552,7 @@ class ModelCheckpoint(Checkpoint):
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
+            "best_model_metrics": self.best_model_metrics,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
             "dirpath": self.dirpath,
@@ -558,6 +568,7 @@ class ModelCheckpoint(Checkpoint):
 
         if self.dirpath == dirpath_from_ckpt:
             self.best_model_score = state_dict["best_model_score"]
+            self.best_model_metrics = state_dict["best_model_metrics"]
             self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
@@ -565,8 +576,8 @@ class ModelCheckpoint(Checkpoint):
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
-                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
-                " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path`,"
+                " `best_k_models` and `best_model_metrics` won't be reloaded. Only `best_model_path` will be reloaded."
             )
 
         self.best_model_path = state_dict["best_model_path"]
@@ -973,6 +984,8 @@ class ModelCheckpoint(Checkpoint):
         _op = min if self.mode == "min" else max
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore[arg-type]
         self.best_model_score = self.best_k_models[self.best_model_path]
+        if self.best_model_path == filepath:
+            self.best_model_metrics = monitor_candidates
 
         if self.verbose:
             epoch = monitor_candidates["epoch"]
