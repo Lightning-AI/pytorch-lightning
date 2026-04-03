@@ -17,6 +17,7 @@ from functools import partial, wraps
 from typing import Any, Callable, Optional, Union, cast
 
 import torch
+import torch.distributed as dist
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torchmetrics import Metric
@@ -44,6 +45,42 @@ class _METRICS(TypedDict):
 
 
 warning_cache = WarningCache()
+
+
+def _assert_sync_dist_metric_keys_consistency(keys: list[str], fx: str, group: Optional[Any]) -> None:
+    """Validate that all ranks have the same metric keys for sync_dist operations.
+
+    This function must be called at a synchronization point where ALL ranks are guaranteed
+    to participate. It uses all_gather_object to collect keys from all ranks and validates
+    they are identical.
+
+    Args:
+        keys: List of metric keys that need to be synchronized on this rank.
+        fx: The hook name (e.g., 'training_step') for error messages.
+        group: The process group to use for the collective operation.
+
+    Raises:
+        MisconfigurationException: If ranks have different metric keys.
+
+    """
+    if not _distributed_is_initialized() or not dist.is_available():
+        return
+    world_size = dist.get_world_size(group=group)
+    if world_size <= 1:
+        return
+
+    gathered: list[object] = [None] * world_size
+    dist.all_gather_object(gathered, keys, group=group)
+    first = gathered[0]
+    if any(item != first for item in gathered[1:]):
+        ranks = "\n".join(f"  rank={i}: {k}" for i, k in enumerate(gathered))
+        raise MisconfigurationException(
+            "When logging with `sync_dist=True`, all processes must log the same metric keys in the same order "
+            f"within a given hook. Detected a mismatch during `{fx}`.\n"
+            f"Synchronized metric keys per rank:\n{ranks}\n"
+            "Either log the same keys on all ranks (for example by logging dummy values), or set `sync_dist=False` "
+            "and manually synchronize (for example using `all_gather`)."
+        )
 
 
 @dataclass
@@ -202,6 +239,7 @@ class _ResultMetric(Metric):
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
+        self._forward_cache_synced: bool = False
 
     @override
     def update(self, value: _VALUE, batch_size: int) -> None:
@@ -222,7 +260,10 @@ class _ResultMetric(Metric):
                 value = value.to(dtype)
 
             if self.meta.on_step:
-                self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
+                # Defer sync to sync_on_step_metrics() which is called at a controlled synchronization point
+                # This allows validating that all ranks have the same metric keys before syncing
+                self._forward_cache = value.clone()
+                self._forward_cache_synced = False
                 # performance: no need to accumulate on values only logged on_step
                 if not self.meta.on_epoch:
                     self.value = self._forward_cache
@@ -239,7 +280,7 @@ class _ResultMetric(Metric):
                 self.value = self.value + value
         else:
             value = cast(Metric, value)
-            self.value = value
+            self.value = value  # type: ignore[assignment]
             self._forward_cache = value._forward_cache
 
     @override
@@ -420,6 +461,103 @@ class _ResultCollection(dict):
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
         result_metric.forward(value, batch_size)
         result_metric.has_reset = False
+
+    def sync_on_step_metrics(self) -> None:
+        """Synchronize all on_step metrics that have sync_dist=True.
+
+        This method must be called at a point where ALL ranks are synchronized (e.g., after
+        training_step/validation_step returns). It:
+        1. Gathers all metric keys that need syncing from all ranks
+        2. Validates that all ranks have the same keys in the same order
+        3. Performs the sync operations in a deterministic order
+
+        This approach prevents the silent data corruption that occurs when ranks log different
+        metric keys with sync_dist=True.
+
+        See https://github.com/Lightning-AI/pytorch-lightning/issues/21409
+
+        """
+        if not _distributed_is_initialized():
+            return
+
+        # Collect all metrics that need on_step sync
+        items_to_sync: list[tuple[str, _ResultMetric]] = []
+        for key, result_metric in self.valid_items():
+            if (
+                result_metric.meta.on_step
+                and result_metric.is_tensor
+                and result_metric.meta.sync.should
+                and not result_metric.meta.sync.rank_zero_only
+                and not result_metric._forward_cache_synced
+                and result_metric._forward_cache is not None
+            ):
+                items_to_sync.append((key, result_metric))
+
+        if not items_to_sync:
+            return
+
+        # Get keys in order for validation
+        keys = [key for key, _ in items_to_sync]
+        fx = items_to_sync[0][1].meta.fx
+        group = items_to_sync[0][1].meta.sync.group
+
+        # Validate all ranks have the same keys (this is a collective operation)
+        _assert_sync_dist_metric_keys_consistency(keys, fx, group)
+
+        # Now perform the actual sync for each metric in order
+        for _, result_metric in items_to_sync:
+            if result_metric._forward_cache is not None:
+                synced_value = result_metric.meta.sync(result_metric._forward_cache.clone())
+                result_metric._forward_cache = synced_value
+                result_metric._forward_cache_synced = True
+                # Also update value if this is on_step only (not accumulated for on_epoch)
+                if not result_metric.meta.on_epoch:
+                    result_metric.value = synced_value
+
+    def sync_on_epoch_metrics(self) -> None:
+        """Synchronize all on_epoch metrics that have sync_dist=True.
+
+        This method must be called at a point where ALL ranks are synchronized (e.g., at
+        epoch end before metrics are consumed). It:
+        1. Gathers all metric keys that need syncing from all ranks
+        2. Validates that all ranks have the same keys in the same order
+        3. Performs the compute() (which includes sync) in a deterministic order
+
+        This approach prevents the silent data corruption that occurs when ranks log different
+        metric keys with sync_dist=True.
+
+        See https://github.com/Lightning-AI/pytorch-lightning/issues/21409
+
+        """
+        if not _distributed_is_initialized():
+            return
+
+        # Collect all metrics that need on_epoch sync (not yet computed)
+        items_to_sync: list[tuple[str, _ResultMetric]] = []
+        for key, result_metric in self.valid_items():
+            if (
+                result_metric.meta.on_epoch
+                and result_metric.is_tensor
+                and result_metric.meta.sync.should
+                and not result_metric.meta.sync.rank_zero_only
+                and result_metric._computed is None  # Not yet computed/synced
+            ):
+                items_to_sync.append((key, result_metric))
+
+        if not items_to_sync:
+            return
+
+        # Get keys in order for validation
+        keys = [key for key, _ in items_to_sync]
+        fx = items_to_sync[0][1].meta.fx
+        group = items_to_sync[0][1].meta.sync.group
+
+        # Validate all ranks have the same keys (this is a collective operation)
+        _assert_sync_dist_metric_keys_consistency(keys, fx, group)
+
+        # Now perform the actual compute (which includes sync) for each metric in order
+        for _, result_metric in items_to_sync:
+            result_metric.compute()
 
     @staticmethod
     def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[Tensor]:
