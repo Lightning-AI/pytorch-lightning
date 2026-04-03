@@ -6,6 +6,7 @@ import torch
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
+from tests_pytorch.helpers.runif import RunIf
 
 
 class _CaptureCheckpointIO(CheckpointIO):
@@ -53,20 +54,22 @@ def test_async_checkpoint_should_snapshot_values_before_mutation():
     )
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-def test_async_checkpoint_clones_tensors_to_cpu():
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(("device"), ["cpu", "cuda:0"])
+def test_async_checkpoint_clones_tensors_to_cpu(device):
     """Verify that _clone_tensor produces a CPU snapshot that does not share storage."""
     from lightning.pytorch.plugins.io.async_plugin import _clone_tensor
 
-    t = torch.tensor([1.0, 2.0, 3.0])
+    t = torch.tensor([1.0, 2.0, 3.0], device=device)
     cloned = _clone_tensor(t)
 
     # cloned tensor should be on CPU
     assert cloned.device == torch.device("cpu"), f"Expected CPU tensor, got {cloned.device}"
     # values should match
-    assert torch.equal(cloned, t)
+    assert torch.equal(cloned, t.cpu())
     # cloned tensor should not share storage with the original
     assert cloned.data_ptr() != t.data_ptr()
     # mutation of the original must not affect the clone
     t.add_(1.0)
     assert torch.equal(cloned, torch.tensor([1.0, 2.0, 3.0]))
+    assert t.device == torch.device(device), f"Original tensor should remain on {device}, got {t.device}"

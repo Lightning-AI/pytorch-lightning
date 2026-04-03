@@ -105,6 +105,6 @@ def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
     ``clone()`` is required to break storage sharing.
 
     """
-    if t.is_cuda:
-        return t.detach().cpu()
-    return t.detach().clone()
+    if t.is_cpu:
+        return t.detach().clone()
+    return t.detach().cpu()
