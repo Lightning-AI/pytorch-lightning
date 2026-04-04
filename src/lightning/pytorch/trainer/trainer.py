@@ -456,9 +456,7 @@ class Trainer:
 
         self.accumulate_grad_batches = accumulate_grad_batches
         if broadcast_sigterm_every_n_steps < 1:
-            raise ValueError(
-                f"`broadcast_sigterm_every_n_steps` must be >= 1, got {broadcast_sigterm_every_n_steps}."
-            )
+            raise ValueError(f"`broadcast_sigterm_every_n_steps` must be >= 1, got {broadcast_sigterm_every_n_steps}.")
         self.broadcast_sigterm_every_n_steps = broadcast_sigterm_every_n_steps
 
         # init callbacks
