@@ -295,6 +295,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
+            _warn_if_shared_params_across_fsdp_units(module, self._fsdp_kwargs.get("auto_wrap_policy"))
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
@@ -716,6 +717,76 @@ def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: dict) -> dict:
 
     kwargs["auto_wrap_policy"] = policy
     return kwargs
+
+
+def _warn_if_shared_params_across_fsdp_units(module: Module, policy: Any) -> None:
+    """Detect shared (tied) parameters that would be split across separate FSDP units by the wrap policy.
+
+    When a model has tied weights (e.g., embedding and output head sharing the same weight tensor) and the
+    auto-wrap policy places these parameters in different FSDP units, FSDP will shard each unit independently.
+    This causes one unit to see a flat/sharded tensor instead of the original shape, leading to cryptic
+    ``RuntimeError: size mismatch`` errors during the forward or backward pass.
+
+    This function detects such cases and emits a warning before the crash happens.
+
+    """
+    if policy is None:
+        return
+
+    from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+    if not isinstance(policy, ModuleWrapPolicy):
+        return
+
+    module_classes = tuple(policy._module_classes)
+
+    # Find shared parameters by identity
+    param_to_paths: dict[int, list[str]] = {}
+    for mod_name, mod in module.named_modules():
+        for param_name, param in mod._parameters.items():
+            if param is None:
+                continue
+            full_path = f"{mod_name}.{param_name}" if mod_name else param_name
+            param_id = id(param)
+            if param_id not in param_to_paths:
+                param_to_paths[param_id] = []
+            param_to_paths[param_id].append(full_path)
+
+    shared_groups = [paths for paths in param_to_paths.values() if len(paths) > 1]
+    if not shared_groups:
+        return
+
+    # Build set of module paths that would be individually wrapped by the policy
+    wrapped_module_paths: set[str] = set()
+    for mod_name, mod in module.named_modules():
+        if isinstance(mod, module_classes):
+            wrapped_module_paths.add(mod_name)
+
+    def _get_fsdp_unit(param_path: str) -> str:
+        """Find the nearest wrapped ancestor module for a parameter path."""
+        # Strip the parameter name to get the owning module path
+        module_path = param_path.rsplit(".", 1)[0] if "." in param_path else ""
+        # Walk up from owning module to root, looking for the nearest wrapped ancestor
+        current = module_path
+        while current:
+            if current in wrapped_module_paths:
+                return current
+            current = current.rsplit(".", 1)[0] if "." in current else ""
+        return ""  # root FSDP unit
+
+    for shared_paths in shared_groups:
+        units = {_get_fsdp_unit(p): p for p in shared_paths}
+        if len(units) > 1:
+            param_desc = ", ".join(f"`{p}`" for p in shared_paths)
+            unit_desc = ", ".join(f"`{u or '<root>'}`" for u in units)
+            rank_zero_warn(
+                f"The model has shared parameters ({param_desc}) that will be placed in"
+                f" separate FSDP units ({unit_desc}) by the `auto_wrap_policy`. This will lead to"
+                " errors during forward/backward due to tensor size mismatches (e.g., tied"
+                " embeddings in transformer models). Consider removing the module type that wraps"
+                " the shared parameter from your `auto_wrap_policy`.",
+                category=UserWarning,
+            )
 
 
 def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwargs: dict) -> None:
