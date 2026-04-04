@@ -94,6 +94,7 @@ class _TrainingEpochLoop(loops._Loop):
         self._batches_that_stepped: int = 0
         self._restart_stage = RestartStage.NONE
         self._skip_next_val = False
+        self._sigterm_broadcast_step: int = 0
 
     @property
     def total_batch_idx(self) -> int:
@@ -297,7 +298,10 @@ class _TrainingEpochLoop(loops._Loop):
         # =====================================================================
 
         if torch.distributed.is_available() and torch.distributed.is_initialized() and self.trainer.world_size > 1:
-            self._broadcast_sigterm_tensor()
+            self._sigterm_broadcast_step += 1
+            if self._sigterm_broadcast_step >= self.trainer.broadcast_sigterm_every_n_steps:
+                self._sigterm_broadcast_step = 0
+                self._broadcast_sigterm_tensor()
 
         # =====================================================================
 
@@ -392,6 +396,18 @@ class _TrainingEpochLoop(loops._Loop):
         if self._skip_next_val:
             should_check_val = False
             self._skip_next_val = False
+
+        # Force a SIGTERM broadcast at major boundaries (validation, epoch end)
+        # to prevent hanging ranks when broadcast_sigterm_every_n_steps > 1.
+        if (
+            torch.distributed.is_available()
+            and torch.distributed.is_initialized()
+            and self.trainer.world_size > 1
+            and self._sigterm_broadcast_step > 0
+            and (should_check_val or data_fetcher.done)
+        ):
+            self._sigterm_broadcast_step = 0
+            self._broadcast_sigterm_tensor()
 
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
