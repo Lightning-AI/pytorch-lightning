@@ -167,7 +167,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:
