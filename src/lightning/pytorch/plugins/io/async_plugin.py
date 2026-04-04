@@ -100,9 +100,9 @@ def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
     Detaches from autograd, moves to CPU, and ensures a point-in-time snapshot
     that won't be mutated by ongoing training.
 
-    For CUDA tensors ``cpu()`` already allocates a new host-memory copy, so an
-    extra ``clone()`` is unnecessary.  For CPU tensors ``cpu()`` is a no-op, so
-    ``clone()`` is required to break storage sharing.
+    For CPU tensors ``cpu()`` is a no-op, so ``clone()`` is required to break
+    storage sharing.  For all other devices (CUDA, TPU, XLA, …) ``cpu()``
+    already allocates a new host-memory copy, making ``clone()`` unnecessary.
 
     """
     if t.is_cpu:
