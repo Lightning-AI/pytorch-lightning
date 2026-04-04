@@ -261,3 +261,32 @@ def test_broadcast_sigterm_interval(n_steps):
 
     assert broadcast_call_count == total_steps // n_steps
     assert epoch_loop._sigterm_broadcast_step == total_steps % n_steps
+
+
+def test_broadcast_sigterm_forced_at_epoch_boundary():
+    """Test that a SIGTERM broadcast is forced at epoch end even if the interval hasn't been reached.
+
+    This prevents hanging ranks when broadcast_sigterm_every_n_steps > 1 and SIGTERM
+    arrives between broadcasts near the end of an epoch.
+    """
+    trainer = Trainer(broadcast_sigterm_every_n_steps=100)
+    epoch_loop = trainer.fit_loop.epoch_loop
+
+    # Simulate 5 steps taken (well below interval of 100)
+    epoch_loop._sigterm_broadcast_step = 5
+
+    mock_fetcher = Mock()
+    mock_fetcher.done = True  # epoch is ending
+
+    with patch.object(epoch_loop, "_broadcast_sigterm_tensor") as mock_broadcast, patch.object(
+        epoch_loop, "_should_check_val_fx", return_value=False
+    ), patch.object(epoch_loop, "_should_accumulate", return_value=False), patch.object(
+        epoch_loop, "_save_loggers_on_train_batch_end"
+    ), patch(
+        "torch.distributed.is_available", return_value=True
+    ), patch("torch.distributed.is_initialized", return_value=True):
+        trainer._accelerator_connector._devices_flag = 2
+        epoch_loop.on_advance_end(mock_fetcher)
+
+    mock_broadcast.assert_called_once()
+    assert epoch_loop._sigterm_broadcast_step == 0
