@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import logging
 from unittest.mock import Mock, patch
 
@@ -264,10 +265,8 @@ def test_broadcast_sigterm_interval(n_steps):
             # before it tries to fetch a batch and run training.
             mock_fetcher = Mock()
             mock_fetcher.__next__ = Mock(side_effect=StopIteration)
-            try:
+            with contextlib.suppress(StopIteration, TypeError, AttributeError):
                 epoch_loop.advance(mock_fetcher)
-            except (StopIteration, TypeError, AttributeError):
-                pass
 
     assert mock_broadcast.call_count == total_steps // n_steps
     assert epoch_loop._sigterm_broadcast_step == total_steps % n_steps
@@ -308,8 +307,9 @@ def test_broadcast_sigterm_forced_at_epoch_boundary():
 def test_broadcast_sigterm_interval_ddp(tmp_path):
     """Test that broadcast_sigterm_every_n_steps controls broadcast frequency in real DDP training.
 
-    Uses ddp_spawn to exercise real torch.distributed broadcast paths (lines 300-304, 408-410).
-    After training, _sigterm_broadcast_step should be 0 because the epoch-end forced broadcast resets it.
+    Uses ddp_spawn to exercise real torch.distributed broadcast paths (lines 300-304, 408-410). After training,
+    _sigterm_broadcast_step should be 0 because the epoch-end forced broadcast resets it.
+
     """
     n_steps = 5
     limit_train_batches = 7  # 7 % 5 = 2 remaining steps, triggers epoch-end forced broadcast
