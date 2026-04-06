@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed `BackboneFinetuning` not honoring `train_bn` during the initial frozen phase, leaving `BatchNorm` layers trainable when `train_bn=False` ([#21652](https://github.com/Lightning-AI/pytorch-lightning/pull/21652))
+
 ---
 
 ## [2.6.4] - 2026-05-20

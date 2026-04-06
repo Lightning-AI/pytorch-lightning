@@ -455,7 +455,7 @@ class BackboneFinetuning(BaseFinetuning):
 
     @override
     def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
-        self.freeze(pl_module.backbone)
+        self.freeze(pl_module.backbone, train_bn=self.train_bn)
 
     @override
     def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer) -> None:
