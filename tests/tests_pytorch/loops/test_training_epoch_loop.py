@@ -286,8 +286,8 @@ def test_broadcast_sigterm_forced_at_epoch_boundary():
         patch.object(epoch_loop, "_save_loggers_on_train_batch_end"),
         patch("torch.distributed.is_available", return_value=True),
         patch("torch.distributed.is_initialized", return_value=True),
+        patch.object(type(trainer), "world_size", new_callable=lambda: property(lambda self: 2)),
     ):
-        trainer._accelerator_connector._devices_flag = 2
         epoch_loop.on_advance_end(mock_fetcher)
 
     mock_broadcast.assert_called_once()
