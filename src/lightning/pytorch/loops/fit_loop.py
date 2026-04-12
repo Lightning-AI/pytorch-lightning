@@ -522,11 +522,13 @@ class _FitLoop(_Loop):
         state_dict = super().on_save_checkpoint()
         if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
             state_dict["combined_loader"] = loader_states
+        state_dict["last_train_dl_reload_epoch"] = self._last_train_dl_reload_epoch
         return state_dict
 
     @override
     def on_load_checkpoint(self, state_dict: dict) -> None:
         self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
+        self._last_train_dl_reload_epoch = state_dict.get("last_train_dl_reload_epoch", float("-inf"))
         super().on_load_checkpoint(state_dict)
 
     def _warn_if_modules_in_eval_mode(self) -> None:
