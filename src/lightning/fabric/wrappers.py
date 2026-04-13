@@ -117,7 +117,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         """
         super().__init__()
         self._forward_module = forward_module
-        self._original_module = original_module or forward_module
+        self._original_module = forward_module if original_module is None else original_module
         self._strategy = strategy
         self._forward_methods = set(_LIGHTNING_MODULE_STEP_METHODS)
         self._fabric_module_initialized = True

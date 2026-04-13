@@ -10,23 +10,48 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `suggest_integrations` flag to `Trainer` to control whether optional integration suggestions (e.g., litmodels, litlogger) are shown in logs ([#21632](https://github.com/Lightning-AI/pytorch-lightning/pull/21632))
 
-
-### Removed
-
--
-
+- Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21612](https://github.com/Lightning-AI/pytorch-lightning/issues/21612))
 
 ### Changed
 
 -
 
-
-### Fixed
+### Removed
 
 -
 
+### Fixed
+
+- Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
+
+---
+
+## [2.6.2] - 2026-03-19
+
+
+### Removed
+
+- Removed support for Neptune logger ([#21572](https://github.com/Lightning-AI/pytorch-lightning/pull/21572))
+
+
+### Changed
+
+- Raise minimum `LitLogger` version to `2026-03-17` ([#21591](https://github.com/Lightning-AI/pytorch-lightning/pull/21591))
+
+
+### Fixed
+
+- Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
+
+- Fixed pkg-resources deprecation issue ([#21538](https://github.com/Lightning-AI/pytorch-lightning/pull/21538))
+
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
+- Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
+
+- Fixed ``RichModelSummary`` model size display formatting ([#21467](https://github.com/Lightning-AI/pytorch-lightning/pull/21467))
 
 ---
 

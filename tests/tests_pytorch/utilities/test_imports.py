@@ -87,12 +87,6 @@ def clean_import():
         ),
         pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
-            "lightning.pytorch.loggers.neptune",
-            id="neptune",
-        ),
-        pytest.param(
-            "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
             "lightning.pytorch.cli",
             id="cli",
