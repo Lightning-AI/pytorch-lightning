@@ -79,6 +79,25 @@ def test_comet_logger_online(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+def test_comet_logger_offline(comet_mock):
+    """Test that CometLogger with online=False creates a working offline experiment."""
+    comet_start = comet_mock.start
+
+    _logger = CometLogger(api_key="key", project_name="general", online=False)
+    comet_start.assert_called_once_with(
+        api_key="key",
+        workspace=None,
+        project="general",
+        experiment_key=None,
+        mode=None,
+        online=False,
+        experiment_config=comet_mock.ExperimentConfig(),
+    )
+    # The experiment config must NOT contain disabled=True
+    comet_mock.ExperimentConfig.assert_called_with()
+
+
+@mock.patch.dict(os.environ, {})
 def test_comet_experiment_is_still_alive_after_training_complete(comet_mock):
     """Test that the CometLogger will not end an experiment after training is complete."""
 
