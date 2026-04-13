@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed `_validate_checkpoint_directory` in DeepSpeed strategy failing for remote filesystem URIs (S3, GCS, HDFS) by replacing `pathlib.Path` with fsspec-based checks ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
 --
 
