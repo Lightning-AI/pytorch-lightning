@@ -132,6 +132,7 @@ class Trainer:
         default_root_dir: Optional[_PATH] = None,
         enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
+        suggest_integrations: bool = True,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -308,6 +309,10 @@ class Trainer:
 
             model_registry: The name of the model being uploaded to Model hub.
 
+            suggest_integrations: Whether to display suggestions for optional Lightning integrations.
+                Default: ``True``.
+
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -324,6 +329,7 @@ class Trainer:
 
         # remove version if accidentally passed
         self._model_registry = model_registry.split(":")[0] if model_registry else None
+        self.suggest_integrations = suggest_integrations
 
         self.barebones = barebones
         if barebones:
