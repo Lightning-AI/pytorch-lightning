@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import platform
+import posixpath
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
@@ -912,21 +913,22 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
 
     if not path_is_ds_checkpoint:
         # Case 1: User may have accidentally passed the subfolder "checkpoint"
-        parent = path_str.rstrip("/").rsplit("/", 1)[0] if "/" in path_str else ""
-        if parent and _is_deepspeed_checkpoint(parent, fs):
+        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(posixpath.dirname(path_str), fs)
+        if parent_is_ds_checkpoint:
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a subfolder."
-                f" Try to load using this parent directory instead: {parent}"
+                f" Try to load using this parent directory instead: {posixpath.dirname(path_str)}"
             )
         # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
-        if parent and fs.isfile(path_str):
-            grandparent = parent.rstrip("/").rsplit("/", 1)[0] if "/" in parent else ""
-            if grandparent and _is_deepspeed_checkpoint(grandparent, fs):
-                raise FileNotFoundError(
-                    f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed"
-                    f" checkpoint folder."
-                    f" Try to load using this parent directory instead: {grandparent}"
-                )
+        parent_parent_is_ds_checkpoint = fs.isfile(path_str) and _is_deepspeed_checkpoint(
+            posixpath.dirname(posixpath.dirname(path_str)), fs
+        )
+        if parent_parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed"
+                f" checkpoint folder."
+                f" Try to load using this parent directory instead: {posixpath.dirname(posixpath.dirname(path_str))}"
+            )
         raise FileNotFoundError(default_message)
 
 

@@ -264,13 +264,19 @@ def test_deepspeed_load_checkpoint_validate_path(tmp_path):
         strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
 
 
+def _make_s3_mock_fs(dirs, files=()):
+    """Create a mock fsspec filesystem for S3-like remote URI tests."""
+    fs = Mock()
+    fs.isdir = Mock(side_effect=lambda p: p in dirs)
+    fs.isfile = Mock(side_effect=lambda p: p in files)
+    return fs
+
+
 def test_validate_checkpoint_directory_remote_uri():
     """Test that _validate_checkpoint_directory works with remote filesystem URIs (e.g., S3, HDFS)."""
     from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
 
-    mock_fs = Mock()
-    mock_fs.isdir = Mock(side_effect=lambda p: p in ("s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"))
-    mock_fs.isfile = Mock(return_value=False)
+    mock_fs = _make_s3_mock_fs(dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
 
     with mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs):
         # Should not raise when the remote path is a valid DeepSpeed checkpoint
@@ -285,11 +291,7 @@ def test_validate_checkpoint_directory_remote_uri_subfolder_suggestion():
     """Test that the subfolder suggestion works with remote URIs."""
     from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
 
-    mock_fs = Mock()
-    mock_fs.isdir = Mock(
-        side_effect=lambda p: p in ("s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"),
-    )
-    mock_fs.isfile = Mock(return_value=False)
+    mock_fs = _make_s3_mock_fs(dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
 
     with (
         mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs),
@@ -302,12 +304,9 @@ def test_validate_checkpoint_directory_remote_uri_file_inside_checkpoint():
     """Test that the file-inside-checkpoint suggestion works with remote URIs."""
     from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
 
-    mock_fs = Mock()
-    mock_fs.isdir = Mock(
-        side_effect=lambda p: p in ("s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"),
-    )
-    mock_fs.isfile = Mock(
-        side_effect=lambda p: p == "s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt",
+    mock_fs = _make_s3_mock_fs(
+        dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"},
+        files={"s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt"},
     )
 
     with (
