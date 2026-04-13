@@ -14,6 +14,7 @@ accelerators
     CPUAccelerator
     CUDAAccelerator
     XLAAccelerator
+    MUSAAccelerator
 
 callbacks
 ---------
