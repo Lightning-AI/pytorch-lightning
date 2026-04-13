@@ -298,6 +298,25 @@ def test_validate_checkpoint_directory_remote_uri_subfolder_suggestion():
         _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint")
 
 
+def test_validate_checkpoint_directory_remote_uri_file_inside_checkpoint():
+    """Test that the file-inside-checkpoint suggestion works with remote URIs."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    mock_fs = Mock()
+    mock_fs.isdir = Mock(
+        side_effect=lambda p: p in ("s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"),
+    )
+    mock_fs.isfile = Mock(
+        side_effect=lambda p: p == "s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt",
+    )
+
+    with (
+        mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs),
+        pytest.raises(FileNotFoundError, match="Try to load using this parent directory instead: s3://bucket/ckpt"),
+    ):
+        _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt")
+
+
 @RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
