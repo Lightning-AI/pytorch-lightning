@@ -20,7 +20,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Prevent TensorBoard from attempting to convert non-scalar NumPy arrays (ndim > 0) to scalars, avoiding errors introduced in NumPy 2.4.0 ([#21504](https://github.com/Lightning-AI/pytorch-lightning/issues/21504))
+
 
 --
 
