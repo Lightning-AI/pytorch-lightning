@@ -129,6 +129,7 @@ class Trainer:
         plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
+        broadcast_sigterm_every_n_steps: int = 1,
         default_root_dir: Optional[_PATH] = None,
         enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
@@ -300,6 +301,13 @@ class Trainer:
             reload_dataloaders_every_n_epochs: Set to a positive integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
+            broadcast_sigterm_every_n_steps: How often (in training steps) to broadcast SIGTERM status across
+                ranks in distributed training. The default ``1`` broadcasts every step. Higher values reduce
+                the overhead of the NCCL broadcast at the cost of increased SIGTERM detection latency
+                (worst case: ``(N-1) * step_time``). This is useful for fast training loops where the
+                per-step broadcast cost is significant relative to the step time.
+                Default: ``1``.
+
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
@@ -447,6 +455,9 @@ class Trainer:
         self.predict_loop = _PredictionLoop(self, inference_mode=inference_mode)
 
         self.accumulate_grad_batches = accumulate_grad_batches
+        if broadcast_sigterm_every_n_steps < 1:
+            raise ValueError(f"`broadcast_sigterm_every_n_steps` must be >= 1, got {broadcast_sigterm_every_n_steps}.")
+        self.broadcast_sigterm_every_n_steps = broadcast_sigterm_every_n_steps
 
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
