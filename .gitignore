@@ -169,7 +169,6 @@ wandb
 .forked/
 *.prof
 *.tar.gz
-.neptune/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
@@ -206,3 +205,6 @@ requirements/base.txt
 
 # sourced notebooks from tutorials
 _notebooks/.notebooks/
+
+# local markdown files
+*.local.md

@@ -100,8 +100,21 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted
         fs, urlpath = fsspec.core.url_to_fs(str(filepath))
-        with fs.transaction, fs.open(urlpath, "wb") as f:
-            f.write(bytesbuffer.getvalue())
+        with fs.transaction:
+            is_azure = False
+            if module_available("adlfs"):
+                from adlfs import AzureBlobFileSystem
+
+                is_azure = isinstance(fs, AzureBlobFileSystem)
+
+            if _is_object_storage(fs) and not is_azure:
+                # Use fs.pipe() for S3/GCS where it triggers parallel multipart uploads,
+                # giving 4-5x throughput improvement for checkpoints >= 500 MB.
+                # Azure is excluded because adlfs stages blocks sequentially, making pipe() slower.
+                fs.pipe(urlpath, bytesbuffer.getvalue())
+            else:
+                with fs.open(urlpath, "wb") as f:
+                    f.write(bytesbuffer.getvalue())
     except PermissionError as e:
         if isinstance(e.__context__, OSError) and getattr(e.__context__, "errno", None) == errno.EXDEV:
             raise RuntimeError(

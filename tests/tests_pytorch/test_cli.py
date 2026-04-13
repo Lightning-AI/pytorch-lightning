@@ -1802,21 +1802,6 @@ def test_comet_logger_init_args():
     )
 
 
-@pytest.mark.xfail(
-    # Only on Windows: TypeError: 'NoneType' object is not subscriptable
-    raises=TypeError,
-    condition=(sys.platform == "win32"),
-    strict=False,
-    reason="TypeError on Windows when parsing",
-)
-def test_neptune_logger_init_args():
-    _test_logger_init_args(
-        "NeptuneLogger",
-        init={"name": "neptune"},  # Resolve from NeptuneLogger.__init__
-        unresolved={"description": "neptune"},  # Unsupported resolving from neptune.internal.init.run.init_run
-    )
-
-
 def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
