@@ -90,6 +90,10 @@ class DeepSpeedPrecision(Precision):
         return self.tensor_init_context()
 
     @override
+    def compute_dtype(self) -> torch.dtype:
+        return self._desired_dtype
+
+    @override
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,

@@ -71,3 +71,7 @@ class XLAPrecision(Precision):
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return self._desired_dtype

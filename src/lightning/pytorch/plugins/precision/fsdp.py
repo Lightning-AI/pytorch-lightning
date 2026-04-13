@@ -139,6 +139,10 @@ class FSDPPrecision(Precision):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     @override
+    def compute_dtype(self) -> torch.dtype:
+        return self.mixed_precision_config.reduce_dtype or torch.float32
+
+    @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
