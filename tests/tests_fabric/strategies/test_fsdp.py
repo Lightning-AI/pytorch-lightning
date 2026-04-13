@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -30,6 +31,7 @@ from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
     _get_full_state_dict_context,
     _is_sharded_checkpoint,
+    _warn_if_shared_params_across_fsdp_units,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 
@@ -414,3 +416,53 @@ def test_device_mesh_type_annotation():
     parser.add_argument("--device_mesh", type=annot)
     args = parser.parse_args(["--device_mesh=[1, 4]"])
     assert args.device_mesh == (1, 4)
+
+
+class _ModelWithTiedWeights(nn.Module):
+    """A model that ties embedding and output head weights, similar to Llama/GPT-2."""
+
+    def __init__(self):
+        super().__init__()
+        self.embed = nn.Embedding(100, 32)
+        self.layers = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
+        self.head = nn.Linear(32, 100, bias=False)
+        self.head.weight = self.embed.weight  # tie weights
+
+
+def test_warn_shared_params_across_fsdp_units():
+    """Test that a warning is emitted when tied weights would be split across FSDP units."""
+    model = _ModelWithTiedWeights()
+    policy = ModuleWrapPolicy({nn.Embedding})
+
+    with pytest.warns(UserWarning, match="shared parameters"):
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_shared_params_same_fsdp_unit():
+    """Test that no warning is emitted when tied weights stay in the same FSDP unit."""
+    model = _ModelWithTiedWeights()
+    # Only wrap Sequential — both embed and head remain in root unit
+    policy = ModuleWrapPolicy({nn.Sequential})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_no_shared_params():
+    """Test that no warning is emitted when the model has no shared parameters."""
+    model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+    policy = ModuleWrapPolicy({nn.Linear})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_no_policy():
+    """Test that no warning is emitted when no auto-wrap policy is set."""
+    model = _ModelWithTiedWeights()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, None)
