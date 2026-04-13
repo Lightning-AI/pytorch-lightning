@@ -83,7 +83,7 @@ class MLFlowLogger(Logger):
         tracking_uri: Address of local or remote tracking server.
             If not provided, defaults to `MLFLOW_TRACKING_URI` environment variable if set, otherwise it falls
             back to `file:<save_dir>`.
-        tags: A dictionary tags for the experiment.
+        tags: A dictionary of tags to be set on the run.
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlruns` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
@@ -96,6 +96,8 @@ class MLFlowLogger(Logger):
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
+        experiment_tags: A dictionary of tags to set on the experiment. Has no effect if the experiment already
+            exists.
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
@@ -120,6 +122,7 @@ class MLFlowLogger(Logger):
         prefix: str = "",
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
+        experiment_tags: Optional[Dict[str, Any]] = None,
     ):
         if not _MLFLOW_AVAILABLE:
             raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
@@ -133,6 +136,7 @@ class MLFlowLogger(Logger):
         self._run_name = run_name
         self._run_id = run_id
         self.tags = tags
+        self._experiment_tags = experiment_tags
         self._log_model = log_model
         self._logged_model_time: Dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
@@ -178,6 +182,9 @@ class MLFlowLogger(Logger):
                 self._experiment_id = self._mlflow_client.create_experiment(
                     name=self._experiment_name, artifact_location=self._artifact_location
                 )
+                if self._experiment_tags:
+                    for key, value in self._experiment_tags.items():
+                        self._mlflow_client.set_experiment_tag(self._experiment_id, key, value)
 
         if self._run_id is None:
             if self._run_name is not None:
