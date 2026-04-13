@@ -7,7 +7,6 @@ on:
     paths:
       - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
-      - ".github/actions/pkg-publish/*"
       - ".github/workflows/release-nightly.yml"
   schedule:
     - cron: "0 0 * * 0" # on Sundays
@@ -45,24 +44,3 @@ jobs:
           name: nightly-packages-${{ github.sha }}
           path: dist
           include-hidden-files: true
-
-  publish-packages:
-    runs-on: ubuntu-22.04
-    needs: build-packages
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    env:
-      PKG_NAME: "lightning"
-    steps:
-      - uses: actions/checkout@v6 # needed to use local composite action
-      - uses: actions/download-artifact@v8
-        with:
-          name: nightly-packages-${{ github.sha }}
-          path: dist
-      - uses: ./.github/actions/pkg-publish
-        with:
-          pkg-folder: dist
-          pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', env.PKG_NAME)] }}
-      - uses: ./.github/actions/pkg-publish
-        with:
-          pkg-folder: dist
-          pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', env.PKG_NAME)] }}
