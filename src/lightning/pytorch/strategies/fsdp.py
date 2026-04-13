@@ -52,6 +52,7 @@ from lightning.fabric.strategies.fsdp import (
     _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
+    _warn_if_shared_params_across_fsdp_units,
 )
 from lightning.fabric.strategies.model_parallel import _load_raw_module_state
 from lightning.fabric.utilities.distributed import (
@@ -306,6 +307,7 @@ class FSDPStrategy(ParallelStrategy):
                 )
                 del self.kwargs["auto_wrap_policy"]
         else:
+            _warn_if_shared_params_across_fsdp_units(model, self.kwargs.get("auto_wrap_policy"))
             log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
             model = FullyShardedDataParallel(
                 module=model,
