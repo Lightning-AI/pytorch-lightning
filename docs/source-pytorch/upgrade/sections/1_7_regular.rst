@@ -43,9 +43,9 @@
      - `PR14424`_
 
 
-.. _pr12147: https://github.com/Lightning-AI/lightning/pull/12147
-.. _pr11443: https://github.com/Lightning-AI/lightning/pull/11443
-.. _pr14727: https://github.com/Lightning-AI/lightning/pull/14727
-.. _pr11887: https://github.com/Lightning-AI/lightning/pull/11887
-.. _pr14315: https://github.com/Lightning-AI/lightning/pull/14315
-.. _pr14424: https://github.com/Lightning-AI/lightning/pull/14424
+.. _pr12147: https://github.com/Lightning-AI/pytorch-lightning/pull/12147
+.. _pr11443: https://github.com/Lightning-AI/pytorch-lightning/pull/11443
+.. _pr14727: https://github.com/Lightning-AI/pytorch-lightning/pull/14727
+.. _pr11887: https://github.com/Lightning-AI/pytorch-lightning/pull/11887
+.. _pr14315: https://github.com/Lightning-AI/pytorch-lightning/pull/14315
+.. _pr14424: https://github.com/Lightning-AI/pytorch-lightning/pull/14424

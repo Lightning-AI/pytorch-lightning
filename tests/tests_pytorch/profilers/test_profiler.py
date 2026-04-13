@@ -14,6 +14,7 @@
 import logging
 import os
 import platform
+import sys
 import time
 from copy import deepcopy
 from unittest.mock import patch
@@ -21,6 +22,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -28,10 +31,16 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
+
+
+# TODO: Nested profile calls are not supported and raise an error in Python 3.12+
+#   https://github.com/Lightning-AI/pytorch-lightning/issues/19983
+skip_advanced_profiler_py312 = pytest.mark.skipif(
+    sys.version_info >= (3, 12), reason="Nested profiler calls not supported."
+)
 
 
 def _get_python_cprofile_total_duration(profile):
@@ -46,7 +55,7 @@ def _sleep_generator(durations):
         yield duration
 
 
-@pytest.fixture()
+@pytest.fixture
 def simple_profiler():
     return SimpleProfiler()
 
@@ -60,13 +69,13 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/Lightning-AI/lightning/issues/796
+    # see: https://github.com/Lightning-AI/pytorch-lightning/issues/796
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-def test_simple_profiler_overhead(simple_profiler, n_iter=5):
+def test_simple_profiler_overhead(simple_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
-    for _ in range(n_iter):
+    for _ in range(5):
         with simple_profiler.profile("no-op"):
             pass
 
@@ -77,12 +86,12 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording an action*"):
         simple_profiler.stop(action)
 
     simple_profiler.start(action)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempted to start test*"):
         simple_profiler.start(action)
 
     simple_profiler.stop(action)
@@ -185,8 +194,31 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+def test_simple_profiler_uses_math_fsum(monkeypatch):
+    profiler = SimpleProfiler()
+    profiler.recorded_durations["action"] = [1.0, 2.0, 3.0]
+    profiler.start_time = 0.0
+
+    fsum_calls: list[list[float]] = []
+
+    def _fake_fsum(values):
+        fsum_calls.append(list(values))
+        return sum(values)
+
+    monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
+
+    # Test non-extended report
+    profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+
 @pytest.mark.parametrize("extended", [True, False])
-@patch("time.monotonic", return_value=70)
+@patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
@@ -255,7 +287,7 @@ def test_simple_profiler_summary(tmp_path, extended):
     assert expected_text == summary
 
 
-@pytest.fixture()
+@pytest.fixture
 def advanced_profiler(tmp_path):
     return AdvancedProfiler(dirpath=tmp_path, filename="profiler")
 
@@ -268,15 +300,16 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/Lightning-AI/lightning/issues/796
+    # see: https://github.com/Lightning-AI/pytorch-lightning/issues/796
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)
-def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
+def test_advanced_profiler_overhead(advanced_profiler):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
+    n_iter = 5
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -299,10 +332,50 @@ def test_advanced_profiler_describe(tmp_path, advanced_profiler):
     assert len(data) > 0
 
 
+def test_advanced_profiler_dump_states(tmp_path):
+    advanced_profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    """Ensure the profiler dump stats during summary."""
+    # record at least one event
+    with advanced_profiler.profile(action_name := "test"):
+        pass
+    # dump_stats to file
+    advanced_profiler.describe()
+    path = advanced_profiler.dirpath / f"{action_name}.prof"
+    data = path.read_bytes()
+    assert len(data) > 0
+
+
+@pytest.mark.parametrize("char", ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"])
+def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
+    """Profiler should sanitize action names to produce filesystem-safe .prof filenames.
+
+    This guards against errors when callbacks or actions include path-unsafe characters (e.g., metric names with '/').
+
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    action_name = f"before{char}after"
+    with profiler.profile(action_name):
+        pass
+
+    profiler.describe()
+
+    prof_files = [f for f in os.listdir(tmp_path) if f.endswith(".prof")]
+    assert len(prof_files) == 1
+    prof_name = prof_files[0]
+
+    # Ensure none of the path-unsafe characters are present in the produced filename
+    forbidden = ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"]
+    for bad in forbidden:
+        assert bad not in prof_name
+
+    # File should be non-empty
+    assert (tmp_path / prof_name).read_bytes()
+
+
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording*"):
         advanced_profiler.stop(action)
 
     advanced_profiler.start(action)
@@ -314,7 +387,13 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture()
+def test_advanced_profiler_nested(advanced_profiler):
+    """Ensure AdvancedProfiler does not raise ValueError for nested profiling actions (Python 3.12+ compatibility)."""
+    with advanced_profiler.profile("outer"), advanced_profiler.profile("inner"):
+        pass  # Should not raise ValueError
+
+
+@pytest.fixture
 def pytorch_profiler(tmp_path):
     return PyTorchProfiler(dirpath=tmp_path, filename="profiler")
 
@@ -332,6 +411,7 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
+@skip_advanced_profiler_py312
 def test_advanced_profiler_cprofile_deepcopy(tmp_path):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
@@ -430,7 +510,8 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmp_path):
 
 def test_pytorch_profiler_nested(tmp_path):
     """Ensure that the profiler handles nested context."""
-    pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmp_path, filename="profiler", schedule=None)
+    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": False}
+    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None, **kwargs)
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -475,13 +556,14 @@ def test_pytorch_profiler_multiple_loggers(tmp_path):
 
 def test_register_record_function(tmp_path):
     use_cuda = torch.cuda.is_available()
+    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": torch.cuda.is_available()}
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
-        use_cuda=use_cuda,
         dirpath=tmp_path,
         filename="profiler",
         schedule=None,
         on_trace_ready=None,
+        **kwargs,
     )
 
     class TestModel(BoringModel):
@@ -507,7 +589,14 @@ def test_register_record_function(tmp_path):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
-@pytest.mark.parametrize("cls", [SimpleProfiler, AdvancedProfiler, PyTorchProfiler])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        SimpleProfiler,
+        PyTorchProfiler,
+        pytest.param(AdvancedProfiler, marks=skip_advanced_profiler_py312),
+    ],
+)
 def test_profiler_teardown(tmp_path, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
@@ -582,8 +671,8 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmp_path, trainer_con
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)
-        assert trainer.profiler._schedule is None
-        warning_cache.clear()
+    assert trainer.profiler._schedule is None
+    warning_cache.clear()
 
 
 def test_profile_callbacks(tmp_path):

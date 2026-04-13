@@ -14,9 +14,13 @@
 from unittest.mock import Mock
 
 import pytest
+import torch
+from torch import nn
+from torch.optim import Optimizer
+
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
-from torch.optim import Optimizer
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_clip_gradients():
@@ -50,3 +54,120 @@ def test_optimizer_amp_scaling_support_in_step_method():
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
         precision.clip_gradients(optimizer, clip_val=1.0)
+
+
+def test_amp_with_no_grad():
+    """Test that asserts using `no_grad` context wrapper with a persistent AMP context wrapper does not break gradient
+    tracking."""
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.forward_context():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None
+
+
+def test_amp_with_inference_mode():
+    """Test that nested `inference_mode` also clears the autocast cache on exit."""
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.forward_context():
+        with torch.inference_mode():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None
+
+
+def test_amp_forward_context_restores_grad_mode_context_managers():
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    original_no_grad = torch.no_grad
+    original_inference_mode = torch.inference_mode
+
+    with amp.forward_context():
+        assert torch.no_grad is not original_no_grad
+        assert torch.inference_mode is not original_inference_mode
+
+    assert torch.no_grad is original_no_grad
+    assert torch.inference_mode is original_inference_mode
+
+
+@pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
+def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
+    """Document the underlying PyTorch autocast behavior that this plugin needs to handle."""
+    layer = nn.Linear(2, 1)
+    x = torch.randn(1, 2)
+
+    with torch.autocast("cpu", dtype=torch.bfloat16, cache_enabled=cache_enabled):
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        if expect_grad:
+            loss.backward()
+            assert loss.grad_fn is not None
+        else:
+            assert loss.grad_fn is None
+            with pytest.raises(RuntimeError, match="does not require grad"):
+                loss.backward()
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
+def test_torch_autocast_cache_behavior_with_no_grad_cuda(cache_enabled, expect_grad):
+    """Document the same autocast cache behavior on CUDA, where the reported regression happens."""
+    layer = nn.Linear(2, 1, device="cuda")
+    x = torch.randn(1, 2, device="cuda")
+
+    with torch.autocast("cuda", dtype=torch.float16, cache_enabled=cache_enabled):
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        if expect_grad:
+            loss.backward()
+            assert loss.grad_fn is not None
+        else:
+            assert loss.grad_fn is None
+            with pytest.raises(RuntimeError, match="does not require grad"):
+                loss.backward()
+
+
+@RunIf(min_cuda_gpus=1)
+def test_amp_with_no_grad_cuda():
+    """Test the Lightning workaround on the CUDA path used by the reported regression."""
+    layer = nn.Linear(2, 1, device="cuda")
+    x = torch.randn(1, 2, device="cuda")
+    amp = MixedPrecision(precision="16-mixed", device="cuda")
+
+    with amp.forward_context():
+        with torch.no_grad():
+            _ = layer(x)
+
+        loss = layer(x).mean()
+        loss.backward()
+        assert loss.grad_fn is not None
+
+
+def test_amp_autocast_context_manager_disables_cache():
+    """Test that the public autocast context manager preserves the existing no-cache workaround."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.autocast_context_manager():
+        assert not torch.is_autocast_cache_enabled()
+
+
+def test_amp_forward_context_keeps_cache_enabled():
+    """Test that Lightning's internal step context keeps the cached autocast path enabled."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.forward_context():
+        assert torch.is_autocast_cache_enabled()

@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from importlib.metadata import entry_points
 from inspect import getmembers, isclass
 from types import ModuleType
-from typing import Any, List, Type, Union
+from typing import Any, Union
 
 from lightning_utilities import is_overridden
 
-from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 
 _log = logging.getLogger(__name__)
 
 
-def _load_external_callbacks(group: str) -> List[Any]:
+def _load_external_callbacks(group: str) -> list[Any]:
     """Collect external callbacks registered through entry points.
 
     The entry points are expected to be functions returning a list of callbacks.
@@ -35,21 +36,14 @@ def _load_external_callbacks(group: str) -> List[Any]:
         A list of all callbacks collected from external factories.
 
     """
-    if _PYTHON_GREATER_EQUAL_3_8_0:
-        from importlib.metadata import entry_points
+    factories = (
+        entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})  # type: ignore[arg-type]
+    )
 
-        factories = (
-            entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})  # type: ignore[arg-type]
-        )
-    else:
-        from pkg_resources import iter_entry_points
-
-        factories = iter_entry_points(group)  # type: ignore[assignment]
-
-    external_callbacks: List[Any] = []
+    external_callbacks: list[Any] = []
     for factory in factories:
         callback_factory = factory.load()
-        callbacks_list: Union[List[Any], Any] = callback_factory()
+        callbacks_list: Union[list[Any], Any] = callback_factory()
         callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
         if callbacks_list:
             _log.info(
@@ -60,7 +54,7 @@ def _load_external_callbacks(group: str) -> List[Any]:
     return external_callbacks
 
 
-def _register_classes(registry: Any, method: str, module: ModuleType, parent: Type[object]) -> None:
+def _register_classes(registry: Any, method: str, module: ModuleType, parent: type[object]) -> None:
     for _, member in getmembers(module, isclass):
         if issubclass(member, parent) and is_overridden(method, member, parent):
             register_fn = getattr(member, method)

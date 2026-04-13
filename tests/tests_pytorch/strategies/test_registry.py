@@ -14,10 +14,10 @@
 from unittest import mock
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -40,7 +40,7 @@ def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params)
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
-def test_deepspeed_strategy_registry_with_trainer(tmp_path, strategy):
+def test_deepspeed_strategy_registry_with_trainer(tmp_path, strategy, mps_count_0):
     trainer = Trainer(default_root_dir=tmp_path, strategy=strategy, precision="16-mixed")
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)

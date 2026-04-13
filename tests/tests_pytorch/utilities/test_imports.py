@@ -19,10 +19,10 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -60,7 +60,7 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     return new_fn
 
 
-@pytest.fixture()
+@pytest.fixture
 def clean_import():
     """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the current
     state of the imported modules.
@@ -84,12 +84,6 @@ def clean_import():
     [
         pytest.param(
             "torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch", id="ProcessGroup"
-        ),
-        pytest.param(
-            "lightning_utilities.core.imports.RequirementCache.__bool__",
-            _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
-            "lightning.pytorch.loggers.neptune",
-            id="neptune",
         ),
         pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
@@ -117,6 +111,13 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
     code = dedent(
         """
         import torch
+        try:
+           # PyTorch 2.5 relies on torch,distributed._composable.fsdp not
+           # existing with USE_DISTRIBUTED=0
+           import torch._dynamo.variables.functions
+           torch._dynamo.variables.functions._fsdp_param_group = None
+        except ImportError:
+           pass
 
         # pretend torch.distributed not available
         for name in list(torch.distributed.__dict__.keys()):
@@ -124,6 +125,11 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
                 delattr(torch.distributed, name)
 
         torch.distributed.is_available = lambda: False
+
+        # needed for Dynamo in PT 2.5+ compare the torch.distributed source
+        class _ProcessGroupStub:
+            pass
+        torch.distributed.ProcessGroup = _ProcessGroupStub
 
         import lightning.pytorch
         """
@@ -153,7 +159,7 @@ def test_import_deepspeed_lazily():
     assert subprocess.call([sys.executable, "-c", code]) == 0
 
 
-@RunIf(min_python="3.9")
+@RunIf(min_python="3.10")
 def test_import_lightning_multiprocessing_start_method_not_set():
     """Regression test for avoiding the lightning import to set the multiprocessing context."""
     package_name = "pytorch_lightning" if "lightning.pytorch" == "pytorch_lightning" else "lightning"

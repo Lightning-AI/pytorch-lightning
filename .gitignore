@@ -9,10 +9,6 @@ lightning_logs/
 # Documentations
 docs/venv*/
 docs/build*/
-docs/source-app/*/api
-docs/source-app/generated
-docs/source-app/*/generated
-docs/source-app/_static/fetched-s3-assets
 docs/source-fabric/_static/fetched-s3-assets
 docs/source-pytorch/api
 docs/source-pytorch/*.md
@@ -59,7 +55,6 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning_app/*
 src/lightning_fabric/*
 src/pytorch_lightning/*
 !src/*/__about__.py
@@ -174,7 +169,6 @@ wandb
 .forked/
 *.prof
 *.tar.gz
-.neptune/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
@@ -182,8 +176,6 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
-src/lightning_app/ui/*
-src/lightning/app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
@@ -205,7 +197,7 @@ node_modules/
 **/events.out.tfevents.*
 examples/**/*.png
 
-# instalation artifacts
+# installation artifacts
 requirements/base.txt
 
 # CI
@@ -213,3 +205,6 @@ requirements/base.txt
 
 # sourced notebooks from tutorials
 _notebooks/.notebooks/
+
+# local markdown files
+*.local.md

@@ -15,10 +15,12 @@
 
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
+from typing import Any, Callable, Optional, TextIO, Union
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
 
@@ -76,7 +78,9 @@ class Profiler(ABC):
             log.info(*args, **kwargs)
 
     def _prepare_filename(
-        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
+        self,
+        action_name: Optional[str] = None,
+        extension: str = ".txt",
     ) -> str:
         args = []
         if self._stage is not None:
@@ -87,7 +91,14 @@ class Profiler(ABC):
             args.append(str(self._local_rank))
         if action_name is not None:
             args.append(action_name)
-        return split_token.join(args) + extension
+        base = "-".join(args)
+        # Replace a set of path-unsafe characters across platforms with '_'
+        base = re.sub(r"[\\/:*?\"<>|\n\r\t]", "_", base)
+        base = re.sub(r"_+", "_", base)
+        base = base.strip()
+        if not base:
+            base = "profile"
+        return base + extension
 
     def _prepare_streams(self) -> None:
         if self._write_stream is not None:
@@ -115,7 +126,7 @@ class Profiler(ABC):
             self._output_file.flush()
         self.teardown(stage=self._stage)
 
-    def _stats_to_str(self, stats: Dict[str, str]) -> str:
+    def _stats_to_str(self, stats: dict[str, str]) -> str:
         stage = f"{self._stage.upper()} " if self._stage is not None else ""
         output = [stage + "Profiler Report"]
         for action, value in stats.items():

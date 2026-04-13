@@ -18,14 +18,21 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-
 from tests_pytorch.helpers.runif import RunIf
+
+
+def test_sigterm_exception_exit_code():
+    """Test that SIGTERMException produces a nonzero exit code (143 = 128 + SIGTERM)."""
+    exc = SIGTERMException()
+    assert isinstance(exc, SystemExit)
+    assert exc.code == 143
 
 
 @RunIf(skip_windows=True)

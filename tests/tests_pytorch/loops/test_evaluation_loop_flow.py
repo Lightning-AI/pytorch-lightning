@@ -14,11 +14,11 @@
 """Tests the evaluation loop."""
 
 import torch
+from torch import Tensor
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.trainer.states import RunningStage
-from torch import Tensor
-
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 

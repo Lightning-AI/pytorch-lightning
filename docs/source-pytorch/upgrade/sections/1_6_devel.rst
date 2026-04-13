@@ -31,7 +31,7 @@
      - `PR10105`_
 
 
-.. _pr9422: https://github.com/Lightning-AI/lightning/pull/9422
-.. _pr10101: https://github.com/Lightning-AI/lightning/pull/10101
-.. _pr10105: https://github.com/Lightning-AI/lightning/pull/10105
-.. _pr10106: https://github.com/Lightning-AI/lightning/pull/10106
+.. _pr9422: https://github.com/Lightning-AI/pytorch-lightning/pull/9422
+.. _pr10101: https://github.com/Lightning-AI/pytorch-lightning/pull/10101
+.. _pr10105: https://github.com/Lightning-AI/pytorch-lightning/pull/10105
+.. _pr10106: https://github.com/Lightning-AI/pytorch-lightning/pull/10106

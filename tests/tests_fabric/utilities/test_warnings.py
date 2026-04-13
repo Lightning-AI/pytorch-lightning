@@ -27,16 +27,17 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
-import lightning.fabric
 import pytest
+from lightning_utilities.core.rank_zero import WarningCache, _warn
+from lightning_utilities.test.warning import no_warning_call
+
+import lightning.fabric
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.warnings import (
     PossibleUserWarning,
     _is_path_in_lightning,
     disable_possible_user_warnings,
 )
-from lightning_utilities.core.rank_zero import WarningCache, _warn
-from lightning_utilities.test.warning import no_warning_call
 
 
 def line_number():

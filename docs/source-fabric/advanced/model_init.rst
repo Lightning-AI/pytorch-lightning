@@ -61,15 +61,15 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
 ----
 
 
-********************************************
-Model-parallel training (FSDP and DeepSpeed)
-********************************************
+***************************************************
+Model-parallel training (FSDP, TP, DeepSpeed, etc.)
+***************************************************
 
-When training sharded models with :doc:`FSDP <model_parallel/fsdp>` or DeepSpeed, using :meth:`~lightning.fabric.fabric.Fabric.init_module` is necessary in most cases because otherwise model initialization gets very slow (minutes) or (and that's more likely) you run out of CPU memory due to the size of the model.
+When training distributed models with :doc:`FSDP/TP <model_parallel/index>` or DeepSpeed, using :meth:`~lightning.fabric.fabric.Fabric.init_module` is necessary in most cases because otherwise model initialization gets very slow (minutes) or (and that's more likely) you run out of CPU memory due to the size of the model.
 
 .. code-block:: python
 
-    # Recommended for FSDP and DeepSpeed
+    # Recommended for FSDP, TP and DeepSpeed
     with fabric.init_module(empty_init=True):
         model = GPT3()  # parameters are placed on the meta-device
 
@@ -81,4 +81,4 @@ When training sharded models with :doc:`FSDP <model_parallel/fsdp>` or DeepSpeed
 
 .. note::
     Empty-init is experimental and the behavior may change in the future.
-    For FSDP on PyTorch 2.1+, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).
+    For distributed models, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).

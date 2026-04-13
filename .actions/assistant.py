@@ -14,19 +14,18 @@
 import glob
 import logging
 import os
-import pathlib
 import re
 import shutil
-import tarfile
 import tempfile
 import urllib.request
-from distutils.version import LooseVersion
+from collections.abc import Iterable, Iterator, Sequence
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional
 
-from pkg_resources import Requirement, parse_requirements, yield_lines
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -34,11 +33,6 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    ),
-    "app": (
-        "requirements/app/app.txt",
-        "requirements/app/cloud.txt",
-        "requirements/app/ui.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",
@@ -52,14 +46,14 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 class _RequirementWithComment(Requirement):
-    strict_string = "# strict"
+    strict_cmd = "strict"
 
     def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.comment = comment
         assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
         self.pip_argument = pip_argument
-        self.strict = self.strict_string in comment.lower()
+        self.strict = self.strict_cmd in comment.lower()
 
     def adjust(self, unfreeze: str) -> str:
         """Remove version restrictions unless they are strict.
@@ -68,33 +62,35 @@ class _RequirementWithComment(Requirement):
         'arrow<=1.2.2,>=1.2.0'
         >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").adjust("none")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").adjust("all")
-        'arrow>=1.2.0'
+        >>> _RequirementWithComment('arrow<=1.2.2,>=1.2.0; python_version >= "3.10"', comment="# my name").adjust("all")
+        'arrow>=1.2.0; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("all")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow").adjust("all")
-        'arrow'
+        >>> _RequirementWithComment('arrow; python_version >= "3.10"').adjust("all")
+        'arrow; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").adjust("major")
         'arrow<2.0,>=1.2.0'
         >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("major")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow>=1.2.0").adjust("major")
-        'arrow>=1.2.0'
+        >>> _RequirementWithComment('arrow>=1.2.0; python_version >= "3.10"').adjust("major")
+        'arrow>=1.2.0; python_version >= "3.10"'
         >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
 
         """
         out = str(self)
         if self.strict:
-            return f"{out}  {self.strict_string}"
+            return f"{out}  # {self.strict_cmd}"
+
+        specs = [(spec.operator, spec.version) for spec in self.specifier]
         if unfreeze == "major":
-            for operator, version in self.specs:
+            for operator, version in specs:
                 if operator in ("<", "<="):
-                    major = LooseVersion(version).version[0]
+                    major = Version(version).major
                     # replace upper bound with major version increased by one
                     return out.replace(f"{operator}{version}", f"<{major + 1}.0")
         elif unfreeze == "all":
-            for operator, version in self.specs:
+            for operator, version in specs:
                 if operator in ("<", "<="):
                     # drop upper bound
                     return out.replace(f"{operator}{version},", "")
@@ -103,33 +99,25 @@ class _RequirementWithComment(Requirement):
         return out
 
 
-def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_RequirementWithComment]:
+def _parse_requirements(lines: Iterable[str]) -> Iterator[_RequirementWithComment]:
     """Adapted from `pkg_resources.parse_requirements` to include comments.
 
     >>> txt = ['# ignored', '', 'this # is an', '--piparg', 'example', 'foo # strict', 'thing', '-r different/file.txt']
     >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
-    >>> txt = '\\n'.join(txt)
-    >>> [r.adjust('none') for r in _parse_requirements(txt)]
-    ['this', 'example', 'foo  # strict', 'thing']
 
     """
-    lines = yield_lines(strs)
     pip_argument = None
     for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
         # Drop comments -- a hash without a space may be in a URL.
         if " #" in line:
             comment_pos = line.find(" #")
             line, comment = line[:comment_pos], line[comment_pos:]
         else:
             comment = ""
-        # If there is a line continuation, drop it, and append the next line.
-        if line.endswith("\\"):
-            line = line[:-2].strip()
-            try:
-                line += next(lines)
-            except StopIteration:
-                return
         # If there's a pip argument, save it
         if line.startswith("--"):
             pip_argument = line
@@ -141,7 +129,7 @@ def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_Requiremen
         pip_argument = None
 
 
-def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> List[str]:
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> list[str]:
     """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
@@ -155,7 +143,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
         logging.warning(f"Folder {path_dir} does not have any base requirements.")
         return []
     assert path.exists(), (path_dir, file_name, path)
-    text = path.read_text()
+    text = path.read_text().splitlines()
     return [req.adjust(unfreeze) for req in _parse_requirements(text)]
 
 
@@ -167,8 +155,8 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
 
     """
     path_readme = os.path.join(path_dir, "README.md")
-    with open(path_readme, encoding="utf-8") as fo:
-        text = fo.read()
+    with open(path_readme, encoding="utf-8") as fopen:
+        text = fopen.read()
 
     # drop images from readme
     text = text.replace(
@@ -216,30 +204,6 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         shutil.copy2(ver_template, fpath)
 
 
-def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
-    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
-    directory."""
-
-    try:
-        frontend_dir = pathlib.Path(pkg_path, "ui")
-        download_dir = tempfile.mkdtemp()
-
-        shutil.rmtree(frontend_dir, ignore_errors=True)
-        # TODO: remove this once lightning-ui package is ready as a dependency
-        frontend_release_url = f"https://lightning-packages.s3.amazonaws.com/ui/{version}.tar.gz"
-        response = urllib.request.urlopen(frontend_release_url)
-
-        file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)  # noqa: S202
-
-        shutil.move(download_dir, frontend_dir)
-        print("The Lightning UI has successfully been downloaded!")
-
-    # If installing from source without internet connection, we don't want to break the installation
-    except Exception:
-        print("The Lightning UI downloading has failed!")
-
-
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
     """Load all base requirements from all particular packages and prune duplicates.
 
@@ -260,7 +224,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
 
-def _retrieve_files(directory: str, *ext: str) -> List[str]:
+def _retrieve_files(directory: str, *ext: str) -> list[str]:
     all_files = []
     for root, _, files in os.walk(directory):
         for fname in files:
@@ -270,7 +234,7 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
-def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning_by: str = "") -> List[str]:
+def _replace_imports(lines: list[str], mapping: list[tuple[str, str]], lightning_by: str = "") -> list[str]:
     """Replace imports of standalone package to lightning.
 
     >>> lns = [
@@ -345,20 +309,20 @@ def copy_replace_imports(
         if ext in (".pyc",):
             continue
         # Try to parse everything else
-        with open(fp, encoding="utf-8") as fo:
+        with open(fp, encoding="utf-8") as fopen:
             try:
-                lines = fo.readlines()
+                lines = fopen.readlines()
             except UnicodeDecodeError:
                 # a binary file, skip
                 print(f"Skipped replacing imports for {fp}")
                 continue
         lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-        with open(fp_new, "w", encoding="utf-8") as fo:
-            fo.writelines(lines)
+        with open(fp_new, "w", encoding="utf-8") as fopen:
+            fopen.writelines(lines)
 
 
-def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> None:
     """Create a mirror package with adjusted imports."""
     # replace imports and copy the code
     mapping = package_mapping.copy()
@@ -378,47 +342,6 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
 
 
 class AssistantCLI:
-    @staticmethod
-    def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Remove some packages from given requirement files."""
-        if isinstance(req_files, str):
-            req_files = [req_files]
-        for req in req_files:
-            AssistantCLI._prune_packages(req, packages)
-
-    @staticmethod
-    def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
-        """Remove some packages from given requirement files."""
-        path = Path(req_file)
-        assert path.exists()
-        text = path.read_text()
-        lines = text.splitlines()
-        final = []
-        for line in lines:
-            ln_ = line.strip()
-            if not ln_ or ln_.startswith("#"):
-                final.append(line)
-                continue
-            req = list(parse_requirements(ln_))[0]
-            if req.name not in packages:
-                final.append(line)
-        print(final)
-        path.write_text("\n".join(final) + "\n")
-
-    @staticmethod
-    def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fo:
-            req = fo.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fw:
-            fw.write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
-        """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            print(fname)
-            AssistantCLI._replace_min(fname)
-
     @staticmethod
     def copy_replace_imports(
         source_dir: str,
@@ -466,7 +389,7 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)  # noqa: S202
+                zip_ref.extractall(tmp)
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder
@@ -508,15 +431,53 @@ class AssistantCLI:
         """Load the actual version and convert it to the nightly version."""
         from datetime import datetime
 
-        with open(ver_file) as fo:
-            version = fo.read().strip()
+        with open(ver_file) as fopen:
+            version = fopen.read().strip()
         # parse X.Y.Z version and prune any suffix
         vers = re.match(r"(\d+)\.(\d+)\.(\d+).*", version)
         # create timestamp  YYYYMMDD
         timestamp = datetime.now().strftime("%Y%m%d")
         version = f"{'.'.join(vers.groups())}.dev{timestamp}"
-        with open(ver_file, "w") as fo:
-            fo.write(version + os.linesep)
+        with open(ver_file, "w") as fopen:
+            fopen.write(version + os.linesep)
+
+    @staticmethod
+    def generate_docker_tags(
+        release_version: str,
+        python_version: str,
+        torch_version: str,
+        cuda_version: str,
+        docker_project: str = "pytorchlightning/pytorch_lightning",
+        add_latest: bool = False,
+    ) -> None:
+        """Generate docker tags for the given versions."""
+        tags = [f"latest-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if release_version:
+            tags += [f"{release_version}-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if add_latest:
+            tags += ["latest"]
+
+        tags = [f"{docker_project}:{tag}" for tag in tags]
+        print(",".join(tags))
+
+    @staticmethod
+    def prune_pytest_as_errors(
+        pyproject_toml: str = "pyproject.toml", errors: tuple = ("FutureWarning", "DeprecationWarning")
+    ) -> None:
+        """Prune pytest warnings as errors from the pyproject.toml file."""
+        import tomlkit
+
+        with open(pyproject_toml, encoding="utf-8") as fopen:
+            content = fopen.read()
+        pyproject = tomlkit.parse(content)
+        filterwarnings = pyproject.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("filterwarnings", [])
+        if not filterwarnings:
+            return
+        filterwarnings = [wrn for wrn in filterwarnings if not any(f"error::{err}" in wrn for err in errors)]
+        pyproject["tool"]["pytest"]["ini_options"]["filterwarnings"] = filterwarnings
+
+        with open(pyproject_toml, "w", encoding="utf-8") as fopen:
+            fopen.write(tomlkit.dumps(pyproject))
 
 
 if __name__ == "__main__":

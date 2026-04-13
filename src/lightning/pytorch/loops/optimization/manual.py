@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 
 from torch import Tensor
 from typing_extensions import override
@@ -40,12 +41,12 @@ class ManualResult(OutputResult):
 
     """
 
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
         extra = {}
-        if isinstance(training_step_output, dict):
+        if isinstance(training_step_output, Mapping):
             extra = training_step_output.copy()
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
@@ -61,11 +62,11 @@ class ManualResult(OutputResult):
         return cls(extra=extra)
 
     @override
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return self.extra
 
 
-_OUTPUTS_TYPE = Dict[str, Any]
+_OUTPUTS_TYPE = dict[str, Any]
 
 
 class _ManualOptimization(_Loop):

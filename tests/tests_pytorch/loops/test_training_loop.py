@@ -11,11 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import logging
+import warnings
 from unittest.mock import Mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
@@ -105,6 +110,8 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path)
     else:
         assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
+
+    assert trainer.is_last_batch
 
 
 def test_should_stop_mid_epoch(tmp_path):
@@ -205,3 +212,136 @@ def test_should_stop_early_stopping_conditions_met(
 
     assert (message in caplog.text) is raise_debug_msg
     assert trainer.fit_loop._can_stop_early is early_stop
+
+
+@pytest.mark.parametrize("max_steps", [7, 20])
+def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
+    """Test trainer with infinite iterator (no __len__)"""
+
+    batch_size = 4
+    model = BoringModel()
+
+    # Infinite generator (no __len__)
+    # NOTE: 32 for BoringModel
+    infinite_iter = (torch.randn(batch_size, 32, dtype=torch.float32) for _ in itertools.count(0))
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=max_steps,
+        max_epochs=-1,
+        limit_val_batches=0,
+        enable_progress_bar=True,
+        enable_model_summary=False,
+        accelerator="cpu",
+    )
+
+    # Override train_dataloader with infinite iterator
+    model.train_dataloader = lambda: infinite_iter
+    pbar = trainer.progress_bar_callback
+    trainer.fit(model)
+
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
+
+
+@pytest.mark.parametrize("max_steps", [10, 15])
+def test_progress_bar_steps(tmp_path, max_steps):
+    batch_size = 4
+
+    model = BoringModel()
+    # Create dataloader here, outside the model
+    # NOTE: 32 for boring model
+    x = torch.randn(100, 32)
+
+    class SingleTensorDataset(torch.utils.data.IterableDataset):
+        def __init__(self, data):
+            super().__init__()
+            self.data = data
+
+        def __iter__(self):
+            yield from self.data  # yield just a tensor, not a tuple
+
+    dataset = SingleTensorDataset(x)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+
+    # Patch model's train_dataloader method to return this dataloader
+    model.train_dataloader = lambda: dataloader
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=max_steps,
+        max_epochs=-1,
+        limit_val_batches=0,
+        enable_progress_bar=True,
+        enable_model_summary=False,
+        accelerator="cpu",
+    )
+    pbar = trainer.progress_bar_callback
+    trainer.fit(model)
+
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
+
+
+@pytest.mark.parametrize("warn", [True, False])
+def test_eval_mode_warning(tmp_path, warn):
+    """Test that a warning is raised if any module is in eval mode at the start of training."""
+    model = BoringModel()
+    if warn:
+        model.some_eval_module = torch.nn.Linear(32, 16)
+        model.some_eval_module.eval()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+    )
+
+    if warn:
+        with pytest.warns(PossibleUserWarning):
+            trainer.fit(model)
+    else:
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            trainer.fit(model)
+            eval_warnings = [
+                w for w in warning_list if issubclass(w.category, PossibleUserWarning) and "eval mode" in str(w.message)
+            ]
+            assert len(eval_warnings) == 0, "Expected no eval mode warnings"
+
+
+@pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8)])
+def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs, batch_idx_):
+    """Test that when the rest of the epoch is skipped, due to on_train_batch_start returning -1, the learning rate is
+    still updated when it should, at the end of the epoch."""
+
+    class TestModel(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx):
+            if batch_idx == batch_idx_:
+                return -1
+            return super().on_train_batch_start(batch, batch_idx)
+
+    model = TestModel()
+    init_lr = 0.1
+    trainer = Trainer(default_root_dir=tmp_path, limit_train_batches=10, max_epochs=max_epochs)
+    trainer.fit(model)
+
+    adjusted_lr = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
+
+    assert len(trainer.lr_scheduler_configs) == 1
+    assert all(a == adjusted_lr[0] for a in adjusted_lr)
+    assert init_lr * 0.1**max_epochs == adjusted_lr[0]
+
+
+@pytest.mark.parametrize("limit_val_batches", [0, 0.0])
+def test_val_check_interval_with_limit_val_batches_zero(tmp_path, limit_val_batches):
+    """Test that val_check_interval > num training batches does not raise when limit_val_batches=0."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=5,
+        val_check_interval=10,  # greater than limit_train_batches
+        limit_val_batches=limit_val_batches,  # validation disabled
+    )
+    # Should not raise ValueError
+    trainer.fit(model)

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterator, List, Optional
+from collections.abc import Iterator
+from typing import Any, Optional
 
 from typing_extensions import override
 
@@ -97,7 +98,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         if prefetch_batches < 0:
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
-        self.batches: List[Any] = []
+        self.batches: list[Any] = []
 
     @override
     def __iter__(self) -> "_PrefetchDataFetcher":

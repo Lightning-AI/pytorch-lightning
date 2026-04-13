@@ -1,21 +1,24 @@
+import atexit
 import contextlib
 import logging
 import os
+import signal
 import time
+from collections.abc import Iterable, Iterator, Sized
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import Self, override
+from typing_extensions import Self, TypeGuard, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -28,6 +31,8 @@ else:
 
 
 if TYPE_CHECKING:
+    from torch.distributed._tensor import DTensor
+
     from lightning.fabric.plugins import ClusterEnvironment
     from lightning.fabric.strategies import Strategy
 
@@ -94,7 +99,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
     return all_found
 
 
-def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
+def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> list[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
@@ -148,7 +153,7 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     return gathered_result
 
 
-def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> List[Tensor]:
+def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> list[Tensor]:
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
     torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result
@@ -203,20 +208,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
-
-    # HPU doesn't support Long types, forcefully set it to float
-    # TODO: move this to the `lightning_habana` package
-    if (
-        package_available("habana_frameworks")
-        and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        and result.type()
-        in (
-            "torch.LongTensor",
-            "torch.hpu.LongTensor",
-        )
-    ):
-        rank_zero_info("Long tensor unsupported on HPU, casting to float")
-        result = result.float()
 
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -291,6 +282,10 @@ def _init_dist_connection(
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
+    if torch_distributed_backend == "nccl":
+        # PyTorch >= 2.4 warns about undestroyed NCCL process group, so we need to do it at program exit
+        atexit.register(_destroy_dist_connection)
+
     # On rank=0 let everyone know training is starting
     rank_zero_info(
         f"{'-' * 100}\n"
@@ -300,8 +295,20 @@ def _init_dist_connection(
     )
 
 
+def _destroy_dist_connection() -> None:
+    # Don't allow Ctrl+C to interrupt this handler
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    if _distributed_is_initialized():
+        torch.distributed.destroy_process_group()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    """Return corresponding distributed backend for a given device."""
+    device_backend_map = torch.distributed.Backend.default_device_backend_map
+    if device.type in device_backend_map:
+        return device_backend_map[device.type]
+    return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):
@@ -328,7 +335,7 @@ class _DatasetSamplerWrapper(Dataset):
             )
         self._sampler = sampler
         # defer materializing an iterator until it is necessary
-        self._sampler_list: Optional[List[Any]] = None
+        self._sampler_list: Optional[list[Any]] = None
 
     @override
     def __getitem__(self, index: int) -> Any:
@@ -364,6 +371,14 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+    @override
+    def set_epoch(self, epoch: int) -> None:
+        super().set_epoch(epoch)
+        # Forward set_epoch to the original sampler if it supports it
+        original_sampler = self.dataset._sampler
+        if hasattr(original_sampler, "set_epoch") and callable(original_sampler.set_epoch):
+            original_sampler.set_epoch(epoch)
 
 
 def _suggested_max_num_threads(num_processes: int = 1) -> int:
@@ -413,3 +428,11 @@ class _InfiniteBarrier:
         self.barrier()
         if self.group is not None:
             torch.distributed.destroy_process_group(self.group)
+
+
+def _is_dtensor(tensor: Tensor) -> TypeGuard["DTensor"]:
+    if _TORCH_GREATER_EQUAL_2_4:
+        from torch.distributed._tensor import DTensor
+
+        return isinstance(tensor, DTensor)
+    return False

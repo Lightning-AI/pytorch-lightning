@@ -121,3 +121,22 @@ This can be measured with the :class:`~lightning.pytorch.callbacks.device_stats_
 
 CPU metrics will be tracked by default on the CPU accelerator. To enable it for other accelerators set ``DeviceStatsMonitor(cpu_stats=True)``. To disable logging
 CPU metrics, you can specify ``DeviceStatsMonitor(cpu_stats=False)``.
+
+.. warning::
+
+    **Do not wrap** ``Trainer.fit()``, ``Trainer.validate()``, or other Trainer methods inside a manual
+    ``torch.profiler.profile`` context manager. This will cause unexpected crashes and cryptic errors due to
+    incompatibility between PyTorch Profiler's context management and Lightning's internal training loop.
+    Instead, always use the ``profiler`` argument in the ``Trainer`` constructor or the
+    :class:`~lightning.pytorch.profilers.pytorch.PyTorchProfiler` profiler class if you want to customize the profiling.
+
+    Example:
+
+    .. code-block:: python
+
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.profilers import PytorchProfiler
+
+        trainer = Trainer(profiler="pytorch")
+        # or
+        trainer = Trainer(profiler=PytorchProfiler(dirpath=".", filename="perf_logs"))

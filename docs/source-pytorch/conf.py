@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -69,11 +70,9 @@ if _COPY_NOTEBOOKS:
         _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
-        # TODO(@aniketmaurya): Complete converting the missing items and add them back
-        ignore=[
-            # "course_UvA-DL/13-contrastive-learning",
-            "lightning_examples/warp-drive",
-        ],
+        # ignore=[
+        #     "lightning_examples/warp-drive",
+        # ],
     )
 
 
@@ -85,13 +84,6 @@ for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
 _transform_changelog(
     os.path.join(_PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
     os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
-)
-
-# Copy Accelerator docs
-assist_local.AssistantCLI.pull_docs_files(
-    gh_user_repo="Lightning-AI/lightning-Habana",
-    target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.4.0",
 )
 
 # Copy strategies docs as single pages
@@ -121,7 +113,7 @@ if _PIN_RELEASE_VERSIONS:
         "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
     )
     adjust_linked_external_docs(
-        "https://lightning.ai/docs/torchmetrics", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
+        "https://lightning.ai/docs/torchmetrics/stable/", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
     )
     adjust_linked_external_docs(
         "https://lightning.ai/docs/fabric/stable/", "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/", _PATH_ROOT, version_digits=3
@@ -354,15 +346,11 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
-    "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
-    # needed for referencing App from lightning scope
-    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
     # "comet_ml": ("https://www.comet.com/docs/v2/", None),
-    # "neptune": ("https://docs.neptune.ai/", None),
     # "wandb": ("https://docs.wandb.ai//", None),
 }
 nitpicky = True
@@ -370,9 +358,11 @@ nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "typing.Self"),
+    ("py:data", "typing.Union"),
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
+    ('py:class', 'tensorboardX.SummaryWriter'),
     ("py:class", "AveragedModel"),
     ("py:class", "CometExperiment"),
     ("py:meth", "DataModule.__init__"),
@@ -459,16 +449,13 @@ nitpick_ignore = [
     ("py:obj", "lightning.pytorch.utilities.memory.is_out_of_cpu_memory"),
     ("py:func", "lightning.pytorch.utilities.rank_zero.rank_zero_only"),
     ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfig"),
+    ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfigType"),
+    ("py:class", "lightning.pytorch.utilities.types.OptimizerConfig"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
-    ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
-    ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
-    ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
     ("py:obj", "logger.experiment"),
     ("py:class", "mlflow.tracking.MlflowClient"),
     ("py:attr", "model"),
     ("py:meth", "move_data_to_device"),
-    ("py:class", "neptune.Run"),
-    ("py:class", "neptune.handler.Handler"),
     ("py:meth", "on_after_batch_transfer"),
     ("py:meth", "on_before_batch_transfer"),
     ("py:meth", "on_save_checkpoint"),
@@ -479,11 +466,13 @@ nitpick_ignore = [
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
+    ("py:meth", "toggled_optimizer"),
     ("py:class", "torch.ScriptModule"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.CPUOffload"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.ShardingStrategy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:func", "torch.inference_mode"),
     ("py:meth", "torch.mean"),
@@ -506,6 +495,7 @@ nitpick_ignore = [
     ("py:func", "wandb.init"),
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
+    ("py:class", "litlogger.Experiment"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -612,10 +602,10 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
 from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
 from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch.loggers.litlogger import _LITLOGGER_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 
@@ -625,16 +615,23 @@ linkcheck_anchors = False
 # A timeout value, in seconds, for the linkcheck builder.
 linkcheck_timeout = 60
 
-# ignore all links in any CHANGELOG file
-linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+linkcheck_exclude_documents = [
+    r"^(.*\/)*CHANGELOG.*$",  # ignore all links in any CHANGELOG file
+    r"notebooks/.*",  # ignore notebooks, it's a submodule
+]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
     r"installation.html$",
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
+    "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
+    "https://www.supermicro.com", # returns 403 error
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
+    "https://openai.com/blog/.*",
+    "https://openai.com/index/*",
+    "https://tinyurl.com/.*",  # has a human verification check on redirect
 ]

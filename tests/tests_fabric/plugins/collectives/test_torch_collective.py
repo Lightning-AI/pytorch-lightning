@@ -6,12 +6,12 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-
 from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
@@ -29,13 +29,16 @@ PASSED_OBJECT = mock.Mock()
 
 @contextlib.contextmanager
 def check_destroy_group():
-    with mock.patch(
-        "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.new_group",
-        wraps=TorchCollective.new_group,
-    ) as mock_new, mock.patch(
-        "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.destroy_group",
-        wraps=TorchCollective.destroy_group,
-    ) as mock_destroy:
+    with (
+        mock.patch(
+            "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.new_group",
+            wraps=TorchCollective.new_group,
+        ) as mock_new,
+        mock.patch(
+            "lightning.fabric.plugins.collectives.torch_collective.TorchCollective.destroy_group",
+            wraps=TorchCollective.destroy_group,
+        ) as mock_destroy,
+    ):
         yield
     # 0 to account for tests that mock distributed
     # -1 to account for destroying the default process group
@@ -155,9 +158,10 @@ def test_repeated_create_and_destroy():
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
         collective.create_group()
 
-    with mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}), mock.patch(
-        "torch.distributed.destroy_process_group"
-    ) as destroy_mock:
+    with (
+        mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {collective.group: ("", None)}),
+        mock.patch("torch.distributed.destroy_process_group") as destroy_mock,
+    ):
         collective.teardown()
     # this would be called twice if `init_process_group` wasn't patched. once for the group and once for the default
     # group
@@ -300,9 +304,11 @@ def test_collective_manages_default_group():
 
     assert TorchCollective.manages_default_group
 
-    with mock.patch.object(collective, "_group") as mock_group, mock.patch.dict(
-        "torch.distributed.distributed_c10d._pg_map", {mock_group: ("", None)}
-    ), mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
+    with (
+        mock.patch.object(collective, "_group") as mock_group,
+        mock.patch.dict("torch.distributed.distributed_c10d._pg_map", {mock_group: ("", None)}),
+        mock.patch("torch.distributed.destroy_process_group") as destroy_mock,
+    ):
         collective.teardown()
     destroy_mock.assert_called_once_with(mock_group)
 

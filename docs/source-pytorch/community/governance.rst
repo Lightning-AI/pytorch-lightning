@@ -18,26 +18,27 @@ Role: All final decisions related to Lightning.
 
 Maintainers
 -----------
-- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
-- Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
-- Jirka Borovec (`Borda <https://github.com/Borda>`_)
+- Luca Antiga (`lantiga <https://github.com/lantiga>`_)
+- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 
 
 Emeritus Maintainers
 --------------------
-- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
+- Jirka Borovec (`Borda <https://github.com/Borda>`_)
 
 
 Alumni
 ------
+- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
+- Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
-- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
+- Jeff Yang (`jeffydc <https://github.com/jeffydc>`_)
 - Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
 - Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
@@ -66,6 +67,6 @@ and start tracking the development. It is possible that priorities change over t
 
 Commits to the project are exclusively to be added by pull requests on GitHub and anyone in the community is welcome to
 review them. However, reviews submitted by
-`code owners <https://github.com/Lightning-AI/lightning/blob/master/.github/CODEOWNERS>`_
+`code owners <https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CODEOWNERS>`_
 have higher weight and it is necessary to get the approval of code owners before a pull request can be merged.
 Additional requirements may apply case by case.

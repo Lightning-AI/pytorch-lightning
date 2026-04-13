@@ -48,6 +48,7 @@ callbacks
     ThroughputMonitor
     Timer
     TQDMProgressBar
+    WeightAveraging
 
 cli
 -----
@@ -94,10 +95,10 @@ loggers
     :nosignatures:
 
     logger
+    litlogger
     comet
     csv_logs
     mlflow
-    neptune
     tensorboard
     wandb
 
@@ -214,6 +215,7 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
+    ModelParallelStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleDeviceXLAStrategy

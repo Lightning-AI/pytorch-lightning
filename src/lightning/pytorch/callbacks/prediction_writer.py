@@ -18,7 +18,8 @@ BasePredictionWriter
 Aids in saving predictions
 """
 
-from typing import Any, Literal, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any, Literal, Optional
 
 from typing_extensions import override
 

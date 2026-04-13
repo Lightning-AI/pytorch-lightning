@@ -1,6 +1,7 @@
 import torch
-from lightning.pytorch.utilities._pytree import _tree_flatten, tree_unflatten
 from torch.utils.data import DataLoader, TensorDataset
+
+from lightning.pytorch.utilities._pytree import _tree_flatten, tree_unflatten
 
 
 def assert_tree_flatten_unflatten(pytree, leaves):

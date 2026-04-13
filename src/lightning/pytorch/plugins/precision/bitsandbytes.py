@@ -16,7 +16,7 @@ from lightning.pytorch.plugins.precision.precision import Precision
 
 
 class BitsandbytesPrecision(Precision, FabricBNBPrecision):
-    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 

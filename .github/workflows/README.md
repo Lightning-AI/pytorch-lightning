@@ -8,18 +8,15 @@ Brief description of all our automation tools used for boosting development perf
 
 | workflow file                          | action                                                                                    | accelerator |
 | -------------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
-| .github/workflows/ci-tests-app.yml     | Run all tests (may need internet connectivity).                                           | CPU         |
 | .github/workflows/ci-tests-fabric.yml  | Run all tests except for accelerator-specific and standalone.                             | CPU         |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific and standalone.                             | CPU         |
 | .github/workflows/ci-tests-data.yml    | Run unit and integration tests with data pipelining.                                      | CPU         |
-| .github/workflows/ci-tests-store.yml   | Run integration tests on uploading models to cloud.                                       | CPU         |
 | .azure-pipelines/gpu-tests-fabric.yml  | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
 | .azure-pipelines/gpu-benchmarks.yml    | Run speed/memory benchmarks for parity with vanila PyTorch.                               | GPU         |
-| .github/workflows/ci-examples-app.yml  | Run integration tests with App examples.                                                  | CPU         |
 | .github/workflows/ci-flagship-apps.yml | Run end-2-end tests with full applications, including deployment to the production cloud. | CPU         |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                 | CPU         |
-| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                | TPU         |
+| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '[TPU]'                  | TPU         |
 
 \* Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases.
 
@@ -70,7 +67,6 @@ The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/py
 | workflow file                                                          | action                                                                                                                                                   |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | .github/mergify.yml                                                    | Label PRs as conflicts or ready, and request reviews if needed.                                                                                          |
-| .github/stale.yml                                                      | Close inactive issues/PRs sometimes after adding the "won't fix" label to them.                                                                          |
 | .github/workflows/probot-auto-cc.yml <br> .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                           |
 | .github/workflows/probot-check-group.yml <br> .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                                              |
 | .pre-commit-config.yaml                                                | It applies a set of linters and formatters and can be registered with your local dev. If needed [bot](https://pre-commit.ci/) pushc changes to each PRs. |

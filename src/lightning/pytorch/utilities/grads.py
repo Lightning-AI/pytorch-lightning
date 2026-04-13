@@ -13,13 +13,13 @@
 # limitations under the License.
 """Utilities to describe gradients."""
 
-from typing import Dict, Union
+from typing import Union
 
 import torch
 from torch.nn import Module
 
 
-def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = "/") -> Dict[str, float]:
+def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = "/") -> dict[str, float]:
     """Compute each parameter's gradient's norm and their overall norm.
 
     The overall norm is computed over all gradients together, as if they

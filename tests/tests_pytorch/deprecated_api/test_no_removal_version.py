@@ -1,9 +1,10 @@
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch.nn
+
+import lightning.fabric
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
@@ -35,13 +36,9 @@ def test_ddp_is_distributed():
         _ = strategy.is_distributed
 
 
-def test_fsdp_activation_checkpointing(monkeypatch):
+def test_fsdp_activation_checkpointing():
     with pytest.raises(ValueError, match="cannot set both `activation_checkpointing"):
         FSDPStrategy(activation_checkpointing=torch.nn.Linear, activation_checkpointing_policy=lambda *_: True)
-
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", True)
-    with pytest.deprecated_call(match=r"use `FSDPStrategy\(activation_checkpointing_policy"):
-        FSDPStrategy(activation_checkpointing=torch.nn.Linear)
 
 
 def test_double_precision_wrapper():

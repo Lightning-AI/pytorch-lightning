@@ -17,16 +17,15 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from torch import nn
+from torch.optim import SGD, Adam
+
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.optim import SGD, Adam
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -117,6 +116,22 @@ def test_1_optimizer_toggle_model():
     model.toggle_optimizer(optimizer)
     assert model._param_requires_grad_state
     model.untoggle_optimizer(optimizer)
+    assert not model._param_requires_grad_state
+
+
+def test_optimizer_toggle_model_context_manager():
+    """Test toggle_model runs when only one optimizer is used."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+    params = model.parameters()
+    optimizer = torch.optim.SGD(params, lr=0.1)
+    trainer.optimizers = [optimizer]
+
+    assert not model._param_requires_grad_state
+    # toggle optimizer was failing with a single optimizer
+    with model.toggled_optimizer(optimizer):
+        assert model._param_requires_grad_state
     assert not model._param_requires_grad_state
 
 
@@ -337,9 +352,9 @@ def test_sharded_tensor_state_dict(single_process_pg):
     ), "Expect the shards to be different before `m_1` loading `m_0`'s state dict"
 
     m_1.load_state_dict(m_0.state_dict(), strict=False)
-    assert torch.allclose(
-        m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
-    ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
+    assert torch.allclose(m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor), (
+        "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
+    )
 
 
 def test_lightning_module_configure_gradient_clipping(tmp_path):
@@ -444,9 +459,6 @@ def test_trainer_reference_recursively():
     ensemble.trainer = trainer
     # references match
     assert ensemble.trainer is inner.trainer
-    if not _TORCH_GREATER_EQUAL_2_0:
-        # and the trainer was weakly referenced
-        assert inner.trainer is weakref.proxy(trainer)
 
 
 def test_fabric_reference_recursively():

@@ -13,10 +13,12 @@
 import os
 import pickle
 import warnings
+from collections import OrderedDict
+from collections.abc import Sequence
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -25,10 +27,7 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_3,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _PATH, _Stateful
 
 _METADATA_FILENAME = "meta.pt"
@@ -137,11 +136,15 @@ class _NotYetLoadedTensor:
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[dict] = None,
     ) -> Any:
         kwargs = kwargs or {}
         loaded_args = [(arg._load_tensor() if isinstance(arg, _NotYetLoadedTensor) else arg) for arg in args]
         return func(*loaded_args, **kwargs)
+
+    @property
+    def device(self) -> torch.device:
+        return torch.device(self.storageinfo[3])
 
     def __getattr__(self, name: str) -> Any:
         # These properties don't require materialization and can be accessed through the meta tensor directly
@@ -163,7 +166,7 @@ class _NotYetLoadedTensor:
             return getattr(self.metatensor, name)
 
         # materializing these is needed for quantization (see lit-gpt)
-        if name in {"contiguous", "cuda", "half"}:
+        if name in {"contiguous", "cuda", "half", "data", "to"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
@@ -202,8 +205,6 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 
 
 def _lazy_load(filename: _PATH) -> Any:
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise NotImplementedError("Lazy-loading is only supported with PyTorch >= 2.0.")
     if not os.path.isfile(filename):
         raise FileNotFoundError(f"Path {str(filename)!r} does not exist or is not a file.")
     file_reader = torch.PyTorchFileReader(str(filename))
@@ -220,7 +221,7 @@ def _materialize_tensors(collection: Any) -> Any:
 
 
 def _move_state_into(
-    source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
+    source: dict[str, Any], destination: dict[str, Union[Any, _Stateful]], keys: Optional[set[str]] = None
 ) -> None:
     """Takes the state from the source destination and moves it into the destination dictionary.
 
@@ -236,7 +237,7 @@ def _move_state_into(
             destination[key] = state
 
 
-def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+def _load_distributed_checkpoint(checkpoint_folder: Path) -> dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
@@ -249,7 +250,7 @@ def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
-    checkpoint: Dict[str, Any] = {}
+    checkpoint: dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
         storage_reader=FileSystemReader(checkpoint_folder),

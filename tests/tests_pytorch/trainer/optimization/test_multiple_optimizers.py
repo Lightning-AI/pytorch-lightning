@@ -13,9 +13,10 @@
 # limitations under the License.
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
@@ -36,7 +37,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
     model = TestModel()
     model.automatic_optimization = True
 
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(logger=False, enable_checkpointing=False)
     with pytest.raises(RuntimeError, match="Remove the `optimizer_idx` argument from `training_step`"):
         trainer.fit(model)
 
@@ -47,7 +48,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
     model = TestModel()
     model.automatic_optimization = True
 
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(logger=False, enable_checkpointing=False)
     with pytest.raises(RuntimeError, match="multiple optimizers is only supported with manual optimization"):
         trainer.fit(model)
 

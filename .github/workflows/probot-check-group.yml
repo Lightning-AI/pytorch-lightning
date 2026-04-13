@@ -12,14 +12,14 @@ jobs:
   required-jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    timeout-minutes: 61 # in case something is wrong with the internal timeout
+    timeout-minutes: 71 # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@v5.4
+      - uses: Lightning-AI/probot@v5.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           job: check-group
           interval: 180 # seconds
-          timeout: 60 # minutes
+          timeout: 70 # minutes
           maintainers: "Lightning-AI/lai-frameworks"
           owner: "carmocca"

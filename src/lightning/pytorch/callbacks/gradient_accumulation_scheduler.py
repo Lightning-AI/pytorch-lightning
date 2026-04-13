@@ -20,7 +20,7 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from typing_extensions import override
 
@@ -64,7 +64,7 @@ class GradientAccumulationScheduler(Callback):
 
     """
 
-    def __init__(self, scheduling: Dict[int, int]):
+    def __init__(self, scheduling: dict[int, int]):
         super().__init__()
 
         if not scheduling:  # empty dict error

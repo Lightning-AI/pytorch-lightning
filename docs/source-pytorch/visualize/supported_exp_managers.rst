@@ -1,3 +1,31 @@
+LitLogger
+=========
+To use `LitLogger <https://lightning.ai/docs/overview/experiment-management>`_ first install the litlogger package:
+
+.. code-block:: bash
+
+    pip install litlogger
+
+Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from lightning.pytorch.loggers import LitLogger
+
+    lit_logger = LitLogger(save_dir="logs/")
+    trainer = Trainer(logger=lit_logger)
+
+Access the litlogger logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            lit_logger = self.logger.experiment
+            lit_logger.log_file("generated_images.txt")
+
+Here's the full documentation for the :class:`~lightning.pytorch.loggers.LitLogger`.
+
 Comet.ml
 ========
 To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
@@ -60,47 +88,6 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.MLFlowL
 
 ----
 
-Neptune.ai
-==========
-To use `Neptune.ai <https://www.neptune.ai/>`_ first install the neptune package:
-
-.. code-block:: bash
-
-    pip install neptune
-
-or with conda:
-
-.. code-block:: bash
-
-    conda install -c conda-forge neptune
-
-Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
-
-.. testcode::
-    :skipif: not _NEPTUNE_AVAILABLE
-
-    import neptune
-    from lightning.pytorch.loggers import NeptuneLogger
-
-    neptune_logger = NeptuneLogger(
-        api_key=neptune.ANONYMOUS_API_TOKEN,  # replace with your own
-        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-    )
-    trainer = Trainer(logger=neptune_logger)
-
-Access the neptune logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
-
-.. code-block:: python
-
-    class LitModel(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            neptune_logger = self.logger.experiment["your/metadata/structure"]
-            neptune_logger.append(metadata)
-
-Here's the full documentation for the :class:`~lightning.pytorch.loggers.NeptuneLogger`.
-
-----
-
 Tensorboard
 ===========
 `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ can be installed with:
@@ -134,7 +121,7 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.TensorB
 
 Weights and Biases
 ==================
-To use `Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ (wandb) first install the wandb package:
+To use `Weights and Biases <https://docs.wandb.ai/guides/integrations/lightning>`_ (wandb) first install the wandb package:
 
 .. code-block:: bash
 

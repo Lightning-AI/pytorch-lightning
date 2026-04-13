@@ -12,20 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.nn import Module
 from typing_extensions import Self, override
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+
 
 class _DeviceDtypeModuleMixin(Module):
-    __jit_unused_properties__: List[str] = ["device", "dtype"]
+    __jit_unused_properties__: list[str] = ["device", "dtype"]
 
     def __init__(self) -> None:
         super().__init__()
         self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
-        self._device = torch.device("cpu")
+        # Workarounds from the original pytorch issue:
+        # https://github.com/pytorch/pytorch/issues/115333#issuecomment-1848449687
+        self._device = torch.get_default_device() if _TORCH_GREATER_EQUAL_2_3 else torch.empty(0).device
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
@@ -109,14 +113,12 @@ class _DeviceDtypeModuleMixin(Module):
 def _update_properties(
     root: torch.nn.Module, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
 ) -> None:
-    def apply_fn(module: Union[_DeviceDtypeModuleMixin, Module]) -> None:
+    for module in root.modules():
         if not isinstance(module, _DeviceDtypeModuleMixin):
-            return
+            continue
         # cannot use `module.to()` because we don't actually want to move the model in case there are multiple
         # devices types (such as partial meta parameters)
         if device is not None:
             module._device = device
         if dtype is not None:
             module._dtype = dtype
-
-    root.apply(apply_fn)
