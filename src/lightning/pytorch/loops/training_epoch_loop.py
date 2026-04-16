@@ -419,7 +419,7 @@ class _TrainingEpochLoop(loops._Loop):
         # if training finished, defer exit to the parent. this assumes there will be enough time in between
         # which might not be the case depending on what's in the `*_epoch_end` hooks
         if not self._is_training_done and self.trainer.received_sigterm:
-            raise SIGTERMException
+            raise SIGTERMException()
 
     def teardown(self) -> None:
         self._results.cpu()
