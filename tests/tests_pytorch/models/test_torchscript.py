@@ -163,8 +163,9 @@ def test_torchscript_save_load(tmp_path, modelclass):
     model = modelclass()
     output_file = str(tmp_path / "model.pt")
     with pytest.warns(FutureWarning, match="has been deprecated in v2.7 and will be removed in v2.8"):
-        script = model.to_torchscript(file_path=output_file)
-    loaded_script = torch.jit.load(output_file)
+        script = model.to_torchscript()
+    torch.jit.save(script, str(output_file))
+    loaded_script = torch.jit.load(str(output_file))
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
@@ -179,9 +180,11 @@ def test_torchscript_save_load_custom_filesystem(tmp_path, modelclass):
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
 
     model = modelclass()
+    real_path = str(tmp_path / "model.pt")
     output_file = os.path.join(_DUMMY_PRFEIX, _PREFIX_SEPARATOR, tmp_path, "model.pt")
     with pytest.warns(FutureWarning, match="has been deprecated in v2.7 and will be removed in v2.8"):
-        script = model.to_torchscript(file_path=output_file)
+        script = model.to_torchscript()
+    torch.jit.save(script, real_path)
 
     fs = get_filesystem(output_file)
     with fs.open(output_file, "rb") as f:
