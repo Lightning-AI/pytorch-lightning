@@ -499,7 +499,7 @@ class _FitLoop(_Loop):
         self.epoch_progress.increment_completed()
 
         if trainer.received_sigterm:
-            raise SIGTERMException
+            raise SIGTERMException()
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
