@@ -108,8 +108,11 @@ class _CallbackConnector:
 
                 model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
             else:
-                # Defer the litmodels tip until loggers are set up (in _attach_model_callbacks)
-                self._pending_litmodels_tip = True
+                rank_zero_info(
+                    "💡 Tip: For seamless cloud uploads and versioning,"
+                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+                    " which syncs automatically with the Lightning model registry."
+                )
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
 

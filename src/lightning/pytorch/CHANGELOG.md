@@ -26,7 +26,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
----
 
 ## [2.6.2] - 2026-03-19
 
@@ -190,7 +189,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `save_hyperparameters` not working correctly with `LightningCLI` when there are parsing links applied on instantiation ([#20777](https://github.com/Lightning-AI/pytorch-lightning/pull/20777))
 - Fixed `logger_connector` has an edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/pull/20692))
-- Fixed Synchronize SIGTERM Handling in DDP to Prevent Deadlocks ([#20825](https://github.com/Lightning-AI/pytorch-lightning/pull/20825))
 - Fixed case-sensitive model name ([#20661](https://github.com/Lightning-AI/pytorch-lightning/pull/20661))
 - CLI: resolve jsonargparse deprecation warning ([#20802](https://github.com/Lightning-AI/pytorch-lightning/pull/20802))
 - Fix: move `check_inputs` to the target device if available during `to_torchscript` ([#20873](https://github.com/Lightning-AI/pytorch-lightning/pull/20873))
