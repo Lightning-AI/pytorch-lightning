@@ -1,4 +1,4 @@
-.PHONY: test clean docs setup
+.PHONY: test clean docs setup standalone
 
 # to imitate SLURM set only single node
 export SLURM_LOCALID=0
@@ -76,3 +76,29 @@ docs-pytorch: clean sphinx-theme
 
 update:
 	git submodule update --init --recursive --remote
+
+
+# Run standalone tests
+#
+# Usage:
+#   make standalone
+#       → runs all standalone tests
+#
+#   make standalone FILE=tests/tests_pytorch
+#       → runs all tests in the given file/directory
+#
+#   make standalone FILE=tests/tests_pytorch TEST=test_name
+#       → runs a specific test inside the given file
+#
+# Notes:
+# - FILE should be a path relative to the repo root
+# - TEST is matched using pytest filtering (to be wired)
+# - Prefer this over passing args as targets (Make doesn't handle that reliably)
+standalone:
+	@if [ -z "$(FILE)" ]; then \
+		echo "running all standalone tests"; \
+	elif [ -z "$(TEST)" ]; then \
+		echo "running all tests in file '$(FILE)'"; \
+	else \
+		echo "running test '$(TEST)' in file '$(FILE)'"; \
+	fi
