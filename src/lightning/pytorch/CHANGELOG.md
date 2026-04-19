@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
+- Fixed `DeepSpeedStrategy` crashing with `AttributeError` when the training dataloader has no batch sampler (e.g. `DataLoader(batch_size=None)`); now falls back to a batch size of 1 and warns ([#19460](https://github.com/Lightning-AI/pytorch-lightning/issues/19460))
+
 ---
 
 ## [2.6.2] - 2026-03-19

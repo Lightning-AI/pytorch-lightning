@@ -940,6 +940,15 @@ class DeepSpeedStrategy(DDPStrategy):
         data_source = self.lightning_module.trainer.fit_loop._data_source
         if data_source.is_defined():
             train_dataloader = data_source.dataloader()
-            if hasattr(train_dataloader, "batch_sampler"):
-                batch_size = train_dataloader.batch_sampler.batch_size
+            batch_sampler = getattr(train_dataloader, "batch_sampler", None)
+            if batch_sampler is not None:
+                batch_size = batch_sampler.batch_size
+            else:
+                rank_zero_warn(
+                    "Tried to infer the batch size for DeepSpeed logging from the `train_dataloader`,"
+                    " but the batch sampler is not defined (for example, when using"
+                    " `DataLoader(batch_size=None)`). Falling back to a batch size of 1."
+                    " To keep DeepSpeed logging consistent, pass it explicitly via"
+                    " `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=...))`."
+                )
         return batch_size
