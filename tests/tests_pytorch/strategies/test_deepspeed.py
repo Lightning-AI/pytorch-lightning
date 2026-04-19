@@ -238,8 +238,8 @@ def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, v
 
 @RunIf(deepspeed=True)
 def test_deepspeed_auto_batch_size_none_batch_sampler():
-    """Ensure `_auto_select_batch_size` falls back to 1 and warns when the dataloader has no batch sampler, as is
-    the case for `DataLoader(batch_size=None)`."""
+    """Ensure `_auto_select_batch_size` falls back to 1 and warns when the dataloader has no batch sampler, as is the
+    case for `DataLoader(batch_size=None)`."""
     strategy = DeepSpeedStrategy()
     strategy._lightning_module = Mock()
     data_source = strategy._lightning_module.trainer.fit_loop._data_source
