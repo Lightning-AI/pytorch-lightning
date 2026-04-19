@@ -236,6 +236,20 @@ def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, v
         trainer.fit(model)
 
 
+@RunIf(deepspeed=True)
+def test_deepspeed_auto_batch_size_none_batch_sampler():
+    """Ensure `_auto_select_batch_size` falls back to 1 and warns when the dataloader has no batch sampler, as is
+    the case for `DataLoader(batch_size=None)`."""
+    strategy = DeepSpeedStrategy()
+    strategy._lightning_module = Mock()
+    data_source = strategy._lightning_module.trainer.fit_loop._data_source
+    data_source.is_defined.return_value = True
+    data_source.dataloader.return_value = DataLoader(RandomDataset(32, 64), batch_size=None)
+
+    with pytest.warns(UserWarning, match="batch sampler is not defined"):
+        assert strategy._auto_select_batch_size() == 1
+
+
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_run_configure_optimizers(tmp_path):
     """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation), whilst using
