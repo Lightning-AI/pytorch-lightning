@@ -5,5 +5,5 @@ twine ==6.2.0
 importlib-metadata <10.0.0
 wget
 pkginfo ==1.12.1.2
-packaging <25.1
+packaging <26.1
 tomlkit

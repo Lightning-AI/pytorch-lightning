@@ -210,6 +210,10 @@ requirements/base.txt
 _notebooks/.notebooks/
 
 # AI assistants
-*.local.*
 .claude/logs/
 .claude/state/
+# local markdown files
+*.local.md
+
+# standalone test artifacts
+standalone_artifacts/
