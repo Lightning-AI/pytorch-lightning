@@ -15,7 +15,7 @@ jobs:
     if: github.event_name == 'issue' || github.event.pull_request.draft == false
     timeout-minutes: 5
     steps:
-      - uses: Lightning-AI/probot@v1
+      - uses: Lightning-AI/probot@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

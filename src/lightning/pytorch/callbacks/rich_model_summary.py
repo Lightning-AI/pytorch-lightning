@@ -17,7 +17,7 @@ from typing_extensions import override
 
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
-from lightning.pytorch.utilities.model_summary import get_human_readable_count
+from lightning.pytorch.utilities.model_summary import get_formatted_model_size, get_human_readable_count
 
 
 class RichModelSummary(ModelSummary):
@@ -105,8 +105,9 @@ class RichModelSummary(ModelSummary):
         console.print(table)
 
         parameters = []
-        for param in [trainable_parameters, total_parameters - trainable_parameters, total_parameters, model_size]:
+        for param in [trainable_parameters, total_parameters - trainable_parameters, total_parameters]:
             parameters.append("{:<{}}".format(get_human_readable_count(int(param)), 10))
+        parameters.append("{:<{}}".format(get_formatted_model_size(model_size), 10))
 
         grid = Table.grid(expand=True)
         grid.add_column()
