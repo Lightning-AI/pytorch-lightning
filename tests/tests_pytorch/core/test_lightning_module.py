@@ -298,6 +298,63 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmp_path):
     trainer.fit(model)
 
 
+@RunIf(dynamo=True)
+def test_toggle_untoggle_optimizer_with_torch_compile(tmp_path):
+    """Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21513.
+
+    ``toggle_optimizer`` / ``untoggle_optimizer`` mutate ``requires_grad`` on Parameters, which is not
+    supported by Dynamo/AOTAutograd. Without the ``@torch.compiler.disable`` decorator, Dynamo either
+    graph-breaks with ``Unsupported: setattr() on Tensor.requires_grad`` or, under certain back-ends,
+    raises a ``KeyError`` on the internal ``param_requires_grad_state`` mapping. This test exercises a
+    compiled ``LightningModule`` that calls ``toggle_optimizer`` in its ``training_step`` to make sure
+    the decorated methods are executed as opaque Python and the training run completes cleanly.
+    """
+
+    class ToggleModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+            self.layer_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
+            self.layer_2 = nn.Sequential(nn.ReLU(), nn.Linear(32, 2))
+
+        def forward(self, x):
+            return self.layer_2(self.layer_1(x))
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            self.toggle_optimizer(opt1)
+            loss = self.step(batch)
+            opt1.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+            self.untoggle_optimizer(opt1)
+
+            self.toggle_optimizer(opt2)
+            loss = self.step(batch)
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt2.step()
+            self.untoggle_optimizer(opt2)
+
+        def configure_optimizers(self):
+            return [SGD(self.layer_1.parameters(), lr=0.1), Adam(self.layer_2.parameters(), lr=0.1)]
+
+    model = ToggleModel()
+    compiled_model = torch.compile(model)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        accelerator="cpu",
+    )
+    trainer.fit(compiled_model)
+
+
 @pytest.mark.parametrize(
     ("accelerator", "device"),
     [
