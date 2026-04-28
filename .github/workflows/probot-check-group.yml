@@ -1,13 +1,14 @@
 name: Probot
 
 on:
-  # Probot only polls check statuses and posts comments; it never checks out PR code, so this is safe to do.
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
 
 permissions:
   pull-requests: write
-  checks: read
+  contents: read
+  checks: write
+  statuses: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
