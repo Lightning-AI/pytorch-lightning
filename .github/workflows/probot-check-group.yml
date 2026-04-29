@@ -4,17 +4,24 @@ on:
   pull_request:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
 
+permissions:
+  pull-requests: write
+  contents: read
+  checks: write
+  statuses: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: true
 
 jobs:
   required-jobs:
+    permissions: write-all
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     timeout-minutes: 71 # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@v5
+      - uses: Lightning-AI/probot@v5.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
