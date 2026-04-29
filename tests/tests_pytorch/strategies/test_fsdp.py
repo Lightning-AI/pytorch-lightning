@@ -966,3 +966,15 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
         max_steps=4,
     )
     trainer.fit(model, ckpt_path=checkpoint_path_full)
+
+
+def test_device_mesh_type_annotation():
+    """Test that ``device_mesh`` type hint accepts a 2-element tuple via jsonargparse (#21580)."""
+    jsonargparse = pytest.importorskip("jsonargparse")
+    from inspect import signature
+
+    annot = signature(FSDPStrategy).parameters["device_mesh"].annotation
+    parser = jsonargparse.ArgumentParser()
+    parser.add_argument("--device_mesh", type=annot)
+    args = parser.parse_args(["--device_mesh=[1, 4]"])
+    assert args.device_mesh == (1, 4)

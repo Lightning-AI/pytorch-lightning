@@ -8,12 +8,6 @@
     },
     {
       "pattern": "^https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg"
-    },
-    {
-      "pattern": "^https://app.neptune.ai"
-    },
-    {
-      "pattern": "^https://www.neptune.ai/"
     }
   ],
   "httpHeaders": [

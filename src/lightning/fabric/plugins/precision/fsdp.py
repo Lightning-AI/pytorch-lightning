@@ -112,7 +112,7 @@ class FSDPPrecision(Precision):
 
     @override
     def module_init_context(self) -> AbstractContextManager:
-        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
+        return _DtypeContextManager(self._desired_input_dtype)
 
     @override
     def forward_context(self) -> AbstractContextManager:
