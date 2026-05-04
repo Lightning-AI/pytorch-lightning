@@ -3,12 +3,13 @@ import tempfile
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 
@@ -180,3 +181,89 @@ def test_model_checkpoint_manual_opt_warning():
         # Verify our warning was raised
         assert len(manual_opt_warnings) > 0, "Expected warning about manual optimization not found"
         assert "The checkpoint will contain the model state AFTER optimization" in manual_opt_warnings[0]
+
+
+def test_model_checkpoint_manual_opt_train_time_interval():
+    """Regression: ``train_time_interval`` must fire mid-run under manual optimization.
+
+    Before the fix, the manual-optimization branch in ``on_train_batch_end`` only
+    inspected ``every_n_train_steps`` and silently no-op'd when ``train_time_interval``
+    was the only configured trigger. ``last.ckpt`` was still written by ``on_train_end``,
+    so end-of-run state checks miss the bug -- this test asserts the mid-run save by
+    observing ``_last_global_step_saved`` from a spy callback queued after the
+    ``ModelCheckpoint``.
+    """
+    saved_steps_during_training = []
+
+    class _Spy(Callback):
+        def __init__(self, ckpt: ModelCheckpoint) -> None:
+            self.ckpt = ckpt
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            saved_steps_during_training.append(self.ckpt._last_global_step_saved)
+
+    with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
+        dataset = FakeDataset()
+        train_dataloader = DataLoader(dataset, batch_size=1)
+        model = SimpleModule()
+        ckpt = ModelCheckpoint(
+            dirpath=tmpdir,
+            save_top_k=0,
+            save_last=True,
+            train_time_interval=timedelta(seconds=0),
+            save_weights_only=True,
+        )
+        trainer = Trainer(
+            max_epochs=1,
+            callbacks=[ckpt, _Spy(ckpt)],
+            log_every_n_steps=1,
+            num_sanity_val_steps=0,
+            logger=False,
+        )
+        try:
+            trainer.fit(model, train_dataloader)
+        finally:
+            trainer._teardown()
+
+        # With ``train_time_interval=0``, the callback must fire on every batch.
+        # Pre-fix the value stayed at 0 until ``on_train_end`` saved once.
+        assert any(step > 0 for step in saved_steps_during_training), (
+            "ModelCheckpoint(train_time_interval=...) silently no-op'd mid-run under manual_optimization; "
+            f"observed _last_global_step_saved values during training: {saved_steps_during_training}"
+        )
+        assert (Path(tmpdir) / "last.ckpt").exists()
+
+
+def test_model_checkpoint_manual_opt_broadcasts_skip_time_unconditionally():
+    """All ranks must agree on ``skip_time`` even when ``train_time_interval`` is unset.
+
+    The manual-opt branch broadcasts ``skip_time`` from rank 0 so a future divergence
+    in the skip-time path cannot leave some ranks blocking on a collective alone.
+
+    """
+    broadcasted: list[bool] = []
+
+    with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
+        trainer = Trainer(
+            max_epochs=1,
+            callbacks=[ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True, save_weights_only=True)],
+            num_sanity_val_steps=0,
+            logger=False,
+        )
+        original_broadcast = trainer.strategy.broadcast
+
+        def _spy(obj, src=0):
+            if isinstance(obj, bool):
+                broadcasted.append(obj)
+            return original_broadcast(obj, src)
+
+        trainer.strategy.broadcast = _spy
+        try:
+            trainer.fit(SimpleModule(), DataLoader(FakeDataset(), batch_size=1))
+        finally:
+            trainer._teardown()
+
+    # 4 training batches; pre-fix this branch broadcasts 0 times when train_time_interval is None.
+    assert len(broadcasted) >= len(FakeDataset()), (
+        f"expected one broadcast per train batch, got {len(broadcasted)}: {broadcasted}"
+    )

@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
+- Fixed `ModelCheckpoint(train_time_interval=...)` silently no-op'ing under `automatic_optimization=False`; the manual-optimization branch in `on_train_batch_end` now mirrors the auto-opt branch and fires on time-based saves as well as `every_n_train_steps` ([#21699](https://github.com/Lightning-AI/pytorch-lightning/pull/21699))
+
 ---
 
 ## [2.6.4] - 2026-05-20
