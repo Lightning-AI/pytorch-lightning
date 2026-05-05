@@ -153,7 +153,7 @@ jobs:
           python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
 
       - name: Publish distribution 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.5.1
+        uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           packages_dir: dist/${{ steps.folder.outputs.pkg }}
           verbose: true
