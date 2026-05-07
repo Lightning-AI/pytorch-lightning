@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `CombinedLoader.reset()` causing non-zero exit code for large tensors when using persistent workers with multiprocessing_context="spawn" by using `del` instead of explicitly calling `_shutdown_workers()` [#21703](https://github.com/Lightning-AI/pytorch-lightning/issues/21703)
+
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
 ---
