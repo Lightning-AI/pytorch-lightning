@@ -217,3 +217,65 @@ def test_device_stats_monitor_logs_for_different_stages(tmp_path):
     test = any(test_stage_results)
 
     assert test, "testing stage logs not found"
+
+
+@RunIf(psutil=True)
+@pytest.mark.parametrize("verbose", [True, False])
+def test_device_stats_monitor_verbose_cpu(tmp_path, verbose):
+    """Test that verbose=False logs only core CPU stats, verbose=True logs all."""
+    model = BoringModel()
+
+    class AssertVerboseLogger(CSVLogger):
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+            has_swap = any("cpu_swap_percent" in k for k in metrics)
+            assert has_swap if verbose else not has_swap
+
+            assert any("cpu_percent" in k for k in metrics)
+            assert any("cpu_vm_percent" in k for k in metrics)
+
+    device_stats = DeviceStatsMonitor(verbose=verbose)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=device_stats,
+        logger=AssertVerboseLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+    )
+    trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("verbose", [True, False])
+def test_device_stats_monitor_verbose_gpu(tmp_path, verbose):
+    """Test that verbose=False logs only core CUDA stats, verbose=True logs all."""
+    model = BoringModel()
+
+    class AssertVerboseLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+            has_non_core = any("allocated_bytes.all.freed" in k for k in metrics)
+            assert has_non_core if verbose else not has_non_core
+
+            assert any("allocated_bytes.all.current" in k for k in metrics)
+            assert any("reserved_bytes.all.current" in k for k in metrics)
+            assert any("num_ooms" in k for k in metrics)
+
+    device_stats = DeviceStatsMonitor(verbose=verbose)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        log_every_n_steps=1,
+        accelerator="gpu",
+        devices=1,
+        callbacks=[device_stats],
+        logger=AssertVerboseLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)

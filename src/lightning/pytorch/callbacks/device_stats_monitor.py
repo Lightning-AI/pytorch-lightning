@@ -29,6 +29,24 @@ from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
+_CORE_DEVICE_STATS_KEYS = frozenset([
+    # CUDA
+    "allocated_bytes.all.current",
+    "allocated_bytes.all.peak",
+    "reserved_bytes.all.current",
+    "reserved_bytes.all.peak",
+    "num_ooms",
+    # CPU
+    "cpu_percent",
+    "cpu_vm_percent",
+])
+
+_CORE_TPU_STATS_PREFIXES = frozenset([
+    "memory.free.",
+    "memory.used.",
+    "memory.percent.",
+])
+
 
 class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
@@ -99,6 +117,9 @@ class DeviceStatsMonitor(Callback):
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
             If ``False``, it will not log CPU stats regardless of the accelerator.
+        verbose: if ``True``, logs all available device stats returned by the accelerator.
+            If ``False``, logs only a core set of metrics (memory usage, CPU utilization)
+            that are most relevant for monitoring training health. Defaults to ``True``.
 
     Raises:
         MisconfigurationException:
@@ -115,8 +136,9 @@ class DeviceStatsMonitor(Callback):
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
+    def __init__(self, cpu_stats: Optional[bool] = None, verbose: bool = True) -> None:
         self._cpu_stats = cpu_stats
+        self._verbose = verbose
 
     @override
     def setup(
@@ -138,6 +160,14 @@ class DeviceStatsMonitor(Callback):
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
+    @staticmethod
+    def _filter_core_device_stats(stats: dict[str, float]) -> dict[str, float]:
+        return {
+            k: v
+            for k, v in stats.items()
+            if k in _CORE_DEVICE_STATS_KEYS or any(k.startswith(prefix) for prefix in _CORE_TPU_STATS_PREFIXES)
+        }
+
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -154,6 +184,9 @@ class DeviceStatsMonitor(Callback):
             from lightning.pytorch.accelerators.cpu import get_cpu_stats
 
             device_stats.update(get_cpu_stats())
+
+        if not self._verbose:
+            device_stats = self._filter_core_device_stats(device_stats)
 
         for logger in trainer.loggers:
             separator = logger.group_separator
