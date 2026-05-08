@@ -30,15 +30,15 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 _CORE_DEVICE_STATS_KEYS = frozenset([
+    # CPU
+    "cpu_percent",
+    "cpu_vm_percent",
     # CUDA
     "allocated_bytes.all.current",
     "allocated_bytes.all.peak",
     "reserved_bytes.all.current",
     "reserved_bytes.all.peak",
     "num_ooms",
-    # CPU
-    "cpu_percent",
-    "cpu_vm_percent",
 ])
 
 _CORE_TPU_STATS_PREFIXES = frozenset([
