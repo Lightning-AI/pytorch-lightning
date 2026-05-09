@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request_target:
     types: ["synchronize", "reopened", "opened"]
+  pull_request:
+    types: ["synchronize", "reopened", "opened"]
 
 concurrency:
   group: ${{ github.workflow }}
