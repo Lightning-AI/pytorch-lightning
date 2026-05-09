@@ -161,6 +161,20 @@ class DeviceStatsMonitor(Callback):
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
+        if self._filter_keys is not None:
+            device_stats = trainer.accelerator.get_device_stats(device)
+            if self._cpu_stats and device.type != "cpu":
+                from lightning.pytorch.accelerators.cpu import get_cpu_stats
+
+                device_stats.update(get_cpu_stats())
+
+            unrecognized = self._filter_keys - device_stats.keys()
+            if unrecognized:
+                rank_zero_warn(
+                    f"`DeviceStatsMonitor` filter_keys contains keys not found in device stats and will be ignored:"
+                    f" {unrecognized}"
+                )
+
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -179,12 +193,6 @@ class DeviceStatsMonitor(Callback):
             device_stats.update(get_cpu_stats())
 
         if self._filter_keys is not None:
-            unrecognized = self._filter_keys - device_stats.keys()
-            if unrecognized:
-                rank_zero_warn(
-                    f"`DeviceStatsMonitor` filter_keys contains keys not found in device stats and will be ignored:"
-                    f" {unrecognized}"
-                )
             device_stats = {k: v for k, v in device_stats.items() if k in self._filter_keys}
 
         for logger in trainer.loggers:
