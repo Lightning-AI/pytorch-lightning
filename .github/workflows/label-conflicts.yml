@@ -14,7 +14,6 @@ jobs:
   triage-conflicts:
     runs-on: ubuntu-latest
     steps:
-      - run: "echo skipped for now"
       - uses: mschilde/auto-label-merge-conflicts@cd484bbf0476fbe79474a937681a253e094cac3d # May 9, 2026
         with:
           CONFLICT_LABEL_NAME: "has conflicts"
