@@ -3,8 +3,6 @@ name: Label conflicts
 on:
   push:
     branches: ["main"]
-  pull_request:
-    types: ["synchronize", "reopened", "opened"]
   pull_request_target:
     types: ["synchronize", "reopened", "opened"]
 
@@ -16,7 +14,9 @@ jobs:
   triage-conflicts:
     runs-on: ubuntu-latest
     steps:
-      - uses: eps1lon/actions-label-merge-conflict@636b369ea34ff799b8db5182df6f19e39b2d4adb # v3.0.3
+      - uses: mschilde/auto-label-merge-conflicts@cd484bbf0476fbe79474a937681a253e094cac3d # May 9, 2026
         with:
-          dirtyLabel: "has conflicts"
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          CONFLICT_LABEL_NAME: "has conflicts"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_RETRIES: 3
+          WAIT_MS: 5000
