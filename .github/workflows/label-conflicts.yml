@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: "echo skipped for now"
-      # - uses: mschilde/auto-label-merge-conflicts@591722e97f3c4142df3eca156ed0dcf2bcd362bd # Oct 25, 2021
-      #   with:
-      #     CONFLICT_LABEL_NAME: "has conflicts"
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     MAX_RETRIES: 3
-      #     WAIT_MS: 5000
+      - uses: mschilde/auto-label-merge-conflicts@cd484bbf0476fbe79474a937681a253e094cac3d # May 9, 2026
+        with:
+          CONFLICT_LABEL_NAME: "has conflicts"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_RETRIES: 3
+          WAIT_MS: 5000
