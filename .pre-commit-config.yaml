@@ -60,6 +60,7 @@ repos:
     rev: v1.7.7
     hooks:
       - id: docformatter
+        language_version: python3.13
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
