@@ -14,7 +14,7 @@ jobs:
   triage-conflicts:
     runs-on: ubuntu-latest
     steps:
-      - uses: mschilde/auto-label-merge-conflicts@cd484bbf0476fbe79474a937681a253e094cac3d # May 9, 2026
+      - uses: mschilde/auto-label-merge-conflicts@3fdaf1c8b3f8e5b0f88753d9cb3c9c779370b3ef # May 9, 2026
         with:
           CONFLICT_LABEL_NAME: "has conflicts"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
