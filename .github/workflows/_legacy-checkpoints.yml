@@ -120,44 +120,44 @@ jobs:
         run: echo "WITH_SECRETS=$([ -n '${{ secrets.AWS_REGION }}' ] && echo 1 || echo 0)" >> $GITHUB_ENV
 
       - run: uv pip install -r requirements/ci.txt
-      - name: Upload checkpoints to S3
-        if: ${{ env.WITH_SECRETS == '1' }}
-        working-directory: ${{ env.LEGACY_FOLDER }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
-          zip -r checkpoints.zip checkpoints
-          aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+      # - name: Upload checkpoints to S3
+      # if: ${{ env.WITH_SECRETS == '1' }}
+      # working-directory: ${{ env.LEGACY_FOLDER }}
+      # env:
+      #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+      #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      #   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      # run: |
+      #   aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
+      #   zip -r checkpoints.zip checkpoints
+      #   aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
 
-  add-ckpt-test:
-    runs-on: ubuntu-22.04
-    if: inputs.create_pr
-    needs: create-legacy-ckpts
-    env:
-      PL_VERSION: ${{ needs.create-legacy-ckpts.outputs.pl-version }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: master
-
-      - name: Append a new version to legacy checkpoint list
-        working-directory: ${{ env.LEGACY_FOLDER }}
-        run: echo ${PL_VERSION} >> back-compatible-versions.txt
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v8
-        with:
-          title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
-          committer: GitHub <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          body: "**This is automated addition of created checkpoint with the latest `${{ env.PL_VERSION }}` `lightning` release!**"
-          delete-branch: true
-          token: ${{ secrets.PAT_GHOST }}
-          labels: |
-            checkpointing
-            tests
-            pl
-          assignees: borda
+  # add-ckpt-test:
+  #   runs-on: ubuntu-22.04
+  #   if: inputs.create_pr
+  #   needs: create-legacy-ckpts
+  #   env:
+  #     PL_VERSION: ${{ needs.create-legacy-ckpts.outputs.pl-version }}
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: master
+  #
+  #     - name: Append a new version to legacy checkpoint list
+  #       working-directory: ${{ env.LEGACY_FOLDER }}
+  #       run: echo ${PL_VERSION} >> back-compatible-versions.txt
+  #
+  #     - name: Create Pull Request
+  #       uses: peter-evans/create-pull-request@v8
+  #       with:
+  #         title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
+  #         committer: GitHub <noreply@github.com>
+  #         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+  #         body: "**This is automated addition of created checkpoint with the latest `${{ env.PL_VERSION }}` `lightning` release!**"
+  #         delete-branch: true
+  #         token: ${{ secrets.PAT_GHOST }}
+  #         labels: |
+  #           checkpointing
+  #           tests
+  #           pl
+  #         assignees: borda
