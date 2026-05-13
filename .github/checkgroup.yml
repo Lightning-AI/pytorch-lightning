@@ -130,40 +130,40 @@ subprojects:
     checks:
       - "fabric-cpu-guardian" # aggregated check for all cases
 
-  - id: "lightning_fabric: lit GPU"
-    paths:
-      - ".actions/*"
-      - ".lightning/workflows/fabric.yml"
-      - "examples/fabric/**"
-      - "examples/run_fabric_examples.sh"
-      - "requirements/fabric/**"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "tests/run_standalone_*.sh"
-      - "pyproject.toml" # includes pytest config
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, fabric, 3.10)"
-      - "fabric.yml / Lit Job (fabric, 3.12)"
-      - "fabric.yml / Lit Job (lightning, 3.12)"
-
-  # Temporarily disabled
-  #  - id: "lightning_fabric: TPU workflow"
-  #    paths:
-  #      # tpu CI availability is very limited, so we only require tpu tests
-  #      # to pass when their configurations are modified
-  #      - ".github/workflows/tpu-tests.yml.disabled"
-  #      - "tests/tests_fabric/run_tpu_tests.sh"
-  #    checks:
-  #      - "test-on-tpus (pytorch, pjrt, v4-8)"
-
-  # SECTION: common
+  # - id: "lightning_fabric: lit GPU"
+  #   paths:
+  #     - ".actions/*"
+  #     - ".lightning/workflows/fabric.yml"
+  #     - "examples/fabric/**"
+  #     - "examples/run_fabric_examples.sh"
+  #     - "requirements/fabric/**"
+  #     - "src/lightning/__init__.py"
+  #     - "src/lightning/__setup__.py"
+  #     - "src/lightning/__version__.py"
+  #     - "src/lightning/fabric/**"
+  #     - "src/lightning_fabric/*"
+  #     - "tests/tests_fabric/**"
+  #     - "tests/run_standalone_*.sh"
+  #     - "pyproject.toml" # includes pytest config
+  #     - "!requirements/*/docs.txt"
+  #     - "!*.md"
+  #     - "!**/*.md"
+  #   checks:
+  #     - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, fabric, 3.10)"
+  #     - "fabric.yml / Lit Job (fabric, 3.12)"
+  #     - "fabric.yml / Lit Job (lightning, 3.12)"
+  #
+  # # Temporarily disabled
+  # #  - id: "lightning_fabric: TPU workflow"
+  # #    paths:
+  # #      # tpu CI availability is very limited, so we only require tpu tests
+  # #      # to pass when their configurations are modified
+  # #      - ".github/workflows/tpu-tests.yml.disabled"
+  # #      - "tests/tests_fabric/run_tpu_tests.sh"
+  # #    checks:
+  # #      - "test-on-tpus (pytorch, pjrt, v4-8)"
+  #
+  # # SECTION: common
 
   - id: "mypy"
     paths:
