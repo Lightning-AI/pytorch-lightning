@@ -32,6 +32,12 @@ from weakref import proxy
 
 import torch
 import yaml
+from lightning_fabric.utilities.cloud_io import (
+    _is_dir,
+    _is_local_file_protocol,
+    get_filesystem,
+)
+from lightning_fabric.utilities.types import _PATH
 from torch import Tensor
 from typing_extensions import override
 
@@ -44,12 +50,6 @@ from lightning.pytorch.utilities.rank_zero import (
     rank_zero_warn,
 )
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-from lightning_fabric.utilities.cloud_io import (
-    _is_dir,
-    _is_local_file_protocol,
-    get_filesystem,
-)
-from lightning_fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
