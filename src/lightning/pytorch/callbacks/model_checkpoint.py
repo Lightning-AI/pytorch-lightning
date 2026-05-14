@@ -42,6 +42,12 @@ from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import (
+    _is_dir,
+    _is_local_file_protocol,
+    get_filesystem,
+)
+from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import (
@@ -568,7 +574,7 @@ class ModelCheckpoint(Checkpoint):
 
         if self.dirpath == dirpath_from_ckpt:
             self.best_model_score = state_dict["best_model_score"]
-            self.best_model_metrics = state_dict["best_model_metrics"]
+            self.best_model_metrics = state_dict.get("best_model_metrics", self.best_model_metrics)
             self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
