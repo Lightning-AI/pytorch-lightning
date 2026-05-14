@@ -2185,3 +2185,152 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     assert len(checkpoint_files) == expected_files, (
         f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
     )
+
+
+def test_best_model_metrics_are_stored(tmp_path):
+    """Test that best_model_metrics contains the correct metrics when a new best model is saved."""
+
+    class MetricModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            self.log("val_loss", loss)
+            # Add custom metric that changes with epochs
+            self.log("custom_metric", torch.tensor(self.current_epoch * 0.1))
+            return loss
+
+    model = MetricModel()
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="val_loss",
+        save_top_k=2,
+        mode="min",
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    # Verify best_model_metrics contains the expected values
+    best_metrics = checkpoint.best_model_metrics
+    assert best_metrics is not None
+    assert "val_loss" in best_metrics
+    assert "custom_metric" in best_metrics
+    assert "epoch" in best_metrics
+    assert "step" in best_metrics
+
+    # Verify metrics match the values from the best checkpoint
+    best_ckpt = torch.load(checkpoint.best_model_path, map_location="cpu")
+    assert torch.allclose(best_metrics["val_loss"], best_ckpt["callbacks"][checkpoint.state_key]["best_model_score"])
+
+
+def test_best_model_metrics_persistence(tmp_path):
+    """Test that best_model_metrics is properly saved and reloaded from checkpoints."""
+    model = BoringModel()
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="val_loss",
+        save_top_k=1,
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    # Save original state
+    original_metrics = checkpoint.best_model_metrics
+    state_dict = checkpoint.state_dict()
+
+    # Create new checkpoint and load state
+    new_checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss")
+    new_checkpoint.load_state_dict(state_dict)
+
+    # Verify metrics persistence
+    assert new_checkpoint.best_model_metrics is not None
+    for key in original_metrics:
+        assert torch.allclose(original_metrics[key], new_checkpoint.best_model_metrics[key])
+
+
+def test_best_model_metrics_update_only_on_improvement(tmp_path):
+    """Verify metrics only update when a new best model is saved."""
+    losses = [0.6, 0.4, 0.5]  # Best at epoch 1 (0.4), then worse at epoch 2
+
+    class ChangingLossModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = torch.tensor(losses[self.current_epoch])
+            self.log("val_loss", loss)
+            self.log("epoch_metric", torch.tensor(self.current_epoch))
+            return loss
+
+    model = ChangingLossModel()
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="val_loss",
+        save_top_k=2,
+        mode="min",
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    # Verify best_model_metrics matches epoch 1 metrics
+    assert checkpoint.best_model_metrics is not None
+    assert checkpoint.best_model_metrics["val_loss"].item() == pytest.approx(0.4)
+    assert checkpoint.best_model_metrics["epoch_metric"].item() == 1
+    assert checkpoint.best_model_metrics["epoch"].item() == 1
+
+
+def test_best_model_metrics_with_multiple_ckpts(tmp_path):
+    """Test metrics are stored correctly when multiple checkpoints are saved."""
+    model = BoringModel()
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="val_loss",
+        save_top_k=3,
+        mode="min",
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=5,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    # Verify all best k models have their metrics stored
+    assert len(checkpoint.best_k_models) == 3
+    for ckpt_path in checkpoint.best_k_models:
+        ckpt = torch.load(ckpt_path)
+        ckpt_metrics = ckpt["callbacks"][checkpoint.state_key]["best_model_metrics"]
+        assert ckpt_metrics is not None
+        assert "val_loss" in ckpt_metrics
+        assert "epoch" in ckpt_metrics
+
+
+def test_best_model_metrics_with_no_monitor(tmp_path):
+    """Test best_model_metrics is None when no monitor is set."""
+    model = BoringModel()
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, save_top_k=1)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    assert checkpoint.best_model_metrics is None
