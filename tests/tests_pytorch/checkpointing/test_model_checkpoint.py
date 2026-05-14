@@ -2226,7 +2226,14 @@ def test_best_model_metrics_are_stored(tmp_path):
 
 def test_best_model_metrics_persistence(tmp_path):
     """Test that best_model_metrics is properly saved and reloaded from checkpoints."""
-    model = BoringModel()
+
+    class MetricModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            self.log("val_loss", loss)
+            return loss
+
+    model = MetricModel()
     checkpoint = ModelCheckpoint(
         dirpath=tmp_path,
         monitor="val_loss",
@@ -2250,10 +2257,10 @@ def test_best_model_metrics_persistence(tmp_path):
     new_checkpoint.load_state_dict(state_dict)
 
     # Verify metrics persistence
+    assert original_metrics is not None
     assert new_checkpoint.best_model_metrics is not None
-    if original_metrics is not None:
-        for key in original_metrics:
-            assert torch.allclose(original_metrics[key], new_checkpoint.best_model_metrics[key])
+    for key in original_metrics:
+        assert torch.allclose(original_metrics[key], new_checkpoint.best_model_metrics[key])
 
 
 def test_best_model_metrics_update_only_on_improvement(tmp_path):
