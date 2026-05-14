@@ -2251,8 +2251,9 @@ def test_best_model_metrics_persistence(tmp_path):
 
     # Verify metrics persistence
     assert new_checkpoint.best_model_metrics is not None
-    for key in original_metrics:
-        assert torch.allclose(original_metrics[key], new_checkpoint.best_model_metrics[key])
+    if original_metrics is not None:
+        for key in original_metrics:
+            assert torch.allclose(original_metrics[key], new_checkpoint.best_model_metrics[key])
 
 
 def test_best_model_metrics_update_only_on_improvement(tmp_path):
@@ -2290,31 +2291,46 @@ def test_best_model_metrics_update_only_on_improvement(tmp_path):
 
 
 def test_best_model_metrics_with_multiple_ckpts(tmp_path):
-    """Test metrics are stored correctly when multiple checkpoints are saved."""
-    model = BoringModel()
+    """Across multiple saves, best_model_metrics tracks the running-best ckpt and is persisted correctly."""
+    losses = [0.6, 0.4, 0.5, 0.3, 0.45]  # running best per epoch: 0.6, 0.4, 0.4, 0.3, 0.3
+
+    class ChangingLossModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = torch.tensor(losses[self.current_epoch])
+            self.log("val_loss", loss)
+            self.log("epoch_metric", torch.tensor(float(self.current_epoch)))
+            return loss
+
     checkpoint = ModelCheckpoint(
         dirpath=tmp_path,
         monitor="val_loss",
         save_top_k=3,
         mode="min",
     )
-
     trainer = Trainer(
         default_root_dir=tmp_path,
         max_epochs=5,
         callbacks=[checkpoint],
         enable_progress_bar=False,
     )
-    trainer.fit(model)
+    trainer.fit(ChangingLossModel())
 
-    # Verify all best k models have their metrics stored
+    # In-memory state reflects the global best (epoch 3, loss=0.3).
+    assert checkpoint.best_model_metrics is not None
+    assert checkpoint.best_model_metrics["val_loss"].item() == pytest.approx(0.3)
+    assert checkpoint.best_model_metrics["epoch_metric"].item() == pytest.approx(3.0)
+
+    # Each saved top-k ckpt persists the running-best metrics as of its save time.
+    # epoch_metric tags which epoch's metrics are stored (i.e. which save was the best-so-far at that point).
+    expected_running_best_loss_by_save_epoch = {0: 0.6, 1: 0.4, 3: 0.3}
     assert len(checkpoint.best_k_models) == 3
     for ckpt_path in checkpoint.best_k_models:
         ckpt = torch.load(ckpt_path)
-        ckpt_metrics = ckpt["callbacks"][checkpoint.state_key]["best_model_metrics"]
-        assert ckpt_metrics is not None
-        assert "val_loss" in ckpt_metrics
-        assert "epoch" in ckpt_metrics
+        stored = ckpt["callbacks"][checkpoint.state_key]["best_model_metrics"]
+        assert stored is not None
+        save_epoch = int(stored["epoch_metric"].item())
+        assert save_epoch in expected_running_best_loss_by_save_epoch
+        assert stored["val_loss"].item() == pytest.approx(expected_running_best_loss_by_save_epoch[save_epoch])
 
 
 def test_best_model_metrics_with_no_monitor(tmp_path):
