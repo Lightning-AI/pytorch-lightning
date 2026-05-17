@@ -554,10 +554,11 @@ def test_sparsity_calculation(tmp_path, caplog, pruning_amount: float, model_typ
 
 
 def test_iterative_pruning_no_runtime_error(tmp_path):
-    """Reusing a ModelPruning callback with use_lottery_ticket_hypothesis across multiple trainer.fit()
-    calls must not raise RuntimeError due to non-leaf tensors.
+    """Reusing a ModelPruning callback with use_lottery_ticket_hypothesis across multiple trainer.fit() calls must not
+    raise RuntimeError due to non-leaf tensors.
 
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/8542
+
     """
     seed_everything(42)
 

@@ -291,6 +291,7 @@ class ModelPruning(Callback):
         ``module.__dict__`` with a detached leaf clone, performs the
         deep-copy, then restores the originals so the live module is
         unchanged.
+
         """
         non_leaf: dict[str, Tensor] = {}
         for attr_name, attr_val in list(module.__dict__.items()):
