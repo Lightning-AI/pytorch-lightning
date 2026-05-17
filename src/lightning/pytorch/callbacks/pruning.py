@@ -277,28 +277,31 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _deepcopy_for_pruning(module: nn.Module) -> nn.Module:
-        """Deep-copy a module safely when parameters may be non-leaf tensors.
+        """Deep-copy a module that may contain non-leaf tensors.
 
-        After a pruning pass with ``use_lottery_ticket_hypothesis=True``, the
-        module's parameters are rewritten via ``_copy_param`` (``dst.data =
-        src.data``).  This makes them non-leaf tensors, and a plain
-        ``deepcopy`` raises ``RuntimeError: Only Tensors created explicitly by
-        the user (graph leaves) support the deepcopy protocol``.
+        PyTorch pruning hooks write the masked weight (e.g.
+        ``weight_orig * weight_mask``) back onto the module as a plain
+        ``__dict__`` attribute (``module.weight``) after each forward pass.
+        That stored value is a non-leaf tensor, so a bare ``deepcopy`` raises::
 
-        This helper temporarily replaces every non-leaf parameter with a
-        detached clone, performs the deep-copy, then restores the originals so
-        the live model is unchanged.
+            RuntimeError: Only Tensors created explicitly by the user
+            (graph leaves) support the deepcopy protocol at the moment.
+
+        This helper temporarily replaces any non-leaf tensor found in
+        ``module.__dict__`` with a detached leaf clone, performs the
+        deep-copy, then restores the originals so the live module is
+        unchanged.
         """
         non_leaf: dict[str, Tensor] = {}
-        for param_name, param in list(module._parameters.items()):
-            if param is not None and not param.is_leaf:
-                non_leaf[param_name] = param
-                module._parameters[param_name] = param.detach().clone()
+        for attr_name, attr_val in list(module.__dict__.items()):
+            if isinstance(attr_val, Tensor) and not attr_val.is_leaf:
+                non_leaf[attr_name] = attr_val
+                module.__dict__[attr_name] = attr_val.detach().clone()
         try:
             return deepcopy(module)
         finally:
-            for param_name, original in non_leaf.items():
-                module._parameters[param_name] = original
+            for attr_name, original in non_leaf.items():
+                module.__dict__[attr_name] = original
 
     @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
