@@ -3,8 +3,9 @@ name: Probot
 on:
   issues:
     types: [labeled]
-  # Intentionally uses the unprivileged pull_request event, so this job will not
-  # run on forks.
+  # should use `pull_request_target` but it's blocked by
+  # https://github.com/probot/probot/issues/1635
+  # so this job will not run on forks until the above is fixed
   pull_request:
     types: [labeled, ready_for_review]
 
