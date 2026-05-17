@@ -141,13 +141,13 @@ class GradientStatsMonitor(Callback):
             if threshold is not None:
                 norm = metrics.get(f"{self.step_prefix}grad_norm")
                 if norm is not None and norm > threshold:
-                    rank_zero_warn(f"Gradient norm is very high ({norm:.2f}). Possible exploding gradients.")
+                    self._warn_explosion(norm)
             self._log_scalars(trainer, pl_module, metrics)
         else:
             # Explosion check only — compute just the norm, not the full stat set.
             norm = sum(g.norm(2).item() ** 2 for g in layer_grads.values()) ** 0.5
             if threshold is not None and norm > threshold:
-                rank_zero_warn(f"Gradient norm is very high ({norm:.2f}). Possible exploding gradients.")
+                self._warn_explosion(norm)
 
     def _collect_grads(self, pl_module: pl.LightningModule) -> dict[str, torch.Tensor] | None:
         """Collect per-layer gradients.
@@ -155,21 +155,21 @@ class GradientStatsMonitor(Callback):
         Returns ``{param_name: flat_grad_tensor}`` for every parameter that has a gradient,
         or ``None`` if no parameter had a gradient this step.
 
-        Gradients are moved to CPU and detached from the graph to avoid memory leaks and
-        keep GPU memory free during monitoring.  The returned tensors are flattened for
-        easier norm/stat computations.
+        Gradients are flattened for easier norm/stat computations.
 
         """
         layer_grads = {
-            name: param.grad.detach().cpu().view(-1)
-            for name, param in pl_module.named_parameters()
-            if param.grad is not None
+            name: param.grad.detach().view(-1) for name, param in pl_module.named_parameters() if param.grad is not None
         }
         return layer_grads or None
 
     def _log_scalars(self, trainer: pl.Trainer, pl_module: pl.LightningModule, metrics: dict[str, float]) -> None:
-        if trainer.is_global_zero and trainer.logger is not None:
-            pl_module.log_dict(metrics, prog_bar=False, logger=True)
+        if trainer.is_global_zero:
+            for logger in trainer.loggers:
+                logger.log_metrics(metrics, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
+
+    def _warn_explosion(self, norm: float) -> None:
+        rank_zero_warn(f"Gradient norm is very high ({norm:.2f}). Possible exploding gradients.")
 
     # -------------------------
     # Metric prefixes  ->  override to change where metrics appear in the logger
