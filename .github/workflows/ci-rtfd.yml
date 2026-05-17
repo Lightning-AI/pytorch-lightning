@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   documentation-links:
+    # This job writes PR comments, so skip fork PRs instead of using pull_request_target.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: readthedocs/actions/preview@v1

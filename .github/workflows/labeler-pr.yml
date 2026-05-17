@@ -3,6 +3,8 @@ on: [pull_request]
 
 jobs:
   triage:
+    # This job writes PR labels, so skip fork PRs instead of using pull_request_target.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
       pull-requests: write

@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   triage-conflicts:
+    # This job writes PR labels, so keep push runs but skip fork PRs.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: mschilde/auto-label-merge-conflicts@cd484bbf0476fbe79474a937681a253e094cac3d # May 9, 2026
