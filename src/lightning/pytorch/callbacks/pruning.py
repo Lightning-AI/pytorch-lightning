@@ -276,6 +276,31 @@ class ModelPruning(Callback):
                     del module._forward_pre_hooks[k]
 
     @staticmethod
+    def _deepcopy_for_pruning(module: nn.Module) -> nn.Module:
+        """Deep-copy a module safely when parameters may be non-leaf tensors.
+
+        After a pruning pass with ``use_lottery_ticket_hypothesis=True``, the
+        module's parameters are rewritten via ``_copy_param`` (``dst.data =
+        src.data``).  This makes them non-leaf tensors, and a plain
+        ``deepcopy`` raises ``RuntimeError: Only Tensors created explicitly by
+        the user (graph leaves) support the deepcopy protocol``.
+
+        This helper temporarily replaces every non-leaf parameter with a
+        detached clone, performs the deep-copy, then restores the originals so
+        the live model is unchanged.
+        """
+        non_leaf: dict[str, Tensor] = {}
+        for param_name, param in list(module._parameters.items()):
+            if param is not None and not param.is_leaf:
+                non_leaf[param_name] = param
+                module._parameters[param_name] = param.detach().clone()
+        try:
+            return deepcopy(module)
+        finally:
+            for param_name, original in non_leaf.items():
+                module._parameters[param_name] = original
+
+    @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
         # Check if the parameter has been pruned (has _orig suffix)
         dst = getattr(new, name + "_orig") if hasattr(new, name + "_orig") else getattr(new, name)
@@ -376,12 +401,18 @@ class ModelPruning(Callback):
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self._use_lottery_ticket_hypothesis:
+            # Release references from any previous run so their tensors can be
+            # garbage-collected before we allocate the new copies.
+            self._original_layers = None
             # group modules by id. Each entry has a copy of the initial data
             # and a list of the associated parameter names to prune
             self._original_layers = {}
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 id_ = id(module)
-                self._original_layers.setdefault(id_, _LayerRef(data=deepcopy(module), names=[]))
+                # Use the detach-safe helper so that iterative pruning (where
+                # parameters may already be non-leaf tensors from a previous
+                # pruning cycle) does not raise a RuntimeError.
+                self._original_layers.setdefault(id_, _LayerRef(data=self._deepcopy_for_pruning(module), names=[]))
                 self._original_layers[id_]["names"].append((i, name))
 
     def _run_pruning(self, current_epoch: int) -> None:
