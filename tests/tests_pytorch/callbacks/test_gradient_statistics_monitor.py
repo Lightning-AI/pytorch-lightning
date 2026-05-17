@@ -141,8 +141,8 @@ def test_gradient_stats_values(tmp_path):
     for c in spy.call_args_list:
         all_logged.update(c[0][0])
 
-    assert "train/grad/mean" in all_logged
-    assert "train/grad/std" in all_logged
+    assert "train/grad_mean" in all_logged
+    assert "train/grad_std" in all_logged
 
 
 # -------------------------
@@ -170,7 +170,7 @@ def test_gradient_sparsity(tmp_path):
     for c in spy.call_args_list:
         all_logged.update(c[0][0])
 
-    assert "train/grad/sparsity" in all_logged
+    assert "train/grad_sparsity" in all_logged
 
 
 # -------------------------
@@ -250,9 +250,9 @@ def test_epoch_metrics_logged(tmp_path):
     for c in spy.call_args_list:
         all_logged.update(c[0][0])
 
-    assert "train/epoch/grad/global_norm" in all_logged
-    assert "train/epoch/grad/mean" in all_logged
-    assert "train/epoch/grad/std" in all_logged
+    assert "train_epoch/grad_norm" in all_logged
+    assert "train_epoch/grad_mean" in all_logged
+    assert "train_epoch/grad_std" in all_logged
 
 
 # -------------------------
@@ -288,8 +288,8 @@ def test_log_every_n_steps_zero_disables_batch_logging(tmp_path):
     for c in spy.call_args_list:
         all_logged.update(c[0][0])
 
-    assert "train/grad/global_norm" not in all_logged
-    assert "train/epoch/grad/global_norm" in all_logged
+    assert "train/grad_norm" not in all_logged
+    assert "train_epoch/grad_norm" in all_logged
 
 
 # -------------------------
@@ -304,7 +304,7 @@ def test_non_global_zero_does_not_log():
     trainer_mock.logger = MagicMock()
 
     with patch.object(model, "log_dict") as mock_log:
-        cb._log_scalars(trainer_mock, model, {"train/grad/global_norm": 1.0})
+        cb._log_scalars(trainer_mock, model, {"train/grad_norm": 1.0})
 
     mock_log.assert_not_called()
 
@@ -338,7 +338,7 @@ def test_captures_pre_clip_gradients(tmp_path):
         all_logged.update(c[0][0])
 
     # Pre-clip norm must exceed the clip value; post-clip norm never could.
-    assert all_logged["train/grad/global_norm"] > gradient_clip_val
+    assert all_logged["train/grad_norm"] > gradient_clip_val
 
 
 # -------------------------

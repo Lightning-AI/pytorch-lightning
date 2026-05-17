@@ -42,18 +42,21 @@ class GradientStatsMonitor(Callback):
         - Detects potential exploding gradients via a configurable threshold
 
     Logging Behavior:
-        - Per-step metrics are logged under ``train/grad/``
-          (e.g. ``train/grad/global_norm``) every ``log_every_n_steps`` global steps.
-        - Per-epoch metrics are logged at the end of every epoch under ``train/epoch/grad/``,
-          aggregated over all optimizer steps regardless of ``log_every_n_steps``.
+        - Per-step metrics are logged under ``train/`` every ``log_every_n_steps`` global
+          steps (e.g. ``train/grad_norm``, ``train/grad_mean``).
+        - Per-epoch metrics are logged at the end of every epoch under ``train_epoch/``
+          (e.g. ``train_epoch/grad_norm``), aggregated over all optimizer steps regardless
+          of ``log_every_n_steps``.
         - Logging is performed only on the global rank (for distributed training safety).
         - Uses Lightning's ``log_dict`` for compatibility with all supported loggers.
         - The epoch accumulator and step counter are saved in checkpoints via ``state_dict`` /
           ``load_state_dict``, so epoch aggregates remain correct after a mid-epoch resume.
 
     Subclassing:
-        Override any of the following methods to customise what is computed or logged:
+        Override any of the following to customise what is computed or logged:
 
+        - ``step_prefix`` — property that controls the per-step metric namespace (default ``"train/"``)
+        - ``epoch_prefix`` — property that controls the per-epoch metric namespace (default ``"train_epoch/"``)
         - ``compute_batch_stats`` — metrics logged after each optimizer step
         - ``init_epoch_stats`` — initial accumulator state at the start of each epoch
         - ``update_epoch_stats`` — how each step updates the accumulator
@@ -107,7 +110,7 @@ class GradientStatsMonitor(Callback):
         self.per_layer = per_layer
         self.track_sparsity = track_sparsity
         self.explosion_threshold = explosion_threshold
-        self._train_stats: dict[str, Any] = self.init_epoch_stats("train")
+        self._train_stats: dict[str, Any] = self.init_epoch_stats()
         self._last_logged_step: int = -1
 
     # -------------------------
@@ -134,9 +137,9 @@ class GradientStatsMonitor(Callback):
         if should_log:
             # Compute full stats once; reuse the global norm for the explosion check
             # to avoid iterating over all parameters a second time.
-            metrics = self.compute_batch_stats("train", layer_grads)
+            metrics = self.compute_batch_stats(layer_grads)
             if threshold is not None:
-                norm = metrics.get("train/grad/global_norm")
+                norm = metrics.get(f"{self.step_prefix}grad_norm")
                 if norm is not None and norm > threshold:
                     rank_zero_warn(f"Gradient norm is very high ({norm:.2f}). Possible exploding gradients.")
             self._log_scalars(trainer, pl_module, metrics)
@@ -169,17 +172,31 @@ class GradientStatsMonitor(Callback):
             pl_module.log_dict(metrics, prog_bar=False, logger=True)
 
     # -------------------------
+    # Metric prefixes  ->  override to change where metrics appear in the logger
+    # -------------------------
+
+    @property
+    def step_prefix(self) -> str:
+        """Metric prefix used for per-step stats (e.g. ``"train/"`` → ``train/grad_norm``)."""
+        return "train/"
+
+    @property
+    def epoch_prefix(self) -> str:
+        """Metric prefix used for per-epoch stats (e.g. ``"train_epoch/"`` → ``train_epoch/grad_norm``)."""
+        return "train_epoch/"
+
+    # -------------------------
     # Per-step stats  ->  override to control what is computed from each step's gradients
     # -------------------------
 
-    def compute_batch_stats(self, phase: str, layer_grads: dict[str, torch.Tensor]) -> dict[str, float]:
+    def compute_batch_stats(self, layer_grads: dict[str, torch.Tensor]) -> dict[str, float]:
         """Compute and return the metric dict logged after each optimizer step.
 
         The returned dict is passed directly to ``pl_module.log_dict``.
         Override to add, remove, or rename metrics.
 
         """
-        p = f"{phase}/"
+        p = self.step_prefix
         total_norm_sq = 0.0
         total_count = 0
         total_sum = 0.0
@@ -196,21 +213,21 @@ class GradientStatsMonitor(Callback):
             if self.track_sparsity:
                 near_zero_count += int((grad.abs() < _EPS).sum().item())
             if self.per_layer:
-                metrics[f"{p}grad/{name.replace('.', '/')}_norm"] = norm
-        metrics[f"{p}grad/global_norm"] = total_norm_sq**0.5
+                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = norm
+        metrics[f"{p}grad_norm"] = total_norm_sq**0.5
         mean = total_sum / total_count
         variance = total_sq_sum / total_count - mean**2
-        metrics[f"{p}grad/mean"] = mean
-        metrics[f"{p}grad/std"] = max(variance, 0.0) ** 0.5
+        metrics[f"{p}grad_mean"] = mean
+        metrics[f"{p}grad_std"] = max(variance, 0.0) ** 0.5
         if self.track_sparsity:
-            metrics[f"{p}grad/sparsity"] = near_zero_count / total_count
+            metrics[f"{p}grad_sparsity"] = near_zero_count / total_count
         return metrics
 
     # -------------------------
     # Per-epoch stats  ->  override to control accumulation and final epoch metrics
     # -------------------------
 
-    def init_epoch_stats(self, phase: str) -> dict[str, Any]:
+    def init_epoch_stats(self) -> dict[str, Any]:
         """Return a fresh accumulator for the start of an epoch.
 
         Override to add extra fields that ``update_epoch_stats`` and
@@ -243,16 +260,15 @@ class GradientStatsMonitor(Callback):
             if self.track_sparsity:
                 state["near_zero_count"] += int((grad.abs() < _EPS).sum().item())
             if self.per_layer:
-                key = f"grad/{name.replace('.', '/')}_norm"
+                key = f"grad_norm/{name.replace('.', '/')}"
                 state["layer_norm_sums"][key] = state["layer_norm_sums"].get(key, 0.0) + norm
         state["norm_sum"] += total_norm_sq**0.5
         state["steps"] += 1
 
-    def compute_epoch_stats(self, phase: str, state: dict[str, Any]) -> dict[str, float] | None:
+    def compute_epoch_stats(self, state: dict[str, Any]) -> dict[str, float] | None:
         """Compute and return the metric dict logged at the end of each epoch.
 
         Args:
-            phase: the phase prefix used in metric names (currently always ``"train"``).
             state: the accumulator produced by ``init_epoch_stats`` and updated
                 by ``update_epoch_stats``.
 
@@ -262,22 +278,22 @@ class GradientStatsMonitor(Callback):
         values from extra state added in ``init_epoch_stats`` / ``update_epoch_stats``.
 
         Note:
-            ``{phase}/epoch/grad/global_norm`` is the **mean of per-step global norms**
+            ``{epoch_prefix}grad_norm`` is the **mean of per-step global norms**
             (i.e. ``mean(‖g_t‖₂)`` over optimizer steps *t*), not the true L2 norm of all
             gradients accumulated over the epoch.  The same applies to per-layer norm averages.
 
         """
         if state["steps"] == 0:
             return None
-        p = f"{phase}/epoch/"
-        metrics: dict[str, float] = {f"{p}grad/global_norm": state["norm_sum"] / state["steps"]}
+        p = self.epoch_prefix
+        metrics: dict[str, float] = {f"{p}grad_norm": state["norm_sum"] / state["steps"]}
         if state["grad_count"] > 0:
             mean = state["grad_sum"] / state["grad_count"]
             variance = state["grad_sq_sum"] / state["grad_count"] - mean**2
-            metrics[f"{p}grad/mean"] = mean
-            metrics[f"{p}grad/std"] = max(variance, 0.0) ** 0.5
+            metrics[f"{p}grad_mean"] = mean
+            metrics[f"{p}grad_std"] = max(variance, 0.0) ** 0.5
         if self.track_sparsity and state["grad_count"] > 0:
-            metrics[f"{p}grad/sparsity"] = state["near_zero_count"] / state["grad_count"]
+            metrics[f"{p}grad_sparsity"] = state["near_zero_count"] / state["grad_count"]
         if self.per_layer:
             for key, norm_sum in state["layer_norm_sums"].items():
                 metrics[f"{p}{key}"] = norm_sum / state["steps"]
@@ -289,7 +305,7 @@ class GradientStatsMonitor(Callback):
 
     @override
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        self._train_stats = self.init_epoch_stats("train")
+        self._train_stats = self.init_epoch_stats()
 
     @override
     def on_before_optimizer_step(self, trainer: pl.Trainer, pl_module: pl.LightningModule, optimizer: Any) -> None:
@@ -304,7 +320,7 @@ class GradientStatsMonitor(Callback):
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not self.track_epochs:
             return
-        metrics = self.compute_epoch_stats("train", self._train_stats)
+        metrics = self.compute_epoch_stats(self._train_stats)
         if metrics:
             self._log_scalars(trainer, pl_module, metrics)
 
