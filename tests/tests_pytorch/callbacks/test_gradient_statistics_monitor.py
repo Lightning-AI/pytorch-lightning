@@ -92,7 +92,7 @@ def test_per_layer_logging(tmp_path):
     for c in spy.call_args_list:
         all_logged.update(c[0][0])
 
-    assert any("grad/" in k for k in all_logged)
+    assert any("grad_norm/" in k for k in all_logged)
 
 
 class NoGradModel(SimpleModel):
@@ -135,7 +135,7 @@ def test_explosion_warning_triggered(tmp_path):
         logger=True,
     )
 
-    with patch("lightning.pytorch.callbacks.gradients_statistics_monitor.rank_zero_warn") as mock_warn:
+    with patch("lightning.pytorch.callbacks.gradient_statistics_monitor.rank_zero_warn") as mock_warn:
         trainer.fit(model, loader)
 
     assert mock_warn.called

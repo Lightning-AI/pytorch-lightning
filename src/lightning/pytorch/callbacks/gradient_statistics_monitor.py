@@ -164,9 +164,7 @@ class GradientStatsMonitor(Callback):
         return layer_grads or None
 
     def _log_scalars(self, trainer: pl.Trainer, pl_module: pl.LightningModule, metrics: dict[str, float]) -> None:
-        if trainer.is_global_zero:
-            for logger in trainer.loggers:
-                logger.log_metrics(metrics, step=trainer.global_step)
+        pl_module.log_dict(metrics)
 
     def _warn_explosion(self, norm: float) -> None:
         rank_zero_warn(f"Gradient norm is very high ({norm:.2f}). Possible exploding gradients.")
