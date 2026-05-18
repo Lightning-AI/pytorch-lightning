@@ -84,6 +84,7 @@ Lightning has a few built-in callbacks.
     Timer
     TQDMProgressBar
     WeightAveraging
+    GradientStatsMonitor
 
 ----------
 
