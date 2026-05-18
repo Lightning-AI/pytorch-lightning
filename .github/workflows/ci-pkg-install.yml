@@ -45,11 +45,16 @@ jobs:
         os: ["ubuntu-22.04", "macOS-14", "windows-2022"]
         pkg-name: ["fabric", "pytorch", "lightning", "notset"]
         python-version: ["3.10", "3.11"]
+    env:
+      # Supply-chain guard: skip PyPI releases newer than this (ISO 8601 duration). See https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to
+      PIP_UPLOADED_PRIOR_TO: "P2D"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Upgrade pip (for --uploaded-prior-to, pip >= 26.1)
+        run: python -m pip install --upgrade "pip>=26.1"
       - uses: actions/download-artifact@v8
         with:
           name: dist-packages-${{ github.sha }}

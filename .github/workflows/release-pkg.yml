@@ -24,6 +24,8 @@ env:
   FREEZE_REQUIREMENTS: 1
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYTHON_VER: "3.10"
+  # Supply-chain guard: skip PyPI releases newer than this (ISO 8601 duration). See https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to
+  PIP_UPLOADED_PRIOR_TO: "P2D"
 
 jobs:
   build-packages:
@@ -57,6 +59,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VER }}
+      - name: Upgrade pip (for --uploaded-prior-to, pip >= 26.1)
+        run: python -m pip install --upgrade "pip>=26.1"
       - name: install Package
         run: |
           pip install . --extra-index-url="${TORCH_URL}"

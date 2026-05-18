@@ -48,6 +48,8 @@ env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYPI_LOCAL_DIR: "pypi_pkgs/"
+  # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+  UV_EXCLUDE_NEWER: "2 days"
 
 jobs:
   docs-make:
@@ -179,7 +181,7 @@ jobs:
       - name: Inject version selector
         working-directory: docs/build
         run: |
-          pip install -q wget
+          uv pip install -q wget
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/inject-selector-script.py
           python inject-selector-script.py html ${{ matrix.pkg-name }}
 

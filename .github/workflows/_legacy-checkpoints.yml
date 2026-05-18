@@ -44,6 +44,8 @@ on:
 env:
   LEGACY_FOLDER: "tests/legacy"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
+  # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+  UV_EXCLUDE_NEWER: "2 days"
 
 defaults:
   run:
