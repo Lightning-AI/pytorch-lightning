@@ -1,7 +1,7 @@
 ## Meta-Learning - MAML
 
 This is an example of a meta-learning algorithm called [MAML](https://arxiv.org/abs/1703.03400), trained on the
-[Omniglot dataset](https://paperswithcode.com/dataset/omniglot-1) of handwritten characters from different alphabets.
+[Omniglot dataset](https://github.com/brendenlake/omniglot) of handwritten characters from different alphabets.
 
 The goal of meta-learning in this context is to learn a 'meta'-model trained on many different tasks, such that it can quickly adapt to a new task when trained with very few samples (few-shot learning).
 If you are new to meta-learning, have a look at this short [introduction video](https://www.youtube.com/watch?v=ItPEBdD6VMk).

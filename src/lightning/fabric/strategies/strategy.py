@@ -15,7 +15,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from contextlib import AbstractContextManager, ExitStack
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -32,6 +32,9 @@ from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp, _Stateful
+
+if TYPE_CHECKING:
+    from torch.optim.lr_scheduler import _LRScheduler
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -52,7 +55,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision: Optional[Precision] = None
         # Call the precision setter for input validation
-        self.precision = precision  # type: ignore[assignment]
+        self.precision = precision
         self._launcher: Optional[_Launcher] = None
         self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
@@ -145,8 +148,8 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: list[Optimizer]
-    ) -> tuple[Module, list[Optimizer]]:
+        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
+    ) -> tuple[Module, list[Optimizer], Optional["_LRScheduler"]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -155,7 +158,7 @@ class Strategy(ABC):
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
-        return module, optimizers
+        return module, optimizers, scheduler
 
     def setup_module(self, module: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
@@ -307,6 +310,7 @@ class Strategy(ABC):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -320,6 +324,11 @@ class Strategy(ABC):
                 - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
 
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -327,7 +336,7 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path)
+        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
         if not state:
             return checkpoint
 

@@ -10,7 +10,7 @@ Examples
 .. displayitem::
     :header: Image Classification
     :description: Train an image classifier on the MNIST dataset
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/image_classifier
     :col_css: col-md-4
     :height: 200
     :tag: basic
@@ -18,7 +18,7 @@ Examples
 .. displayitem::
     :header: Transformer Language Model
     :description: A simple language model that learns to predict the next word in a sentence
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/language_model
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/language_model
     :col_css: col-md-4
     :height: 200
     :tag: basic
@@ -26,7 +26,7 @@ Examples
 .. displayitem::
     :header: GAN
     :description: Train a GAN that generates realistic human faces
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/dcgan
     :col_css: col-md-4
     :height: 200
     :tag: intermediate
@@ -34,7 +34,7 @@ Examples
 .. displayitem::
     :header: Meta-Learning
     :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/meta_learning
     :col_css: col-md-4
     :height: 200
     :tag: intermediate
@@ -50,7 +50,7 @@ Examples
 .. displayitem::
     :header: Reinforcement Learning
     :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 200
     :tag: intermediate

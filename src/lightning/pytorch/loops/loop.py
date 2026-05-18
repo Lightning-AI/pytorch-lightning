@@ -23,6 +23,7 @@ class _Loop:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self._restarting = False
         self._loaded_from_state_dict = False
+        self._resuming_from_checkpoint = False
         self.trainer = trainer
 
     @property
@@ -37,6 +38,11 @@ class _Loop:
         for loop in vars(self).values():
             if isinstance(loop, _Loop):
                 loop.restarting = restarting
+
+    @property
+    def is_resuming(self) -> bool:
+        """Indicates whether training is being resumed from a checkpoint."""
+        return self._resuming_from_checkpoint
 
     def reset_restart_stage(self) -> None:
         pass
@@ -87,6 +93,7 @@ class _Loop:
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
         self.restarting = True
         self._loaded_from_state_dict = True
+        self._resuming_from_checkpoint = True
 
     def _load_from_state_dict(self, state_dict: dict, prefix: str) -> None:
         for k, v in self.__dict__.items():
@@ -102,4 +109,5 @@ class _Loop:
     def on_iteration_done(self) -> None:
         self._restarting = False
         self._loaded_from_state_dict = False
+        self._resuming_from_checkpoint = False
         self.reset_restart_stage()

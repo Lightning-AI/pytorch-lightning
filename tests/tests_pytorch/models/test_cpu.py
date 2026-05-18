@@ -49,7 +49,7 @@ def test_cpu_slurm_save_load(_, tmp_path):
     trainer.fit(model)
     real_global_step = trainer.global_step
 
-    # traning complete
+    # training complete
     assert trainer.state.finished, "cpu model failed to complete"
 
     # predict with trained model before saving

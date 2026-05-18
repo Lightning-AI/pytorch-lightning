@@ -41,6 +41,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
@@ -159,7 +160,17 @@ class DDPStrategy(ParallelStrategy):
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:
-            torch.distributed.barrier()
+            # Handle PyTorch bug where barrier() fails on CPU with "PrivateUse1HooksInterface" error
+            try:
+                torch.distributed.barrier()
+            except RuntimeError as e:
+                if "PrivateUse1HooksInterface" in str(e):
+                    # Fallback: Use all_reduce as barrier - all processes must participate
+                    # This achieves the same synchronization effect as barrier()
+                    dummy_tensor = torch.tensor(0.0, device=self.root_device)
+                    torch.distributed.all_reduce(dummy_tensor)
+                else:
+                    raise
 
     @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
@@ -212,7 +223,10 @@ class DDPStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)

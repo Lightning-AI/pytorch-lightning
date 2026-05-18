@@ -138,6 +138,19 @@ class HyperparametersMixin:
         else:
             self._hparams = hp
 
+    def remove_ignored_hparams(self, ignore_list: list[str]) -> None:
+        """Remove ignored hyperparameters from the stored state.
+
+        This allows derived classes to drop hyperparameters previously saved
+        by base classes.
+
+        Args:
+            ignore_list: Names of hyperparameters to remove.
+
+        """
+        for key in ignore_list:
+            self._hparams.pop(key, None)
+
     @staticmethod
     def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
         if isinstance(hp, Namespace):

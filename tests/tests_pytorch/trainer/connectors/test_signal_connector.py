@@ -28,6 +28,13 @@ from lightning.pytorch.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
 
+def test_sigterm_exception_exit_code():
+    """Test that SIGTERMException produces a nonzero exit code (143 = 128 + SIGTERM)."""
+    exc = SIGTERMException()
+    assert isinstance(exc, SystemExit)
+    assert exc.code == 143
+
+
 @RunIf(skip_windows=True)
 def test_signal_handlers_restored_in_teardown():
     """Test that the SignalConnector restores the previously configured handler on teardown."""

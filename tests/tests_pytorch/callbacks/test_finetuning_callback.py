@@ -109,8 +109,8 @@ def test_finetuning_callback_warning(tmp_path):
     model.validation_step = None
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
+    trainer = Trainer(limit_train_batches=1, default_root_dir=tmp_path, callbacks=[callback, chk], max_epochs=2)
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(limit_train_batches=1, default_root_dir=tmp_path, callbacks=[callback, chk], max_epochs=2)
         trainer.fit(model)
 
     assert model.backbone.has_been_used

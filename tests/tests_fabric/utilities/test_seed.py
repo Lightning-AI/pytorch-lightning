@@ -10,6 +10,7 @@ import torch
 
 from lightning.fabric.utilities.seed import (
     _collect_rng_states,
+    _generate_seed_sequence,
     _set_rng_states,
     pl_worker_init_function,
     reset_seed,
@@ -47,19 +48,37 @@ def test_correct_seed_with_environment_variable():
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 def test_invalid_seed():
-    """Ensure that we still fix the seed even if an invalid seed is given."""
-    with pytest.warns(UserWarning, match="Invalid seed found"):
-        seed = seed_everything()
-    assert seed == 0
+    """Ensure that a ValueError is raised if an invalid seed is given."""
+    with pytest.raises(ValueError, match="Invalid seed specified"):
+        seed_everything()
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
 def test_out_of_bounds_seed(seed):
-    """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
-    with pytest.warns(UserWarning, match="is not in bounds"):
-        actual = seed_everything(seed)
-    assert actual == 0
+    """Ensure that a ValueError is raised if an out-of-bounds seed is given."""
+    with pytest.raises(ValueError, match="is not in bounds"):
+        seed_everything(seed)
+
+
+def test_seed_everything_accepts_valid_seed_argument():
+    """Ensure that seed_everything returns the provided valid seed."""
+    seed_value = 45
+    assert seed_everything(seed_value) == seed_value
+
+
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "17"}, clear=True)
+def test_seed_everything_accepts_valid_seed_from_env():
+    """Ensure that seed_everything uses the valid seed from the PL_GLOBAL_SEED environment variable."""
+    assert seed_everything() == 17
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything_non_verbose_no_warning():
+    """Ensure that no warning is emitted when verbose is False and no seed is provided."""
+    with warnings.catch_warnings(record=True) as caught:
+        seed_everything(verbose=False)
+    assert caught == []
 
 
 def test_reset_seed_no_op():
@@ -135,3 +154,23 @@ def test_pl_worker_init_function(base_seed, num_workers, num_ranks):
     assert len(stdlib_rands) == num_ranks * num_workers
     assert len(numpy_rands) == num_ranks * num_workers
     assert len(torch_rands | stdlib_rands | numpy_rands) == 3 * num_workers * num_ranks
+
+
+def test_generate_seed_sequence_no_collision():
+    """Test that _generate_seed_sequence produces unique seeds for different base seeds."""
+    base_seeds = [0, 1, 42, 123, 999, 12345]
+    generated_seeds = []
+    random_outputs = []
+
+    for base_seed in base_seeds:
+        seed_everything(base_seed)
+        process_seed = torch.initial_seed()
+        generated_seed = _generate_seed_sequence(process_seed, worker_id=0, global_rank=0, count=1)[0]
+        generated_seeds.append(generated_seed)
+        torch.manual_seed(generated_seed)
+        random_outputs.append(tuple(torch.randn(10).tolist()))
+
+    assert len(set(generated_seeds)) == len(generated_seeds), (
+        "Generated seeds should be unique for different base seeds"
+    )
+    assert len(set(random_outputs)) == len(random_outputs), "Random outputs should be unique for different base seeds"

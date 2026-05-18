@@ -204,3 +204,18 @@ def _check_data_type(device_ids: object) -> None:
                 raise TypeError(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
         raise TypeError(f"{msg} {device_ids!r}.")
+
+
+def _select_auto_accelerator() -> str:
+    """Choose the accelerator type (str) based on availability."""
+    from lightning.fabric.accelerators.cuda import CUDAAccelerator
+    from lightning.fabric.accelerators.mps import MPSAccelerator
+    from lightning.fabric.accelerators.xla import XLAAccelerator
+
+    if XLAAccelerator.is_available():
+        return "tpu"
+    if MPSAccelerator.is_available():
+        return "mps"
+    if CUDAAccelerator.is_available():
+        return "cuda"
+    return "cpu"

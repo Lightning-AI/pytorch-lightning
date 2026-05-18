@@ -22,10 +22,13 @@ from typing import Any, Optional, Union
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.flop_counter import FlopCounterMode
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.distributed import _is_dtensor
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -180,29 +183,31 @@ class ModelSummary:
         ...
         >>> model = LitModel()
         >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name | Type       | Params | Mode  | In sizes  | Out sizes
-        --------------------------------------------------------------------
-        0 | net  | Sequential | 132 K  | train | [10, 256] | [10, 512]
-        --------------------------------------------------------------------
+          | Name | Type       | Params | Mode  | FLOPs | In sizes  | Out sizes
+        ----------------------------------------------------------------------------
+        0 | net  | Sequential | 132 K  | train | 2.6 M | [10, 256] | [10, 512]
+        ----------------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
         3         Modules in train mode
         0         Modules in eval mode
+        2.6 M     Total Flops
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name  | Type        | Params | Mode  | In sizes  | Out sizes
-        ----------------------------------------------------------------------
-        0 | net   | Sequential  | 132 K  | train | [10, 256] | [10, 512]
-        1 | net.0 | Linear      | 131 K  | train | [10, 256] | [10, 512]
-        2 | net.1 | BatchNorm1d | 1.0 K  | train | [10, 512] | [10, 512]
-        ----------------------------------------------------------------------
+          | Name  | Type        | Params | Mode  | FLOPs | In sizes  | Out sizes
+        ------------------------------------------------------------------------------
+        0 | net   | Sequential  | 132 K  | train | 2.6 M | [10, 256] | [10, 512]
+        1 | net.0 | Linear      | 131 K  | train | 2.6 M | [10, 256] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1.0 K  | train | 0     | [10, 512] | [10, 512]
+        ------------------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
         3         Modules in train mode
         0         Modules in eval mode
+        2.6 M     Total Flops
 
     """
 
@@ -212,11 +217,33 @@ class ModelSummary:
         if not isinstance(max_depth, int) or max_depth < -1:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
 
+        # The max-depth needs to be plus one because the root module is already counted as depth 0.
+        self._flop_counter = FlopCounterMode(
+            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
+            display=False,
+            depth=max_depth + 1,
+        )
+
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
-        precision_to_bits = {"64": 64, "32": 32, "16": 16, "bf16": 16}
+        precision_to_bits = {
+            "64": 64,
+            "32": 32,
+            "16": 16,
+            "bf16": 16,
+            "16-true": 16,
+            "bf16-true": 16,
+            "32-true": 32,
+            "64-true": 64,
+        }
+        if self._model._trainer and self._model.trainer.precision not in precision_to_bits:
+            rank_zero_warn(
+                f"Precision {self._model.trainer.precision} is not supported by the model summary. "
+                " Estimated model size in MB will not be accurate. Using 32 bits instead.",
+                category=UserWarning,
+            )
         precision = precision_to_bits.get(self._model.trainer.precision, 32) if self._model._trainer else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
@@ -279,6 +306,22 @@ class ModelSummary:
     def model_size(self) -> float:
         return self.total_parameters * self._precision_megabytes
 
+    @property
+    def total_flops(self) -> int:
+        return self._flop_counter.get_total_flops()
+
+    @property
+    def flop_counts(self) -> dict[str, dict[Any, int]]:
+        flop_counts = self._flop_counter.get_flop_counts()
+        ret = {
+            name: flop_counts.get(
+                f"{type(self._model).__name__}.{name}",
+                {},
+            )
+            for name in self.layer_names
+        }
+        return ret
+
     def summarize(self) -> dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -307,8 +350,18 @@ class ModelSummary:
         mode.capture(model)
         model.eval()
 
+        # FlopCounterMode does not support ScriptModules before torch 2.4.0, so we use a null context
+        flop_context = (
+            contextlib.nullcontext()
+            if (
+                not _TORCH_GREATER_EQUAL_2_4
+                and any(isinstance(m, torch.jit.ScriptModule) for m in self._model.modules())
+            )
+            else self._flop_counter
+        )
+
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
-        with torch.no_grad(), forward_context:
+        with torch.no_grad(), forward_context, flop_context:
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)
@@ -330,6 +383,7 @@ class ModelSummary:
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
             ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
+            ("FLOPs", list(map(get_human_readable_count, (sum(x.values()) for x in self.flop_counts.values())))),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
@@ -349,6 +403,7 @@ class ModelSummary:
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
         layer_summaries["Mode"].append(NOT_APPLICABLE)
+        layer_summaries["FLOPs"].append(NOT_APPLICABLE)
         if "In sizes" in layer_summaries:
             layer_summaries["In sizes"].append(NOT_APPLICABLE)
         if "Out sizes" in layer_summaries:
@@ -361,8 +416,16 @@ class ModelSummary:
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
         total_training_modes = self.total_training_modes
+        total_flops = self.total_flops
 
-        return _format_summary_table(total_parameters, trainable_parameters, model_size, total_training_modes, *arrays)
+        return _format_summary_table(
+            total_parameters,
+            trainable_parameters,
+            model_size,
+            total_training_modes,
+            total_flops,
+            *arrays,
+        )
 
     def __repr__(self) -> str:
         return str(self)
@@ -383,6 +446,7 @@ def _format_summary_table(
     trainable_parameters: int,
     model_size: float,
     total_training_modes: dict[str, int],
+    total_flops: int,
     *cols: tuple[str, list[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
@@ -423,6 +487,8 @@ def _format_summary_table(
     summary += "Modules in train mode"
     summary += "\n" + s.format(total_training_modes["eval"], 10)
     summary += "Modules in eval mode"
+    summary += "\n" + s.format(get_human_readable_count(total_flops), 10)
+    summary += "Total Flops"
 
     return summary
 

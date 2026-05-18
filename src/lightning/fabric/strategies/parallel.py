@@ -87,7 +87,7 @@ class ParallelStrategy(Strategy, ABC):
 
     @override
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
-        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
+        """Reduces a boolean decision over distributed processes. By default is analogous to ``all`` from the standard
         library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
         it behaves like ``any`` instead.
 

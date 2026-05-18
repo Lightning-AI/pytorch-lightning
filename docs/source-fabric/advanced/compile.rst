@@ -221,7 +221,7 @@ needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
 
         model = fabric.setup(model)
 
-For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/fp8_distributed_transformer>`_.
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/fp8_distributed_transformer>`_.
 
 ----
 
@@ -417,7 +417,7 @@ Additional Resources
 
 Here are a few resources for further reading after you complete this tutorial:
 
-- `PyTorch 2.0 Paper <https://pytorch.org/blog/pytorch-2-paper-tutorial/>`_
+- `PyTorch 2.0 Paper <https://pytorch.org/get-started/pytorch-2-x/>`_
 - `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
 - `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
 - `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_

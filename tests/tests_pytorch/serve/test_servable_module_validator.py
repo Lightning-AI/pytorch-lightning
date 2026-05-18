@@ -5,6 +5,7 @@ from torch import Tensor
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
+from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 
 class ServableBoringModel(BoringModel, ServableModule):
@@ -28,13 +29,14 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"output": [0, 1]}
 
 
-@pytest.mark.xfail(strict=False, reason="test is too flaky in CI")  # todo
+@pytest.mark.flaky(reruns=3)
 def test_servable_module_validator():
     model = ServableBoringModel()
     callback = ServableModuleValidator()
     callback.on_train_start(Trainer(accelerator="cpu"), model)
 
 
+@_xfail_gloo_windows
 @pytest.mark.flaky(reruns=3)
 def test_servable_module_validator_with_trainer(tmp_path, mps_count_0):
     callback = ServableModuleValidator()

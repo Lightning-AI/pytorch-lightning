@@ -18,6 +18,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning_utilities.test.warning import no_warning_call
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -80,8 +81,7 @@ class UnorderedModel(LightningModule):
         out1 = self.layer1(x)
         out2 = self.layer2(y)
         out = self.relu(torch.cat((out1, out2), 1))
-        out = self.combine(out)
-        return out
+        return self.combine(out)
 
 
 class MixedDtypeModel(LightningModule):
@@ -173,6 +173,7 @@ def test_empty_model_summary_shapes(max_depth):
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
+    assert summary.total_flops == 0
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
@@ -317,22 +318,39 @@ def test_empty_model_size(max_depth):
 
 
 @pytest.mark.parametrize(
-    "accelerator",
+    ("accelerator", "precision"),
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", "16-true", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("gpu", "32-true", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("gpu", "64-true", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "16-true", marks=RunIf(mps=True)),
+        pytest.param("mps", "32-true", marks=RunIf(mps=True)),
+        # Note: "64-true" with "mps" is skipped because MPS does not support float64
     ],
 )
-def test_model_size_precision(tmp_path, accelerator):
-    """Test model size for half and full precision."""
-    model = PreCalculatedModel()
+def test_model_size_precision(tmp_path, accelerator, precision):
+    """Test model size for different precision types."""
+    model = PreCalculatedModel(precision=int(precision.split("-")[0]))
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
+        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=precision
     )
     trainer.fit(model)
     summary = summarize(model)
+    assert model.pre_calculated_model_size == summary.model_size
+
+
+def test_model_size_warning_on_unsupported_precision(tmp_path):
+    """Test that a warning is raised when the precision is not supported."""
+    model = PreCalculatedModel(precision=32)  # fallback to 32 bits
+
+    # supported precision by lightning but not by the model summary
+    trainer = Trainer(max_epochs=1, precision="16-mixed", default_root_dir=tmp_path)
+    trainer.fit(model)
+
+    with pytest.warns(UserWarning, match="Precision .* is not supported by the model summary.*"):
+        summary = summarize(model)
     assert model.pre_calculated_model_size == summary.model_size
 
 
@@ -343,6 +361,7 @@ def test_lazy_model_summary():
 
     with pytest.warns(UserWarning, match="The total number of parameters detected may be inaccurate."):
         assert summary.total_parameters == 0
+    with no_warning_call():
         assert summary.trainable_parameters == 0
 
 

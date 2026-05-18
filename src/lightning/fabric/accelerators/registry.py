@@ -73,14 +73,14 @@ class _AcceleratorRegistry(dict):
         data["description"] = description
         data["init_params"] = init_params
 
-        def do_register(name: str, accelerator: Callable) -> Callable:
+        def do_register(accelerator: Callable) -> Callable:
             data["accelerator"] = accelerator
             data["accelerator_name"] = name
             self[name] = data
             return accelerator
 
         if accelerator is not None:
-            return do_register(name, accelerator)
+            return do_register(accelerator)
 
         return do_register
 

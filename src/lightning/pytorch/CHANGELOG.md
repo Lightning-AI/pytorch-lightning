@@ -4,30 +4,199 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+---
 
 ## [unreleased] - YYYY-MM-DD
 
 ### Added
 
-- Add enable_autolog_hparams argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
+- Added `suggest_integrations` flag to `Trainer` to control whether optional integration suggestions (e.g., litmodels, litlogger) are shown in logs ([#21632](https://github.com/Lightning-AI/pytorch-lightning/pull/21632))
 
+- Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21612](https://github.com/Lightning-AI/pytorch-lightning/issues/21612))
 
 ### Changed
 
 -
 
-
 ### Removed
 
 -
 
+### Fixed
+
+- Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
+
+---
+
+## [2.6.2] - 2026-03-19
+
+
+### Removed
+
+- Removed support for Neptune logger ([#21572](https://github.com/Lightning-AI/pytorch-lightning/pull/21572))
+
+
+### Changed
+
+- Raise minimum `LitLogger` version to `2026-03-17` ([#21591](https://github.com/Lightning-AI/pytorch-lightning/pull/21591))
+
 
 ### Fixed
 
-- Fixed logger_connector has edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/issues/20692))
+- Fixed `val_check_interval` raising `ValueError` when `limit_val_batches=0` and interval exceeds training batches ([#21560](https://github.com/Lightning-AI/pytorch-lightning/pull/21560))
 
+- Fixed pkg-resources deprecation issue ([#21538](https://github.com/Lightning-AI/pytorch-lightning/pull/21538))
+
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
+- Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
+
+- Fixed ``RichModelSummary`` model size display formatting ([#21467](https://github.com/Lightning-AI/pytorch-lightning/pull/21467))
 
 ---
+
+## [2.6.1] - 2026-01-30
+
+### Added
+
+- Added method chaining support to `LightningModule.freeze()` and `LightningModule.unfreeze()` by returning `self` ([#21469](https://github.com/Lightning-AI/pytorch-lightning/pull/21469))
+- Added litlogger integration([#21430](https://github.com/Lightning-AI/pytorch-lightning/pull/21430))
+
+### Deprecated
+
+- Deprecated `to_torchscript` method due to deprecation of TorchScript in PyTorch ([#21397](https://github.com/Lightning-AI/pytorch-lightning/pull/21397))
+
+
+### Removed
+
+- Removed support for Python 3.9 due to end-of-life status ([#21398](https://github.com/Lightning-AI/pytorch-lightning/pull/21398))
+
+### Fixed
+
+- Fixed `save_hyperparameters(ignore=...)` behavior so subclass ignore rules override base class rules (#[21490](https://github.com/Lightning-AI/pytorch-lightning/pull/21490))
+- Fixed `LightningDataModule.load_from_checkpoint` to restore the datamodule subclass and hyperparameters ([#21478](https://github.com/Lightning-AI/pytorch-lightning/pull/21478))
+- Fixed ``ModelParallelStrategy`` single-file checkpointing when ``torch.compile`` wraps the model so optimizer states no longer raise ``KeyError`` during save ([#21357](https://github.com/Lightning-AI/pytorch-lightning/issues/21357))
+- Sanitize profiler filenames when saving to avoid crashes due to invalid characters ([#21395](https://github.com/Lightning-AI/pytorch-lightning/pull/21395))
+- Fixed `StochasticWeightAveraging` with infinite epochs ([#21396](https://github.com/Lightning-AI/pytorch-lightning/pull/21396))
+- Fixed `_generate_seed_sequence_sampling` function not producing unique seeds ([#21399](https://github.com/Lightning-AI/pytorch-lightning/pull/21399))
+- Fixed `ThroughputMonitor` callback emitting warnings too frequently ([#21453](https://github.com/Lightning-AI/pytorch-lightning/pull/21453))
+
+
+## [2.6.0] - 2025-11-28
+
+### Added
+
+- Added `WeightAveraging` callback that wraps the PyTorch `AveragedModel` class ([#20545](https://github.com/Lightning-AI/pytorch-lightning/pull/20545))
+- Added Torch-Tensorrt integration with `LightningModule` ([#20808](https://github.com/Lightning-AI/pytorch-lightning/pull/20808))
+- Added time-based validation support though `val_check_interval` ([#21071](https://github.com/Lightning-AI/pytorch-lightning/pull/21071))
+- Added attributes to access stopping reason in `EarlyStopping` callback ([#21188](https://github.com/Lightning-AI/pytorch-lightning/pull/21188))
+- Added support for variable batch size in `ThroughputMonitor` ([#20236](https://github.com/Lightning-AI/pytorch-lightning/pull/20236))
+- Added `EMAWeightAveraging` callback that wraps Lightning's `WeightAveraging` class ([#21260](https://github.com/Lightning-AI/pytorch-lightning/pull/21260))
+
+### Changed
+
+- Expose `weights_only` argument for `Trainer.{fit,validate,test,predict}` and let `torch` handle default value ([#21072](https://github.com/Lightning-AI/pytorch-lightning/pull/21072))
+- Default to `RichProgressBar` and `RichModelSummary` if the rich package is available. Fallback to TQDMProgressBar and ModelSummary otherwise ([#20896](https://github.com/Lightning-AI/pytorch-lightning/pull/20896))
+- Add MPS accelerator support for mixed precision ([#21209](https://github.com/Lightning-AI/pytorch-lightning/pull/21209))
+
+### Fixed
+
+- Fixed edgecase when `max_trials` is reached in `Tuner.scale_batch_size` ([#21187](https://github.com/Lightning-AI/pytorch-lightning/pull/21187))
+- Fixed case where `LightningCLI` could not be initialized with `trainer_default` containing callbacks ([#21192](https://github.com/Lightning-AI/pytorch-lightning/pull/21192))
+- Fixed missing reset when `ModelPruning` is applied with lottery ticket hypothesis ([#21191](https://github.com/Lightning-AI/pytorch-lightning/pull/21191))
+- Fixed preventing recursive symlink creation iwhen `save_last='link'` and `save_top_k=-1` ([#21186](https://github.com/Lightning-AI/pytorch-lightning/pull/21186))
+- Fixed `last.ckpt` being created and not linked to another checkpoint ([#21244](https://github.com/Lightning-AI/pytorch-lightning/pull/21244))
+- Fixed bug that prevented `BackboneFinetuning` from being used together with `LearningRateFinder` ([#21224](https://github.com/Lightning-AI/pytorch-lightning/pull/21224))
+- Fixed `ModelPruning` sparsity logging bug that caused incorrect sparsity percentages ([#21223](https://github.com/Lightning-AI/pytorch-lightning/pull/21223))
+- Fixed `LightningCLI` loading of hyperparameters from `ckpt_path` failing for subclass model mode ([#21246](https://github.com/Lightning-AI/pytorch-lightning/pull/21246))
+- Fixed check the init args only when the given frames are in `__init__` method ([#21227](https://github.com/Lightning-AI/pytorch-lightning/pull/21227))
+- Fixed how `ThroughputMonitor` calculated training time ([#21291](https://github.com/Lightning-AI/pytorch-lightning/pull/21291))
+- Fixed synchronization of gradients in manual optimization with `DDPStrategy(static_graph=True)` ([#21251](https://github.com/Lightning-AI/pytorch-lightning/pull/21251))
+- Fixed FSDP mixed precision semantics and added user warning ([#21361](https://github.com/Lightning-AI/pytorch-lightning/pull/21361))
+- Fixed `ModelCheckpoint.file_exists` using broadcast in DDP, reducing memory usage when checking for existing checkpoints ([#19674](https://github.com/Lightning-AI/pytorch-lightning/issues/19674))
+
+
+## [2.5.6] - 2025-11-05
+
+### Changed
+
+- Add `name()` function to accelerator interface (([#21325](https://github.com/Lightning-AI/pytorch-lightning/pull/21325)))
+
+### Removed
+
+- Remove support for deprecated and archived lightning-habana package ([#21327](https://github.com/Lightning-AI/pytorch-lightning/pull/21327))
+
+
+## [2.5.5] - 2025-09-05
+
+### Changed
+
+- Include `exclude_frozen_parameters` to `DeepSpeedStrategy` ([#21060](https://github.com/Lightning-AI/pytorch-lightning/pull/21060))
+- Include `PossibleUserWarning` that is raised if modules are in eval mode when training starts ([#21146](https://github.com/Lightning-AI/pytorch-lightning/pull/21146))
+
+### Fixed
+
+- Fixed `LightningCLI` not using `ckpt_path` hyperparameters to instantiate classes ([#21116](https://github.com/Lightning-AI/pytorch-lightning/pull/21116))
+- Fixed callbacks by defer step/time-triggered `ModelCheckpoint` saves until validation metrics are available ([#21106](https://github.com/Lightning-AI/pytorch-lightning/pull/21106))
+- Fixed with adding a missing device id for pytorch 2.8 ([#21105](https://github.com/Lightning-AI/pytorch-lightning/pull/21105))
+- Fixed `TQDMProgressBar` not resetting correctly when using both a finite and iterable dataloader ([#21147](https://github.com/Lightning-AI/pytorch-lightning/pull/21147))
+- Fixed cleanup of temporary files from `Tuner` on crashes ([#21162](https://github.com/Lightning-AI/pytorch-lightning/pull/21162))
+
+
+## [2.5.4] - 2025-08-29
+
+### Fixed
+
+- Fixed `AsyncCheckpointIO` snapshots tensors to avoid race with parameter mutation ([#21079](https://github.com/Lightning-AI/pytorch-lightning/pull/21079))
+- Fixed `AsyncCheckpointIO` threadpool exception if calling fit or validate more than one ([#20952](https://github.com/Lightning-AI/pytorch-lightning/pull/20952))
+- Fixed learning rate not being correctly set after using `LearningRateFinder` callback ([#21068](https://github.com/Lightning-AI/pytorch-lightning/pull/21068))
+- Fixed misalignment column while using rich model summary in `DeepSpeedstrategy` ([#21100](https://github.com/Lightning-AI/pytorch-lightning/pull/21100))
+- Fixed `RichProgressBar` crashing when sanity checking using val dataloader with 0 len ([#21108](https://github.com/Lightning-AI/pytorch-lightning/pull/21108))
+
+## [2.5.3] - 2025-08-13
+
+### Changed
+
+- Added `save_on_exception` option to `ModelCheckpoint` Callback ([#20916](https://github.com/Lightning-AI/pytorch-lightning/pull/20916))
+- Allow `dataloader_idx_` in log names when `add_dataloader_idx=False` ([#20987](https://github.com/Lightning-AI/pytorch-lightning/pull/20987))
+- Allow returning `ONNXProgram` when calling `to_onnx(dynamo=True)` ([#20811](https://github.com/Lightning-AI/pytorch-lightning/pull/20811))
+- Extended support for general mappings being returned from `training_step` when using manual optimization ([#21011](https://github.com/Lightning-AI/pytorch-lightning/pull/21011))
+
+### Fixed
+
+- Fixed Allowing trainer to accept CUDAAccelerator instance as accelerator with FSDP strategy ([#20964](https://github.com/Lightning-AI/pytorch-lightning/pull/20964))
+- Fixed progress bar console clearing for Rich `14.1+` ([#21016](https://github.com/Lightning-AI/pytorch-lightning/pull/21016))
+- Fixed `AdvancedProfiler` to handle nested profiling actions for Python 3.12+ ([#20809](https://github.com/Lightning-AI/pytorch-lightning/pull/20809))
+- Fixed rich progress bar error when resume training ([#21000](https://github.com/Lightning-AI/pytorch-lightning/pull/21000))
+- Fixed double iteration bug when resumed from a checkpoint. ([#20775](https://github.com/Lightning-AI/pytorch-lightning/pull/20775))
+- Fixed support for more dtypes in `ModelSummary` ([#21034](https://github.com/Lightning-AI/pytorch-lightning/pull/21034))
+- Fixed metrics in `RichProgressBar` being updated according to user provided `refresh_rate` ([#21032](https://github.com/Lightning-AI/pytorch-lightning/pull/21032))
+- Fixed `save_last` behavior in the absence of validation ([#20960](https://github.com/Lightning-AI/pytorch-lightning/pull/20960))
+- Fixed integration between `LearningRateFinder` and `EarlyStopping` ([#21056](https://github.com/Lightning-AI/pytorch-lightning/pull/21056))
+- Fixed gradient calculation in `lr_finder` for `mode="exponential"`  ([#21055](https://github.com/Lightning-AI/pytorch-lightning/pull/21055))
+- Fixed `save_hyperparameters` crashing with `dataclasses` using `init=False` fields ([#21051](https://github.com/Lightning-AI/pytorch-lightning/pull/21051))
+
+
+## [2.5.2] - 2025-06-20
+
+### Changed
+
+- Add `enable_autolog_hparams` argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
+- Add `toggled_optimizer(optimizer)` method to the LightningModule, which is a context manager version of `toggle_optimize` and `untoggle_optimizer` ([#20771](https://github.com/Lightning-AI/pytorch-lightning/pull/20771))
+- For cross-device local checkpoints, instruct users to install `fsspec>=2025.5.0` if unavailable ([#20780](https://github.com/Lightning-AI/pytorch-lightning/pull/20780))
+- Check param is of `nn.Parameter` type for pruning sanitization ([#20783](https://github.com/Lightning-AI/pytorch-lightning/pull/20783))
+
+### Fixed
+
+- Fixed `save_hyperparameters` not working correctly with `LightningCLI` when there are parsing links applied on instantiation ([#20777](https://github.com/Lightning-AI/pytorch-lightning/pull/20777))
+- Fixed `logger_connector` has an edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/pull/20692))
+- Fixed Synchronize SIGTERM Handling in DDP to Prevent Deadlocks ([#20825](https://github.com/Lightning-AI/pytorch-lightning/pull/20825))
+- Fixed case-sensitive model name ([#20661](https://github.com/Lightning-AI/pytorch-lightning/pull/20661))
+- CLI: resolve jsonargparse deprecation warning ([#20802](https://github.com/Lightning-AI/pytorch-lightning/pull/20802))
+- Fix: move `check_inputs` to the target device if available during `to_torchscript` ([#20873](https://github.com/Lightning-AI/pytorch-lightning/pull/20873))
+- Fixed progress bar display to correctly handle iterable dataset and `max_steps` during training ([#20869](https://github.com/Lightning-AI/pytorch-lightning/pull/20869))
+- Fixed problem for silently supporting `jsonnet` ([#20899](https://github.com/Lightning-AI/pytorch-lightning/pull/20899))
+
 
 ## [2.5.1] - 2025-03-18
 

@@ -170,3 +170,44 @@ def test_distributed_sampler_with_overfit_batches():
     train_sampler = trainer.train_dataloader.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False
+
+
+def test_overfit_batches_same_batch_for_train_and_val(tmp_path):
+    """Test that when overfit_batches=1, the same batch is used for both training and validation."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.train_batches = []
+            self.val_batches = []
+
+        def training_step(self, batch, batch_idx):
+            self.train_batches.append(batch)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            self.val_batches.append(batch)
+            return super().validation_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        overfit_batches=1,
+        check_val_every_n_epoch=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    # Verify that the same batch was used for both training and validation
+    assert len(model.train_batches) > 0
+    assert len(model.val_batches) > 0
+
+    # Compare the actual batch contents
+    train_batch = model.train_batches[0]
+    val_batch = model.val_batches[0]
+
+    # Check if the batches are identical
+    assert torch.equal(train_batch, val_batch), (
+        "Training and validation batches should be identical when overfit_batches=1"
+    )

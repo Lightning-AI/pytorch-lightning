@@ -545,13 +545,14 @@ def test_warning_with_few_workers(_, tmp_path, ckpt_path, stage):
 
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
-    with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
-        if stage == "test":
-            if ckpt_path in ("specific", "best"):
-                trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-            ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
+    if stage == "test":
+        if ckpt_path in ("specific", "best"):
+            trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
+        ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
+        with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
             trainer.test(model, dataloaders=train_dl, ckpt_path=ckpt_path)
-        else:
+    else:
+        with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
             trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
 
@@ -579,16 +580,15 @@ def test_warning_with_few_workers_multi_loader(_, tmp_path, ckpt_path, stage):
 
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
-    with pytest.warns(
-        UserWarning,
-        match=f"The '{stage}_dataloader' does not have many workers",
-    ):
-        if stage == "test":
-            if ckpt_path in ("specific", "best"):
-                trainer.fit(model, train_dataloaders=train_multi_dl, val_dataloaders=val_multi_dl)
-            ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
+    if stage == "test":
+        if ckpt_path in ("specific", "best"):
+            trainer.fit(model, train_dataloaders=train_multi_dl, val_dataloaders=val_multi_dl)
+        ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
+
+        with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
             trainer.test(model, dataloaders=test_multi_dl, ckpt_path=ckpt_path)
-        else:
+    else:
+        with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
             trainer.fit(model, train_dataloaders=train_multi_dl, val_dataloaders=val_multi_dl)
 
 
@@ -669,28 +669,35 @@ def test_auto_add_worker_init_fn_distributed(tmp_path, monkeypatch):
     trainer.fit(model, train_dataloaders=dataloader)
 
 
-def test_warning_with_small_dataloader_and_logging_interval(tmp_path):
+@pytest.mark.parametrize("log_interval", [2, 11])
+def test_warning_with_small_dataloader_and_logging_interval(log_interval, tmp_path):
     """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
 
-    with pytest.warns(UserWarning, match=r"The number of training batches \(10\) is smaller than the logging interval"):
-        trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, log_every_n_steps=11, logger=CSVLogger(tmp_path))
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        log_every_n_steps=log_interval,
+        limit_train_batches=1 if log_interval < 10 else None,
+        logger=CSVLogger(tmp_path),
+    )
+    with pytest.warns(
+        UserWarning,
+        match=rf"The number of training batches \({log_interval - 1}\) is smaller than the logging interval",
+    ):
         trainer.fit(model)
 
-    with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
-        trainer = Trainer(
-            default_root_dir=tmp_path,
-            max_epochs=1,
-            log_every_n_steps=2,
-            limit_train_batches=1,
-            logger=CSVLogger(tmp_path),
-        )
-        trainer.fit(model)
 
+def test_warning_with_small_dataloader_and_fast_dev_run(tmp_path):
+    """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
+    model = BoringModel()
+    dataloader = DataLoader(RandomDataset(32, length=10))
+    model.train_dataloader = lambda: dataloader
+
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, log_every_n_steps=2)
     with no_warning_call(UserWarning, match="The number of training batches"):
-        trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, log_every_n_steps=2)
         trainer.fit(model)
 
 

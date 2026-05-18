@@ -4,30 +4,121 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-
 ## [unreleased] - YYYY-MM-DD
 
 ### Added
 
 -
 
+### Changed
+
+-
 
 ### Removed
 
 -
 
+### Fixed
+
+-
+
+--
+
+## [2.6.2] - 2026-03-19
+
+### Fixed
+
+- Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
+
+- Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
 
 ---
+
+## [2.6.1] - 2026-01-30
+
+### Added
+
+- Exposed `weights_only` argument for loading checkpoints in `Fabric.load()` and `Fabric.load_raw()` ([#21470](https://github.com/Lightning-AI/pytorch-lightning/pull/21470))
+
+### Fixed
+
+- Fixed `DistributedSamplerWrapper` not forwarding `set_epoch` to the underlying sampler ([#21454](https://github.com/Lightning-AI/pytorch-lightning/pull/21454))
+- Fixed DDP notebook CUDA fork check to allow passive initialization when CUDA is not actively used ([#21402](https://github.com/Lightning-AI/pytorch-lightning/pull/21402))
+
+
+## [2.6.0] - 2025-11-28
+
+### Added
+
+- Added kwargs-filtering for `Fabric.call` to support different callback method signatures ([#21258](https://github.com/Lightning-AI/pytorch-lightning/pull/21258))
+
+### Changed
+
+- Expose `weights_only` argument for `Trainer.{fit,validate,test,predict}` and let `torch` handle default value ([#21072](https://github.com/Lightning-AI/pytorch-lightning/pull/21072))
+- Set `_DeviceDtypeModuleMixin._device` from torch's default device function ([#21164](https://github.com/Lightning-AI/pytorch-lightning/pull/21164))
+
+### Fixed
+
+- Fixed issue in detecting MPIEnvironment with partial mpi4py installation ([#21353](https://github.com/Lightning-AI/pytorch-lightning/pull/21353))
+- Learning rate scheduler is stepped at the end of epoch when `on_train_batch_start` returns -1 ([#21296](https://github.com/Lightning-AI/pytorch-lightning/issues/21296)).
+- Fixed FSDP mixed precision semantics and added user warning ([#21361](https://github.com/Lightning-AI/pytorch-lightning/pull/21361))
+
+
+## [2.5.5] - 2025-09-05
+
+### Changed
+
+- Include `exclude_frozen_parameters` to `DeepSpeedStrategy` ([#21060](https://github.com/Lightning-AI/pytorch-lightning/pull/21060))
+- Let `_get_default_process_group_backend_for_device` support more hardware platforms (
+    [#21057](https://github.com/Lightning-AI/pytorch-lightning/pull/21057), [#21093](https://github.com/Lightning-AI/pytorch-lightning/pull/21093))
+
+### Fixed
+
+- Fixed with adding a missing device id for pytorch 2.8 ([#21105](https://github.com/Lightning-AI/pytorch-lightning/pull/21105))
+- Respecting `verbose=False` in `seed_everything` when no seed is provided ([#21161](https://github.com/Lightning-AI/pytorch-lightning/pull/21161))
+
+
+## [2.5.4] - 2025-08-29
+
+### Changed
+
+- Added support for NVIDIA H200 GPUs in `get_available_flops` ([#21119](https://github.com/Lightning-AI/pytorch-lightning/pull/21119))
+
+
+
+## [2.5.3] - 2025-08-13
+
+### Changed
+
+- Enable "auto" for `devices` and `accelerator` as CLI arguments ([#20913](https://github.com/Lightning-AI/pytorch-lightning/pull/20913))
+- Raise ValueError when seed is `out-of-bounds` or `cannot be cast to int` ([#21029](https://github.com/Lightning-AI/pytorch-lightning/pull/21029))
+
+### Fixed
+
+- Fixed XLA strategy to add support for `global_ordinal`, `local_ordinal`, `world_size` which came instead of deprecated methods ([#20852](https://github.com/Lightning-AI/pytorch-lightning/issues/20852))
+- Fixed remove extra `name` parameter in accelerator registry decorator ([#20975](https://github.com/Lightning-AI/pytorch-lightning/pull/20975))
+
+
+## [2.5.2] - 2025-3-20
+
+### Changed
+
+- Ensure correct device is used for autocast when mps is selected as Fabric accelerator ([#20876](https://github.com/Lightning-AI/pytorch-lightning/pull/20876))
+
+### Fixed
+
+- Fix: `TransformerEnginePrecision` conversion for layers with `bias=False` ([#20805](https://github.com/Lightning-AI/pytorch-lightning/pull/20805))
+
 
 ## [2.5.1] - 2025-03-18
 
 ### Changed
 
-- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/issues/19957))
+- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/pull/19957))
 
 ### Removed
 
-- Removed legacy support for `lightning run model`. Use `fabric run` instead. ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
+- Removed legacy support for `lightning run model`; use `fabric run` instead ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
 
 
 ## [2.5.0] - 2024-12-19

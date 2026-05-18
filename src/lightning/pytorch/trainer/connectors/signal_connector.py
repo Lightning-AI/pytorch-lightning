@@ -7,6 +7,9 @@ from subprocess import call
 from types import FrameType
 from typing import Any, Callable, Union
 
+import torch
+import torch.distributed as dist
+
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
@@ -104,12 +107,16 @@ class _SignalConnector:
 
     def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", self.trainer.local_rank))
-        # subprocesses killing the parent process is not supported, only the parent (rank 0) does it
         if not self.received_sigterm:
-            # send the same signal to the subprocesses
             launcher = self.trainer.strategy.launcher
             if launcher is not None:
                 launcher.kill(signum)
+
+        # New broadcast logic
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
+            sigterm_tensor = torch.tensor([1], device=self.trainer.strategy.root_device)
+            dist.broadcast(sigterm_tensor, src=0)
+
         self.received_sigterm = True
 
     def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:

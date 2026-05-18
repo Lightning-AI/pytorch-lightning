@@ -36,7 +36,7 @@ from tests_fabric.test_fabric import BoringModel
 @pytest.mark.parametrize(
     "accelerator",
     [
-        "cpu",
+        pytest.param("cpu", marks=RunIf(skip_windows=True)),
         pytest.param("cuda", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
@@ -85,7 +85,7 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    # currently (PyTorch 2.6) using ruduce-overhead here casues a RuntimeError:
+    # currently (PyTorch 2.6) using reduce overhead here causes a RuntimeError:
     # Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run.
     compile_kwargs = {"mode": "reduce-overhead"} if _TORCH_LESS_EQUAL_2_6 else {}
     compiled_model = torch.compile(model, **compile_kwargs)

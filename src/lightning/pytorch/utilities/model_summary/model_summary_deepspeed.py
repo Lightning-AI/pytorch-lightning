@@ -99,6 +99,7 @@ class DeepSpeedSummary(ModelSummary):
             ("Params", list(map(get_human_readable_count, self.param_nums))),
             ("Params per Device", list(map(get_human_readable_count, self.parameters_per_layer))),
             ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
+            ("FLOPs", list(map(get_human_readable_count, (sum(x.values()) for x in self.flop_counts.values())))),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))

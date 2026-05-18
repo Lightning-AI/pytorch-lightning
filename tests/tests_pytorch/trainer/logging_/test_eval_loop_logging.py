@@ -27,12 +27,12 @@ import torch
 from torch import Tensor
 
 from lightning.pytorch import Trainer, callbacks
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -234,9 +234,9 @@ def test_eval_epoch_only_logging(tmp_path, batches, log_interval, max_epochs):
 
 
 @pytest.mark.parametrize("suffix", [False, True])
-def test_multi_dataloaders_add_suffix_properly(tmp_path, suffix):
+def test_multi_dataloaders_add_suffix_properly(suffix, tmp_path):
     class TestModel(BoringModel):
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):  # noqa: PT028
             out = super().test_step(batch, batch_idx)
             self.log("test_loss", out["y"], on_step=True, on_epoch=True)
             return out
@@ -441,7 +441,7 @@ def test_log_works_in_test_callback(tmp_path):
     class TestModel(BoringModel):
         seen_losses = {i: [] for i in range(num_dataloaders)}
 
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):  # noqa: PT028
             loss = super().test_step(batch, batch_idx)["y"]
             self.log("test_loss", loss)
             self.seen_losses[dataloader_idx].append(loss)
@@ -534,7 +534,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         max_epochs=2,
     )
 
-    # Train the model ⚡
+    # Train the model
     trainer.fit(model)
 
     assert set(trainer.callback_metrics) == {

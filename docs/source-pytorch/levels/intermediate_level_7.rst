@@ -1,8 +1,8 @@
 :orphan:
 
-######################################
-Level 7: Interactive cloud development
-######################################
+##############################
+Level 7: Hardware acceleration
+##############################
 
 Learn to develop models on cloud GPUs and TPUs.
 

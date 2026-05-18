@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import math
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+import torch
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -235,7 +238,11 @@ class _TrainingEpochLoop(loops._Loop):
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         # `iter()` was called once in `FitLoop.setup_data()` already
-        if self.trainer.current_epoch > 0 and not self.restarting:
+        # Call `iter()` again only when:
+        #       1. Not restarting
+        #       2. Not resuming from checkpoint (not is_resuming)
+        #       3. Past first epoch (current_epoch > 0)
+        if self.trainer.current_epoch > 0 and not self.trainer.fit_loop.is_resuming and not self.restarting:
             iter(data_fetcher)  # creates the iterator inside the fetcher
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -248,6 +255,21 @@ class _TrainingEpochLoop(loops._Loop):
 
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
+
+    def _broadcast_sigterm_tensor(self) -> None:
+        try:
+            sigterm_tensor = torch.tensor(
+                [1 if getattr(self.trainer, "received_sigterm", False) else 0],
+                device=self.trainer.strategy.root_device,
+            )
+            torch.distributed.broadcast(sigterm_tensor, src=0)
+        except Exception:
+            sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+
+        if sigterm_tensor.item() == 1:
+            with contextlib.suppress(Exception):
+                torch.distributed.barrier()  # prevent deadlocks by syncing all ranks before exit
+            raise SIGTERMException()
 
     def advance(self, data_fetcher: _DataFetcher) -> None:
         """Runs a single training batch.
@@ -271,6 +293,13 @@ class _TrainingEpochLoop(loops._Loop):
 
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
+
+        # =====================================================================
+
+        if torch.distributed.is_available() and torch.distributed.is_initialized() and self.trainer.world_size > 1:
+            self._broadcast_sigterm_tensor()
+
+        # =====================================================================
 
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             dataloader_iter = next(data_fetcher)
@@ -296,6 +325,8 @@ class _TrainingEpochLoop(loops._Loop):
         trainer._logger_connector.on_batch_start(batch)
 
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
+        should_skip_rest_of_epoch = False
+
         if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
@@ -303,23 +334,24 @@ class _TrainingEpochLoop(loops._Loop):
             call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
             response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
-            if response == -1:
-                self.batch_progress.increment_processed()
-                raise StopIteration
+            should_skip_rest_of_epoch = response == -1
+            # Signal this is the last batch for the current epoch
+            if should_skip_rest_of_epoch:
+                self.batch_progress.increment_by(0, is_last_batch=True)
+            else:
+                self.batch_progress.increment_started()
 
-            self.batch_progress.increment_started()
-
-            kwargs = (
-                self._build_kwargs(OrderedDict(), batch, batch_idx)
-                if not using_dataloader_iter
-                else OrderedDict(any=dataloader_iter)
-            )
-            with trainer.profiler.profile("run_training_batch"):
-                if trainer.lightning_module.automatic_optimization:
-                    # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
-                else:
-                    batch_output = self.manual_optimization.run(kwargs)
+                kwargs = (
+                    self._build_kwargs(OrderedDict(), batch, batch_idx)
+                    if not using_dataloader_iter
+                    else OrderedDict(any=dataloader_iter)
+                )
+                with trainer.profiler.profile("run_training_batch"):
+                    if trainer.lightning_module.automatic_optimization:
+                        # in automatic optimization, there can only be one optimizer
+                        batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
+                    else:
+                        batch_output = self.manual_optimization.run(kwargs)
 
         self.batch_progress.increment_processed()
 
@@ -328,6 +360,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
+
+        if should_skip_rest_of_epoch:
+            # Only raise StopIteration now so that the training epoch loop can finish
+            raise StopIteration
 
         if using_dataloader_iter:
             # update the hook kwargs now that the step method might have consumed the iterator
@@ -506,11 +542,18 @@ class _TrainingEpochLoop(loops._Loop):
             # and when the loop allows to stop (min_epochs/steps met)
             return True
 
+        interval = self.trainer._val_check_time_interval
+        if interval is not None:
+            now = time.monotonic()
+            # if time’s up → tell Trainer to validate
+            return now - self.trainer._last_val_time >= interval
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
+            # if we got here, we’re in batch-based mode, so this can’t be None
+            assert self.trainer.val_check_batch is not None
             # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
             # else condition it based on the batch_idx of the current epoch
             current_iteration = self.total_batch_idx if self.trainer.check_val_every_n_epoch is None else self.batch_idx

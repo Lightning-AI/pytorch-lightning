@@ -20,6 +20,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
@@ -132,8 +133,41 @@ def test_set_timeout(mock_init_process_group):
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
     world_size = trainer.strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = trainer.strategy.root_device if trainer.strategy.root_device.type != "cpu" else None
     mock_init_process_group.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
+    )
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_device_id_passed_for_cuda_devices_pytorch(mock_init_process_group):
+    """Test that device_id is passed to init_process_group for CUDA devices but not for CPU."""
+    # Test with CPU device - device_id should be None
+    model = BoringModel()
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="cpu",
+        strategy=ddp_strategy,
+    )
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+
+    process_group_backend = trainer.strategy._get_process_group_backend()
+    global_rank = trainer.strategy.cluster_environment.global_rank()
+    world_size = trainer.strategy.cluster_environment.world_size()
+    kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_3:
+        kwargs["device_id"] = trainer.strategy.root_device if trainer.strategy.root_device.type != "cpu" else None
+    mock_init_process_group.assert_called_with(
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=trainer.strategy._timeout,
+        **kwargs,
     )
 
 

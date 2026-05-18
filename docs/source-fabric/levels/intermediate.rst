@@ -19,7 +19,7 @@ Intermediate skills
         <div class="row">
 
 .. displayitem::
-    :header: Organize your model code with with LightningModule
+    :header: Organize your model code with LightningModule
     :description: Organize your code in a LightningModule and use it with Fabric
     :button_link: ../guide/lightning_module.html
     :col_css: col-md-4

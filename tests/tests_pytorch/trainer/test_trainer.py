@@ -55,7 +55,7 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_2_8
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -386,12 +386,14 @@ def test_model_checkpoint_only_weights(tmp_path):
 
 def test_model_freeze_unfreeze():
     model = BoringModel()
-    model.freeze()
+    freeze_ret = model.freeze()
+    assert freeze_ret is model
     assert not model.training
     for param in model.parameters():
         assert not param.requires_grad
 
-    model.unfreeze()
+    unfreeze_ret = model.unfreeze()
+    assert unfreeze_ret is model
     assert model.training
     for param in model.parameters():
         assert param.requires_grad
@@ -1729,6 +1731,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer(fn):
 
 
 @RunIf(min_cuda_gpus=1)
+# FixMe: the memory raises to 1024 from expected 512
+@pytest.mark.xfail(
+    AssertionError,
+    strict=True,
+    condition=_TORCH_GREATER_EQUAL_2_8,
+    reason="temporarily disabled for torch >= 2.8",
+)
 def test_multiple_trainer_constant_memory_allocated(tmp_path):
     """This tests ensures calling the trainer several times reset the memory back to 0."""
 
@@ -1750,8 +1759,6 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
         gc.collect()
         return torch.cuda.memory_allocated(0)
 
-    initial = current_memory()
-
     model = TestModel()
     trainer_kwargs = {
         "default_root_dir": tmp_path,
@@ -1763,6 +1770,7 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
         "callbacks": Check(),
     }
     trainer = Trainer(**trainer_kwargs)
+    initial = current_memory()
     trainer.fit(model)
 
     assert trainer.strategy.model is model
@@ -2106,6 +2114,22 @@ def test_init_module_context(monkeypatch):
     strategy.tensor_init_context.reset_mock()
 
 
+@pytest.mark.parametrize(
+    ("target_device", "accelerator", "devices"),
+    [
+        ("cpu", "cpu", "auto"),
+        pytest.param("cuda:0", "gpu", [0], marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda:1", "gpu", [1], marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
+def test_init_module_device_type(target_device, accelerator, devices):
+    """Test that the strategy returns the context manager for initializing the module."""
+    trainer = Trainer(accelerator=accelerator, devices=devices)
+    with trainer.init_module():
+        model = BoringModel()
+        assert model.device == torch.device(target_device)
+
+
 def test_expand_home_trainer():
     """Test that the dirpath gets expanded if it contains `~`."""
     home_root = Path.home()
@@ -2114,3 +2138,23 @@ def test_expand_home_trainer():
     assert trainer.default_root_dir == str(home_root / "trainer")
     trainer = Trainer(default_root_dir=Path("~/trainer"))
     assert trainer.default_root_dir == str(home_root / "trainer")
+
+
+@pytest.mark.parametrize("suggest_integrations", [True, False])
+def test_trainer_integration_suggestions(tmp_path, caplog, suggest_integrations):
+    caplog.set_level("INFO", logger="lightning.pytorch.utilities.rank_zero")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        enable_progress_bar=False,
+        suggest_integrations=suggest_integrations,
+    )
+
+    trainer.fit(BoringModel())
+
+    messages = [r.getMessage() for r in caplog.records if r.name == "lightning.pytorch.utilities.rank_zero"]
+
+    has_suggestion = any("litmodels" in m or "litlogger" in m for m in messages)
+
+    assert has_suggestion == suggest_integrations

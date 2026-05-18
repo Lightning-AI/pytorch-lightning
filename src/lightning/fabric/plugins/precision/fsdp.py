@@ -24,6 +24,7 @@ from typing_extensions import get_args, override
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
+from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
@@ -84,19 +85,18 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        if self.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
-        elif self.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self.precision == "16-true":
+        if self.precision in ("16-true", "bf16-true"):
+            rank_zero_warn(
+                f"FSDP with `{self.precision}` enables computation in lower precision. "
+                "FSDP will always retain a full-precision copy of the model parameters for sharding."
+            )
+
+        if self.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif self.precision == "bf16-true":
+        elif self.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float32
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
 
@@ -112,7 +112,7 @@ class FSDPPrecision(Precision):
 
     @override
     def module_init_context(self) -> AbstractContextManager:
-        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
+        return _DtypeContextManager(self._desired_input_dtype)
 
     @override
     def forward_context(self) -> AbstractContextManager:

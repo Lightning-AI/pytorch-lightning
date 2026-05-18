@@ -26,9 +26,6 @@ from typing import (
 
 import torch
 from torch import Tensor
-
-# TODO: Unused import, but lightning_habana imports these from here
-from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau  # noqa: F401
 from typing_extensions import TypeAlias, overload
 
 UntypedStorage: TypeAlias = torch.UntypedStorage

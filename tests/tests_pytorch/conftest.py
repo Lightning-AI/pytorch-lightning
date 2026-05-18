@@ -95,6 +95,12 @@ def restore_env_variables():
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
         "TORCHINDUCTOR_CACHE_DIR",  # leaked by torch.compile
+        # TensorFlow and TPU related variables
+        "TF2_BEHAVIOR",
+        "TPU_ML_PLATFORM",
+        "TPU_ML_PLATFORM_VERSION",
+        "LD_LIBRARY_PATH",
+        "ENABLE_RUNTIME_UPTIME_TELEMETRY",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -164,6 +170,7 @@ def thread_police_duuu_daaa_duuu_daaa():
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)
             or "ThreadPoolExecutor-" in thread.name
+            or thread.name == "InductorSubproc"  # torch.compile
         ):
             # probably `torch.compile`, can't narrow it down further
             continue
@@ -333,7 +340,7 @@ def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.C
 
     options = {
         "standalone": "PL_RUN_STANDALONE_TESTS",
-        "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
+        "min_cuda_gpus": "RUN_ONLY_CUDA_TESTS",
         "tpu": "PL_RUN_TPU_TESTS",
     }
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":

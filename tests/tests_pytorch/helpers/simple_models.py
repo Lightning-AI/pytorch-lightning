@@ -100,8 +100,7 @@ class RegressionModel(LightningModule):
         x = self.layer_1a(x)
         x = self.layer_2(x)
         x = self.layer_2a(x)
-        x = self.layer_end(x)
-        return x
+        return self.layer_end(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)

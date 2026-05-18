@@ -52,6 +52,7 @@ from lightning.fabric.strategies.fsdp import (
     _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
+    _warn_if_shared_params_across_fsdp_units,
 )
 from lightning.fabric.strategies.model_parallel import _load_raw_module_state
 from lightning.fabric.utilities.distributed import (
@@ -61,7 +62,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -160,7 +161,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
-        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
+        device_mesh: Optional[Union[tuple[int, int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -227,7 +228,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[FSDPPrecision]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecision):
             raise TypeError(
                 f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision_plugin}"
@@ -260,7 +261,10 @@ class FSDPStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
         # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
         if isinstance(self.kwargs.get("device_mesh"), tuple):
@@ -303,6 +307,7 @@ class FSDPStrategy(ParallelStrategy):
                 )
                 del self.kwargs["auto_wrap_policy"]
         else:
+            _warn_if_shared_params_across_fsdp_units(model, self.kwargs.get("auto_wrap_policy"))
             log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
             model = FullyShardedDataParallel(
                 module=model,
@@ -580,7 +585,7 @@ class FSDPStrategy(ParallelStrategy):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 
@@ -621,7 +626,7 @@ class FSDPStrategy(ParallelStrategy):
                         optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / _METADATA_FILENAME)
+            metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
             return metadata
 
         if _is_full_checkpoint(path):

@@ -15,6 +15,7 @@ import math
 import os
 import shutil
 import sys
+import time
 from collections import ChainMap, OrderedDict, defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
@@ -25,7 +26,6 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import _BatchProgress
@@ -44,6 +44,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
@@ -313,6 +314,9 @@ class _EvaluationLoop(_Loop):
 
         if self.verbose and self.trainer.is_global_zero:
             self._print_results(logged_outputs, self._stage.value)
+
+        now = time.monotonic()
+        self.trainer._last_val_time = now
 
         return logged_outputs
 

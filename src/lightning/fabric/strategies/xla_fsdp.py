@@ -26,7 +26,7 @@ from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import XLAPrecision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
@@ -44,6 +44,7 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
 if TYPE_CHECKING:
+    from torch.optim.lr_scheduler import _LRScheduler
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 _POLICY_SET = set[type[Module]]
@@ -134,7 +135,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -150,7 +151,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[XLAPrecision]) -> None:
+    def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
@@ -196,8 +197,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @override
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: list[Optimizer]
-    ) -> tuple[Module, list[Optimizer]]:
+        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
+    ) -> tuple[Module, list[Optimizer], Optional["_LRScheduler"]]:
         """Returns NotImplementedError since for XLAFSDP optimizer setup must happen after module setup."""
         raise NotImplementedError(
             f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
@@ -515,6 +516,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
 
@@ -607,7 +609,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                 )
             if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
                 raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
-            full_ckpt = torch.load(path)
+            full_ckpt = torch.load(path, weights_only=weights_only)
             model.load_state_dict(full_ckpt.pop("model"), strict=strict)
             return full_ckpt
 

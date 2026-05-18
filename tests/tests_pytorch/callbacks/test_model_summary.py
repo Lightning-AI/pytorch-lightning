@@ -65,6 +65,9 @@ def test_custom_model_summary_callback_summarize(tmp_path):
             assert summary_data[4][0] == "Mode"
             assert summary_data[4][1][0] == "train"
 
+            assert summary_data[5][0] == "FLOPs"
+            assert all(isinstance(x, str) for x in summary_data[5][1])
+
             assert total_training_modes == {"train": 1, "eval": 0}
 
     model = BoringModel()

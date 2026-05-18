@@ -121,3 +121,28 @@ def test_top_k_ddp(save_mock, tmp_path, k, epochs, val_check_interval, expected)
     trainer.fit(model)
     if os.getenv("LOCAL_RANK") == "0":
         assert save_mock.call_count == expected
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_model_checkpoint_ddp_monitor_none(tmp_path):
+    """Ensure that ModelCheckpoint with monitor=None works correctly under DDP and exercises the file_exists path."""
+
+    model = BoringModel()
+    checkpoint = callbacks.ModelCheckpoint(dirpath=tmp_path, monitor=None, save_top_k=1)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[checkpoint],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        max_epochs=1,
+        strategy="ddp",
+        accelerator="gpu",
+        devices=2,
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+
+    trainer.fit(model)
+    if os.getenv("LOCAL_RANK") == "0":
+        assert checkpoint.best_model_path

@@ -16,7 +16,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.configuration_validator import (
@@ -46,20 +45,19 @@ def test_wrong_configure_optimizers(tmp_path):
         trainer.fit(model)
 
 
-def test_fit_val_loop_config(tmp_path):
+@pytest.mark.parametrize("model_attrib", ["validation_step", "val_dataloader"])
+def test_fit_val_loop_config(model_attrib, tmp_path):
     """When either val loop or val data are missing raise warning."""
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
 
-    # no val data has val loop
-    with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
-        model = BoringModel()
-        model.validation_step = None
-        trainer.fit(model)
-
-    # has val loop but no val data
-    with pytest.warns(PossibleUserWarning, match=r"You defined a `validation_step` but have no `val_dataloader`"):
-        model = BoringModel()
-        model.val_dataloader = None
+    model = BoringModel()
+    setattr(model, model_attrib, None)
+    match_msg = (
+        r"You passed in a `val_dataloader` but have no `validation_step`"
+        if model_attrib == "validation_step"
+        else "You defined a `validation_step` but have no `val_dataloader`"
+    )
+    with pytest.warns(UserWarning, match=match_msg):
         trainer.fit(model)
 
 

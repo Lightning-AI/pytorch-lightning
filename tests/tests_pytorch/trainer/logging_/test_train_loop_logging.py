@@ -35,7 +35,7 @@ from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 def test__training_step__log(tmp_path):
@@ -346,7 +346,7 @@ class LoggingSyncDistModel(BoringModel):
     ("devices", "accelerator"),
     [
         (1, "cpu"),
-        (2, "cpu"),
+        pytest.param(2, "cpu", marks=_xfail_gloo_windows),
         pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )

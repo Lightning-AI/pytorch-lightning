@@ -14,6 +14,7 @@
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any, Optional, Union
 
 import torch.multiprocessing as mp
@@ -50,7 +51,7 @@ class _DataConnector:
 
     def on_trainer_init(
         self,
-        val_check_interval: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
         reload_dataloaders_every_n_epochs: int,
         check_val_every_n_epoch: Optional[int],
     ) -> None:
@@ -63,8 +64,8 @@ class _DataConnector:
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
             raise MisconfigurationException(
-                "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
-                f" found {val_check_interval!r}."
+                "`val_check_interval` should be an integer or a time-based duration (str 'DD:HH:MM:SS', "
+                "datetime.timedelta, or dict kwargs for timedelta) when `check_val_every_n_epoch=None`."
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
@@ -244,15 +245,23 @@ def _get_distributed_sampler(
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
+    """Resolve overfit batches by disabling shuffling.
+
+    When overfit_batches > 0, this function ensures that sequential sampling is used without shuffling for consistent
+    batches across epochs. Training and validation use different sets of data.
+
+    """
     all_have_sequential_sampler = all(
         isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
     )
     if all_have_sequential_sampler:
         return
+
     rank_zero_warn(
         f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
+
     updated = [
         _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) if hasattr(dl, "dataset") else dl
         for dl in combined_loader.flattened

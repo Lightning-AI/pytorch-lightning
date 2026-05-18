@@ -100,7 +100,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_not_called()
 
     # 2 dm
-    # prepar per node = True
+    # prepare per node = True
     # local rank = 0 (True)
     dm.prepare_data_per_node = True
     local_rank.return_value = 0

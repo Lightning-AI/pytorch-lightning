@@ -1,18 +1,15 @@
 import json
-import operator
 import os
 import warnings
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import compare_version
 
+from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
-
-_TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 
 
 class SpikeDetection:
@@ -129,10 +126,10 @@ class SpikeDetection:
         raise TrainingSpikeException(batch_idx=batch_idx)
 
     def _check_atol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
-        return (self.atol is None) or bool(abs(val_a - val_b) >= abs(self.atol))
+        return (self.atol is None) or bool(abs(val_a - val_b) >= abs(self.atol))  # type: ignore
 
     def _check_rtol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
-        return (self.rtol is None) or bool(abs(val_a - val_b) >= abs(self.rtol * val_b))
+        return (self.rtol is None) or bool(abs(val_a - val_b) >= abs(self.rtol * val_b))  # type: ignore
 
     def _is_better(self, diff_val: torch.Tensor) -> bool:
         if self.mode == "min":

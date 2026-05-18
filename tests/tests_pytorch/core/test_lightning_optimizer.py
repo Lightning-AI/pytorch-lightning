@@ -45,7 +45,7 @@ def test_lightning_optimizer(tmp_path):
 
 
 def test_init_optimizers_resets_lightning_optimizers(tmp_path):
-    """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
+    """Test that the Trainer resets the `lightning_optimizers` list every time new optimizers get initialized."""
 
     def compare_optimizers():
         assert trainer.strategy._lightning_optimizers[0].optimizer is trainer.optimizers[0]

@@ -111,6 +111,7 @@ def thread_police_duuu_daaa_duuu_daaa():
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)
             or "ThreadPoolExecutor-" in thread.name
+            or thread.name == "InductorSubproc"  # torch.compile
         ):
             # probably `torch.compile`, can't narrow it down further
             continue
@@ -212,7 +213,7 @@ def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.C
 
     options = {
         "standalone": "PL_RUN_STANDALONE_TESTS",
-        "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
+        "min_cuda_gpus": "RUN_ONLY_CUDA_TESTS",
         "tpu": "PL_RUN_TPU_TESTS",
     }
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":

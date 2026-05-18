@@ -16,8 +16,8 @@ from typing import Any
 from typing_extensions import override
 
 from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.utilities.model_summary import get_human_readable_count
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
+from lightning.pytorch.utilities.model_summary import get_formatted_model_size, get_human_readable_count
 
 
 class RichModelSummary(ModelSummary):
@@ -72,12 +72,14 @@ class RichModelSummary(ModelSummary):
         trainable_parameters: int,
         model_size: float,
         total_training_modes: dict[str, int],
+        total_flops: int,
         **summarize_kwargs: Any,
     ) -> None:
         from rich import get_console
         from rich.table import Table
 
         console = get_console()
+        column_names = list(zip(*summary_data))[0]
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")
         table = Table(header_style=header_style)
@@ -85,9 +87,12 @@ class RichModelSummary(ModelSummary):
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
         table.add_column("Params", justify="right")
-        table.add_column("Mode")
 
-        column_names = list(zip(*summary_data))[0]
+        if "Params per Device" in column_names:
+            table.add_column("Params per Device", justify="right")
+
+        table.add_column("Mode")
+        table.add_column("FLOPs", justify="right")
 
         for column_name in ["In sizes", "Out sizes"]:
             if column_name in column_names:
@@ -100,8 +105,9 @@ class RichModelSummary(ModelSummary):
         console.print(table)
 
         parameters = []
-        for param in [trainable_parameters, total_parameters - trainable_parameters, total_parameters, model_size]:
+        for param in [trainable_parameters, total_parameters - trainable_parameters, total_parameters]:
             parameters.append("{:<{}}".format(get_human_readable_count(int(param)), 10))
+        parameters.append("{:<{}}".format(get_formatted_model_size(model_size), 10))
 
         grid = Table.grid(expand=True)
         grid.add_column()
@@ -113,5 +119,6 @@ class RichModelSummary(ModelSummary):
         grid.add_row(f"[bold]Total estimated model params size (MB)[/]: {parameters[3]}")
         grid.add_row(f"[bold]Modules in train mode[/]: {total_training_modes['train']}")
         grid.add_row(f"[bold]Modules in eval mode[/]: {total_training_modes['eval']}")
+        grid.add_row(f"[bold]Total FLOPs[/]: {get_human_readable_count(total_flops)}")
 
         console.print(grid)

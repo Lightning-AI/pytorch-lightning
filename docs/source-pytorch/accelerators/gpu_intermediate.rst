@@ -59,7 +59,7 @@ variables:
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=1 python my_file.py --accelerator 'gpu' --devices 3 --etc
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=2 python my_file.py --accelerator 'gpu' --devices 3 --etc
 
-Using DDP this way has a few disadvantages over ``torch.multiprocessing.spawn()``:
+Using DDP this way has a few advantages over ``torch.multiprocessing.spawn()``:
 
 1. All processes (including the main process) participate in training and have the updated state of the model and Trainer state.
 2. No multiprocessing pickle errors

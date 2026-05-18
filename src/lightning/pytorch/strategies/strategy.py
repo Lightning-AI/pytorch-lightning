@@ -57,7 +57,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[Precision] = None
         # Call the precision setter for input validation
-        self.precision_plugin = precision_plugin  # type: ignore[assignment]
+        self.precision_plugin = precision_plugin
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
@@ -363,9 +363,9 @@ class Strategy(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return self._lightning_module
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         torch.cuda.empty_cache()
-        return self.checkpoint_io.load_checkpoint(checkpoint_path)
+        return self.checkpoint_io.load_checkpoint(checkpoint_path, weights_only=weights_only)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         assert self.lightning_module is not None

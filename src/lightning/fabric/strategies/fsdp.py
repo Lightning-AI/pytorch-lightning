@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+    from torch.optim.lr_scheduler import _LRScheduler
 
     _POLICY = Union[set[type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
@@ -149,7 +150,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
-        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
+        device_mesh: Optional[Union[tuple[int, int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -237,7 +238,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[FSDPPrecision]) -> None:
+    def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, FSDPPrecision):
             raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")
         self._precision = precision
@@ -261,8 +262,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @override
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: list[Optimizer]
-    ) -> tuple[Module, list[Optimizer]]:
+        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
+    ) -> tuple[Module, list[Optimizer], Optional["_LRScheduler"]]:
         """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
         module and sets `use_orig_params=True` to keep the reference to the original parameters in the optimizer."""
         use_orig_params = self._fsdp_kwargs.get("use_orig_params")
@@ -274,7 +275,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " call `setup_optimizer`."
             )
         module = self.setup_module(module)
-        return module, optimizers
+        return module, optimizers, scheduler
 
     @override
     def setup_module(self, module: Module) -> Module:
@@ -294,6 +295,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
+            _warn_if_shared_params_across_fsdp_units(module, self._fsdp_kwargs.get("auto_wrap_policy"))
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
@@ -515,6 +517,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -585,7 +588,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / _METADATA_FILENAME)
+            metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
             for key in requested_metadata_keys:
@@ -662,7 +665,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        kwargs: dict[str, Any] = {"timeout": self._timeout}
+        if _TORCH_GREATER_EQUAL_2_3:
+            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -711,6 +717,76 @@ def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: dict) -> dict:
 
     kwargs["auto_wrap_policy"] = policy
     return kwargs
+
+
+def _warn_if_shared_params_across_fsdp_units(module: Module, policy: Any) -> None:
+    """Detect shared (tied) parameters that would be split across separate FSDP units by the wrap policy.
+
+    When a model has tied weights (e.g., embedding and output head sharing the same weight tensor) and the
+    auto-wrap policy places these parameters in different FSDP units, FSDP will shard each unit independently.
+    This causes one unit to see a flat/sharded tensor instead of the original shape, leading to cryptic
+    ``RuntimeError: size mismatch`` errors during the forward or backward pass.
+
+    This function detects such cases and emits a warning before the crash happens.
+
+    """
+    if policy is None:
+        return
+
+    from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+    if not isinstance(policy, ModuleWrapPolicy):
+        return
+
+    module_classes = tuple(policy._module_classes)
+
+    # Find shared parameters by identity
+    param_to_paths: dict[int, list[str]] = {}
+    for mod_name, mod in module.named_modules():
+        for param_name, param in mod._parameters.items():
+            if param is None:
+                continue
+            full_path = f"{mod_name}.{param_name}" if mod_name else param_name
+            param_id = id(param)
+            if param_id not in param_to_paths:
+                param_to_paths[param_id] = []
+            param_to_paths[param_id].append(full_path)
+
+    shared_groups = [paths for paths in param_to_paths.values() if len(paths) > 1]
+    if not shared_groups:
+        return
+
+    # Build set of module paths that would be individually wrapped by the policy
+    wrapped_module_paths: set[str] = set()
+    for mod_name, mod in module.named_modules():
+        if isinstance(mod, module_classes):
+            wrapped_module_paths.add(mod_name)
+
+    def _get_fsdp_unit(param_path: str) -> str:
+        """Find the nearest wrapped ancestor module for a parameter path."""
+        # Strip the parameter name to get the owning module path
+        module_path = param_path.rsplit(".", 1)[0] if "." in param_path else ""
+        # Walk up from owning module to root, looking for the nearest wrapped ancestor
+        current = module_path
+        while current:
+            if current in wrapped_module_paths:
+                return current
+            current = current.rsplit(".", 1)[0] if "." in current else ""
+        return ""  # root FSDP unit
+
+    for shared_paths in shared_groups:
+        units = {_get_fsdp_unit(p): p for p in shared_paths}
+        if len(units) > 1:
+            param_desc = ", ".join(f"`{p}`" for p in shared_paths)
+            unit_desc = ", ".join(f"`{u or '<root>'}`" for u in units)
+            rank_zero_warn(
+                f"The model has shared parameters ({param_desc}) that will be placed in"
+                f" separate FSDP units ({unit_desc}) by the `auto_wrap_policy`. This will lead to"
+                " errors during forward/backward due to tensor size mismatches (e.g., tied"
+                " embeddings in transformer models). Consider removing the module type that wraps"
+                " the shared parameter from your `auto_wrap_policy`.",
+                category=UserWarning,
+            )
 
 
 def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwargs: dict) -> None:

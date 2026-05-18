@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import signal
+import sys
 from copy import deepcopy
 from typing import Any, Callable, Optional, Union
 
@@ -62,7 +63,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         launcher = trainer.strategy.launcher
         if isinstance(launcher, _SubprocessScriptLauncher):
             launcher.kill(_get_sigkill_signal())
-        exit(1)
+        sys.exit(1)
 
     except BaseException as exception:
         _interrupt(trainer, exception)

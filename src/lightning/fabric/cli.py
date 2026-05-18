@@ -25,7 +25,7 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
-from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids, _select_auto_accelerator
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
@@ -34,7 +34,7 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
 
 
 def _get_supported_strategies() -> list[str]:
@@ -187,6 +187,14 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
+
+    if accelerator == "auto" or accelerator is None:
+        accelerator = _select_auto_accelerator()
+    if devices == "auto":
+        if accelerator == "cuda" or accelerator == "mps" or accelerator == "cpu":
+            devices = "1"
+        else:
+            raise ValueError(f"Cannot default to '1' device for accelerator='{accelerator}'")
     if accelerator == "gpu":
         parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
     elif accelerator == "cuda":
