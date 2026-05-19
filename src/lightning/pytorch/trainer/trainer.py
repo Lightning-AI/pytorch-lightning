@@ -133,6 +133,7 @@ class Trainer:
         enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
         suggest_integrations: bool = True,
+        enable_device_summary: bool = True,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -310,6 +311,11 @@ class Trainer:
             model_registry: The name of the model being uploaded to Model hub.
 
             suggest_integrations: Whether to display suggestions for optional Lightning integrations.
+                Default: ``True``.
+
+            enable_device_summary: Whether to log device information (GPU, TPU availability and usage)
+                at the start of a run. Set to ``False`` to suppress the device info output, which is
+                useful when using :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict` in a loop.
                 Default: ``True``.
 
 
@@ -491,7 +497,8 @@ class Trainer:
             )
         self._detect_anomaly: bool = detect_anomaly
 
-        setup._log_device_info(self)
+        if enable_device_summary:
+            setup._log_device_info(self)
 
         self.should_stop = False
         self.state = TrainerState()

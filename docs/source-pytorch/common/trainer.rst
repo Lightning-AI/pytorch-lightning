@@ -534,6 +534,22 @@ Whether to enable or disable the model summarization. Defaults to True.
     trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
 
+enable_device_summary
+^^^^^^^^^^^^^^^^^^^^^
+
+Whether to log device information (GPU, TPU availability and usage) at the start of a run.
+Defaults to True. Set to ``False`` to suppress the device info output, which is useful when
+calling ``Trainer.predict()`` in a loop.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_device_summary=True)
+
+    # disable device summary
+    trainer = Trainer(enable_device_summary=False)
+
+
 enable_progress_bar
 ^^^^^^^^^^^^^^^^^^^
 
