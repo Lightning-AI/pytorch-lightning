@@ -73,12 +73,15 @@ jobs:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
-        run: uv pip install . --extra-index-url="${TORCH_URL}"
+        # `unsafe-best-match` required: PyTorch extra-index mirrors an older fsspec that
+        # conflicts with lightning's version range under UV_EXCLUDE_NEWER.
+        run: uv pip install . --extra-index-url="${TORCH_URL}" --index-strategy unsafe-best-match
         if: inputs.pl_version == ''
 
       - name: Install PL version
         timeout-minutes: 20
-        run: uv pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}"
+        # `unsafe-best-match` required: same fsspec/PyTorch-index conflict as above.
+        run: uv pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}" --index-strategy unsafe-best-match
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
