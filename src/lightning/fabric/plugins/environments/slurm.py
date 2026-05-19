@@ -155,6 +155,10 @@ class SLURMEnvironment(ClusterEnvironment):
         return int(os.environ["SLURM_NODEID"])
 
     @override
+    def num_nodes(self) -> int:
+        return int(os.environ.get("SLURM_NNODES", 1))
+
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if _is_slurm_interactive_mode():
             return

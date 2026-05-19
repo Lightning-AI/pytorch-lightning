@@ -57,6 +57,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    assert env.num_nodes() == 1  # GROUP_WORLD_SIZE not set, defaults to 1
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_global_rank(100)
@@ -92,3 +93,17 @@ def test_validate_user_settings():
     env.validate_settings(num_devices=4, num_nodes=2)
     with pytest.raises(ValueError, match=re.escape("the product (2 * 2) does not match the world size (8)")):
         env.validate_settings(num_devices=2, num_nodes=2)
+
+
+@mock.patch.dict(os.environ, {"GROUP_WORLD_SIZE": "4"})
+def test_num_nodes():
+    """Test that num_nodes reads the GROUP_WORLD_SIZE environment variable."""
+    env = TorchElasticEnvironment()
+    assert env.num_nodes() == 4
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_num_nodes_default():
+    """Test that num_nodes defaults to 1 when GROUP_WORLD_SIZE is not set."""
+    env = TorchElasticEnvironment()
+    assert env.num_nodes() == 1

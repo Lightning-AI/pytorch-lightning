@@ -61,6 +61,10 @@ class ClusterEnvironment(ABC):
     def node_rank(self) -> int:
         """The rank (index) of the node on which the current process runs."""
 
+    @abstractmethod
+    def num_nodes(self) -> int:
+        """The number of nodes in the cluster."""
+
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         """Validates settings configured in the script against the environment, and raises an exception if there is an
         inconsistency."""

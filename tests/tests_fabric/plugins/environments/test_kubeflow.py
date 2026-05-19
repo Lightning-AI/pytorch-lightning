@@ -74,6 +74,20 @@ def test_attributes_from_environment_variables(caplog):
     assert "setting world size is not allowed" in caplog.text
 
 
+@mock.patch.dict(os.environ, {"WORLD_SIZE": "8", "RANK": "0", "NUM_NODES": "4"})
+def test_num_nodes():
+    """Test that num_nodes reads the NUM_NODES environment variable."""
+    env = KubeflowEnvironment()
+    assert env.num_nodes() == 4
+
+
+@mock.patch.dict(os.environ, {"WORLD_SIZE": "8", "RANK": "0"})
+def test_num_nodes_default():
+    """Test that num_nodes defaults to world_size when NUM_NODES is not set."""
+    env = KubeflowEnvironment()
+    assert env.num_nodes() == 8
+
+
 def test_detect_kubeflow():
     """Test that the KubeflowEnvironment does not support auto-detection."""
     with pytest.raises(NotImplementedError, match="can't be detected automatically"):

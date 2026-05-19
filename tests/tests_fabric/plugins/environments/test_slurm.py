@@ -70,6 +70,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    assert env.num_nodes() == 1  # SLURM_NNODES not set, defaults to 1
     assert env.job_name() == "JOB"
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
@@ -180,3 +181,17 @@ def test_validate_user_settings():
     ):
         env = SLURMEnvironment()
         env.validate_settings(num_devices=4, num_nodes=1)  # no error
+
+
+@mock.patch.dict(os.environ, {"SLURM_NTASKS": "8", "SLURM_NTASKS_PER_NODE": "4", "SLURM_NNODES": "2"})
+def test_num_nodes():
+    """Test that num_nodes reads the SLURM_NNODES environment variable."""
+    env = SLURMEnvironment()
+    assert env.num_nodes() == 2
+
+
+@mock.patch.dict(os.environ, {"SLURM_NTASKS": "4", "SLURM_NTASKS_PER_NODE": "4"})
+def test_num_nodes_default():
+    """Test that num_nodes defaults to 1 when SLURM_NNODES is not set."""
+    env = SLURMEnvironment()
+    assert env.num_nodes() == 1

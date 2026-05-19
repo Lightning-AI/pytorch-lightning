@@ -114,6 +114,14 @@ class MPIEnvironment(ClusterEnvironment):
         assert self._node_rank is not None
         return self._node_rank
 
+    @override
+    @lru_cache(1)
+    def num_nodes(self) -> int:
+        hostname = socket.gethostname()
+        all_hostnames = self._comm_world.gather(hostname, root=0)
+        num = len(set(all_hostnames)) if all_hostnames is not None else 0
+        return self._comm_world.bcast(num, root=0)
+
     def _get_main_address(self) -> str:
         return self._comm_world.bcast(socket.gethostname(), root=0)
 
