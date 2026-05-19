@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import os
 from argparse import Namespace
 from collections.abc import Mapping
@@ -60,6 +61,9 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a ``sub_dir`` argument is passed
             then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
             logs are saved in ``/root_dir/name/version/``.
+        group_metrics_by_prefix: If ``True``, metrics with names containing ``/`` (e.g. ``losses/a``,
+            ``losses/b``) are grouped on the same TensorBoard plot. The part before ``/`` is the group
+            name and the part after is the series name. Defaults to ``False``.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -87,6 +91,7 @@ class TensorBoardLogger(Logger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[_PATH] = None,
+        group_metrics_by_prefix: bool = False,
         **kwargs: Any,
     ):
         if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
@@ -103,6 +108,7 @@ class TensorBoardLogger(Logger):
 
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
+        self._group_metrics_by_prefix = group_metrics_by_prefix
         self._fs = get_filesystem(root_dir)
 
         self._experiment: Optional[SummaryWriter] = None
@@ -202,20 +208,39 @@ class TensorBoardLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
-        for k, v in metrics.items():
-            if isinstance(v, Tensor):
-                v = v.item()
+        if self._group_metrics_by_prefix:
+            collection_metrics: dict[str, dict[str, float]] = collections.defaultdict(dict)
+            individual_metrics: dict[str, float] = {}
+            for k, v in metrics.items():
+                if isinstance(v, Tensor):
+                    v = v.item()
+                if isinstance(v, dict):
+                    self.experiment.add_scalars(k, v, step)
+                else:
+                    parts = k.split("/", 1)
+                    if len(parts) == 2:
+                        collection_metrics[parts[0]][parts[1]] = float(v)
+                    else:
+                        individual_metrics[k] = float(v)
+            for group_name, group_values in collection_metrics.items():
+                self.experiment.add_scalars(group_name, group_values, step)
+            for k, v in individual_metrics.items():
+                self.experiment.add_scalar(k, v, step)
+        else:
+            for k, v in metrics.items():
+                if isinstance(v, Tensor):
+                    v = v.item()
 
-            if isinstance(v, dict):
-                self.experiment.add_scalars(k, v, step)
-            else:
-                try:
-                    self.experiment.add_scalar(k, v, step)
-                # TODO(fabric): specify the possible exception
-                except Exception as ex:
-                    raise ValueError(
-                        f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    ) from ex
+                if isinstance(v, dict):
+                    self.experiment.add_scalars(k, v, step)
+                else:
+                    try:
+                        self.experiment.add_scalar(k, v, step)
+                    # TODO(fabric): specify the possible exception
+                    except Exception as ex:
+                        raise ValueError(
+                            f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                        ) from ex
 
     @override
     @rank_zero_only
