@@ -68,6 +68,8 @@ jobs:
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
+      # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+      UV_EXCLUDE_NEWER: "2 days"
     steps:
       - uses: actions/checkout@v6
 

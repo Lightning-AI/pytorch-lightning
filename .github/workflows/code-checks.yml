@@ -27,6 +27,9 @@ defaults:
 jobs:
   mypy:
     runs-on: ubuntu-22.04
+    env:
+      # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+      UV_EXCLUDE_NEWER: "2 days"
     steps:
       - uses: actions/checkout@v6
 
