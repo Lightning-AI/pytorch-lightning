@@ -348,9 +348,28 @@ class ModelCheckpoint(Checkpoint):
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         # For manual optimization, we need to handle saving differently
         if not pl_module.automatic_optimization:
-            # Skip if we don't need to save at this step
-            if self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0):
+            # Mirror the auto-opt branch: a save fires when EITHER `every_n_train_steps`
+            # OR `train_time_interval` is satisfied. Without this, `train_time_interval`
+            # silently no-ops under manual optimization and `last.ckpt` is never written
+            # mid-run when `every_n_train_steps` is not also configured.
+            skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
+
+            train_time_interval = self._train_time_interval
+            skip_time = True
+            now = time.monotonic()
+            # Important: allow zero timedelta as a valid interval
+            if train_time_interval is not None:
+                prev_time_check = self._last_time_checked
+                skip_time = prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds()
+            # Broadcast unconditionally so all ranks agree, even when train_time_interval is None.
+            # In that case we broadcast True (skip), which is a no-op for correctness but avoids
+            # any rank reaching a collective without its peers if a future code path diverges here.
+            skip_time = trainer.strategy.broadcast(skip_time)
+
+            if skip_batch and skip_time:
                 return
+            if not skip_time:
+                self._last_time_checked = now
 
             # Check if we should skip due to trainer/callback state
             if self._should_skip_saving_checkpoint(trainer):
