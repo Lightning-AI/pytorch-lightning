@@ -12,7 +12,6 @@ on:
     paths:
       - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
-      - ".github/actions/pkg-publish/*"
       - ".github/workflows/_legacy-checkpoints.yml"
       - ".github/workflows/_build-packages.yml"
       - ".github/workflows/release-pypi.yml"
@@ -130,35 +129,12 @@ jobs:
             ethanwharris
             borda
 
-  pre-publish-packages:
-    runs-on: ubuntu-22.04
-    needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-    strategy:
-      fail-fast: false
-      matrix:
-        name: ["FABRIC", "PYTORCH", "LIGHTNING"]
-    steps:
-      - uses: actions/checkout@v6 # needed for local action below
-      - uses: actions/download-artifact@v8
-        with:
-          name: dist-packages-${{ github.sha }}
-          path: dist
-      - name: Browse folder
-        id: folder
-        run: |
-          sudo apt install -q -y tree
-          tree -L 2 -h dist/
-          python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
-      - uses: ./.github/actions/pkg-publish
-        with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
-          pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
-
   publish-packages:
     runs-on: ubuntu-22.04
     needs: [build-packages]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    permissions:
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -175,10 +151,12 @@ jobs:
           sudo apt install -q -y tree
           tree -L 2 -h dist/
           python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
-      - uses: ./.github/actions/pkg-publish
+
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.5.1
         with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
-          pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
+          packages_dir: dist/${{ steps.folder.outputs.pkg }}
+          verbose: true
 
   legacy-checkpoints:
     needs: [build-packages]
