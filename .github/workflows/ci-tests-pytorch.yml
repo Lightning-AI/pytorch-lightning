@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
@@ -202,12 +202,12 @@ jobs:
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }} # Run even if tests fail
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:
