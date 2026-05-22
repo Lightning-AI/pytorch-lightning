@@ -387,6 +387,7 @@ def test_weight_averaging_no_swap_before_first_update(tmp_path):
     Before the first update, the ``AveragedModel`` only holds the copy of the initial weights made in ``setup()``.
     Swapping it in for validation during a delayed-start warmup would discard the trained weights and evaluate the
     untrained snapshot instead. See https://github.com/Lightning-AI/pytorch-lightning/issues/21724.
+
     """
 
     class SwapProbeModel(BoringModel):
