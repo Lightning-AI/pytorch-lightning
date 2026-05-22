@@ -22,14 +22,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
---
+---
 
-## [2.6.2] - 2026-03-19
+## [2.6.4] - 2026-05-20
+
+> Versions 2.6.2 and 2.6.3 were skipped due to a supply chain security compromise. See [#21691](https://github.com/Lightning-AI/pytorch-lightning/issues/21691) for details.
 
 ### Fixed
 
 - Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
-
 - Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
 
 ---
