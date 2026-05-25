@@ -49,13 +49,13 @@ jobs:
       # Supply-chain guard: skip PyPI releases newer than this (ISO 8601 duration). See https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to
       PIP_UPLOADED_PRIOR_TO: "P2D"
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Upgrade pip (for --uploaded-prior-to, pip >= 26.1)
         run: python -m pip install --upgrade "pip>=26.1"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
