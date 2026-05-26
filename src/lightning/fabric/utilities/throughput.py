@@ -92,7 +92,13 @@ class Throughput:
     """
 
     def __init__(
-        self, available_flops: Optional[float] = None, world_size: int = 1, window_size: int = 100, separator: str = "/"
+        self,
+        available_flops: Optional[float] = None,
+        world_size: int = 1,
+        window_size: int = 100,
+        separator: str = "/",
+        using_sparse_model: Optional[bool] = None,
+        sparse_cuda_acceleration_factor: float = 2.0,
     ) -> None:
         self.available_flops = available_flops
         self.separator = separator
