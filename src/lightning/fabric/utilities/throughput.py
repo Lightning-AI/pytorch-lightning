@@ -88,6 +88,13 @@ class Throughput:
         world_size: Number of devices available across hosts. Global metrics are not included if the world size is 1.
         window_size: Number of batches to use for a rolling average.
         separator: Key separator to use when creating per-device and global metrics.
+        using_sparse_model: User intent for whether the model exploits structured sparsity.
+            ``True`` scales ``available_flops`` by ``sparse_cuda_acceleration_factor`` to reflect the higher
+            theoretical peak achievable with structured sparsity (e.g. NVIDIA's 2:4 sparse Tensor Cores on
+            Ampere and later). ``False`` keeps the dense peak. ``None`` (the default) keeps the dense peak
+            and emits a one-time warning so users explicitly choose; set this flag to silence the warning.
+        sparse_cuda_acceleration_factor: Multiplier applied to ``available_flops`` when ``using_sparse_model``
+            is ``True``. Defaults to ``2.0``, matching the 2x speedup of NVIDIA 2:4 structured sparsity.
 
     """
 
@@ -100,6 +107,20 @@ class Throughput:
         using_sparse_model: Optional[bool] = None,
         sparse_cuda_acceleration_factor: float = 2.0,
     ) -> None:
+        # For sparse models, hardware can achieve a higher theoretical peak (e.g. NVIDIA's 2:4 structured
+        # sparsity doubles tensor-core throughput). Scaling the peak here keeps MFU = measured / peak
+        # consistent with the sparse ceiling, so users get a meaningful utilization figure.
+        # If `available_flops is None` the peak is unknown, so MFU is skipped in `compute()` regardless
+        # (see the `if self.available_flops:` guard), and we leave it as None rather than erroring.
+        assert sparse_cuda_acceleration_factor >= 1.0, "sparse acceleration factor cannot reduce peak FLOPs"
+        if using_sparse_model is None and available_flops is not None:
+            # the user didn't tell us their intent; default to dense and warn so MFU isn't silently ambiguous
+            rank_zero_warn(
+                "MFU assumes dense model FLOPs (no sparsity acceleration)."
+                " Set 'using_sparse_model=True' for mfu to use sparse flops."
+            )
+        if using_sparse_model and available_flops is not None:
+            available_flops = available_flops * sparse_cuda_acceleration_factor
         self.available_flops = available_flops
         self.separator = separator
         assert world_size > 0
@@ -312,37 +333,37 @@ _CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
     # Hopper
     # source: https://nvdam.widen.net/s/nb5zzzsjdf/hpc-datasheet-sc23-h200-datasheet-3002446
     "h200 sxm1": {
-        torch.float64: 3.4e13,
-        torch.float32: 6.7e13,
-        "tfloat32": 9.9e14,
-        torch.bfloat16: 2.0e15,
-        torch.float16: 2.0e15,
-        torch.int8: 4.0e15,
+        torch.float64: 34e12,
+        torch.float32: 67e12,
+        "tfloat32": 494.5e12,
+        torch.bfloat16: 989.5e12,
+        torch.float16: 989.5e12,
+        torch.int8: 1979e12,
     },
     "h200 nvl1": {
         torch.float64: 3.0e13,
         torch.float32: 6.0e13,
-        "tfloat32": 8.4e14,
-        torch.bfloat16: 1.7e15,
-        torch.float16: 1.7e15,
-        torch.int8: 3.3e15,
+        "tfloat32": 4.2e14,
+        torch.bfloat16: 8.4e14,
+        torch.float16: 8.4e14,
+        torch.int8: 1.68e15,
     },
-    # source: https://resources.nvidia.com/en-us-tensor-core
+    # source: https://resources.nvidia.com/en-us-gpu-resources/h100-datasheet-24306
     "h100 nvl": {
-        torch.float64: 67e12,
-        torch.float32: 133.8e12,
-        "tfloat32": 989.4e12,
-        torch.bfloat16: 1978.8e12,
-        torch.float16: 1978.8e12,
-        torch.int8: 3957.8e12,
+        torch.float64: 30e12,
+        torch.float32: 60e12,
+        "tfloat32": 417.5e12,
+        torch.bfloat16: 835.5e12,
+        torch.float16: 835.5e12,
+        torch.int8: 1670.5e12,
     },
     "h100 sxm": {
-        torch.float64: 33.5e12,
-        torch.float32: 66.9e12,
-        "tfloat32": 494.7e12,
-        torch.bfloat16: 989.4e12,
-        torch.float16: 989.4e12,
-        torch.int8: 1978.9e12,
+        torch.float64: 34e12,
+        torch.float32: 67e12,
+        "tfloat32": 494.5e12,
+        torch.bfloat16: 989.5e12,
+        torch.float16: 989.5e12,
+        torch.int8: 1979e12,
     },
     "h100 pcie": {
         torch.float64: 25.6e12,
@@ -413,11 +434,12 @@ _CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
         torch.int8: 309.7e12,
         "int4": 619.3e12,
     },
+    # source: https://images.nvidia.com/content/Solutions/data-center/a40/nvidia-a40-datasheet.pdf
     "a40": {
         torch.float32: 37.4e12,
         "tfloat32": 74.8e12,
-        torch.bfloat16: 37.4e12,
-        torch.float16: 37.4e12,
+        torch.bfloat16: 149.7e12,
+        torch.float16: 149.7e12,
         torch.int8: 299.3e12,
         "int4": 598.7e12,
     },
@@ -454,6 +476,7 @@ _CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
         torch.int8: 272.8e12,
         "int4": 546.6e12,
     },
+    # source: https://www.nvidia.com/content/PDF/nvidia-ampere-ga-102-gpu-architecture-whitepaper-v2.pdf
     "rtx 3080": {
         torch.float32: 29.8e12,
         "tfloat32": 29.8e12,
