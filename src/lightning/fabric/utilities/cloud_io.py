@@ -16,6 +16,8 @@
 import errno
 import io
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import IO, Any, Optional, Union
 
@@ -96,6 +98,26 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
+
+    if _is_local_file_protocol(filepath):
+        # Stage next to the destination so the temp file shares a filesystem with the target.
+        # fsspec's LocalFileSystem.transaction stages via tempfile.mkstemp() with no dir= argument,
+        # which puts the temp file in $TMPDIR and fails on setups where $TMPDIR is on a small
+        # partition (e.g. SLURM clusters). See https://github.com/Lightning-AI/pytorch-lightning/issues/21253.
+        target = os.fspath(filepath)
+        parent = os.path.dirname(target) or "."
+        fd, staging = tempfile.mkstemp(dir=parent, prefix=os.path.basename(target) + ".", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(bytesbuffer.getvalue())
+            os.replace(staging, target)  # atomic on same filesystem
+        except BaseException:
+            try:
+                os.unlink(staging)
+            except FileNotFoundError:
+                pass
+            raise
+        return
 
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted
