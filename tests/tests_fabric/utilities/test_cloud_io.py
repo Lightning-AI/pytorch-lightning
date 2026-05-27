@@ -164,6 +164,7 @@ def test_atomic_save_local_stages_next_to_destination(tmp_path, monkeypatch):
     after, because a successful transaction cleans the staging file up on commit. Paths are
     resolved before comparison so this doesn't false-fail on macOS where /tmp is a symlink to
     /private/tmp.
+
     """
     sentinel_tmpdir = (tmp_path / "sentinel_tmpdir").resolve()
     dest_dir = (tmp_path / "destination").resolve()
@@ -194,9 +195,10 @@ def test_atomic_save_local_stages_next_to_destination(tmp_path, monkeypatch):
 def test_atomic_save_local_cleans_up_staging_on_failure(tmp_path):
     """If the rename fails, the staging file must not leak in the destination dir.
 
-    Patches os.replace to fail so we can observe what happens after a successful write but a
-    failed rename — the destination should not exist and the destination dir should be empty
-    (i.e. no staging file under any naming convention).
+    Patches os.replace to fail so we can observe what happens after a successful write but a failed rename — the
+    destination should not exist and the destination dir should be empty (i.e. no staging file under any naming
+    convention).
+
     """
     filepath = tmp_path / "checkpoint.ckpt"
 
@@ -230,8 +232,9 @@ def test_atomic_save_local_preserves_existing_on_failure(tmp_path):
 def test_atomic_save_local_missing_parent_raises(tmp_path):
     """Parent directories are not auto-created — locks in current behavior.
 
-    Lightning's checkpoint code creates dirs upstream (ModelCheckpoint.setup); a future refactor
-    silently creating them here would mask caller bugs.
+    Lightning's checkpoint code creates dirs upstream (ModelCheckpoint.setup); a future refactor silently creating them
+    here would mask caller bugs.
+
     """
     filepath = tmp_path / "missing" / "checkpoint.ckpt"
 

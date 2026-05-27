@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 
+import contextlib
 import errno
 import io
 import logging
@@ -115,10 +116,8 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
                 os.fsync(f.fileno())
             os.replace(staging, target)  # atomic on same filesystem
         except BaseException:
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 os.unlink(staging)
-            except FileNotFoundError:
-                pass
             raise
         # Best-effort: fsync the parent directory so the rename itself is durable.
         # Not supported on every platform (e.g. Windows) — failures are non-fatal because the
