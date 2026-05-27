@@ -202,9 +202,11 @@ def test_atomic_save_local_cleans_up_staging_on_failure(tmp_path):
     """
     filepath = tmp_path / "checkpoint.ckpt"
 
-    with mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")):
-        with pytest.raises(OSError, match="boom"):
-            _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")),
+        pytest.raises(OSError, match="boom"),
+    ):
+        _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
 
     assert not filepath.exists()
     assert list(tmp_path.iterdir()) == [], f"unexpected files left after failed save: {list(tmp_path.iterdir())}"
@@ -221,9 +223,11 @@ def test_atomic_save_local_preserves_existing_on_failure(tmp_path):
     _atomic_save({"key": torch.tensor([0, 0, 0])}, filepath)
     original_bytes = filepath.read_bytes()
 
-    with mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")):
-        with pytest.raises(OSError, match="boom"):
-            _atomic_save({"key": torch.tensor([42, 42, 42])}, filepath)
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")),
+        pytest.raises(OSError, match="boom"),
+    ):
+        _atomic_save({"key": torch.tensor([42, 42, 42])}, filepath)
 
     assert filepath.read_bytes() == original_bytes
     assert [p for p in tmp_path.iterdir() if p != filepath] == []
