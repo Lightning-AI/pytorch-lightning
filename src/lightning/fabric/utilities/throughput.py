@@ -88,13 +88,10 @@ class Throughput:
         world_size: Number of devices available across hosts. Global metrics are not included if the world size is 1.
         window_size: Number of batches to use for a rolling average.
         separator: Key separator to use when creating per-device and global metrics.
-        using_sparse_model: User intent for whether the model uses structured sparsity.
-            ``True`` scales ``available_flops`` by ``sparse_cuda_acceleration_factor`` to reflect the higher
-            theoretical peak achievable with structured sparsity (e.g. NVIDIA's 2:4 sparse Tensor Cores on
-            Ampere and later). ``False`` keeps the dense peak. ``None`` (the default) keeps the dense peak
-            and emits a one-time warning so users explicitly choose; set this flag to silence the warning.
-        sparse_cuda_acceleration_factor: Multiplier applied to ``available_flops`` when ``using_sparse_model``
-            is ``True``. Defaults to ``2.0``, matching the 2x speedup of NVIDIA 2:4 structured sparsity.
+        using_sparse_model: Whether the model uses structured sparsity. If ``True``, scales ``available_flops`` by
+            ``sparse_cuda_acceleration_factor``. ``None`` (default) assumes dense and warns once.
+        sparse_cuda_acceleration_factor: Multiplier applied to ``available_flops`` when ``using_sparse_model`` is
+            ``True``. Defaults to ``2.0`` for NVIDIA 2:4 structured sparsity.
 
     """
 
@@ -107,14 +104,8 @@ class Throughput:
         using_sparse_model: Optional[bool] = None,
         sparse_cuda_acceleration_factor: float = 2.0,
     ) -> None:
-        # For sparse models, hardware can achieve a higher theoretical peak (e.g. NVIDIA's 2:4 structured
-        # sparsity doubles tensor-core throughput). Scaling the peak here keeps MFU = measured / peak
-        # consistent with the sparse ceiling, so users get a meaningful utilization figure.
-        # If `available_flops is None` the peak is unknown, so MFU is skipped in `compute()` regardless
-        # (see the `if self.available_flops:` guard), and we leave it as None rather than erroring.
         assert sparse_cuda_acceleration_factor >= 1.0, "sparse acceleration factor cannot reduce peak FLOPs"
         if using_sparse_model is None and available_flops is not None:
-            # the user didn't tell us their intent; default to dense and warn so MFU isn't silently ambiguous
             rank_zero_warn(
                 "MFU assumes dense model FLOPs (no sparsity acceleration)."
                 " Set 'using_sparse_model=True' for mfu to use sparse flops."
