@@ -88,7 +88,7 @@ class Throughput:
         world_size: Number of devices available across hosts. Global metrics are not included if the world size is 1.
         window_size: Number of batches to use for a rolling average.
         separator: Key separator to use when creating per-device and global metrics.
-        using_sparse_model: User intent for whether the model exploits structured sparsity.
+        using_sparse_model: User intent for whether the model uses structured sparsity.
             ``True`` scales ``available_flops`` by ``sparse_cuda_acceleration_factor`` to reflect the higher
             theoretical peak achievable with structured sparsity (e.g. NVIDIA's 2:4 sparse Tensor Cores on
             Ampere and later). ``False`` keeps the dense peak. ``None`` (the default) keeps the dense peak
