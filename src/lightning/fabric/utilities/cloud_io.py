@@ -110,6 +110,9 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
         try:
             with os.fdopen(fd, "wb") as f:
                 f.write(bytesbuffer.getvalue())
+                # Flush contents to disk before rename so a crash can't leave a renamed-but-empty file.
+                f.flush()
+                os.fsync(f.fileno())
             os.replace(staging, target)  # atomic on same filesystem
         except BaseException:
             try:
@@ -117,6 +120,17 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
             except FileNotFoundError:
                 pass
             raise
+        # Best-effort: fsync the parent directory so the rename itself is durable.
+        # Not supported on every platform (e.g. Windows) — failures are non-fatal because the
+        # file contents are already on disk above.
+        try:
+            dir_fd = os.open(parent, os.O_RDONLY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        except OSError:
+            pass
         return
 
     try:
