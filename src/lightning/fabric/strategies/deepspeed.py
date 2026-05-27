@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import platform
+import posixpath
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
@@ -36,6 +37,7 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.fabric.utilities.load import _move_state_into
@@ -45,6 +47,7 @@ from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from deepspeed import DeepSpeedEngine
+    from fsspec import AbstractFileSystem
     from torch.optim.lr_scheduler import _LRScheduler
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
@@ -885,9 +888,9 @@ def _validate_device_index_selection(parallel_devices: list[torch.device]) -> No
         )
 
 
-def _is_deepspeed_checkpoint(path: Path) -> bool:
+def _is_deepspeed_checkpoint(path: str, fs: "AbstractFileSystem") -> bool:
     """Heuristic check whether the path points to a top-level DeepSpeed checkpoint directory."""
-    return path.is_dir() and (path / "checkpoint").is_dir()
+    return fs.isdir(path) and fs.isdir(f"{path.rstrip('/')}/checkpoint")
 
 
 def _validate_checkpoint_directory(path: _PATH) -> None:
@@ -903,24 +906,28 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
     # ├── latest
     # └── zero_to_fp32.py
 
-    path = Path(path)
-    path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
-    default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path}"
+    path_str = str(path)
+    fs = get_filesystem(path_str)
+    path_is_ds_checkpoint = _is_deepspeed_checkpoint(path_str, fs)
+    default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path_str}"
 
     if not path_is_ds_checkpoint:
         # Case 1: User may have accidentally passed the subfolder "checkpoint"
-        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
+        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(posixpath.dirname(path_str), fs)
         if parent_is_ds_checkpoint:
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a subfolder."
-                f" Try to load using this parent directory instead: {path.parent}"
+                f" Try to load using this parent directory instead: {posixpath.dirname(path_str)}"
             )
         # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
-        parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
+        parent_parent_is_ds_checkpoint = fs.isfile(path_str) and _is_deepspeed_checkpoint(
+            posixpath.dirname(posixpath.dirname(path_str)), fs
+        )
         if parent_parent_is_ds_checkpoint:
             raise FileNotFoundError(
-                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed checkpoint folder."
-                f" Try to load using this parent directory instead: {path.parent.parent}"
+                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed"
+                f" checkpoint folder."
+                f" Try to load using this parent directory instead: {posixpath.dirname(posixpath.dirname(path_str))}"
             )
         raise FileNotFoundError(default_message)
 

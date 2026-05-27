@@ -264,6 +264,58 @@ def test_deepspeed_load_checkpoint_validate_path(tmp_path):
         strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
 
 
+def _make_s3_mock_fs(dirs, files=()):
+    """Create a mock fsspec filesystem for S3-like remote URI tests."""
+    fs = Mock()
+    fs.isdir = Mock(side_effect=lambda p: p in dirs)
+    fs.isfile = Mock(side_effect=lambda p: p in files)
+    return fs
+
+
+def test_validate_checkpoint_directory_remote_uri():
+    """Test that _validate_checkpoint_directory works with remote filesystem URIs (e.g., S3, HDFS)."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    mock_fs = _make_s3_mock_fs(dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
+
+    with mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs):
+        # Should not raise when the remote path is a valid DeepSpeed checkpoint
+        _validate_checkpoint_directory("s3://bucket/ckpt")
+
+    # Verify the URI was NOT mangled (s3:// must stay as s3://, not s3:/)
+    mock_fs.isdir.assert_any_call("s3://bucket/ckpt")
+    mock_fs.isdir.assert_any_call("s3://bucket/ckpt/checkpoint")
+
+
+def test_validate_checkpoint_directory_remote_uri_subfolder_suggestion():
+    """Test that the subfolder suggestion works with remote URIs."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    mock_fs = _make_s3_mock_fs(dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
+
+    with (
+        mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs),
+        pytest.raises(FileNotFoundError, match="Try to load using this parent directory instead: s3://bucket/ckpt"),
+    ):
+        _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint")
+
+
+def test_validate_checkpoint_directory_remote_uri_file_inside_checkpoint():
+    """Test that the file-inside-checkpoint suggestion works with remote URIs."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    mock_fs = _make_s3_mock_fs(
+        dirs={"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"},
+        files={"s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt"},
+    )
+
+    with (
+        mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=mock_fs),
+        pytest.raises(FileNotFoundError, match="Try to load using this parent directory instead: s3://bucket/ckpt"),
+    ):
+        _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint/zero_pp_rank_0_mp_rank_00_model_states.pt")
+
+
 @RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
