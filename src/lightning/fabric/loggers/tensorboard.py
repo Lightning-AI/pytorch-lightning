@@ -24,6 +24,7 @@ from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -38,6 +39,8 @@ if TYPE_CHECKING:
         from torch.utils.tensorboard import SummaryWriter
     else:
         from tensorboardX import SummaryWriter  # type: ignore[no-redef]
+    if _NUMPY_AVAILABLE:
+        import numpy as np
 
 
 class TensorBoardLogger(Logger):
@@ -197,14 +200,25 @@ class TensorBoardLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(
+        self, metrics: Mapping[str, Union[float, Tensor, int, "np.ndarray"]], step: Optional[int] = None
+    ) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
         for k, v in metrics.items():
             if isinstance(v, Tensor):
                 v = v.item()
+
+            if _NUMPY_AVAILABLE:
+                if isinstance(v, (int, float, np.number)):
+                    v = np.array(v)
+                elif isinstance(v, np.ndarray) and v.ndim > 0 and v.size == 1:
+                    v = np.array(v.item())
 
             if isinstance(v, dict):
                 self.experiment.add_scalars(k, v, step)
