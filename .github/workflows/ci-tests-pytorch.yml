@@ -73,11 +73,13 @@ jobs:
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
+      # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+      UV_EXCLUDE_NEWER: "2 days"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
@@ -149,7 +151,7 @@ jobs:
         run: uv pip uninstall pytorch-lightning
 
       - name: Cache datasets
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: Datasets
           key: pl-dataset
@@ -200,12 +202,12 @@ jobs:
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }} # Run even if tests fail
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:
