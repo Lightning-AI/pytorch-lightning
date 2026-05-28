@@ -20,7 +20,7 @@ MPI
 ***
 
 `MPI (Message Passing Interface) <https://en.wikipedia.org/wiki/Message_Passing_Interface>`_ is a communication system for parallel computing.
-There are many implementations available, the most popular among them are `OpenMPI <https://www.open-mpi.org/>`_ and `MPICH <https://www.mpich.org/>`_.
+There are many implementations available, the most popular among them are `OpenMPI <https://www.open-mpi.org/>`_ and `MPICH <https://en.wikipedia.org/wiki/MPICH>`_.
 To support all these, Lightning relies on the `mpi4py package <https://github.com/mpi4py/mpi4py>`_:
 
 .. code-block:: bash
