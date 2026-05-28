@@ -147,7 +147,7 @@ def test_module_init_context(precision, expected_dtype):
 @mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 @mock.patch("torch.cuda.Stream")
 @mock.patch("torch.cuda.is_current_stream_capturing", return_value=False)
-@mock.patch("torch.cuda.stream")  # bottom-most → first positional arg → cuda_stream_mock
+@mock.patch("torch.cuda.stream")
 def test_setup_with_cuda_stream(cuda_stream_mock, *_):
     model = torch.nn.Linear(2, 2)
     strategy = DDPStrategy(parallel_devices=[torch.device("cpu")], cluster_environment=LightningEnvironment())
