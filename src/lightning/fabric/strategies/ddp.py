@@ -124,6 +124,8 @@ class DDPStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self._determine_ddp_device_ids()
+        ctx: Union[torch.cuda.StreamContext, nullcontext] = nullcontext()
+
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
         if device_ids is not None:
             capturing = torch.cuda.is_current_stream_capturing()
@@ -136,8 +138,6 @@ class DDPStrategy(ParallelStrategy):
             else:
                 # Default stream avoids AccumulateGrad stream mismatch warnings during normal training.
                 ctx = torch.cuda.stream(torch.cuda.default_stream())
-        else:
-            ctx = nullcontext()
         with ctx:
             return DistributedDataParallel(module=module, device_ids=device_ids, **self._ddp_kwargs)
 
