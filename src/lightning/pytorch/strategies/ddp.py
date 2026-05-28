@@ -196,7 +196,7 @@ class DDPStrategy(ParallelStrategy):
             if capturing:
                 # DDP must be initialized on a side-stream for CUDA graph whole-network capture.
                 # The resulting AccumulateGrad stream mismatch is intentional in this case.
-                # See: https://pytorch.org/docs/stable/notes/cuda.html#cuda-graphs
+                # See: https://pytorch.org/docs/stable/notes/cuda.html#id5
                 ctx = torch.cuda.stream(torch.cuda.Stream())
                 torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
             else:
