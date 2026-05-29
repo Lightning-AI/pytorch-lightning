@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
+- Fixed `WeightAveraging` swapping in the un-updated average model during validation before its first update, which evaluated the untrained weights during a delayed-start warmup ([#21724](https://github.com/Lightning-AI/pytorch-lightning/issues/21724))
+
 ---
 
 ## [2.6.4] - 2026-05-20
