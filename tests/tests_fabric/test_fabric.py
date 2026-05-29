@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import warnings
 from contextlib import nullcontext
@@ -20,7 +21,6 @@ from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
 import pytest
 import torch
-import torch.distributed
 import torch.nn.functional
 from lightning_utilities.test.warning import no_warning_call
 from torch import nn
@@ -1110,7 +1110,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state, strict):
+    def mocked_load_checkpoint(path, state, strict, **kwargs):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})
@@ -1145,11 +1145,11 @@ def test_load_raw():
     wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
 
     fabric.load_raw(path="path0", obj=model)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True, weights_only=None)
     fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False, weights_only=None)
     fabric.load_raw(path="path2", obj=wrapped_optimizer)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True, weights_only=None)
 
 
 def test_barrier():
@@ -1294,3 +1294,97 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+def test_callback_kwargs_filtering():
+    """Test that callbacks receive only the kwargs they can handle based on their signature."""
+
+    class CallbackWithLimitedKwargs:
+        def on_train_epoch_end(self, epoch: int):
+            self.epoch = epoch
+
+    class CallbackWithVarKeywords:
+        def on_train_epoch_end(self, epoch: int, **kwargs):
+            self.epoch = epoch
+            self.kwargs = kwargs
+
+    class CallbackWithNoParams:
+        def on_train_epoch_end(self):
+            self.called = True
+
+    callback1 = CallbackWithLimitedKwargs()
+    callback2 = CallbackWithVarKeywords()
+    callback3 = CallbackWithNoParams()
+    fabric = Fabric(callbacks=[callback1, callback2, callback3])
+    fabric.call("on_train_epoch_end", epoch=5, loss=0.1, metrics={"acc": 0.9})
+
+    assert callback1.epoch == 5
+    assert not hasattr(callback1, "loss")
+    assert callback2.epoch == 5
+    assert callback2.kwargs == {"loss": 0.1, "metrics": {"acc": 0.9}}
+    assert callback3.called is True
+
+
+def test_callback_kwargs_filtering_signature_inspection_failure():
+    """Test behavior when signature inspection fails - should fallback to passing all kwargs."""
+    callback = Mock()
+    fabric = Fabric(callbacks=[callback])
+    original_signature = inspect.signature
+
+    def mock_signature(obj):
+        if hasattr(obj, "_mock_name") or hasattr(obj, "_mock_new_name"):
+            raise ValueError("Cannot inspect mock signature")
+        return original_signature(obj)
+
+    # Temporarily replace signature function in fabric module
+    import lightning.fabric.fabric
+
+    lightning.fabric.fabric.inspect.signature = mock_signature
+
+    try:
+        # Should still work by passing all kwargs when signature inspection fails
+        fabric.call("on_test_hook", arg1="value1", arg2="value2")
+        callback.on_test_hook.assert_called_with(arg1="value1", arg2="value2")
+    finally:
+        lightning.fabric.fabric.inspect.signature = original_signature
+
+
+def test_fabric_load_accepts_weights_only_false(tmp_path):
+    import torch
+
+    from lightning.fabric import Fabric
+
+    fabric = Fabric(accelerator="cpu")
+
+    ckpt = {"foo": 123}
+    path = tmp_path / "ckpt.pt"
+    torch.save(ckpt, path)
+
+    remainder = fabric.load(path, weights_only=False)
+
+    assert remainder["foo"] == 123
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock(return_value={})
+
+    fabric.load("path.pt", weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=None, strict=True, weights_only=weights_only
+    )
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_raw_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load_raw()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    fabric.load_raw("path.pt", model, weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=model, strict=True, weights_only=weights_only
+    )

@@ -27,13 +27,12 @@ The following are loggers we support:
     :nosignatures:
     :template: classtemplate.rst
 
+    LitLogger
     CometLogger
     CSVLogger
     MLFlowLogger
-    NeptuneLogger
     TensorBoardLogger
     WandbLogger
-
 
 The above loggers will normally plot an additional chart (**global_step VS epoch**). Depending on the loggers you use, there might be some additional charts too.
 
@@ -69,7 +68,7 @@ You can also pass a custom Logger to the :class:`~lightning.pytorch.trainer.trai
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     trainer = Trainer(logger=tb_logger)
 
-Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
+Choose from any of the others such as LitLogger, MLflow, Comet, WandB, etc.
 
 .. code-block:: python
 
@@ -80,9 +79,9 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. code-block:: python
 
+    lit_logger = pl_loggers.LitLogger(save_dir="logs/")
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
-    comet_logger = pl_loggers.CometLogger(save_dir="logs/")
-    trainer = Trainer(logger=[tb_logger, comet_logger])
+    trainer = Trainer(logger=[lit_logger, tb_logger])
 
 .. note::
 

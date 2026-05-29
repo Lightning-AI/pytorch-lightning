@@ -40,23 +40,24 @@ jobs:
       matrix:
         os: [macOS-14, ubuntu-22.04, windows-2022]
         config:
-          # only run PyTorch latest
+          # Test unified "lightning" package with PyTorch 2.1-2.5
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
 
-          # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
+          # Test "fabric" package with PyTorch 2.6-2.10
           - { pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
-
-          # "fabric" installs the standalone package
-          - { pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.7" }
-
-          # adding recently cut Torch 2.7 - FUTURE
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.10" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.8" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.10" }
 
-          # "oldest" versions tests, only on minimum Python
+          # Test minimum supported versions (oldest)
           - { pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
@@ -67,13 +68,15 @@ jobs:
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
+      # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+      UV_EXCLUDE_NEWER: "2 days"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
-          python-version: ${{ matrix.config.python-version || '3.9' }}
+          python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
@@ -103,7 +106,7 @@ jobs:
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
           uv pip install "cython<3.0" wheel
-          uv pip install "pyyaml==5.4" --no-build-isolation
+          uv pip install "pyyaml==6.0.0" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
           python .actions/assistant.py prune_pytest_as_errors
@@ -132,6 +135,8 @@ jobs:
           uv pip install ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
             --upgrade \
             --find-links="${TORCH_URL}"
+          # ensure pkg_resources is available for older python versions & packages like onnxruntime that require it
+          uv pip install "setuptools<80.10.3"
           uv pip list
 
       - name: Adjust tests
@@ -162,7 +167,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:

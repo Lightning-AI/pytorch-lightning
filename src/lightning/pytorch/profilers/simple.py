@@ -14,13 +14,13 @@
 """Profiler to check if there are any bottlenecks in your code."""
 
 import logging
+import math
 import os
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional, Union
 
-import torch
 from typing_extensions import override
 
 from lightning.pytorch.profilers.profiler import Profiler
@@ -64,17 +64,17 @@ class SimpleProfiler(Profiler):
         self.current_actions: dict[str, float] = {}
         self.recorded_durations: dict = defaultdict(list)
         self.extended = extended
-        self.start_time = time.monotonic()
+        self.start_time = time.perf_counter()
 
     @override
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
             raise ValueError(f"Attempted to start {action_name} which has already started.")
-        self.current_actions[action_name] = time.monotonic()
+        self.current_actions[action_name] = time.perf_counter()
 
     @override
     def stop(self, action_name: str) -> None:
-        end_time = time.monotonic()
+        end_time = time.perf_counter()
         if action_name not in self.current_actions:
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         start_time = self.current_actions.pop(action_name)
@@ -82,13 +82,12 @@ class SimpleProfiler(Profiler):
         self.recorded_durations[action_name].append(duration)
 
     def _make_report_extended(self) -> tuple[_TABLE_DATA_EXTENDED, float, float]:
-        total_duration = time.monotonic() - self.start_time
+        total_duration = time.perf_counter() - self.start_time
         report = []
 
         for a, d in self.recorded_durations.items():
-            d_tensor = torch.tensor(d)
             len_d = len(d)
-            sum_d = torch.sum(d_tensor).item()
+            sum_d = math.fsum(d)
             percentage_d = 100.0 * sum_d / total_duration
 
             report.append((a, sum_d / len_d, len_d, sum_d, percentage_d))
@@ -100,8 +99,7 @@ class SimpleProfiler(Profiler):
     def _make_report(self) -> _TABLE_DATA:
         report = []
         for action, d in self.recorded_durations.items():
-            d_tensor = torch.tensor(d)
-            sum_d = torch.sum(d_tensor).item()
+            sum_d = math.fsum(d)
 
             report.append((action, sum_d / len(d), sum_d))
 

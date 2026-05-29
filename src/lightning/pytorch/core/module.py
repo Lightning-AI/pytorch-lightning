@@ -64,7 +64,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -1388,21 +1388,24 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def freeze(self) -> None:
+    def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
-        Example::
+        .. code-block:: python
 
             model = MyLightningModule(...)
             model.freeze()
+
+        Returns:
+            :class:`LightningModule` with all parameters frozen.
 
         """
         for param in self.parameters():
             param.requires_grad = False
 
-        self.eval()
+        return self.eval()
 
-    def unfreeze(self) -> None:
+    def unfreeze(self) -> Self:
         """Unfreeze all parameters for training.
 
         .. code-block:: python
@@ -1410,11 +1413,14 @@ class LightningModule(
             model = MyLightningModule(...)
             model.unfreeze()
 
+        Returns:
+            :class:`LightningModule` self with all parameters unfrozen.
+
         """
         for param in self.parameters():
             param.requires_grad = True
 
-        self.train()
+        return self.train()
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
@@ -1490,26 +1496,30 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, dict[str, ScriptModule]]:
-        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
-        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
-        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
-        scripted you should override this method. In case you want to return multiple modules, we recommend using a
-        dictionary.
+        """By default compiles the whole model to a ``torch.jit.ScriptModule``. If you want to use tracing, please
+        provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is provided,
+        or the model has :attr:`example_input_array` set. If you would like to customize the modules that are scripted
+        you should override this method. In case you want to return multiple modules, we recommend using a dictionary.
+
+        .. deprecated::
+            ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
+            TorchScript is deprecated in PyTorch. Use ``torch.export.export()`` for model exporting instead.
+            See https://pytorch.org/docs/stable/export.html for more information.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
-              :func:`torch.jit.trace` function.
+            **kwargs: Additional arguments that will be passed to the ``torch.jit.script`` or
+              ``torch.jit.trace`` function.
 
         Note:
             - Requires the implementation of the
               :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
-              to use this feature without limitations. See also the :mod:`torch.jit`
+              to use this feature without limitations. See also the ``torch.jit``
               documentation for supported features.
 
         Example::
@@ -1534,6 +1544,11 @@ class LightningModule(
             defined or not.
 
         """
+        rank_zero_deprecation(
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
+            "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
+            "See https://pytorch.org/docs/stable/export.html for more information."
+        )
         mode = self.training
 
         if method == "script":

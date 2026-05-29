@@ -126,10 +126,10 @@ class SpikeDetection:
         raise TrainingSpikeException(batch_idx=batch_idx)
 
     def _check_atol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
-        return (self.atol is None) or bool(abs(val_a - val_b) >= abs(self.atol))
+        return (self.atol is None) or bool(abs(val_a - val_b) >= abs(self.atol))  # type: ignore
 
     def _check_rtol(self, val_a: Union[float, torch.Tensor], val_b: Union[float, torch.Tensor]) -> bool:
-        return (self.rtol is None) or bool(abs(val_a - val_b) >= abs(self.rtol * val_b))
+        return (self.rtol is None) or bool(abs(val_a - val_b) >= abs(self.rtol * val_b))  # type: ignore
 
     def _is_better(self, diff_val: torch.Tensor) -> bool:
         if self.mode == "min":

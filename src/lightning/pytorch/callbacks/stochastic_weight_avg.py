@@ -139,6 +139,8 @@ class StochasticWeightAveraging(Callback):
 
     @property
     def swa_end(self) -> int:
+        if self._max_epochs == -1:
+            return float("inf")  # type: ignore[return-value]
         return self._max_epochs - 1  # 0-based
 
     @staticmethod
@@ -163,12 +165,17 @@ class StochasticWeightAveraging(Callback):
 
         assert trainer.max_epochs is not None
         if isinstance(self._swa_epoch_start, float):
+            if trainer.max_epochs == -1:
+                raise MisconfigurationException(
+                    "SWA with `swa_epoch_start` as a float is not supported when `max_epochs=-1`. "
+                    "Please provide `swa_epoch_start` as an integer."
+                )
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
         self._max_epochs = trainer.max_epochs
-        if self._model_contains_batch_norm:
+        if self._model_contains_batch_norm and trainer.max_epochs != -1:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs += 1
@@ -243,7 +250,7 @@ class StochasticWeightAveraging(Callback):
             self._latest_update_epoch = trainer.current_epoch
 
         # Note: No > here in case the callback is saved with the model and training continues
-        if trainer.current_epoch == self.swa_end + 1:
+        if self._max_epochs != -1 and trainer.current_epoch == self.swa_end + 1:
             # Transfer weights from average model to pl_module
             assert self._average_model is not None
             self.transfer_weights(self._average_model, pl_module)
@@ -267,17 +274,17 @@ class StochasticWeightAveraging(Callback):
     @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # the trainer increases the current epoch before this hook is called
-        if self._model_contains_batch_norm and trainer.current_epoch - 1 == self.swa_end + 1:
+        if self._model_contains_batch_norm and self._max_epochs != -1 and trainer.current_epoch - 1 == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.fit_loop.max_batches -= 1
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()
-        elif trainer.current_epoch - 1 == self.swa_end:
-            # Last SWA epoch. Transfer weights from average model to pl_module
-            assert self._average_model is not None
-            self.transfer_weights(self._average_model, pl_module)
+        elif trainer.current_epoch - 1 == self.swa_end or self._max_epochs == -1:
+            # Last SWA epoch or infinite training. Transfer weights from average model to pl_module
+            if self._average_model is not None:
+                self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
     def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule") -> None:

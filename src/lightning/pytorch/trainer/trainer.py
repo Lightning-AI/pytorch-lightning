@@ -132,6 +132,7 @@ class Trainer:
         default_root_dir: Optional[_PATH] = None,
         enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
+        suggest_integrations: bool = True,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -308,6 +309,10 @@ class Trainer:
 
             model_registry: The name of the model being uploaded to Model hub.
 
+            suggest_integrations: Whether to display suggestions for optional Lightning integrations.
+                Default: ``True``.
+
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -324,6 +329,7 @@ class Trainer:
 
         # remove version if accidentally passed
         self._model_registry = model_registry.split(":")[0] if model_registry else None
+        self.suggest_integrations = suggest_integrations
 
         self.barebones = barebones
         if barebones:
@@ -563,13 +569,15 @@ class Trainer:
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
+        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
+
+        :rtype: :py:obj:`None`
+
         Raises:
             TypeError:
                 If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
                 2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
-
-        For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
         model = _maybe_unwrap_optimized(model)

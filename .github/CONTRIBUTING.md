@@ -212,6 +212,8 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - [Test README](https://github.com/Lightning-AI/pytorch-lightning/blob/master/tests/README.md)
    - [CI/CD README](https://github.com/Lightning-AI/pytorch-lightning/tree/master/.github/workflows#readme)
 
+1. Once you have a PR opened (and thereby a PR number), please update the respective changelog for [fabric](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/CHANGELOG.md) or [pytorch](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/CHANGELOG.md) subpackage depending on where you made your changes.
+
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
 
    - Your code should be readable and follow the project's design principles.

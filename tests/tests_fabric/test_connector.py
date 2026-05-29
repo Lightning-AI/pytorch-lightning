@@ -77,7 +77,7 @@ class DeviceMock(Mock):
 @pytest.mark.parametrize(
     ("accelerator", "devices"), [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
 
@@ -1031,7 +1031,7 @@ def test_connector_defaults_match_fabric_defaults():
 
 
 @pytest.mark.parametrize("is_interactive", [False, True])
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
     no_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
     single_cuda = mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)

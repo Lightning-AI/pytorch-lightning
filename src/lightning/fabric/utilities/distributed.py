@@ -372,6 +372,14 @@ class DistributedSamplerWrapper(DistributedSampler):
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
 
+    @override
+    def set_epoch(self, epoch: int) -> None:
+        super().set_epoch(epoch)
+        # Forward set_epoch to the original sampler if it supports it
+        original_sampler = self.dataset._sampler
+        if hasattr(original_sampler, "set_epoch") and callable(original_sampler.set_epoch):
+            original_sampler.set_epoch(epoch)
+
 
 def _suggested_max_num_threads(num_processes: int = 1) -> int:
     if num_processes < 1:
