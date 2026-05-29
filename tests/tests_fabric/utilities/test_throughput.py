@@ -1,3 +1,4 @@
+import warnings
 from unittest import mock
 from unittest.mock import Mock, call
 
@@ -11,6 +12,7 @@ from lightning.fabric.utilities.throughput import (
     ThroughputMonitor,
     _MonotonicWindow,
     get_available_flops,
+    get_float32_matmul_precision_compat,
     measure_flops,
 )
 from tests_fabric.test_fabric import BoringModel
@@ -340,3 +342,23 @@ def test_monotonic_window():
         w.append(2)
     w.clear()
     w.append(2)
+
+
+def test_get_float32_matmul_precision_compat():
+    """Test that the compatibility function works without warnings."""
+    precision = get_float32_matmul_precision_compat()
+    assert precision in ["highest", "high", "medium"]
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        precision = get_float32_matmul_precision_compat()
+
+        deprecation_warnings = [
+            warning
+            for warning in w
+            if "Please use the new API settings to control TF32 behavior" in str(warning.message)
+        ]
+        assert len(deprecation_warnings) == 0, (
+            f"Compatibility function triggered {len(deprecation_warnings)} deprecation warnings"
+        )
+    assert precision in ["highest", "high", "medium"]

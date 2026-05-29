@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
+import warnings
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
 
 import torch
 from typing_extensions import override
@@ -25,6 +26,34 @@ if TYPE_CHECKING:
     from lightning.fabric.plugins import Precision
 
 _THROUGHPUT_METRICS = dict[str, Union[int, float]]
+
+
+def get_float32_matmul_precision_compat() -> Literal["highest", "high", "medium"]:
+    """Get the current float32 matmul precision using PyTorch 2.9+ compatible API."""
+    if not torch.cuda.is_available():
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return torch.get_float32_matmul_precision()
+        except Exception:
+            return "highest"
+
+    # Check if new API is available (PyTorch 2.9+)
+    if hasattr(torch.backends.cuda.matmul, "fp32_precision"):
+        precision_value = torch.backends.cuda.matmul.fp32_precision
+
+        if precision_value == "ieee":
+            return "highest"
+        if precision_value == "tf32":
+            return "medium"
+        return "highest"
+    # Fallback to old API for older PyTorch versions
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return torch.get_float32_matmul_precision()
+    except Exception:
+        return "highest"
 
 
 # The API design of this class follows `torchmetrics.Metric` but it doesn't need to be an actual Metric because there's
@@ -607,7 +636,7 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
         if dtype is torch.float32:
             from lightning.fabric.accelerators.cuda import _is_ampere_or_later
 
-            if _is_ampere_or_later() and torch.get_float32_matmul_precision() != "highest":
+            if _is_ampere_or_later() and get_float32_matmul_precision_compat() != "highest":
                 dtype = "tfloat32"
         if dtype not in dtype_to_flops:
             # for example, T4 doesn't support bfloat16. it might also be that we are missing this dtype from the list
