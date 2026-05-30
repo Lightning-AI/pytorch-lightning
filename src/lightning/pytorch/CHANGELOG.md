@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
 
+- Fixed a flaw in the `_LoggerConnetor`'s `should_update_logs` logic, which caused logs to be updated every step when actual stopping was prevented by `min_steps` or `min_epochs` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
+
 ---
 
 ## [2.6.4] - 2026-05-20
