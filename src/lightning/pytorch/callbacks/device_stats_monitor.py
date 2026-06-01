@@ -136,7 +136,7 @@ class DeviceStatsMonitor(Callback):
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None, verbose: bool = True) -> None:
+    def __init__(self, cpu_stats: Optional[bool] = None, verbose: bool = False) -> None:
         self._cpu_stats = cpu_stats
         self._verbose = verbose
 
