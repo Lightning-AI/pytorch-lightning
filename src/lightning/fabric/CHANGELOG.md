@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Normalized `_CUDA_FLOPS` values in `throughput.py` to consistent scientific notation (`a.bcde+N` with `1 <= a < 10`) ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
+-
 
 ### Removed
 
@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed inconsistent FLOPs reporting on NVIDIA H100/H200 GPUs by defaulting to dense FLOPs, with sparse FLOPs now requiring an explicit opt-in. ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
 ---
 
