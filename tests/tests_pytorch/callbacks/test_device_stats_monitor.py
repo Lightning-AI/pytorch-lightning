@@ -80,7 +80,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
                 has_cpu_metrics = any(f in h for h in metrics)
                 assert has_cpu_metrics if enabled else not has_cpu_metrics
 
-    device_stats = DeviceStatsMonitor(cpu_stats=cpu_stats)
+    device_stats = DeviceStatsMonitor(cpu_stats=cpu_stats, verbose=True)
     trainer = Trainer(
         default_root_dir=tmp_path,
         max_epochs=1,

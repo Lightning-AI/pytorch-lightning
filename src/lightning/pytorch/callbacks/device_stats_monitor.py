@@ -118,15 +118,15 @@ class DeviceStatsMonitor(Callback):
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
             If ``False``, it will not log CPU stats regardless of the accelerator.
-        verbose: if ``True``, logs all available device stats returned by the accelerator.
-            If ``False``, logs only a core set of metrics (memory usage, CPU utilization)
-            that are most relevant for monitoring training health. Defaults to ``True``.
         filter_keys: if ``None``, all stats returned by the accelerator are logged.
             If a ``set`` of strings is provided, only the keys present in the set will be logged.
             Keys are matched against the base metric names before prefixing (e.g.,
             ``"cpu_percent"`` not ``"DeviceStatsMonitor.on_train_batch_end/cpu_percent"``).
             A ``rank_zero_warn`` is emitted for any key in ``filter_keys`` not found in the
             collected stats, which helps catch typos early.
+        verbose: if ``True``, logs all available device stats returned by the accelerator.
+            If ``False``, logs only a core set of metrics (memory usage, CPU utilization)
+            that are most relevant for monitoring training health. Defaults to ``True``.
 
     Raises:
         MisconfigurationException:
