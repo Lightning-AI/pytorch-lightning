@@ -249,6 +249,49 @@ def test_device_stats_monitor_verbose_cpu(tmp_path, verbose):
     trainer.fit(model)
 
 
+@RunIf(psutil=True)
+@pytest.mark.parametrize(
+    ("filter_keys", "expected_present", "expected_absent"),
+    [
+        (
+            {_CPU_VM_PERCENT, _CPU_PERCENT},
+            [_CPU_VM_PERCENT, _CPU_PERCENT],
+            [_CPU_SWAP_PERCENT],
+        ),
+        (
+            {_CPU_PERCENT},
+            [_CPU_PERCENT],
+            [_CPU_VM_PERCENT, _CPU_SWAP_PERCENT],
+        ),
+    ],
+)
+def test_device_stats_monitor_filter_keys(tmp_path, filter_keys, expected_present, expected_absent):
+    """Test that filter_keys logs only the specified keys and omits the rest."""
+    model = BoringModel()
+
+    class AssertFilterLogger(CSVLogger):
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+            for key in expected_present:
+                assert any(key in k for k in metrics), f"Expected key {key!r} not found in metrics"
+            for key in expected_absent:
+                assert not any(key in k for k in metrics), f"Unexpected key {key!r} found in metrics"
+
+    device_stats = DeviceStatsMonitor(cpu_stats=True, filter_keys=filter_keys)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=device_stats,
+        logger=AssertFilterLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+    )
+    trainer.fit(model)
+
+
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("verbose", [True, False])
 def test_device_stats_monitor_verbose_gpu(tmp_path, verbose):
@@ -279,3 +322,23 @@ def test_device_stats_monitor_verbose_gpu(tmp_path, verbose):
         enable_progress_bar=False,
     )
     trainer.fit(model)
+
+@RunIf(psutil=True)
+def test_device_stats_monitor_filter_keys_unrecognized_warns(tmp_path):
+    """Test that filter_keys emits a warning for keys not present in device stats."""
+    model = BoringModel()
+    device_stats = DeviceStatsMonitor(cpu_stats=True, filter_keys={"nonexistent_key_xyz"})
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=device_stats,
+        logger=CSVLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+    )
+    with pytest.warns(UserWarning, match="filter_keys contains keys not found"):
+        trainer.fit(model)
