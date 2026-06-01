@@ -8,11 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `using_sparse_model` and `sparse_cuda_acceleration_factor` parameters to `Throughput` so MFU defaults to the dense peak and opts into the sparse peak explicitly ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
 ### Changed
 
--
+- Normalized `_CUDA_FLOPS` values in `throughput.py` to consistent scientific notation (`a.bcde+N` with `1 <= a < 10`) ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
 ### Removed
 
