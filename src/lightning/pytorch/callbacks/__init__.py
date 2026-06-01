@@ -18,6 +18,7 @@ from lightning.pytorch.callbacks.device_stats_monitor import DeviceStatsMonitor
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from lightning.pytorch.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
+from lightning.pytorch.callbacks.gradient_statistics_monitor import GradientStatsMonitor
 from lightning.pytorch.callbacks.lambda_function import LambdaCallback
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.callbacks.lr_monitor import LearningRateMonitor
@@ -44,6 +45,7 @@ __all__ = [
     "DeviceStatsMonitor",
     "EarlyStopping",
     "GradientAccumulationScheduler",
+    "GradientStatsMonitor",
     "LambdaCallback",
     "LearningRateFinder",
     "LearningRateMonitor",
