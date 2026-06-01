@@ -158,7 +158,9 @@ class DeviceStatsMonitor(Callback):
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None, verbose: bool = False) -> None:
+    def __init__(
+        self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None, verbose: bool = False
+    ) -> None:
         self._cpu_stats = cpu_stats
         self._filter_keys = filter_keys
         self._verbose = verbose
@@ -196,7 +198,6 @@ class DeviceStatsMonitor(Callback):
                     f"`DeviceStatsMonitor` filter_keys contains keys not found in device stats and will be ignored:"
                     f" {unrecognized}"
                 )
-
 
     @staticmethod
     def _filter_core_device_stats(stats: dict[str, float]) -> dict[str, float]:

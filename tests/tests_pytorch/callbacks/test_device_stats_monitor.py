@@ -323,6 +323,7 @@ def test_device_stats_monitor_verbose_gpu(tmp_path, verbose):
     )
     trainer.fit(model)
 
+
 @RunIf(psutil=True)
 def test_device_stats_monitor_filter_keys_unrecognized_warns(tmp_path):
     """Test that filter_keys emits a warning for keys not present in device stats."""
