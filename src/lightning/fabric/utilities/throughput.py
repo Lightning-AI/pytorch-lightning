@@ -108,7 +108,7 @@ class Throughput:
         if using_sparse_model is None and available_flops is not None:
             rank_zero_warn(
                 "MFU assumes dense model FLOPs (no sparsity acceleration)."
-                " Set 'using_sparse_model=True' for mfu to use sparse flops."
+                " Set 'using_sparse_model=True' for MFU to use sparse FLOPs."
             )
         if using_sparse_model and available_flops is not None:
             available_flops = available_flops * sparse_cuda_acceleration_factor
