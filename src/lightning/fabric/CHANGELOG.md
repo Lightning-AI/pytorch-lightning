@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed `_atomic_save` staging local checkpoints through `$TMPDIR`, which caused "no space left on device" on SLURM/HPC setups with a small `/tmp` ([#21744](https://github.com/Lightning-AI/pytorch-lightning/pull/21744))
 
 ---
 

@@ -13,9 +13,12 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 
+import contextlib
 import errno
 import io
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import IO, Any, Optional, Union
 
@@ -96,6 +99,38 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
+
+    if _is_local_file_protocol(filepath):
+        # Stage next to the destination so the temp file shares a filesystem with the target.
+        # fsspec's LocalFileSystem.transaction stages via tempfile.mkstemp() with no dir= argument,
+        # which puts the temp file in $TMPDIR and fails on setups where $TMPDIR is on a small
+        # partition (e.g. SLURM clusters). See https://github.com/Lightning-AI/pytorch-lightning/issues/21253.
+        target = os.fspath(filepath)
+        parent = os.path.dirname(target) or "."
+        fd, staging = tempfile.mkstemp(dir=parent, prefix=os.path.basename(target) + ".", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(bytesbuffer.getvalue())
+                # Flush contents to disk before rename so a crash can't leave a renamed-but-empty file.
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(staging, target)  # atomic on same filesystem
+        except BaseException:
+            with contextlib.suppress(FileNotFoundError):
+                os.unlink(staging)
+            raise
+        # Best-effort: fsync the parent directory so the rename itself is durable.
+        # Not supported on every platform (e.g. Windows) — failures are non-fatal because the
+        # file contents are already on disk above.
+        try:
+            dir_fd = os.open(parent, os.O_RDONLY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        except OSError:
+            pass
+        return
 
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted

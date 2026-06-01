@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import tempfile
+from pathlib import Path
 from unittest import mock
 
 import fsspec
+import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from fsspec.spec import AbstractFileSystem
@@ -150,3 +153,97 @@ def test_atomic_save_uses_write_for_local(tmp_path):
     assert filepath.exists()
     loaded = torch.load(filepath, weights_only=True)
     torch.testing.assert_close(loaded["key"], checkpoint["key"])
+
+
+def test_atomic_save_local_stages_next_to_destination(tmp_path, monkeypatch):
+    """Regression for #21253: local checkpoints must stage in the destination dir, not $TMPDIR.
+
+    Setups with a small $TMPDIR (SLURM, HPC clusters) hit "no space left on device" when a
+    large checkpoint is staged there. Stage next to the destination instead. Detected by
+    instrumenting ``tempfile.mkstemp`` — the staging directory is observable mid-write, not
+    after, because a successful transaction cleans the staging file up on commit. Paths are
+    resolved before comparison so this doesn't false-fail on macOS where /tmp is a symlink to
+    /private/tmp.
+
+    """
+    sentinel_tmpdir = (tmp_path / "sentinel_tmpdir").resolve()
+    dest_dir = (tmp_path / "destination").resolve()
+    sentinel_tmpdir.mkdir()
+    dest_dir.mkdir()
+
+    monkeypatch.setenv("TMPDIR", str(sentinel_tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", str(sentinel_tmpdir))
+
+    real_mkstemp = tempfile.mkstemp
+    staged_parents = []
+
+    def traced_mkstemp(*args, **kwargs):
+        fd, name = real_mkstemp(*args, **kwargs)
+        staged_parents.append(Path(name).resolve().parent)
+        return fd, name
+
+    monkeypatch.setattr(tempfile, "mkstemp", traced_mkstemp)
+
+    filepath = dest_dir / "checkpoint.ckpt"
+    _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
+
+    assert filepath.exists()
+    assert sentinel_tmpdir not in staged_parents, f"mkstemp staged through $TMPDIR: {staged_parents}"
+    assert dest_dir in staged_parents, f"mkstemp did not stage in destination dir: {staged_parents}"
+
+
+def test_atomic_save_local_cleans_up_staging_on_failure(tmp_path):
+    """If the rename fails, the staging file must not leak in the destination dir.
+
+    Patches os.replace to fail so we can observe what happens after a successful write but a failed rename — the
+    destination should not exist and the destination dir should be empty (i.e. no staging file under any naming
+    convention).
+
+    """
+    filepath = tmp_path / "checkpoint.ckpt"
+
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")),
+        pytest.raises(OSError, match="boom"),
+    ):
+        _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
+
+    assert not filepath.exists()
+    assert list(tmp_path.iterdir()) == [], f"unexpected files left after failed save: {list(tmp_path.iterdir())}"
+
+
+def test_atomic_save_local_preserves_existing_on_failure(tmp_path):
+    """The atomicity guarantee: a failed save must not corrupt or destroy a prior checkpoint.
+
+    The most important property of _atomic_save. Writes a baseline checkpoint, then attempts a
+    save that fails at the rename step, then asserts the original bytes are still on disk
+    untouched.
+    """
+    filepath = tmp_path / "checkpoint.ckpt"
+    _atomic_save({"key": torch.tensor([0, 0, 0])}, filepath)
+    original_bytes = filepath.read_bytes()
+
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io.os.replace", side_effect=OSError("boom")),
+        pytest.raises(OSError, match="boom"),
+    ):
+        _atomic_save({"key": torch.tensor([42, 42, 42])}, filepath)
+
+    assert filepath.read_bytes() == original_bytes
+    assert [p for p in tmp_path.iterdir() if p != filepath] == []
+
+
+def test_atomic_save_local_missing_parent_raises(tmp_path):
+    """Parent directories are not auto-created — locks in current behavior.
+
+    Lightning's checkpoint code creates dirs upstream (ModelCheckpoint.setup); a future refactor silently creating them
+    here would mask caller bugs.
+
+    """
+    filepath = tmp_path / "missing" / "checkpoint.ckpt"
+
+    with pytest.raises(FileNotFoundError):
+        _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
+
+    assert not filepath.exists()
+    assert not filepath.parent.exists()
