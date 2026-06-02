@@ -699,7 +699,6 @@ def test_profile_callbacks(tmp_path):
 @RunIf(min_python="3.10")
 def test_profiler_table_kwargs_summary_length(tmp_path):
     """Test if setting max_name_column_width in table_kwargs changes table width."""
-
     summaries = []
     # Default table_kwargs (None) sets max_name_column_width to 55
     for table_kwargs in [{"max_name_column_width": 1}, {"max_name_column_width": 5}, None]:
@@ -719,7 +718,6 @@ def test_profiler_table_kwargs_summary_length(tmp_path):
 
 def test_profiler_invalid_table_kwargs(tmp_path):
     """Test if passing invalid keyword arguments raise expected error."""
-
     for key in {"row_limit", "sort_by"}:
         with pytest.raises(
             KeyError,

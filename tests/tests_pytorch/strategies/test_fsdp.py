@@ -624,7 +624,6 @@ def test_strategy_load_optimizer_states(wrap_min_params, tmp_path):
     can be restored to FSDP, it means that the optimizer states were restored correctly.
 
     """
-
     # restore model to ddp
     model = TestBoringModel()
     trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)

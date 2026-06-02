@@ -722,10 +722,10 @@ def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: dict) -> dict:
 def _warn_if_shared_params_across_fsdp_units(module: Module, policy: Any) -> None:
     """Detect shared (tied) parameters that would be split across separate FSDP units by the wrap policy.
 
-    When a model has tied weights (e.g., embedding and output head sharing the same weight tensor) and the
-    auto-wrap policy places these parameters in different FSDP units, FSDP will shard each unit independently.
-    This causes one unit to see a flat/sharded tensor instead of the original shape, leading to cryptic
-    ``RuntimeError: size mismatch`` errors during the forward or backward pass.
+    When a model has tied weights (e.g., embedding and output head sharing the same weight tensor) and the auto-wrap
+    policy places these parameters in different FSDP units, FSDP will shard each unit independently. This causes one
+    unit to see a flat/sharded tensor instead of the original shape, leading to cryptic ``RuntimeError: size mismatch``
+    errors during the forward or backward pass.
 
     This function detects such cases and emits a warning before the crash happens.
 

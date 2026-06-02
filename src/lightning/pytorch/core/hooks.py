@@ -203,8 +203,8 @@ class ModelHooks:
     def on_predict_model_eval(self) -> None:
         """Called when the predict loop starts.
 
-        The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
-        to change the behavior.
+        The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook to
+        change the behavior.
 
         """
         self.trainer.model.eval()

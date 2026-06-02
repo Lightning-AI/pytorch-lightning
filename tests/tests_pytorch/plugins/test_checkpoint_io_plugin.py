@@ -104,7 +104,6 @@ def test_checkpoint_plugin_called(tmp_path):
 def test_async_checkpoint_plugin(tmp_path):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when async saving and
     loading."""
-
     checkpoint_plugin = AsyncCheckpointIO()
 
     checkpoint_plugin.save_checkpoint = Mock(wraps=checkpoint_plugin.save_checkpoint)

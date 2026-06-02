@@ -28,7 +28,6 @@ from tests_pytorch.helpers.runif import RunIf
 def test_deepspeed_summary(tmp_path):
     """Test to ensure that the summary contains the correct values when stage 3 is enabled and that the trainer enables
     the `DeepSpeedSummary` when DeepSpeed is used."""
-
     model = BoringModel()
     total_parameters = sum(x.numel() for x in model.parameters())
 

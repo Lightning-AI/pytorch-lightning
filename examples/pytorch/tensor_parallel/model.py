@@ -387,15 +387,12 @@ class Transformer(nn.Module):
     def init_weights(self):
         """[Note: On ``init_weights`` vs.
 
-        ``reset_parameters``]
-        Modules may define ``reset_parameters`` to initialize parameter values.
-        ``reset_parameters`` is meant to only initialize directly owned
-        parameters/buffers, not those of their child modules, and it can be
-        used to give the initial values for these tensors.
-        Separately, users may want custom initialization for their modules,
-        different from that in ``reset_parameters``. For this, we define
-        ``init_weights``. We only call it in the constructor of this
-        ``Transformer`` root module to avoid reinitializing tensors.
+        ``reset_parameters``] Modules may define ``reset_parameters`` to initialize parameter values.
+        ``reset_parameters`` is meant to only initialize directly owned parameters/buffers, not those of their child
+        modules, and it can be used to give the initial values for these tensors. Separately, users may want custom
+        initialization for their modules, different from that in ``reset_parameters``. For this, we define
+        ``init_weights``. We only call it in the constructor of this ``Transformer`` root module to avoid reinitializing
+        tensors.
 
         """
         with torch.device(self.freqs_cis.device):

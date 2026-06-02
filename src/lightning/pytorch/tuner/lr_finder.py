@@ -67,13 +67,14 @@ def _determine_lr_attr_name(model: "pl.LightningModule", attr_name: str = "") ->
 
 
 class _LRFinder:
-    """LR finder object. This object stores the results of lr_find().
+    """LR finder object.
 
-    Args:
-        mode: either `linear` or `exponential`, how to increase lr after each step
-        lr_min: lr to start search from
-        lr_max: lr to stop search
-        num_training: number of steps to take between lr_min and lr_max
+    This object stores the results of lr_find().
+        Args:
+            mode: either `linear` or `exponential`, how to increase lr after each step
+            lr_min: lr to start search from
+            lr_max: lr to stop search
+            num_training: number of steps to take between lr_min and lr_max
 
     """
 
@@ -348,8 +349,9 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: dict[str, Any]) ->
 
 
 class _LRCallback(Callback):
-    """Special callback used by the learning rate finder. This callback logs the learning rate before each batch and
-    logs the corresponding loss after each batch.
+    """Special callback used by the learning rate finder.
+
+    This callback logs the learning rate before each batch and logs the corresponding loss after each batch.
 
     Args:
         num_training: number of iterations done by the learning rate finder

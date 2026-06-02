@@ -269,7 +269,6 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_experiment_calls_with_synchronous(mlflow_mock, tmp_path, synchronous):
     """Test that the logger calls methods on the mlflow experiment with the specified synchronous flag."""
-
     time = mlflow_mock.entities.time
     metric = mlflow_mock.entities.Metric
     param = mlflow_mock.entities.Param
