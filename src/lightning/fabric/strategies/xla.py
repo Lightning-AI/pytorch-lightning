@@ -200,8 +200,7 @@ class XLAStrategy(ParallelStrategy):
         import torch_xla.core.xla_model as xm
 
         tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
-        tensor = tensor.to(original_device)
-        return tensor
+        return tensor.to(original_device)
 
     @override
     def all_reduce(

@@ -313,14 +313,13 @@ class ModelSummary:
     @property
     def flop_counts(self) -> dict[str, dict[Any, int]]:
         flop_counts = self._flop_counter.get_flop_counts()
-        ret = {
+        return {
             name: flop_counts.get(
                 f"{type(self._model).__name__}.{name}",
                 {},
             )
             for name in self.layer_names
         }
-        return ret
 
     def summarize(self) -> dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)

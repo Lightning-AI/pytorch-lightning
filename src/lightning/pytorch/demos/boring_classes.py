@@ -253,20 +253,16 @@ class IterableBoringDataModule(LightningDataModule):
             ]
 
     def train_dataloader(self) -> Iterable[DataLoader]:
-        combined_train = apply_to_collection(self.train_datasets, Dataset, lambda x: DataLoader(x))
-        return combined_train
+        return apply_to_collection(self.train_datasets, Dataset, lambda x: DataLoader(x))
 
     def val_dataloader(self) -> DataLoader:
-        combined_val = apply_to_collection(self.val_datasets, Dataset, lambda x: DataLoader(x))
-        return combined_val
+        return apply_to_collection(self.val_datasets, Dataset, lambda x: DataLoader(x))
 
     def test_dataloader(self) -> DataLoader:
-        combined_test = apply_to_collection(self.test_datasets, Dataset, lambda x: DataLoader(x))
-        return combined_test
+        return apply_to_collection(self.test_datasets, Dataset, lambda x: DataLoader(x))
 
     def predict_dataloader(self) -> DataLoader:
-        combined_predict = apply_to_collection(self.predict_datasets, Dataset, lambda x: DataLoader(x))
-        return combined_predict
+        return apply_to_collection(self.predict_datasets, Dataset, lambda x: DataLoader(x))
 
 
 class ManualOptimBoringModel(BoringModel):
