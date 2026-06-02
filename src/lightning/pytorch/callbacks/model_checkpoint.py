@@ -897,7 +897,8 @@ class ModelCheckpoint(Checkpoint):
         for ckpt_path in sorted(candidates_ts, key=candidates_ts.get, reverse=True):  # type: ignore[arg-type]
             try:
                 checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-            except Exception:
+            except Exception as ex:
+                log.debug(f"Skipping unreadable checkpoint {ckpt_path} while resolving the best path: {ex}")
                 continue
             callback_states = checkpoint.get("callbacks") if isinstance(checkpoint, dict) else None
             if not isinstance(callback_states, dict):
