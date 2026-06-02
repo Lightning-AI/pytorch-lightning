@@ -180,7 +180,7 @@ class _CheckpointConnector:
                     raise ValueError(
                         f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best'
                         " model. If you trained in a different process, pass the checkpoint path explicitly via"
-                        f' `.{fn}(ckpt_path=...)`.'
+                        f" `.{fn}(ckpt_path=...)`."
                     )
             # load best weights (from in-memory state, or recovered from disk above)
             ckpt_path = has_best_model_path or getattr(self.trainer.checkpoint_callback, "best_model_path", None)

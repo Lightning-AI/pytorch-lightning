@@ -257,6 +257,7 @@ def test_best_ckpt_path_from_disk_in_fresh_process(tmp_path, trainer_fn):
     empty in-memory ``best_model_path``, so ``"best"`` must be recovered from the persisted callback state on disk.
 
     """
+
     class LogValLossModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
@@ -276,7 +277,8 @@ def test_best_ckpt_path_from_disk_in_fresh_process(tmp_path, trainer_fn):
     )
     trainer.fit(model)
     best_model_path = checkpoint_callback.best_model_path
-    assert best_model_path and os.path.exists(best_model_path)
+    assert best_model_path
+    assert os.path.exists(best_model_path)
 
     # simulate a fresh process: a new Trainer with a fresh ModelCheckpoint that has empty in-memory state
     fresh_checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
