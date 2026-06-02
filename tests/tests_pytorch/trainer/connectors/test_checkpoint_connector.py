@@ -249,6 +249,61 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
     assert trainer.ckpt_path == best_path
 
 
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_best_ckpt_path_from_disk_in_fresh_process(tmp_path, trainer_fn):
+    """Test that ckpt_path="best" is resolved from disk when training happened in a separate process.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21254. A fresh Trainer/process has an
+    empty in-memory ``best_model_path``, so ``"best"`` must be recovered from the persisted callback state on disk.
+
+    """
+    class LogValLossModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            self.log("val_loss", loss)
+            return {"x": loss}
+
+    # train in one "process": a best checkpoint is written to disk
+    model = LogValLossModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=False,
+        callbacks=[checkpoint_callback],
+    )
+    trainer.fit(model)
+    best_model_path = checkpoint_callback.best_model_path
+    assert best_model_path and os.path.exists(best_model_path)
+
+    # simulate a fresh process: a new Trainer with a fresh ModelCheckpoint that has empty in-memory state
+    fresh_checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    assert fresh_checkpoint.best_model_path == ""
+    fresh_trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        logger=False,
+        callbacks=[fresh_checkpoint],
+    )
+
+    fn = getattr(fresh_trainer, trainer_fn)
+    fn(LogValLossModel(), ckpt_path="best")
+    assert os.path.normpath(fresh_trainer.ckpt_path) == os.path.normpath(best_model_path)
+
+
+def test_best_ckpt_path_no_disk_fallback_raises(tmp_path):
+    """Test that ckpt_path="best" still raises a clear error when no checkpoint exists on disk."""
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, callbacks=[checkpoint_callback])
+    with pytest.raises(ValueError, match="is not configured to save the best model"):
+        trainer.validate(model, ckpt_path="best")
+
+
 @pytest.mark.parametrize(("strict_loading", "expected"), [(None, True), (True, True), (False, False)])
 def test_strict_loading(strict_loading, expected, tmp_path):
     """Test that the connector respects the `LightningModule.strict_loading` setting."""
