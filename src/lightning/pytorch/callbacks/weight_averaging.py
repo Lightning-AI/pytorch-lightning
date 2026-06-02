@@ -223,7 +223,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._should_swap_models():
             self._swap_models(pl_module)
 
     @override
@@ -237,7 +237,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._should_swap_models():
             self._swap_models(pl_module)
 
     @override
@@ -333,6 +333,19 @@ class WeightAveraging(Callback):
                 "initialized with state_dict."
             )
             self._average_model.module.load_state_dict(deepcopy(checkpoint["state_dict"]), strict=False)
+
+    def _should_swap_models(self) -> bool:
+        """Whether validation should swap in the :class:`AveragedModel` parameters.
+
+        Before the first update, the :class:`AveragedModel` is only an (un-averaged) copy of the
+        initial model created in ``setup()``, so swapping it in during validation would report
+        metrics for un-averaged weights. Only swap once at least one update has happened. The same
+        condition is used in both ``on_validation_epoch_start`` and ``on_validation_epoch_end`` so
+        that the swap is always symmetric and the current model is never left holding the averaged
+        weights after validation.
+
+        """
+        return self._average_model is not None and int(self._average_model.n_averaged) > 0
 
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.
