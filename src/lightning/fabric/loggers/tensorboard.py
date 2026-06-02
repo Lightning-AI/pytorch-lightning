@@ -17,7 +17,6 @@ from argparse import Namespace
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
@@ -202,6 +201,9 @@ class TensorBoardLogger(Logger):
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+
+        # Local import to avoid making numpy a top-level dependency of the package.
+        import numpy as np
 
         for k, v in metrics.items():
             if isinstance(v, Tensor):
