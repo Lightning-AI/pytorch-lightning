@@ -385,6 +385,7 @@ def test_ema_weight_averaging_no_swap_before_first_update(tmp_path):
     Before the first ``update_parameters`` the ``AveragedModel`` is only an un-averaged copy of
     the initial model from ``setup()``, so swapping it in during validation would report metrics
     for un-averaged weights (https://github.com/Lightning-AI/pytorch-lightning/issues/21724).
+
     """
 
     class CountingEMA(EMAWeightAveraging):
