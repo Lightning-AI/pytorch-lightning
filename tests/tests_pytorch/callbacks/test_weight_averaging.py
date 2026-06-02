@@ -166,13 +166,16 @@ class SWATestCallback(WeightAveraging):
             assert self._average_model.n_averaged == 2
         else:
             assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.current_epoch + 1 - self.first_epoch) * 2
+        # The first update happens at the end of epoch 3, so validation only swaps in the averaged
+        # model from epoch 4 onwards; before that it must not swap in the un-averaged copy.
+        assert self.swap_calls == max(0, trainer.current_epoch - 3) * 2
         assert self.copy_calls == 0
 
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
+        # Swaps only happen in epochs 4-7 (after the first update at the end of epoch 3).
+        assert self.swap_calls == (trainer.max_epochs - 4) * 2
         assert self.copy_calls == 1
 
 
@@ -374,6 +377,46 @@ def test_ema_weight_averaging_starting_step(tmp_path):
     _train(model, dataset, tmp_path, callback)
 
     assert callback._average_model is not None
+
+
+def test_ema_weight_averaging_no_swap_before_first_update(tmp_path):
+    """Validation must not swap in the averaged model before the first update.
+
+    Before the first ``update_parameters`` the ``AveragedModel`` is only an un-averaged copy of
+    the initial model from ``setup()``, so swapping it in during validation would report metrics
+    for un-averaged weights (https://github.com/Lightning-AI/pytorch-lightning/issues/21724).
+    """
+
+    class CountingEMA(EMAWeightAveraging):
+        def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
+            self.swap_calls = 0
+
+        def _swap_models(self, *args: Any, **kwargs: Any):
+            self.swap_calls += 1
+            return super()._swap_models(*args, **kwargs)
+
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    # Delay the first update well beyond this short run, so no update ever happens.
+    callback = CountingEMA(decay=0.999, update_every_n_steps=1, update_starting_at_step=10_000)
+    trainer = Trainer(
+        accelerator="cpu",
+        logger=False,
+        callbacks=callback,
+        max_epochs=2,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        default_root_dir=tmp_path,
+    )
+    trainer.fit(model, DataLoader(dataset, batch_size=4, shuffle=False))
+
+    # No update happened, so the averaged model was never swapped in during validation.
+    assert callback._average_model is not None
+    assert int(callback._average_model.n_averaged) == 0
+    assert callback.swap_calls == 0
 
 
 def test_ema_weight_averaging_starting_epoch(tmp_path):
