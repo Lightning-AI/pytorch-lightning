@@ -17,10 +17,6 @@ import warnings
 from pathlib import Path
 from typing import Optional, Union
 
-from lightning.fabric.utilities.rank_zero import LightningDeprecationWarning
-
-# enable our warnings
-warnings.simplefilter("default", category=LightningDeprecationWarning)
 _default_format_warning = warnings.formatwarning
 
 
