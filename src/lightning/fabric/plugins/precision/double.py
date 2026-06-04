@@ -52,3 +52,7 @@ class DoublePrecision(Precision):
     @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return torch.double

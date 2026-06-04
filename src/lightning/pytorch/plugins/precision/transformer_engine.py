@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+from typing_extensions import override
+
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision as FabricTEPrecision
 from lightning.pytorch.plugins.precision.precision import Precision
 
@@ -37,3 +40,7 @@ class TransformerEnginePrecision(Precision, FabricTEPrecision):
         inputs to conform to this restriction.
 
     """
+
+    @override
+    def compute_dtype(self) -> torch.dtype:
+        return torch.int8

@@ -635,36 +635,7 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
 
 
 def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
-    # TODO: integrate this into the precision plugins
-    from lightning.fabric.plugins import (
-        BitsandbytesPrecision,
-        DeepSpeedPrecision,
-        DoublePrecision,
-        FSDPPrecision,
-        HalfPrecision,
-        MixedPrecision,
-        Precision,
-        TransformerEnginePrecision,
-        XLAPrecision,
-    )
-
-    if not isinstance(plugin, Precision):
-        raise RuntimeError(f"Expected a precision plugin, got {plugin}")
-    if isinstance(plugin, BitsandbytesPrecision):
-        return plugin.dtype
-    if isinstance(plugin, (HalfPrecision, MixedPrecision)):
-        return plugin._desired_input_dtype
-    if isinstance(plugin, DoublePrecision):
-        return torch.double
-    if isinstance(plugin, (XLAPrecision, DeepSpeedPrecision)):
-        return plugin._desired_dtype
-    if isinstance(plugin, TransformerEnginePrecision):
-        return torch.int8
-    if isinstance(plugin, FSDPPrecision):
-        return plugin.mixed_precision_config.reduce_dtype or torch.float32
-    if isinstance(plugin, Precision):
-        return torch.float32
-    raise NotImplementedError(plugin)
+    return plugin.compute_dtype()
 
 
 T = TypeVar("T", bound=float)
