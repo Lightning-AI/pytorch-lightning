@@ -50,6 +50,11 @@ class LearningRateFinder(Callback):
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
+        weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+            ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+            an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+            recommend using ``weights_only=True``. For more information, please refer to the
+            `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
     Example::
 
@@ -92,6 +97,7 @@ class LearningRateFinder(Callback):
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
+        weights_only: Optional[bool] = None
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -104,6 +110,7 @@ class LearningRateFinder(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
         self._attr_name = attr_name
+        self._weights_only = weights_only
 
         self._early_exit = False
         self.optimal_lr: Optional[_LRFinder] = None
@@ -120,6 +127,7 @@ class LearningRateFinder(Callback):
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
                 attr_name=self._attr_name,
+                weights_only=self._weights_only,
             )
 
         if self._early_exit:
