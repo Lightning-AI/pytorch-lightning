@@ -97,7 +97,7 @@ class LearningRateFinder(Callback):
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
-        weights_only: Optional[bool] = None
+        weights_only: Optional[bool] = None,
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
