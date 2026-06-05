@@ -23,7 +23,7 @@ import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
 
-from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
@@ -850,28 +850,27 @@ def test_lr_finder_respects_weights_only(tmp_path):
     """Test that lr_find works correctly when saving more than the weights."""
 
     # Simple torch Module
-    class TorchCoder(nn.Module):
+    class TorchCoder(torch.nn.Module):
         def __init__(self, in_features, out_features):
             super().__init__()
-            self.net = nn.Linear(in_features, out_features)
+            self.net = torch.nn.Linear(in_features, out_features)
 
         def forward(self, x):
             return self.net(x)
 
     # Simple model
-    class SimpleModel(L.LightningModule):
+    class SimpleModel(LightningModule):
         def __init__(self, coder, loss, lr=1e-3):
             super().__init__()
             self.save_hyperparameters()
-            self.layer = nn.Linear(4, 2)
-            self.loss= loss
-            self.lr=lr
+            self.layer = coder
+            self.loss = loss
+            self.lr = lr
 
         def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.layer(x)
-            loss = nn.functional.mse_loss(y_hat, y)
-            return loss
+            return self.loss(y_hat, y)
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -879,14 +878,14 @@ def test_lr_finder_respects_weights_only(tmp_path):
     # Dummy data
     x = torch.randn(16, 4)
     y = torch.randn(16, 2)
-    loader = DataLoader(TensorDataset(x, y), batch_size=4)
+    loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x, y), batch_size=4)
 
     model = SimpleModel(
         TorchCoder(4, 2),
-        loss=nn.MSELoss(),
+        loss=torch.nn.MSELoss(),
     )
 
-    trainer = L.Trainer(
+    trainer = Trainer(
         default_root_dir=tmp_path,
         max_epochs=1,
         logger=False,
@@ -894,7 +893,7 @@ def test_lr_finder_respects_weights_only(tmp_path):
     )
 
     # This should NOT raise an exception after the fix
-    lr_finder = L.pytorch.tuner.Tuner(trainer).lr_find(
+    lr_finder = Tuner(trainer).lr_find(
         model,
         train_dataloaders=loader,
         weights_only=False,  # <-- the key part
