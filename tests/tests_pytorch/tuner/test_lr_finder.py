@@ -844,3 +844,61 @@ def test_lr_finder_with_backbone_finetuning_callback(tmp_path):
     # Check that backbone was unfrozen at the correct epoch
     for param in model.backbone.parameters():
         assert param.requires_grad, "Backbone parameters should be unfrozen after epoch 1"
+
+
+def test_lr_finder_respects_weights_only(tmp_path):
+    """Test that lr_find works correctly when saving more than the weights."""
+
+    # Simple torch Module
+    class TorchCoder(nn.Module):
+        def __init__(self, in_features, out_features):
+            super().__init__()
+            self.net = nn.Linear(in_features, out_features)
+
+        def forward(self, x):
+            return self.net(x)
+
+    # Simple model
+    class SimpleModel(L.LightningModule):
+        def __init__(self, coder, loss, lr=1e-3):
+            super().__init__()
+            self.save_hyperparameters()
+            self.layer = nn.Linear(4, 2)
+            self.loss= loss
+            self.lr=lr
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.layer(x)
+            loss = nn.functional.mse_loss(y_hat, y)
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=self.lr)
+
+    # Dummy data
+    x = torch.randn(16, 4)
+    y = torch.randn(16, 2)
+    loader = DataLoader(TensorDataset(x, y), batch_size=4)
+
+    model = SimpleModel(
+        TorchCoder(4, 2),
+        loss=nn.MSELoss(),
+    )
+
+    trainer = L.Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        logger=False,
+        enable_checkpointing=True,
+    )
+
+    # This should NOT raise an exception after the fix
+    lr_finder = L.pytorch.tuner.Tuner(trainer).lr_find(
+        model,
+        train_dataloaders=loader,
+        weights_only=False,  # <-- the key part
+    )
+
+    assert lr_finder is not None
+    assert hasattr(lr_finder, "results")
