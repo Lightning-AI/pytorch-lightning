@@ -131,7 +131,7 @@ class Tuner:
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
-        weights_only: Optional[bool] = None
+        weights_only: Optional[bool] = None,
     ) -> Optional["_LRFinder"]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
