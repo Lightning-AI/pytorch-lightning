@@ -896,7 +896,10 @@ class ModelCheckpoint(Checkpoint):
 
         for ckpt_path in sorted(candidates_ts, key=candidates_ts.get, reverse=True):  # type: ignore[arg-type]
             try:
-                checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+                # Open via `self._fs` (the filesystem the candidates were listed from) so this works on non-local
+                # filesystems too; the listed paths are relative to that filesystem, not necessarily local paths.
+                with self._fs.open(ckpt_path, "rb") as file:
+                    checkpoint = torch.load(file, map_location="cpu", weights_only=False)
             except Exception as ex:
                 log.debug(f"Skipping unreadable checkpoint {ckpt_path} while resolving the best path: {ex}")
                 continue
@@ -905,8 +908,12 @@ class ModelCheckpoint(Checkpoint):
                 continue
             state = callback_states.get(self.state_key, callback_states.get(self._legacy_state_key))
             best_model_path = state.get("best_model_path") if isinstance(state, dict) else None
-            if best_model_path and self._fs.exists(best_model_path):
-                return os.path.normpath(best_model_path)
+            if best_model_path and get_filesystem(best_model_path).exists(best_model_path):
+                # Only normalize bare local paths; any protocol URL (`file://`, `s3://`, ...) must keep its `//`
+                # intact, which `os.path.normpath` would otherwise collapse.
+                if "://" not in best_model_path:
+                    return os.path.normpath(best_model_path)
+                return best_model_path
         return None
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:

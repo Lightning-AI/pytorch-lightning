@@ -178,9 +178,10 @@ class _CheckpointConnector:
                     has_best_model_path = self.trainer.checkpoint_callback._find_best_model_path_on_disk(self.trainer)
                 if not has_best_model_path:
                     raise ValueError(
-                        f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best'
-                        " model. If you trained in a different process, pass the checkpoint path explicitly via"
-                        f" `.{fn}(ckpt_path=...)`."
+                        f'`.{fn}(ckpt_path="best")` is set but no best model checkpoint could be found. Either'
+                        " `ModelCheckpoint` is not configured to save the best model, or you trained in a different"
+                        f" process and no recoverable checkpoint exists on disk. Pass the checkpoint path explicitly"
+                        f" via `.{fn}(ckpt_path=...)`."
                     )
             # load best weights (from in-memory state, or recovered from disk above)
             ckpt_path = has_best_model_path or getattr(self.trainer.checkpoint_callback, "best_model_path", None)
