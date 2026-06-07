@@ -551,3 +551,89 @@ def test_sparsity_calculation(tmp_path, caplog, pruning_amount: float, model_typ
     expected_pruned_count = int(expected_total_params * pruning_amount)
     pruned_tolerance = max(1, int(expected_total_params * 0.05))
     assert abs(pruned_count - expected_pruned_count) <= pruned_tolerance
+
+
+def test_pruning_callback_original_layers_on_cpu():
+    """Test that lottery ticket hypothesis stores original layers on CPU
+    to prevent GPU memory leaks when the callback is reused across
+    multiple trainer.fit() calls (#8542)."""
+    from lightning.pytorch import LightningModule, Trainer
+    from lightning.pytorch.callbacks.pruning import ModelPruning
+    from lightning.pytorch.demos.boring_classes import BoringModel
+
+    model = BoringModel()
+    parameters_to_prune = [(model.layer, "weight")]
+    pruning = ModelPruning(
+        pruning_fn="l1_unstructured",
+        parameters_to_prune=parameters_to_prune,
+        use_lottery_ticket_hypothesis=True,
+        amount=0.1,
+        verbose=0,
+    )
+
+    # Simulate setup (normally called by Trainer)
+    pruning.setup(None, model, "fit")
+
+    # After setup, original layers should NOT be on GPU
+    assert pruning._original_layers is not None
+    for layer_ref in pruning._original_layers.values():
+        for name, param in layer_ref["data"].named_parameters():
+            assert not param.is_cuda, (
+                f"Parameter '{name}' is on GPU. Expected CPU to prevent memory leak."
+            )
+
+
+def test_pruning_callback_cleanup_on_train_end():
+    """Test that _original_layers is cleaned up after on_train_end
+    to release memory when the callback is reused across multiple
+    trainer.fit() calls (#8542)."""
+    from lightning.pytorch import LightningModule
+    from lightning.pytorch.callbacks.pruning import ModelPruning
+    from lightning.pytorch.demos.boring_classes import BoringModel
+
+    model = BoringModel()
+    parameters_to_prune = [(model.layer, "weight")]
+    pruning = ModelPruning(
+        pruning_fn="l1_unstructured",
+        parameters_to_prune=parameters_to_prune,
+        use_lottery_ticket_hypothesis=True,
+        amount=0.1,
+    )
+
+    pruning.setup(None, model, "fit")
+    assert pruning._original_layers is not None, "Should be set after setup"
+
+    pruning.on_train_end(None, model)
+    assert pruning._original_layers is None, (
+        "Should be cleaned up after on_train_end to release memory"
+    )
+
+
+def test_pruning_callback_reuse_does_not_leak():
+    """Simulate multiple trainer.fit() calls and verify that
+    GPU memory doesn't accumulate when the callback is reused."""
+    from lightning.pytorch import LightningModule
+    from lightning.pytorch.callbacks.pruning import ModelPruning
+    from lightning.pytorch.demos.boring_classes import BoringModel
+
+    model = BoringModel()
+    parameters_to_prune = [(model.layer, "weight")]
+    pruning = ModelPruning(
+        pruning_fn="l1_unstructured",
+        parameters_to_prune=parameters_to_prune,
+        use_lottery_ticket_hypothesis=True,
+        amount=0.1,
+    )
+
+    # Simulate 3 training runs
+    for i in range(3):
+        pruning.setup(None, model, "fit")
+        assert pruning._original_layers is not None, f"Iteration {i}: should be set"
+        # After each run, original layers should be on CPU
+        for layer_ref in pruning._original_layers.values():
+            for name, param in layer_ref["data"].named_parameters():
+                assert not param.is_cuda, (
+                    f"Iteration {i}: Parameter '{name}' is on GPU"
+                )
+        pruning.on_train_end(None, model)
+        assert pruning._original_layers is None, f"Iteration {i}: should be cleaned up"

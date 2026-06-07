@@ -377,11 +377,14 @@ class ModelPruning(Callback):
 
         if self._use_lottery_ticket_hypothesis:
             # group modules by id. Each entry has a copy of the initial data
-            # and a list of the associated parameter names to prune
+            # and a list of the associated parameter names to prune.
+            # The copy is moved to CPU to avoid accumulating GPU memory when
+            # the callback is reused across multiple trainer.fit() calls (#8542).
             self._original_layers = {}
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 id_ = id(module)
-                self._original_layers.setdefault(id_, _LayerRef(data=deepcopy(module), names=[]))
+                copy = deepcopy(module).cpu()
+                self._original_layers.setdefault(id_, _LayerRef(data=copy, names=[]))
                 self._original_layers[id_]["names"].append((i, name))
 
     def _run_pruning(self, current_epoch: int) -> None:
@@ -415,6 +418,9 @@ class ModelPruning(Callback):
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
+        # Release the original layer copies to free GPU memory when the
+        # callback is reused across multiple trainer.fit() calls (#8542).
+        self._original_layers = None
 
     def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> dict[str, Any]:
         state_dict = pl_module.state_dict()
