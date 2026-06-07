@@ -404,8 +404,16 @@ class LightningCLI:
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
+
+        ckpt_path_present = self._check_ckpt_path(args)
+        if ckpt_path_present:
+            self._relax_model_requirements()
+
         self.parse_arguments(self.parser, args)
-        self._parse_ckpt_path()
+        if ckpt_path_present:
+            self._enforce_model_requirements()
+
+        self._parse_ckpt_path(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -419,6 +427,37 @@ class LightningCLI:
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
+
+    def _check_ckpt_path(self, args: ArgsType) -> bool:
+        """Check if --ckpt_path is present in arguments."""
+        argv = sys.argv[1:] if args is None else args
+
+        if not isinstance(argv, list):
+            return False
+
+        return any(arg.startswith("--ckpt_path") for arg in argv)
+
+    def _relax_model_requirements(self) -> None:
+        self._removed_requirements: dict[Any, list[str]] = {}
+        subcommands = self.parser._subcommands_action
+
+        if subcommands is None:
+            return
+
+        for subparser in subcommands._name_parser_map.values():
+            self._removed_requirements[subparser] = []
+
+            if "model" in subparser.required_args:
+                subparser.required_args.remove("model")
+                self._removed_requirements[subparser].append("model")
+
+    def _enforce_model_requirements(self) -> None:
+        for subparser, removed_args in self._removed_requirements.items():
+            for arg_name in removed_args:
+                if arg_name not in subparser.required_args:
+                    subparser.required_args.add(arg_name)
+
+        del self._removed_requirements
 
     def _setup_parser_kwargs(self, parser_kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         subcommand_names = self.subcommands().keys()
@@ -560,9 +599,19 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
-    def _parse_ckpt_path(self) -> None:
-        """If a checkpoint path is given, parse the hyperparameters from the checkpoint and update the config."""
-        if not self.config.get("subcommand"):
+    def _parse_ckpt_path(self, parser: LightningArgumentParser, args: ArgsType) -> None:
+        """Parses the checkpoint path, loads hyperparameters, and injects them as new defaults.
+
+        If `ckpt_path` is provided, this method:
+        1. Loads hyperparameters from the checkpoint file.
+        2. Sets them as new default values for the specific subcommand parser.
+        3. Re-runs argument parsing.
+
+        This ensures the correct priority order:
+        __init__ defaults < ckpt hparams < cfg file < CLI args
+
+        """
+        if not self.config.get("subcommand") or parser._subcommands_action is None:
             return
         ckpt_path = self.config[self.config.subcommand].get("ckpt_path")
         if ckpt_path and Path(ckpt_path).is_file():
@@ -576,12 +625,14 @@ class LightningCLI:
                     "class_path": hparams.pop("_class_path"),
                     "dict_kwargs": hparams,
                 }
-            hparams = {self.config.subcommand: {"model": hparams}}
+            hparams = {"model": hparams}
             try:
-                self.config = self.parser.parse_object(hparams, self.config)
-            except SystemExit:
+                subparser = parser._subcommands_action._name_parser_map[self.config.subcommand]
+                subparser.set_defaults(hparams)
+            except KeyError as ex:
                 sys.stderr.write("Parsing of ckpt_path hyperparameters failed!\n")
-                raise
+                parser.error(str(ex), ex)
+            self.parse_arguments(parser, args)
 
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):
