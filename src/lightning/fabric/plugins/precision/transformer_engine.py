@@ -169,12 +169,20 @@ def _convert_layers(module: torch.nn.Module) -> None:
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         elif isinstance(child, torch.nn.LayerNorm):
+            # Check weight and bias exists before attempting to clone its data
+            # Note that TransformerEngine doesn't actually have a version of LayerNorm without weight and bias
+            # So if they don't exist, skip the replacement
+            # See: https://github.com/NVIDIA/TransformerEngine/blob/720ec27ec8483ce401dd2eaa1c76d192d54bfc84/transformer_engine/pytorch/ops/basic/layer_norm.py#L98-L107
+            # And: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.LayerNorm
+            if child.weight is None or child.bias is None:
+                rank_zero_warn(
+                    f"Skipping replacement of layer {name!r} with Transformer Engine equivalent LayerNorm"
+                    " because Transformer Engine's LayerNorm requires both weight and bias parameters."
+                )
+                continue
             replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
-            # Check if weight and bias exists before attempting to clone its data
-            if child.weight is not None and replacement.weight is not None:
-                replacement.weight.data = child.weight.data.clone()
-            if child.bias is not None and replacement.bias is not None:
-                replacement.bias.data = child.bias.data.clone()
+            replacement.weight.data = child.weight.data.clone()
+            replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         else:
