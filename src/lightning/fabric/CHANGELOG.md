@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed inconsistent FLOPs reporting on NVIDIA H100/H200 GPUs by defaulting to dense FLOPs, with sparse FLOPs now requiring an explicit opt-in. ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
+- Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
+
 ---
 
 ## [2.6.4] - 2026-05-20
