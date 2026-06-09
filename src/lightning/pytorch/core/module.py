@@ -58,6 +58,7 @@ from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
+from lightning.pytorch.trainer.connectors.logger_connector import _ListMap
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -323,7 +324,7 @@ class LightningModule(
         return self._trainer.logger if self._trainer is not None else None
 
     @property
-    def loggers(self) -> Union[list[Logger], list[FabricLogger]]:
+    def loggers(self) -> Union[_ListMap[Logger], list[FabricLogger]]:
         """Reference to the list of loggers in the Trainer."""
         if self._fabric is not None:
             return self._fabric.loggers

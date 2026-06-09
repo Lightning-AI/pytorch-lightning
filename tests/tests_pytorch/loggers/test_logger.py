@@ -131,6 +131,21 @@ def test_multiple_loggers_pickle(tmp_path):
         assert logger.metrics_logged == {"acc": 1.0}
 
 
+def test_multiple_loggers_in_dict_pickle(tmp_path):
+    """Verify that pickling trainer with multiple loggers in a dict works."""
+    logger1 = CustomLogger()
+    logger2 = CustomLogger()
+
+    trainer = Trainer(logger={"logger1": logger1, "logger2": logger2})
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    for logger in trainer2.loggers.values():
+        logger.log_metrics({"acc": 1.0}, 0)
+
+    assert trainer2.loggers["logger1"].metrics_logged == {"acc": 1.0}
+    assert trainer2.loggers["logger2"].metrics_logged == {"acc": 1.0}
+
+
 def test_adding_step_key(tmp_path):
     class CustomTensorBoardLogger(TensorBoardLogger):
         def __init__(self, *args, **kwargs) -> None:
