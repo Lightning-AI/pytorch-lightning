@@ -324,6 +324,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch)
 
+        # Update batch-interval schedulers before on_train_batch_start hook
+        # so that LR changes are visible to the hook
+        self.update_lr_schedulers("batch", update_plateau_schedulers=False)
+
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
         should_skip_rest_of_epoch = False
 
@@ -356,7 +360,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.increment_processed()
 
         # update non-plateau LR schedulers
-        # update epoch-interval ones only when we are at the end of training epoch
+        # step-interval schedulers after optimizer step (batch-interval already updated at batch start)
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
@@ -408,6 +412,8 @@ class _TrainingEpochLoop(loops._Loop):
             self.trainer._logger_connector._first_loop_iter = first_loop_iter
 
         # update plateau LR scheduler after metrics are logged
+        # also update batch-interval schedulers for both plateau and non-plateau
+        self.update_lr_schedulers("batch", update_plateau_schedulers=True)
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         if not self._should_accumulate():
@@ -455,6 +461,7 @@ class _TrainingEpochLoop(loops._Loop):
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """Updates the lr schedulers based on the given interval."""
+        # For "batch" interval, update every batch. For "step" interval, skip if accumulating.
         if interval == "step" and self._should_accumulate():
             return
         self._update_learning_rates(interval=interval, update_plateau_schedulers=update_plateau_schedulers)
@@ -463,7 +470,7 @@ class _TrainingEpochLoop(loops._Loop):
         """Update learning rates.
 
         Args:
-            interval: either 'epoch' or 'step'.
+            interval: either 'epoch', 'step', or 'batch'.
             update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
@@ -479,7 +486,12 @@ class _TrainingEpochLoop(loops._Loop):
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
-            current_idx = self.batch_idx if interval == "step" else trainer.current_epoch
+            if interval == "batch":
+                current_idx = self.total_batch_idx
+            elif interval == "step":
+                current_idx = self.batch_idx
+            else:  # epoch
+                current_idx = trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
