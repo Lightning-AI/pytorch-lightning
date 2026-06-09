@@ -463,5 +463,4 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
 
 def _update_n(bar: _tqdm, value: int) -> None:
     if not bar.disable:
-        bar.n = value
-        bar.refresh()
+        bar.update(value - bar.n)
