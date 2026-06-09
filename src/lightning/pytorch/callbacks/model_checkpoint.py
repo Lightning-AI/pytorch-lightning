@@ -876,6 +876,46 @@ class ModelCheckpoint(Checkpoint):
             return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))}
         return set()
 
+    def _find_best_model_path_on_disk(self, trainer: "pl.Trainer") -> Optional[str]:
+        """Recover the best model path by reading the persisted callback state from checkpoints on disk.
+
+        This is used to resolve ``ckpt_path="best"`` in a process that did not run ``fit`` and therefore has an empty
+        in-memory ``best_model_path``. Every checkpoint embeds this callback's ``state_dict``, so the most recently
+        modified checkpoint in the directory carries the final ``best_model_path``. Returns ``None`` if no checkpoint is
+        found or the recorded best path no longer exists on disk.
+
+        """
+        ckpt_dir = self.__resolve_ckpt_dir(trainer)
+        if not self._fs.exists(ckpt_dir):
+            return None
+
+        candidates = [p for p in self._fs.ls(ckpt_dir, detail=False) if Path(p).suffix == self.FILE_EXTENSION]
+        candidates_ts = {path: self._fs.modified(path) for path in candidates if self._fs.exists(path)}
+        if not candidates_ts:
+            return None
+
+        for ckpt_path in sorted(candidates_ts, key=candidates_ts.get, reverse=True):  # type: ignore[arg-type]
+            try:
+                # Open via `self._fs` (the filesystem the candidates were listed from) so this works on non-local
+                # filesystems too; the listed paths are relative to that filesystem, not necessarily local paths.
+                with self._fs.open(ckpt_path, "rb") as file:
+                    checkpoint = torch.load(file, map_location="cpu", weights_only=False)
+            except Exception as ex:
+                log.debug(f"Skipping unreadable checkpoint {ckpt_path} while resolving the best path: {ex}")
+                continue
+            callback_states = checkpoint.get("callbacks") if isinstance(checkpoint, dict) else None
+            if not isinstance(callback_states, dict):
+                continue
+            state = callback_states.get(self.state_key, callback_states.get(self._legacy_state_key))
+            best_model_path = state.get("best_model_path") if isinstance(state, dict) else None
+            if best_model_path and get_filesystem(best_model_path).exists(best_model_path):
+                # Only normalize bare local paths; any protocol URL (`file://`, `s3://`, ...) must keep its `//`
+                # intact, which `os.path.normpath` would otherwise collapse.
+                if "://" not in best_model_path:
+                    return os.path.normpath(best_model_path)
+                return best_model_path
+        return None
+
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and _is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
