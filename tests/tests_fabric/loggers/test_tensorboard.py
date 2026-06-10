@@ -111,6 +111,23 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+def test_tensorboard_log_metrics_with_zero_dim_ndarray(tmp_path):
+    """Regression test: a 0-dim numpy array must be converted to a Python
+    scalar before being passed to ``add_scalar`` so that numpy >= 2.4.0
+    (which forbids implicit conversion of 0-dim arrays to scalars) does
+    not raise ``TypeError``. See issue #21503.
+    """
+    import numpy as np
+
+    logger = TensorBoardLogger(tmp_path)
+    # Both forms can occur in user code; both used to raise on numpy >= 2.4.
+    metrics = {
+        "scalar_array": np.array(0.5),  # 0-dim ndarray
+        "typed_scalar": np.float64(3.14),  # 0-dim ndarray of a concrete dtype
+    }
+    logger.log_metrics(metrics)
+
+
 def test_tensorboard_log_hyperparams(tmp_path):
     logger = TensorBoardLogger(tmp_path)
     hparams = {
