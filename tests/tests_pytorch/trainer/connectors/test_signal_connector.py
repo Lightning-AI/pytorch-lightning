@@ -135,8 +135,23 @@ def test_auto_requeue_invalid_job_id(call_mock):
     call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = _SignalConnector(trainer)
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match="Invalid SLURM job id"):
         connector._slurm_sigusr_handler_fn(None, None)
+    call_mock.assert_not_called()
+
+
+@RunIf(skip_windows=True)
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch.dict(os.environ, {"SLURM_JOB_ID": "123; rm -rf /"})
+def test_auto_requeue_job_id_command_injection(call_mock):
+    """Test that a crafted SLURM_JOB_ID containing shell metacharacters is rejected."""
+    call_mock.return_value = 0
+    trainer = Trainer(plugins=[SLURMEnvironment()])
+    connector = _SignalConnector(trainer)
+    with pytest.raises(RuntimeError, match="Invalid SLURM job id"):
+        connector._slurm_sigusr_handler_fn(None, None)
+    call_mock.assert_not_called()
 
 
 def _registering_signals():
