@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_11
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -103,6 +104,10 @@ def test_amp_forward_context_restores_grad_mode_context_managers():
 @pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
 def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
     """Document the underlying PyTorch autocast behavior that this plugin needs to handle."""
+    # PyTorch 2.11 fixed the bug where the autocast cache retained the `no_grad` state correctly.
+    # See: https://github.com/pytorch/pytorch/pull/165068
+    if cache_enabled and _TORCH_GREATER_EQUAL_2_11:
+        expect_grad = True
     layer = nn.Linear(2, 1)
     x = torch.randn(1, 2)
 
@@ -124,6 +129,10 @@ def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
 @pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
 def test_torch_autocast_cache_behavior_with_no_grad_cuda(cache_enabled, expect_grad):
     """Document the same autocast cache behavior on CUDA, where the reported regression happens."""
+    # PyTorch 2.11 fixed the bug where the autocast cache retained the `no_grad` state correctly.
+    # See: https://github.com/pytorch/pytorch/pull/165068
+    if cache_enabled and _TORCH_GREATER_EQUAL_2_11:
+        expect_grad = True
     layer = nn.Linear(2, 1, device="cuda")
     x = torch.randn(1, 2, device="cuda")
 
