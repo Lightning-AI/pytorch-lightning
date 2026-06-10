@@ -43,6 +43,7 @@ def test_fx_validator():
     callbacks_func = {
         "on_before_backward",
         "on_after_backward",
+        "on_before_optimizer_setup",
         "on_before_optimizer_step",
         "on_before_zero_grad",
         "on_fit_end",
@@ -83,6 +84,7 @@ def test_fx_validator():
     }
 
     not_supported = {
+        "on_before_optimizer_setup",
         "on_fit_end",
         "on_fit_start",
         "on_exception",
@@ -198,6 +200,7 @@ def test_fx_validator_integration(tmp_path):
         "setup": "You can't",
         "configure_model": "You can't",
         "configure_optimizers": "You can't",
+        "on_before_optimizer_setup": "You can't",
         "on_fit_start": "You can't",
         "train_dataloader": "You can't",
         "val_dataloader": "You can't",
