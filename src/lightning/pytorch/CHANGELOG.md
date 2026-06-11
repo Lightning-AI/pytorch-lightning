@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
 
+- Fixed stateful dataloaders not restoring their state from a checkpoint when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers` ([#20550](https://github.com/Lightning-AI/pytorch-lightning/issues/20550))
+
 ---
 
 ## [2.6.4] - 2026-05-20
