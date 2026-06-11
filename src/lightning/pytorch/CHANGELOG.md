@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed stateful dataloaders not restoring their state from a checkpoint when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers` ([#20550](https://github.com/Lightning-AI/pytorch-lightning/issues/20550))
+
 ---
 
 ## [2.6.4] - 2026-05-20
