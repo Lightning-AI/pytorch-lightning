@@ -80,7 +80,7 @@ class TorchSyncBatchNorm(LayerSync):
                 with torch.no_grad():
                     converted_module.weight = model.weight
                     converted_module.bias = model.bias
-            elif hasattr(model, 'weight'):
+            elif hasattr(model, "weight"):
                 converted_module.weight = None
                 converted_module.bias = None
             converted_module.running_mean = model.running_mean
