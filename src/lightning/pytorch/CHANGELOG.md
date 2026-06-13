@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21612](https://github.com/Lightning-AI/pytorch-lightning/issues/21612))
 
+- Added `input_check` argument to `LightningModule.to_onnx` to run `onnx.checker.check_model` on the exported model ([#7279](https://github.com/Lightning-AI/pytorch-lightning/issues/7279))
+
 ### Changed
 
 -
