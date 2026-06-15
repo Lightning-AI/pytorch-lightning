@@ -65,6 +65,28 @@ def test_set_cuda_device(_, set_device_mock):
     set_device_mock.assert_called_once_with(device)
 
 
+@mock.patch("lightning.fabric.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("torch.cuda.set_device")
+def test_set_cuda_device_calls_set_device_before_matmul_check(set_device_mock, matmul_check_mock):
+    """Regression test for #21725.
+
+    ``_check_cuda_matmul_precision`` calls ``torch.cuda.get_device_capability``
+    which triggers ``torch.cuda._lazy_init`` and initialises the CUDA context on
+    device 0, even when the requested device is different.  ``set_device`` must
+    be called first so the context is initialised on the correct device.
+    """
+    call_order = []
+    set_device_mock.side_effect = lambda _: call_order.append("set_device")
+    matmul_check_mock.side_effect = lambda _: call_order.append("matmul_check")
+
+    device = torch.device("cuda", 3)
+    CUDAAccelerator().setup_device(device)
+
+    assert call_order == ["set_device", "matmul_check"], (
+        f"set_device must be called before _check_cuda_matmul_precision, got order: {call_order}"
+    )
+
+
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_force_nvml_based_cuda_check():
     """Test that we force PyTorch to use the NVML-based CUDA checks."""
