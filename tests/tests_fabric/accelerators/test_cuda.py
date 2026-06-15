@@ -74,6 +74,7 @@ def test_set_cuda_device_calls_set_device_before_matmul_check(set_device_mock, m
     which triggers ``torch.cuda._lazy_init`` and initialises the CUDA context on
     device 0, even when the requested device is different.  ``set_device`` must
     be called first so the context is initialised on the correct device.
+
     """
     call_order = []
     set_device_mock.side_effect = lambda _: call_order.append("set_device")
