@@ -26,7 +26,7 @@ from lightning.pytorch.strategies import MultiModelDDPStrategy
 from lightning.pytorch.trainer import seed_everything
 from tests_pytorch.helpers.datamodules import MNISTDataModule
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import GenerationModel
+from tests_pytorch.helpers.simple_models import GenerationModel, Generator
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=False)
@@ -138,31 +138,31 @@ def test_multi_model_ddp_all_dataloaders_passed_to_fit(tmp_path):
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-# class GeneratorWithUnused(Generator):
-#     def __init__(self, latent_dim, img_shape):
-#         super().__init__(latent_dim, img_shape)
-#         self.unused = torch.nn.Linear(latent_dim, latent_dim)
+class GeneratorWithUnused(Generator):
+    def __init__(self, latent_dim, img_shape):
+        super().__init__(latent_dim, img_shape)
+        self.unused = torch.nn.Linear(latent_dim, latent_dim)
 
-#     def forward(self, z):
-#         z = self.unused(z)
-#         z = z.detach()
-#         return super().forward(z)
-
-
-# class UnusedParametersModel(GenerationModel):
-#     def __init__(self):
-#         super().__init__()
-#         self.generator = GeneratorWithUnused(latent_dim=128, img_shape=(1, 28, 28))
-
-#     def training_step(self, batch, batch_idx):
-#         return super().training_step(batch, batch_idx)
+    def forward(self, z):
+        z = self.unused(z)
+        z = z.detach()
+        return super().forward(z)
 
 
-# @RunIf(standalone=True)
-# def test_find_unused_parameters_multi_model_ddp_raises():
-#     trainer = Trainer(accelerator="cpu", devices=1, strategy=MultiModelDDPStrategy(), max_steps=2, logger=False)
-#     with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
-#         trainer.fit(UnusedParametersModel())
+class UnusedParametersModel(GenerationModel):
+    def __init__(self):
+        super().__init__()
+        self.generator = GeneratorWithUnused(latent_dim=128, img_shape=(1, 28, 28))
+
+    def training_step(self, batch, batch_idx):
+        return super().training_step(batch, batch_idx)
+
+
+@RunIf(standalone=True)
+def test_find_unused_parameters_multi_model_ddp_raises():
+    trainer = Trainer(accelerator="cpu", devices=1, strategy=MultiModelDDPStrategy(), max_steps=2, logger=False)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
+        trainer.fit(UnusedParametersModel())
 
 
 class MultiModelDDPCPU(GenerationModel):

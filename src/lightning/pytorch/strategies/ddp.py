@@ -496,6 +496,18 @@ class MultiModelDDPStrategy(DDPStrategy):
                 start_method=start_method,
             )
 
+    @override
+    def pre_backward(self, closure_loss: Tensor) -> None:
+        """Run before precision plugin executes backward."""
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization:
+            for module in self.model.modules():
+                if module is self.model:
+                    continue
+                if isinstance(module, DistributedDataParallel):
+                    if any(p.requires_grad for p in module.parameters()):
+                        prepare_for_backward(module, closure_loss)
+
 
 class _DDPForwardRedirection(_ForwardRedirection):
     @override
