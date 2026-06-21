@@ -207,7 +207,7 @@ class LightningModule(
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers: list[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
+        lr_schedulers: list[LRSchedulerPLType] = [config["scheduler"] for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -1004,6 +1004,7 @@ class LightningModule(
             - **None** - Fit will run without any optimizer.
 
         The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
+        It can be annotated with :class:`~lightning.pytorch.utilities.types.LRSchedulerConfig` for type checking.
         The default configuration is shown below.
 
         .. code-block:: python

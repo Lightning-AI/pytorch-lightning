@@ -19,8 +19,8 @@ Convention:
 
 from collections.abc import Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
 from typing import (
+    TYPE_CHECKING,
     Any,
     Optional,
     Protocol,
@@ -77,31 +77,65 @@ LRSchedulerType = Union[type[LRScheduler], type[ReduceLROnPlateau]]
 LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 
-@dataclass
-class LRSchedulerConfig:
-    scheduler: Union[LRScheduler, ReduceLROnPlateau]
-    # no custom name
-    name: Optional[str] = None
-    # after epoch is over
-    interval: str = "epoch"
-    # every epoch/batch
-    frequency: int = 1
-    # most often not ReduceLROnPlateau scheduler
-    reduce_on_plateau: bool = False
-    # value to monitor for ReduceLROnPlateau
-    monitor: Optional[str] = None
-    # enforce that the monitor exists for ReduceLROnPlateau
-    strict: bool = True
+if TYPE_CHECKING:
+
+    class LRSchedulerConfig(TypedDict, total=False):
+        scheduler: Required[LRSchedulerTypeUnion]
+        name: Optional[str]
+        interval: str
+        frequency: int
+        reduce_on_plateau: bool
+        monitor: Optional[str]
+        strict: bool
+
+else:
+
+    class LRSchedulerConfig(dict[str, Any]):
+        """Dictionary-backed scheduler configuration with compatibility attribute access."""
+
+        scheduler: LRSchedulerTypeUnion
+        name: Optional[str]
+        interval: str
+        frequency: int
+        reduce_on_plateau: bool
+        monitor: Optional[str]
+        strict: bool
+
+        def __init__(
+            self,
+            scheduler: LRSchedulerTypeUnion,
+            name: Optional[str] = None,
+            interval: str = "epoch",
+            frequency: int = 1,
+            reduce_on_plateau: bool = False,
+            monitor: Optional[str] = None,
+            strict: bool = True,
+        ) -> None:
+            super().__init__(
+                scheduler=scheduler,
+                name=name,
+                interval=interval,
+                frequency=frequency,
+                reduce_on_plateau=reduce_on_plateau,
+                monitor=monitor,
+                strict=strict,
+            )
+
+        def __getattr__(self, name: str) -> Any:
+            try:
+                return self[name]
+            except KeyError as ex:
+                raise AttributeError(name) from ex
+
+        def __setattr__(self, name: str, value: Any) -> None:
+            if name in self.__annotations__:
+                self[name] = value
+            else:
+                super().__setattr__(name, value)
 
 
-class LRSchedulerConfigType(TypedDict, total=False):
-    scheduler: Required[LRSchedulerTypeUnion]
-    name: Optional[str]
-    interval: str
-    frequency: int
-    reduce_on_plateau: bool
-    monitor: Optional[str]
-    strict: bool
+# Backward-compatible alias for the previous public type name.
+LRSchedulerConfigType = LRSchedulerConfig
 
 
 class OptimizerConfig(TypedDict):
@@ -110,7 +144,7 @@ class OptimizerConfig(TypedDict):
 
 class OptimizerLRSchedulerConfig(TypedDict):
     optimizer: Optimizer
-    lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfigType]
+    lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfig]
     monitor: NotRequired[str]
 
 

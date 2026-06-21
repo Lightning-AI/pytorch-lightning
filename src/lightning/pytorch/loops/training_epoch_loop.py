@@ -476,21 +476,21 @@ class _TrainingEpochLoop(loops._Loop):
             return
 
         for config in trainer.lr_scheduler_configs:
-            if update_plateau_schedulers ^ config.reduce_on_plateau:
+            if update_plateau_schedulers ^ config["reduce_on_plateau"]:
                 continue
 
             current_idx = self.batch_idx if interval == "step" else trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
-            if config.interval == interval and current_idx % config.frequency == 0:
+            if config["interval"] == interval and current_idx % config["frequency"] == 0:
                 monitor_val = None
-                if config.reduce_on_plateau:
-                    monitor_key = config.monitor
+                if config["reduce_on_plateau"]:
+                    monitor_key = config["monitor"]
                     assert monitor_key is not None
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
-                        if config.strict:
+                        if config["strict"]:
                             avail_metrics = list(trainer.callback_metrics)
                             raise MisconfigurationException(
                                 f"ReduceLROnPlateau conditioned on metric {monitor_key}"
@@ -511,7 +511,7 @@ class _TrainingEpochLoop(loops._Loop):
                 call._call_lightning_module_hook(
                     trainer,
                     "lr_scheduler_step",
-                    config.scheduler,
+                    config["scheduler"],
                     monitor_val,
                 )
                 self.scheduler_progress.increment_completed()

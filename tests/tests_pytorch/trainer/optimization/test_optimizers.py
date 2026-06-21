@@ -131,8 +131,8 @@ def test_scheduler_initialized_with_custom_reduceonplateau():
 
     lr_scheduler = {"reduce_on_plateau": True, "scheduler": CustomReduceLROnPlateau(), "monitor": "my_loss"}
     config = _configure_schedulers_automatic_opt([lr_scheduler], None)
-    assert isinstance(config[0].scheduler, CustomReduceLROnPlateau)
-    assert config[0].reduce_on_plateau
+    assert isinstance(config[0]["scheduler"], CustomReduceLROnPlateau)
+    assert config[0]["reduce_on_plateau"]
 
 
 def test_reducelronplateau_scheduling(tmp_path):
@@ -155,7 +155,7 @@ def test_reducelronplateau_scheduling(tmp_path):
 
     lr_scheduler = trainer.lr_scheduler_configs[0]
     assert lr_scheduler == LRSchedulerConfig(
-        scheduler=lr_scheduler.scheduler,
+        scheduler=lr_scheduler["scheduler"],
         monitor="foo",
         interval="epoch",
         frequency=1,
@@ -215,6 +215,14 @@ def test_optimizer_return_options(tmp_path):
     assert opt[0] == opt_a
     assert lr_sched[0] == ref_lr_sched
 
+    # opt tuple with a typed scheduler config
+    scheduler_config = LRSchedulerConfig(scheduler=scheduler_a, interval="step")
+    model.configure_optimizers = lambda: ([opt_a], [scheduler_config])
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
+    assert opt == [opt_a]
+    assert isinstance(lr_sched[0], dict)
+    assert lr_sched[0] == {**ref_lr_sched, "interval": "step"}
+
     # opt tuple of 1 list
     model.automatic_optimization = True
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
@@ -241,6 +249,45 @@ def test_optimizer_return_options(tmp_path):
     assert len(opt) == len(lr_sched) == 2
     assert opt == [opt_a, opt_b]
     assert lr_sched == [ref_lr_sched, ref_lr_sched]
+
+
+def test_lr_scheduler_config_runtime_compatibility():
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    optimizer = optim.SGD([parameter], lr=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+
+    config = LRSchedulerConfig(scheduler, interval="step")
+
+    assert isinstance(config, dict)
+    assert config.scheduler is config["scheduler"] is scheduler
+    assert config.frequency == config["frequency"] == 1
+    config.frequency = 2
+    assert config["frequency"] == 2
+
+
+def test_lr_scheduler_config_from_configure_optimizers(tmp_path):
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = optim.SGD(self.parameters(), lr=0.1)
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            scheduler_config: LRSchedulerConfig = {"scheduler": scheduler, "interval": "step"}
+            return [optimizer], [scheduler_config]
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=2,
+        limit_train_batches=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(TestModel())
+
+    config = trainer.lr_scheduler_configs[0]
+    assert isinstance(config, dict)
+    assert config["interval"] == "step"
+    assert config["frequency"] == 1
+    assert config["scheduler"].last_epoch == 2
 
 
 def test_none_optimizer(tmp_path):

@@ -45,7 +45,7 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
+from lightning.pytorch.core.optimizer import _create_lr_scheduler_config, _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
@@ -506,7 +506,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 lr_scheduler,
             ) = self._init_optimizers()
             if lr_scheduler is not None:
-                scheduler = lr_scheduler.scheduler
+                scheduler = lr_scheduler["scheduler"]
 
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
@@ -519,9 +519,9 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             if lr_scheduler is None:
-                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
+                lr_scheduler = _create_lr_scheduler_config(deepspeed_scheduler, interval="step")
             else:
-                lr_scheduler.scheduler = deepspeed_scheduler
+                lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 

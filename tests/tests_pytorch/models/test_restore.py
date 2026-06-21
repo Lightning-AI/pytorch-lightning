@@ -154,7 +154,7 @@ def test_trainer_properties_restore_ckpt_path(tmp_path):
 
         def _check_schedulers(self):
             return all(
-                self._is_equal(config.scheduler.state_dict(), state)
+                self._is_equal(config["scheduler"].state_dict(), state)
                 for config, state in zip(self.trainer.lr_scheduler_configs, state_dict["lr_schedulers"])
             )
 

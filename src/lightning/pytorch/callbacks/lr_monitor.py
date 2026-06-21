@@ -134,7 +134,7 @@ class LearningRateMonitor(Callback):
             def _check_no_key(key: str) -> bool:
                 if trainer.lr_scheduler_configs:
                     return any(
-                        key not in config.scheduler.optimizer.defaults for config in trainer.lr_scheduler_configs
+                        key not in config["scheduler"].optimizer.defaults for config in trainer.lr_scheduler_configs
                     )
 
                 return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
@@ -203,8 +203,8 @@ class LearningRateMonitor(Callback):
         self._remap_keys(scheduler_hparam_keys)
 
         for name, config in zip(scheduler_hparam_keys, trainer.lr_scheduler_configs):
-            if interval in [config.interval, "any"]:
-                opt = config.scheduler.optimizer
+            if interval in [config["interval"], "any"]:
+                opt = config["scheduler"].optimizer
                 current_stat = self._get_optimizer_stats(opt, name)
                 latest_stat.update(current_stat)
 
@@ -310,8 +310,8 @@ class LearningRateMonitor(Callback):
         seen_optimizers: list[Optimizer] = []
         seen_optimizer_types: defaultdict[type[Optimizer], int] = defaultdict(int)
         for config in lr_scheduler_configs:
-            sch = config.scheduler
-            name = config.name if config.name is not None else "lr-" + sch.optimizer.__class__.__name__
+            sch = config["scheduler"]
+            name = config["name"] if config["name"] is not None else "lr-" + sch.optimizer.__class__.__name__
 
             updated_names = self._check_duplicates_and_update_name(
                 sch.optimizer, name, seen_optimizers, seen_optimizer_types, config
@@ -354,7 +354,7 @@ class LearningRateMonitor(Callback):
     ) -> list[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
-        if lr_scheduler_config is None or lr_scheduler_config.name is None:
+        if lr_scheduler_config is None or lr_scheduler_config["name"] is None:
             seen_optimizer_types[optimizer_cls] += 1
 
         # Multiple param groups for the same optimizer

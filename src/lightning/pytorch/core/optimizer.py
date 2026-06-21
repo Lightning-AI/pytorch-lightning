@@ -13,7 +13,6 @@
 # limitations under the License.
 from collections.abc import Generator
 from contextlib import contextmanager
-from dataclasses import fields
 from typing import Any, Callable, Optional, Union, overload
 from weakref import proxy
 
@@ -29,7 +28,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
+from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 
 def do_nothing_closure() -> None:
@@ -247,13 +246,34 @@ def _configure_optimizers(
     return optimizers, lr_schedulers, monitor
 
 
+def _create_lr_scheduler_config(
+    scheduler: LRSchedulerTypeUnion,
+    *,
+    name: Optional[str] = None,
+    interval: str = "epoch",
+    frequency: int = 1,
+    reduce_on_plateau: bool = False,
+    monitor: Optional[str] = None,
+    strict: bool = True,
+) -> LRSchedulerConfig:
+    return LRSchedulerConfig(
+        scheduler=scheduler,
+        name=name,
+        interval=interval,
+        frequency=frequency,
+        reduce_on_plateau=reduce_on_plateau,
+        monitor=monitor,
+        strict=strict,
+    )
+
+
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> list[LRSchedulerConfig]:
     """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic optimization."""
     lr_scheduler_configs = []
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
             # check provided keys
-            supported_keys = {field.name for field in fields(LRSchedulerConfig)}
+            supported_keys = LRSchedulerConfig.__annotations__.keys()
             extra_keys = scheduler.keys() - supported_keys
             if extra_keys:
                 rank_zero_warn(
@@ -287,7 +307,15 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     " Are you sure you didn't mean 'interval': 'step'?",
                     category=RuntimeWarning,
                 )
-            config = LRSchedulerConfig(**scheduler)
+            config = _create_lr_scheduler_config(
+                scheduler["scheduler"],
+                name=scheduler.get("name"),
+                interval=scheduler.get("interval", "epoch"),
+                frequency=scheduler.get("frequency", 1),
+                reduce_on_plateau=scheduler["reduce_on_plateau"],
+                monitor=scheduler.get("monitor"),
+                strict=scheduler.get("strict", True),
+            )
         elif isinstance(scheduler, ReduceLROnPlateau):
             if monitor is None:
                 raise MisconfigurationException(
@@ -295,9 +323,9 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     " scheduler is used. For example:"
                     ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                 )
-            config = LRSchedulerConfig(scheduler, reduce_on_plateau=True, monitor=monitor)
+            config = _create_lr_scheduler_config(scheduler, reduce_on_plateau=True, monitor=monitor)
         else:
-            config = LRSchedulerConfig(scheduler)
+            config = _create_lr_scheduler_config(scheduler)
         lr_scheduler_configs.append(config)
     return lr_scheduler_configs
 
@@ -320,16 +348,21 @@ def _configure_schedulers_manual_opt(schedulers: list) -> list[LRSchedulerConfig
                     category=RuntimeWarning,
                 )
 
-            config = LRSchedulerConfig(**{key: scheduler[key] for key in scheduler if key not in invalid_keys})
+            config = _create_lr_scheduler_config(
+                scheduler["scheduler"],
+                name=scheduler.get("name"),
+                interval=scheduler.get("interval", "epoch"),
+                frequency=scheduler.get("frequency", 1),
+            )
         else:
-            config = LRSchedulerConfig(scheduler)
+            config = _create_lr_scheduler_config(scheduler)
         lr_scheduler_configs.append(config)
     return lr_scheduler_configs
 
 
 def _validate_scheduler_api(lr_scheduler_configs: list[LRSchedulerConfig], model: "pl.LightningModule") -> None:
     for config in lr_scheduler_configs:
-        scheduler = config.scheduler
+        scheduler = config["scheduler"]
         if not isinstance(scheduler, _Stateful):
             raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
@@ -365,7 +398,7 @@ def _validate_multiple_optimizers_support(optimizers: list[Optimizer], model: "p
 
 def _validate_optimizers_attached(optimizers: list[Optimizer], lr_scheduler_configs: list[LRSchedulerConfig]) -> None:
     for config in lr_scheduler_configs:
-        if config.scheduler.optimizer not in optimizers:
+        if config["scheduler"].optimizer not in optimizers:
             raise MisconfigurationException(
                 "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
             )
