@@ -509,8 +509,8 @@ def test_result_metric_to_skips_when_already_on_device():
 
 @RunIf(min_cuda_gpus=1)
 def test_result_metric_to_skips_when_already_on_cuda():
-    """On a real GPU, `.to(device)` must skip the expensive `apply_to_collection` walk once the metric is
-    already on that device, while still performing genuine cross-device moves (issue #20388)."""
+    """On a real GPU, `.to(device)` must skip the expensive `apply_to_collection` walk once the metric is already on
+    that device, while still performing genuine cross-device moves (issue #20388)."""
     metadata = _Metadata("foo", "bar")
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
