@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
@@ -477,6 +478,70 @@ def test_metric_result_computed_check():
     cache = _ResultCollection._get_cache(rm, on_step=False)
     # `enable_graph=True` so no detach, identity works
     assert cache is computed_value
+
+
+def test_result_metric_to_skips_when_already_on_device():
+    """`_ResultCollection.log` calls `.to(device)` on every step; it must be a no-op once already on device."""
+    metadata = _Metadata("foo", "bar")
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+    rm.update(tensor(0.5), 1)
+    assert rm.value.device == torch.device("cpu")
+
+    move_target = "lightning.pytorch.trainer.connectors.logger_connector.result.apply_to_collection"
+
+    # already on the requested device -> the expensive `apply_to_collection` walk is skipped
+    with mock.patch(move_target) as mocked:
+        assert rm.to(torch.device("cpu")) is rm
+        assert rm.to("cpu") is rm
+        mocked.assert_not_called()
+
+    # a different device still performs the move
+    with mock.patch(move_target, wraps=apply_to_collection) as mocked:
+        with suppress(AssertionError, RuntimeError):
+            rm.to("cuda")
+        mocked.assert_called_once()
+
+    # a dtype cast is not a device-only call and must fall through to the full path
+    rm.to(torch.float64)
+    assert rm.value.dtype == torch.float64
+
+
+@RunIf(min_cuda_gpus=1)
+def test_result_metric_to_skips_when_already_on_cuda():
+    """On a real GPU, `.to(device)` must skip the expensive `apply_to_collection` walk once the metric is
+    already on that device, while still performing genuine cross-device moves (issue #20388)."""
+    metadata = _Metadata("foo", "bar")
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+    rm.update(tensor(0.5), 1)
+    assert rm.value.device.type == "cpu"
+
+    move_target = "lightning.pytorch.trainer.connectors.logger_connector.result.apply_to_collection"
+
+    # cpu -> cuda actually moves (a different device falls through to the full path)
+    with mock.patch(move_target, wraps=apply_to_collection) as mocked:
+        rm.to("cuda")
+        mocked.assert_called_once()
+    assert rm.value.device.type == "cuda"
+    # the logging hot path calls `.to(value.device)`, i.e. the concrete `cuda:N` device
+    device = rm.value.device
+
+    # already on the concrete device -> the walk is skipped
+    with mock.patch(move_target) as mocked:
+        assert rm.to(device) is rm
+        assert rm.to(torch.device("cuda", device.index)) is rm
+        mocked.assert_not_called()
+    assert rm.value.device == device
+
+    # cuda -> cpu still performs a real move
+    with mock.patch(move_target, wraps=apply_to_collection) as mocked:
+        rm.to("cpu")
+        mocked.assert_called_once()
+    assert rm.value.device.type == "cpu"
+
+    # the value is preserved across the cpu -> cuda -> cpu round trip
+    assert rm.value.item() == pytest.approx(0.5)
 
 
 @pytest.mark.parametrize(
