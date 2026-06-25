@@ -459,6 +459,7 @@ def test_setup_model_device_id(device, expected_device_id):
     ``root_device.index`` is ``None`` for a CPU device; passing ``device_id=None`` trips
     torch>=2.5's "FSDP needs a non-CPU accelerator device" guard, so FSDP cannot run on CPU.
     The GPU path keeps passing the integer device index unchanged.
+
     """
     captured = {}
 
