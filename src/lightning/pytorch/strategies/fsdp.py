@@ -314,7 +314,7 @@ class FSDPStrategy(ParallelStrategy):
                 cpu_offload=self.cpu_offload,
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
-                device_id=self.root_device.index,
+                device_id=self.root_device if self.root_device.type == "cpu" else self.root_device.index,
                 **self.kwargs,
             )
 
@@ -408,7 +408,7 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
-            device_id=self.root_device.index,
+            device_id=self.root_device if self.root_device.type == "cpu" else self.root_device.index,
             **self.kwargs,
         ):
             yield

@@ -188,6 +188,35 @@ def test_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
+@pytest.mark.parametrize(
+    ("device", "expected_device_id"),
+    [
+        (torch.device("cpu"), torch.device("cpu")),
+        (torch.device("cuda", 0), 0),
+    ],
+)
+def test_setup_module_device_id(device, expected_device_id):
+    """``setup_module`` must hand FSDP an explicit ``torch.device('cpu')`` on a CPU accelerator.
+
+    ``root_device.index`` is ``None`` for a CPU device; passing ``device_id=None`` trips
+    torch>=2.5's "FSDP needs a non-CPU accelerator device" guard, so FSDP cannot run on CPU.
+    The GPU path keeps passing the integer device index unchanged.
+    """
+    captured = {}
+
+    class FakeFSDP(nn.Module):
+        def __init__(self, module, **kwargs):
+            super().__init__()
+            captured.update(kwargs)
+            self.module = module
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [device]
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", FakeFSDP):
+        strategy.setup_module(nn.Linear(2, 2))
+    assert captured["device_id"] == expected_device_id
+
+
 def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
