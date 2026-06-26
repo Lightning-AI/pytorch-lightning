@@ -80,7 +80,7 @@ Once the **.fit()** function has completed, you'll see an output like this:
 
     Profiler Report
 
-    Profile stats for: get_train_batch
+    Profile stats for: run_training_epoch
             4869394 function calls (4863767 primitive calls) in 18.893 seconds
     Ordered by: cumulative time
     List reduced from 76 to 10 due to restriction <10>
