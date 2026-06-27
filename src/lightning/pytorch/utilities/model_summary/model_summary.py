@@ -217,14 +217,8 @@ class ModelSummary:
         if not isinstance(max_depth, int) or max_depth < -1:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
 
-        # The max-depth needs to be plus one because the root module is already counted as depth 0.
-        self._flop_counter = FlopCounterMode(
-            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
-            display=False,
-            depth=max_depth + 1,
-        )
-
         self._max_depth = max_depth
+        self._flop_counter = self._make_flop_counter()
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
@@ -259,6 +253,14 @@ class ModelSummary:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
         return mods
+
+    def _make_flop_counter(self) -> FlopCounterMode:
+        # The max-depth needs to be plus one because the root module is already counted as depth 0.
+        return FlopCounterMode(
+            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
+            display=False,
+            depth=self._max_depth + 1,
+        )
 
     @property
     def layer_names(self) -> list[str]:
@@ -361,15 +363,25 @@ class ModelSummary:
         )
 
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
-        with torch.no_grad(), forward_context, flop_context:
-            # let the model hooks collect the input- and output shapes
-            if isinstance(input_, (list, tuple)):
-                model(*input_)
-            elif isinstance(input_, dict):
-                model(**input_)
-            else:
-                model(input_)
-        mode.restore(model)
+        try:
+            with torch.no_grad(), forward_context:
+                try:
+                    with flop_context:
+                        # let the model hooks collect the input- and output shapes
+                        _forward_model(model, input_)
+                except (NotImplementedError, RuntimeError, TypeError) as ex:
+                    if flop_context is not self._flop_counter or not _is_nested_tensor_flop_counter_error(ex):
+                        raise
+
+                    self._flop_counter = self._make_flop_counter()
+                    warning_cache.warn(
+                        "The model summary ran into an unsupported NestedTensor operation while using PyTorch's FLOP"
+                        " counter. FLOP statistics will be omitted, but the example input will be forwarded without"
+                        " FLOP counting so input and output sizes can still be inferred when possible."
+                    )
+                    _forward_model(model, input_)
+        finally:
+            mode.restore(model)
 
     def _get_summary_data(self) -> list[tuple[str, list[str]]]:
         """Makes a summary listing with:
@@ -439,6 +451,29 @@ def parse_batch_shape(batch: Any) -> Union[str, list]:
         return [parse_batch_shape(el) for el in batch]
 
     return UNKNOWN_SIZE
+
+
+def _forward_model(model: "pl.LightningModule", input_: Any) -> None:
+    if isinstance(input_, (list, tuple)):
+        model(*input_)
+    elif isinstance(input_, dict):
+        model(**input_)
+    else:
+        model(input_)
+
+
+def _is_nested_tensor_flop_counter_error(exception: BaseException) -> bool:
+    has_flop_counter_frame = False
+    has_nested_tensor_frame = False
+    traceback = exception.__traceback__
+
+    while traceback is not None:
+        module_name = traceback.tb_frame.f_globals.get("__name__", "")
+        has_flop_counter_frame |= module_name == "torch.utils.flop_counter"
+        has_nested_tensor_frame |= module_name.startswith("torch.nested")
+        traceback = traceback.tb_next
+
+    return has_flop_counter_frame and has_nested_tensor_frame
 
 
 def _format_summary_table(
