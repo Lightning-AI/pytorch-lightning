@@ -82,7 +82,7 @@ class AdvancedProfiler(Profiler):
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
+            return
         pr.disable()
 
     def _dump_stats(self, action_name: str, profile: cProfile.Profile) -> None:
@@ -116,6 +116,8 @@ class AdvancedProfiler(Profiler):
     @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
+        for pr in self.profiled_actions.values():
+            pr.disable()
         self.profiled_actions.clear()
 
     def __reduce__(self) -> tuple:
