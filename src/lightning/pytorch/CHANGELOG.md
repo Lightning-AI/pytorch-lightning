@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `log_key_prefix` parameter to `Trainer` to control the prefix of Trainer-generated metric keys (e.g. `epoch`) ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
 
+- Added `epoch_key` parameter to `CometLogger` to control which metric key is extracted and forwarded as Comet's dedicated epoch argument ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
+
 ### Changed
 
 -
