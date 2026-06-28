@@ -14,13 +14,13 @@
 """Profiler to check if there are any bottlenecks in your code."""
 
 import logging
+import math
 import os
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional, Union
 
-import torch
 from typing_extensions import override
 
 from lightning.pytorch.profilers.profiler import Profiler
@@ -86,9 +86,8 @@ class SimpleProfiler(Profiler):
         report = []
 
         for a, d in self.recorded_durations.items():
-            d_tensor = torch.tensor(d)
             len_d = len(d)
-            sum_d = torch.sum(d_tensor).item()
+            sum_d = math.fsum(d)
             percentage_d = 100.0 * sum_d / total_duration
 
             report.append((a, sum_d / len_d, len_d, sum_d, percentage_d))
@@ -100,8 +99,7 @@ class SimpleProfiler(Profiler):
     def _make_report(self) -> _TABLE_DATA:
         report = []
         for action, d in self.recorded_durations.items():
-            d_tensor = torch.tensor(d)
-            sum_d = torch.sum(d_tensor).item()
+            sum_d = math.fsum(d)
 
             report.append((action, sum_d / len(d), sum_d))
 

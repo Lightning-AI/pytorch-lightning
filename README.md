@@ -292,9 +292,6 @@ trainer = Trainer(logger=loggers.CometLogger())
 # mlflow
 trainer = Trainer(logger=loggers.MLFlowLogger())
 
-# neptune
-trainer = Trainer(logger=loggers.NeptuneLogger())
-
 # ... and dozens more
 ```
 

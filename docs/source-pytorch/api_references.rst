@@ -99,7 +99,6 @@ loggers
     comet
     csv_logs
     mlflow
-    neptune
     tensorboard
     wandb
 

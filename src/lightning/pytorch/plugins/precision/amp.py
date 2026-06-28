@@ -11,7 +11,7 @@
 # limitations under the License.
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union, cast
 
 import torch
 from torch import Tensor
@@ -25,6 +25,26 @@ from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
+
+class _AutocastClearCacheOnExit:
+    """Proxy a grad-disabling context manager and clear the autocast cache when it exits."""
+
+    def __init__(self, context_manager: Any, *, clear_cache: bool) -> None:
+        self._context_manager = context_manager
+        self._clear_cache = clear_cache
+
+    def __enter__(self) -> Any:
+        return self._context_manager.__enter__()
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Any:
+        out = self._context_manager.__exit__(exc_type, exc, tb)
+        if self._clear_cache:
+            torch.clear_autocast_cache()
+        return out
+
+    def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
+        return self._context_manager(func)
 
 
 class MixedPrecision(Precision):
@@ -118,9 +138,39 @@ class MixedPrecision(Precision):
     @override
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
+        """Enable autocast and clear cached casts after nested grad-disabling contexts exit."""
+        original_no_grad = torch.no_grad
+        original_inference_mode = torch.inference_mode
+
+        def _clear_cache_on_exit(
+            context_factory: Callable[..., Any], *, clear_cache: Callable[..., bool]
+        ) -> Callable[..., Any]:
+            def wrapper(*args: Any, **kwargs: Any) -> _AutocastClearCacheOnExit:
+                return _AutocastClearCacheOnExit(
+                    context_factory(*args, **kwargs),
+                    clear_cache=clear_cache(*args, **kwargs),
+                )
+
+            return wrapper
+
+        try:
+            # Lightning wraps the whole step in a persistent autocast context. If a nested `no_grad` or
+            # `inference_mode` block creates cached casts there, later grad-enabled forwards in the same step can
+            # incorrectly reuse them. Clear the autocast cache when such nested contexts exit, while keeping the
+            # default cached path for normal training.
+            torch_module = cast(Any, torch)
+            torch_module.no_grad = _clear_cache_on_exit(original_no_grad, clear_cache=lambda *args, **kwargs: True)
+            torch_module.inference_mode = _clear_cache_on_exit(
+                original_inference_mode,
+                clear_cache=lambda *args, **kwargs: bool(args[0] if args else kwargs.get("mode", True)),
+            )
+            dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.half
+            with torch.autocast(self.device, dtype=dtype):
+                yield
+        finally:
+            torch_module = cast(Any, torch)
+            torch_module.no_grad = original_no_grad
+            torch_module.inference_mode = original_inference_mode
 
     @override
     def state_dict(self) -> dict[str, Any]:
