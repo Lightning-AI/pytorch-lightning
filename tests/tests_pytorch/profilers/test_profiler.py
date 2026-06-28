@@ -384,6 +384,7 @@ def test_advanced_profiler_stop_on_never_started_action(advanced_profiler):
     """Ensure AdvancedProfiler.stop() does not crash when stopping an action that was never started.
 
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
     """
     # Should not raise ValueError
     advanced_profiler.stop("never_started_action")
@@ -393,6 +394,7 @@ def test_advanced_profiler_teardown_with_active_action(advanced_profiler):
     """Ensure AdvancedProfiler.stop() does not crash after teardown clears profiled_actions.
 
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
     """
     with advanced_profiler.profile("action"):
         # teardown clears the recorded actions, mimicking describe()
