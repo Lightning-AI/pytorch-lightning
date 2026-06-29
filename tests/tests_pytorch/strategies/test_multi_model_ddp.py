@@ -11,37 +11,59 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest import mock
 
 import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader, TensorDataset
 
 import lightning.pytorch as pl
-from lightning.pytorch import Trainer
+from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import MultiModelDDPStrategy
 from lightning.pytorch.trainer import seed_everything
-from tests_pytorch.helpers.datamodules import MNISTDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import GenerationModel
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=False)
+class RandomMNISTDataModule(LightningDataModule):
+    """Fake MNIST-shaped data to avoid downloading real datasets in tests."""
+
+    def __init__(self, num_samples: int = 64, batch_size: int = 32):
+        super().__init__()
+        self.num_samples = num_samples
+        self.batch_size = batch_size
+
+    def _make_loader(self):
+        imgs = torch.randn(self.num_samples, 1, 28, 28)
+        labels = torch.randint(0, 10, (self.num_samples,))
+        return DataLoader(TensorDataset(imgs, labels), batch_size=self.batch_size)
+
+    def train_dataloader(self):
+        return self._make_loader()
+
+    def val_dataloader(self):
+        return self._make_loader()
+
+    def test_dataloader(self):
+        return self._make_loader()
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_with_multi_model_ddp_fit_only(tmp_path):
-    dm = MNISTDataModule()
+    dm = RandomMNISTDataModule()
     model = GenerationModel()
     trainer = Trainer(
-        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
+        default_root_dir=tmp_path, max_steps=2, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
     )
     trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=False)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_with_multi_model_ddp_test_only(tmp_path):
-    dm = MNISTDataModule()
+    dm = RandomMNISTDataModule()
     model = GenerationModel()
     trainer = Trainer(
         default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
@@ -49,13 +71,13 @@ def test_multi_gpu_with_multi_model_ddp_test_only(tmp_path):
     trainer.test(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=False)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_multi_model_ddp_fit_test(tmp_path):
     seed_everything(4321)
-    dm = MNISTDataModule()
+    dm = RandomMNISTDataModule(num_samples=128)
     model = GenerationModel()
     trainer = Trainer(
-        default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
+        default_root_dir=tmp_path, max_steps=4, accelerator="gpu", devices=2, strategy=MultiModelDDPStrategy()
     )
 
     before = trainer.test(model, datamodule=dm)
@@ -135,19 +157,18 @@ def test_multi_model_ddp_wrapper(tmp_path, precision):
 def test_multi_model_ddp_all_dataloaders_passed_to_fit(tmp_path):
     """Make sure MultiModelDDPStrategy works with dataloaders passed to fit()"""
     model = GenerationModel()
+    dm = RandomMNISTDataModule()
 
     trainer = Trainer(
         default_root_dir=tmp_path,
         enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
+        max_steps=2,
         accelerator="gpu",
         devices=[0, 1],
         strategy=MultiModelDDPStrategy(),
     )
 
-    trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model, train_dataloaders=dm.train_dataloader(), val_dataloaders=dm.val_dataloader())
 
 
 class MultiModelDDPCPU(GenerationModel):
@@ -164,7 +185,7 @@ def test_multi_model_ddp_with_cpu():
     assert isinstance(trainer.strategy, MultiModelDDPStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
     model = MultiModelDDPCPU()
-    trainer.fit(model)
+    trainer.fit(model, datamodule=RandomMNISTDataModule())
 
 
 class CheckOptimizerDeviceModel(GenerationModel):
@@ -174,17 +195,17 @@ class CheckOptimizerDeviceModel(GenerationModel):
 
 
 @RunIf(min_cuda_gpus=1, standalone=True)
-def test_multi_model_ddp_parameters_on_device_for_optimizer():
+def test_multi_model_ddp_parameters_on_device_for_optimizer(tmp_path):
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmp_path,
         fast_dev_run=1,
         accelerator="gpu",
         devices=1,
         strategy=MultiModelDDPStrategy(),
     )
-    trainer.fit(model)
+    trainer.fit(model, datamodule=RandomMNISTDataModule())
 
 
 class MultiModelDDPGPU(GenerationModel):
@@ -212,7 +233,7 @@ def test_multi_model_ddp_with_2_gpus():
 
     model = MultiModelDDPGPU()
 
-    trainer.fit(model)
+    trainer.fit(model, datamodule=RandomMNISTDataModule())
 
     # assert after training, model is moved to CPU and memory is deallocated
     assert model.device == torch.device("cpu")
@@ -225,6 +246,7 @@ def test_multi_model_ddp_with_2_gpus():
 def test_multi_model_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_path):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = GenerationModel()
+    dm = RandomMNISTDataModule()
     gpus = [1, 3]
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -235,7 +257,7 @@ def test_multi_model_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_pa
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 
 
