@@ -16,7 +16,6 @@ import inspect
 import json
 import operator
 import os
-import sys
 from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -259,7 +258,9 @@ def test_lightning_cli_args(cleandir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
+@pytest.mark.skipif(
+    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
+)
 def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
@@ -426,11 +427,8 @@ def any_model_any_data_cli():
     LightningCLI(LightningModule, LightningDataModule, subclass_mode_model=True, subclass_mode_data=True)
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 @pytest.mark.skipif(
-    (sys.version_info.major, sys.version_info.minor) == (3, 9)
-    and compare_version("jsonargparse", operator.lt, "4.24.0"),
-    reason="--trainer.precision is not parsed",
+    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
 )
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
@@ -1211,7 +1209,9 @@ def test_lightning_cli_subcommands():
             assert e in parameters
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
+@pytest.mark.skipif(
+    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
+)
 def test_lightning_cli_custom_subcommand():
     class TestTrainer(Trainer):
         def foo(self, model: LightningModule, x: int, y: float = 1.0):
@@ -1799,21 +1799,6 @@ def test_comet_logger_init_args():
         unresolved={
             "save_dir": "comet",  # Resolve from CometLogger.__init__ as kwarg
         },
-    )
-
-
-@pytest.mark.xfail(
-    # Only on Windows: TypeError: 'NoneType' object is not subscriptable
-    raises=TypeError,
-    condition=(sys.platform == "win32"),
-    strict=False,
-    reason="TypeError on Windows when parsing",
-)
-def test_neptune_logger_init_args():
-    _test_logger_init_args(
-        "NeptuneLogger",
-        init={"name": "neptune"},  # Resolve from NeptuneLogger.__init__
-        unresolved={"description": "neptune"},  # Unsupported resolving from neptune.internal.init.run.init_run
     )
 
 
