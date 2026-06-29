@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Mapping
 from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
@@ -457,44 +458,114 @@ class DDPStrategy(ParallelStrategy):
 
 
 class MultiModelDDPStrategy(DDPStrategy):
-    """Specific strategy for training on multiple models with multiple optimizers (e.g. GAN training).
+    """Strategy for training multiple sub-models with manual optimization (e.g. GAN training).
 
-    This strategy wraps each individual child module in :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
-    module. Ensures manual backward only updates parameters of the targeted child module, preventing cross-references
-    between modules' parameters.
+    Wraps each direct child module individually in
+    :class:`~torch.nn.parallel.distributed.DistributedDataParallel` instead of wrapping the entire
+    LightningModule. Combined with :meth:`~lightning.pytorch.core.LightningModule.toggle_optimizer`,
+    this ensures only the active sub-model's gradients are synchronized, removing the need for
+    ``find_unused_parameters=True``.
+
+    A forward pre-hook on each DDP child inspects ``requires_grad`` on its parameters (set by
+    ``toggle_optimizer``) to decide whether gradient sync should happen for that child's backward pass.
 
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._ddp_children: dict[str, DistributedDataParallel] = {}
+
     @override
-    def _setup_model(self, model: Module) -> DistributedDataParallel:
+    def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
+        """Wraps each child module in DDP individually, replacing the original attributes."""
         device_ids = self.determine_ddp_device_ids()
-        log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        ctx: Union[torch.cuda.StreamContext, nullcontext] = nullcontext()
+
+        log.debug(f"setting up MultiModel DDP with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        if device_ids is not None:
+            capturing = torch.cuda.is_current_stream_capturing()
+            if capturing:
+                ctx = torch.cuda.stream(torch.cuda.Stream())
+                torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
+            else:
+                ctx = torch.cuda.stream(torch.cuda.default_stream())
         with ctx:
-            for name, module in model.named_children():
-                if isinstance(module, Module):
-                    ddp_module = DistributedDataParallel(module, device_ids=device_ids, **self._ddp_kwargs)
-                    setattr(model, name, ddp_module)
-            return model
+            for name, child in list(model.named_children()):
+                ddp_module = DistributedDataParallel(module=child, device_ids=device_ids, **self._ddp_kwargs)
+                ddp_module.register_forward_pre_hook(MultiModelDDPStrategy._selective_sync_hook)
+                setattr(model, name, ddp_module)
+                self._ddp_children[name] = ddp_module
+        return model
+
+    @staticmethod
+    def _selective_sync_hook(ddp_module: DistributedDataParallel, _input: Any) -> None:
+        """Disable backward gradient sync for DDP children whose parameters are all frozen.
+
+        When ``toggle_optimizer`` freezes a sub-model's parameters, this hook prevents its DDP
+        reducer from arming — avoiding hangs that would occur if the reducer expected gradients
+        that are never computed.
+
+        """
+        has_grad_params = any(p.requires_grad for p in ddp_module.module.parameters())
+        ddp_module.require_backward_grad_sync = has_grad_params
 
     @override
     def _register_ddp_hooks(self) -> None:
         log.debug(f"{self.__class__.__name__}: registering DDP hooks")
-        # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
-        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if self.root_device.type != "cuda":
             return
-        assert isinstance(self.model, Module)
-
-        for name, module in self.model.named_children():
-            assert isinstance(module, DistributedDataParallel)
+        for ddp_module in self._ddp_children.values():
             _register_ddp_comm_hook(
-                model=module,
+                model=ddp_module,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
+
+    @override
+    def lightning_module_state_dict(self) -> dict[str, Any]:
+        """Returns the state dict without DDP ``module.`` key prefixes."""
+        assert self.lightning_module is not None
+        if not self._ddp_children:
+            return super().lightning_module_state_dict()
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module.module)
+        state_dict = self.lightning_module.state_dict()
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module)
+        return state_dict
+
+    @override
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
+        assert self.lightning_module is not None
+        if not self._ddp_children:
+            return super().load_model_state_dict(checkpoint, strict=strict)
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module.module)
+        self.lightning_module.load_state_dict(checkpoint["state_dict"], strict=strict)
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module)
+
+    @override
+    def teardown(self) -> None:
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
+        pl_module = self.lightning_module
+        if pl_module is not None and self._ddp_children:
+            for name, ddp_module in self._ddp_children.items():
+                setattr(pl_module, name, ddp_module.module)
+            self._ddp_children.clear()
+
+        if (
+            pl_module is not None
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            assert self.model is not None
+            self.model = self._layer_sync.revert(self.model)
+
+        super(DDPStrategy, self).teardown()
 
     @classmethod
     @override

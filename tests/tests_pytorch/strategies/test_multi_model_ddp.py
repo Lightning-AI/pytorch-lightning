@@ -94,15 +94,23 @@ def test_multi_model_ddp_wrapper(tmp_path, precision):
 
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            assert isinstance(trainer.strategy, MultiModelDDPStrategy)
+            strategy = trainer.strategy
+            assert isinstance(strategy, MultiModelDDPStrategy)
 
-            for name, model in trainer.strategy.model.named_children():
+            for name, model in strategy.model.named_children():
                 assert isinstance(model, DistributedDataParallel)
+                # children keep their original names (no ddp_ prefix)
+                assert not hasattr(pl_module, f"ddp_{name}")
 
                 if name == "weird_model":
                     expected = {"something"}
                     assert model.parameters_to_ignore == expected
                     assert model.module._ddp_params_and_buffers_to_ignore == ["something"]
+
+            # state dict keys should not contain '.module.' prefix from DDP wrapping
+            state_dict = strategy.lightning_module_state_dict()
+            for key in state_dict:
+                assert ".module." not in key, f"Key '{key}' has DDP 'module.' prefix"
 
     model = CustomMultiModel()
     trainer = Trainer(
@@ -118,8 +126,12 @@ def test_multi_model_ddp_wrapper(tmp_path, precision):
     )
     trainer.fit(model)
 
+    # after teardown, children should be unwrapped
+    assert not isinstance(model.layer, DistributedDataParallel)
+    assert not isinstance(model.weird_model, DistributedDataParallel)
 
-@RunIf(min_cuda_gpus=2)
+
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_model_ddp_all_dataloaders_passed_to_fit(tmp_path):
     """Make sure MultiModelDDPStrategy works with dataloaders passed to fit()"""
     model = GenerationModel()
@@ -138,40 +150,13 @@ def test_multi_model_ddp_all_dataloaders_passed_to_fit(tmp_path):
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-# class GeneratorWithUnused(Generator):
-#     def __init__(self, latent_dim, img_shape):
-#         super().__init__(latent_dim, img_shape)
-#         self.unused = torch.nn.Linear(latent_dim, latent_dim)
-
-#     def forward(self, z):
-#         z = self.unused(z)
-#         z = z.detach()
-#         return super().forward(z)
-
-
-# class UnusedParametersModel(GenerationModel):
-#     def __init__(self):
-#         super().__init__()
-#         self.generator = GeneratorWithUnused(latent_dim=128, img_shape=(1, 28, 28))
-
-#     def training_step(self, batch, batch_idx):
-#         return super().training_step(batch, batch_idx)
-
-
-# @RunIf(standalone=True)
-# def test_find_unused_parameters_multi_model_ddp_raises():
-#     trainer = Trainer(accelerator="cpu", devices=1, strategy=MultiModelDDPStrategy(), max_steps=2, logger=False)
-#     with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
-#         trainer.fit(UnusedParametersModel())
-
-
 class MultiModelDDPCPU(GenerationModel):
     def on_train_start(self) -> None:
         # make sure that the model is on CPU when training
         assert self.device == torch.device("cpu")
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, standalone=True)
 def test_multi_model_ddp_with_cpu():
     """Tests if device is set correctly when training for MultiModelDDPStrategy."""
     trainer = Trainer(devices=2, strategy=MultiModelDDPStrategy(), accelerator="cpu", fast_dev_run=True)
@@ -188,7 +173,7 @@ class CheckOptimizerDeviceModel(GenerationModel):
         return super().configure_optimizers()
 
 
-@RunIf(min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1, standalone=True)
 def test_multi_model_ddp_parameters_on_device_for_optimizer():
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
@@ -252,3 +237,33 @@ def test_multi_model_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_pa
     )
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
+
+
+def test_selective_sync_hook():
+    """_selective_sync_hook sets require_backward_grad_sync based on requires_grad."""
+    hook = MultiModelDDPStrategy._selective_sync_hook
+
+    linear = torch.nn.Linear(4, 2)
+    fake = mock.MagicMock()
+    fake.module = linear
+
+    # All params trainable -> sync enabled
+    fake.require_backward_grad_sync = True
+    hook(fake, None)
+    assert fake.require_backward_grad_sync is True
+
+    # All params frozen -> sync disabled
+    for p in linear.parameters():
+        p.requires_grad = False
+    hook(fake, None)
+    assert fake.require_backward_grad_sync is False
+
+    # At least one param trainable -> sync re-enabled
+    linear.weight.requires_grad = True
+    hook(fake, None)
+    assert fake.require_backward_grad_sync is True
+
+    # Module with no parameters -> sync disabled
+    fake.module = torch.nn.Module()
+    hook(fake, None)
+    assert fake.require_backward_grad_sync is False
