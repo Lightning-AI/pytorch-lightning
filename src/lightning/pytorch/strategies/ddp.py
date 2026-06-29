@@ -493,22 +493,21 @@ class MultiModelDDPStrategy(DDPStrategy):
         with ctx:
             for name, child in list(model.named_children()):
                 ddp_module = DistributedDataParallel(module=child, device_ids=device_ids, **self._ddp_kwargs)
-                ddp_module.register_forward_pre_hook(MultiModelDDPStrategy._selective_sync_hook)
+                ddp_module.register_forward_pre_hook(MultiModelDDPStrategy._disable_sync_hook)
                 setattr(model, name, ddp_module)
                 self._ddp_children[name] = ddp_module
         return model
 
     @staticmethod
-    def _selective_sync_hook(ddp_module: DistributedDataParallel, _input: Any) -> None:
-        """Disable backward gradient sync for DDP children whose parameters are all frozen.
+    def _disable_sync_hook(ddp_module: DistributedDataParallel, _input: Any) -> None:
+        """Prevent DDP's forward from arming the reducer.
 
-        When ``toggle_optimizer`` freezes a sub-model's parameters, this hook prevents its DDP
-        reducer from arming — avoiding hangs that would occur if the reducer expected gradients
-        that are never computed.
+        Arming is done explicitly in :meth:`pre_backward` instead, so that only the sub-models
+        whose parameters are active (``requires_grad=True``, set by ``toggle_optimizer``) have
+        their reducers armed right before backward.
 
         """
-        has_grad_params = any(p.requires_grad for p in ddp_module.module.parameters())
-        ddp_module.require_backward_grad_sync = has_grad_params
+        ddp_module.require_backward_grad_sync = False
 
     @override
     def _register_ddp_hooks(self) -> None:
@@ -522,6 +521,25 @@ class MultiModelDDPStrategy(DDPStrategy):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
+
+    @override
+    def pre_backward(self, closure_loss: Tensor) -> None:
+        """Arm the DDP reducer on each sub-model whose parameters are trainable."""
+        if self.lightning_module is None or self.lightning_module.automatic_optimization:
+            return
+        for ddp_module in self._ddp_children.values():
+            if any(p.requires_grad for p in ddp_module.module.parameters()):
+                ddp_module.require_backward_grad_sync = True
+                prepare_for_backward(ddp_module, closure_loss)
+
+    @override
+    def post_backward(self, closure_loss: Tensor) -> None:
+        """Let DDP verify that all reducers finalized — catches unused parameters."""
+        if self.lightning_module is None or self.lightning_module.automatic_optimization:
+            return
+        for ddp_module in self._ddp_children.values():
+            if ddp_module.require_backward_grad_sync:
+                ddp_module._check_reducer_finalized()
 
     @override
     def lightning_module_state_dict(self) -> dict[str, Any]:

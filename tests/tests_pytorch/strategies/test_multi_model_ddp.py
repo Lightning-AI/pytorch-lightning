@@ -25,7 +25,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import MultiModelDDPStrategy
 from lightning.pytorch.trainer import seed_everything
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import GenerationModel
+from tests_pytorch.helpers.simple_models import GenerationModel, Generator
 
 
 class RandomMNISTDataModule(LightningDataModule):
@@ -261,31 +261,58 @@ def test_multi_model_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_pa
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 
 
-def test_selective_sync_hook():
-    """_selective_sync_hook sets require_backward_grad_sync based on requires_grad."""
-    hook = MultiModelDDPStrategy._selective_sync_hook
+def test_disable_sync_hook():
+    """_disable_sync_hook unconditionally disables backward grad sync."""
+    hook = MultiModelDDPStrategy._disable_sync_hook
 
-    linear = torch.nn.Linear(4, 2)
     fake = mock.MagicMock()
-    fake.module = linear
 
-    # All params trainable -> sync enabled
     fake.require_backward_grad_sync = True
     hook(fake, None)
-    assert fake.require_backward_grad_sync is True
+    assert fake.require_backward_grad_sync is False
 
-    # All params frozen -> sync disabled
-    for p in linear.parameters():
-        p.requires_grad = False
+    # Already False -> stays False
     hook(fake, None)
     assert fake.require_backward_grad_sync is False
 
-    # At least one param trainable -> sync re-enabled
-    linear.weight.requires_grad = True
-    hook(fake, None)
-    assert fake.require_backward_grad_sync is True
 
-    # Module with no parameters -> sync disabled
-    fake.module = torch.nn.Module()
-    hook(fake, None)
-    assert fake.require_backward_grad_sync is False
+class GeneratorWithUnused(Generator):
+    def __init__(self, latent_dim, img_shape):
+        super().__init__(latent_dim, img_shape)
+        self.unused = torch.nn.Linear(latent_dim, latent_dim)
+
+    def forward(self, z):
+        z = self.unused(z)
+        z = z.detach()
+        return super().forward(z)
+
+
+class UnusedParametersModel(GenerationModel):
+    def __init__(self):
+        super().__init__()
+        self.generator = GeneratorWithUnused(latent_dim=128, img_shape=(1, 28, 28))
+
+    def training_step(self, batch, batch_idx):
+        return super().training_step(batch, batch_idx)
+
+
+@RunIf(standalone=True, min_cuda_gpus=2)
+def test_unused_parameters_within_submodel_raises():
+    """Unused parameters within a sub-model are caught by DDP's reducer check."""
+    dm = RandomMNISTDataModule()
+    trainer = Trainer(accelerator="gpu", strategy=MultiModelDDPStrategy(), max_steps=2, logger=False)
+    with pytest.raises(RuntimeError, match="parameters that were not used in producing the loss"):
+        trainer.fit(UnusedParametersModel(), datamodule=dm)
+
+
+@RunIf(standalone=True, min_cuda_gpus=2)
+def test_unused_parameters_within_submodel_with_find_unused():
+    """find_unused_parameters=True resolves unused parameters within a sub-model."""
+    dm = RandomMNISTDataModule()
+    trainer = Trainer(
+        accelerator="gpu",
+        strategy=MultiModelDDPStrategy(find_unused_parameters=True),
+        max_steps=2,
+        logger=False,
+    )
+    trainer.fit(UnusedParametersModel(), datamodule=dm)
