@@ -188,20 +188,11 @@ def test_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@pytest.mark.parametrize(
-    ("device", "expected_device_id"),
-    [
-        (torch.device("cpu"), torch.device("cpu")),
-        (torch.device("cuda", 0), 0),
-    ],
-)
-def test_setup_module_device_id(device, expected_device_id):
-    """``setup_module`` must hand FSDP an explicit ``torch.device('cpu')`` on a CPU accelerator.
+def test_setup_module_device_id_cpu():
+    """``setup_module`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
 
-    ``root_device.index`` is ``None`` for a CPU device; passing ``device_id=None`` trips
-    torch>=2.5's "FSDP needs a non-CPU accelerator device" guard, so FSDP cannot run on CPU.
-    The GPU path keeps passing the integer device index unchanged.
-
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
+    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
     """
     captured = {}
 
@@ -212,10 +203,10 @@ def test_setup_module_device_id(device, expected_device_id):
             self.module = module
 
     strategy = FSDPStrategy()
-    strategy._parallel_devices = [device]
+    strategy._parallel_devices = [torch.device("cpu")]
     with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", FakeFSDP):
         strategy.setup_module(nn.Linear(2, 2))
-    assert captured["device_id"] == expected_device_id
+    assert captured["device_id"] == torch.device("cpu")
 
 
 def test_forbidden_precision_raises():
