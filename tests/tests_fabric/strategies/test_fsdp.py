@@ -193,6 +193,7 @@ def test_setup_module_device_id_cpu():
 
     ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
     non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+
     """
     captured = {}
 
