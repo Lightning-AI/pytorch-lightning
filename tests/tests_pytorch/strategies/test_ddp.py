@@ -220,3 +220,73 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     trainer.strategy.setup(trainer)
     # because TrainerFn is not FITTING, model is not configured with sync batchnorm
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_ddp_on_exception_lists_unused_parameters():
+    """Test that the augmented DDP error message includes names of parameters that received no gradient."""
+
+    class ModelWithUnusedHead(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.unused_head = torch.nn.Linear(5, 3)
+
+    model = ModelWithUnusedHead()
+    strategy = DDPStrategy()
+    strategy.connect(model)
+
+    # Simulate a backward pass where only the base BoringModel's layer got gradients
+    for name, param in model.named_parameters():
+        if "unused_head" not in name:
+            param.grad = torch.zeros_like(param)
+
+    exception = RuntimeError("Expected to have finished reduction in the prior iteration before starting a new one.")
+    strategy.on_exception(exception)
+
+    msg = str(exception)
+    assert "unused_head.weight" in msg
+    assert "unused_head.bias" in msg
+    assert "layer" not in msg
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_ddp_on_exception_no_unused_parameters():
+    """Test that no extra hint is appended when all parameters received gradients."""
+    model = BoringModel()
+    strategy = DDPStrategy()
+    strategy.connect(model)
+
+    for param in model.parameters():
+        param.grad = torch.zeros_like(param)
+
+    exception = RuntimeError("Expected to have finished reduction in the prior iteration before starting a new one.")
+    strategy.on_exception(exception)
+
+    msg = str(exception)
+    assert "did not receive a gradient" not in msg
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_ddp_on_exception_ignores_frozen_parameters():
+    """Test that frozen parameters (requires_grad=False) are not listed as unused."""
+
+    class ModelWithFrozenHead(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.frozen_head = torch.nn.Linear(5, 3)
+            self.frozen_head.requires_grad_(False)
+
+    model = ModelWithFrozenHead()
+    strategy = DDPStrategy()
+    strategy.connect(model)
+
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            param.grad = torch.zeros_like(param)
+
+    exception = RuntimeError("Expected to have finished reduction in the prior iteration before starting a new one.")
+    strategy.on_exception(exception)
+
+    msg = str(exception)
+    assert "frozen_head" not in msg
+    assert "did not receive a gradient" not in msg

@@ -417,6 +417,22 @@ class DDPStrategy(ParallelStrategy):
 
     @override
     def on_exception(self, exception: BaseException) -> None:
+        unused_hint = ""
+        if self.lightning_module is not None:
+            unused_params = [
+                name
+                for name, param in self.lightning_module.named_parameters()
+                if param.requires_grad and param.grad is None
+            ]
+            if unused_params:
+                joined = "\n  ".join(unused_params)
+                unused_hint = (
+                    "\nThe following parameters did not receive a gradient (likely unused in `training_step`):"
+                    f"\n  {joined}\n"
+                    "If this is expected, either freeze them with `param.requires_grad_(False)`"
+                    " (or remove the submodule), or enable `find_unused_parameters=True`."
+                )
+
         _augment_message(
             exception,
             pattern=".*Expected to have finished reduction in the prior iteration.*",
@@ -425,6 +441,7 @@ class DDPStrategy(ParallelStrategy):
                 " by training_step. If this is intentional, you must enable the detection of unused parameters in DDP,"
                 " either by setting the string value `strategy='ddp_find_unused_parameters_true'`"
                 " or by setting the flag in the strategy with `strategy=DDPStrategy(find_unused_parameters=True)`."
+                + unused_hint
             ),
         )
 
