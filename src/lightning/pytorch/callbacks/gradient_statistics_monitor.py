@@ -219,19 +219,19 @@ class GradientStatsMonitor(Callback):
         metrics: dict[str, float] = {}
         if self.per_layer:
             for name, sq_val in zip(names, layers_norm_2):
-                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val
+                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val  # type: ignore[assignment]
 
         global_mean = sum(layers_norm_1) / total_count
         global_norm_2 = sum(layers_norm_2)
-        metrics[f"{p}grad_norm"] = global_norm_2
-        metrics[f"{p}grad_mean"] = global_mean
-        metrics[f"{p}grad_std"] = (global_norm_2**2 / total_count - global_mean**2) ** 0.5
+        metrics[f"{p}grad_norm"] = global_norm_2  # type: ignore[assignment]
+        metrics[f"{p}grad_mean"] = global_mean  # type: ignore[assignment]
+        metrics[f"{p}grad_std"] = (global_norm_2**2 / total_count - global_mean**2) ** 0.5  # type: ignore[assignment]
         if self.track_sparsity:
             sparse = [
                 torch.where(g.abs() < _EPS, torch.tensor(1.0, device=g.device), torch.tensor(0.0, device=g.device))
                 for g in grads
             ]
-            metrics[f"{p}grad_sparsity"] = sum(torch._foreach_norm(sparse, 1)) / total_count
+            metrics[f"{p}grad_sparsity"] = sum(torch._foreach_norm(sparse, 1)) / total_count  # type: ignore[assignment]
         return metrics
 
     # -------------------------
