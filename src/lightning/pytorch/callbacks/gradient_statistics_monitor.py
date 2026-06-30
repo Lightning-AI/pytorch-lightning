@@ -217,31 +217,27 @@ class GradientStatsMonitor(Callback):
         p = self.step_prefix
         names = list(layer_grads.keys())
         grads = list(layer_grads.values())
-        num_layers = len(grads)
         total_count = sum(g.numel() for g in grads)
 
-        sq_sums: list[torch.Tensor] = [g.pow(2).sum() for g in grads]
-        to_sync: list[torch.Tensor] = sq_sums + [g.sum() for g in grads]
-        if self.track_sparsity:
-            to_sync += [(g.abs() < _EPS).sum() for g in grads]
-
-        vals = torch.stack(to_sync).tolist()  # one D2H sync
-
-        sq_sum_vals = vals[:num_layers]
-        sum_vals = vals[num_layers : 2 * num_layers]
-
-        mean = sum(sum_vals) / total_count
-        variance = sum(sq_sum_vals) / total_count - mean**2
+        layers_norm_1 = torch._foreach_norm(grads, 1)
+        layers_norm_2 = torch._foreach_norm(grads, 2)
 
         metrics: dict[str, float] = {}
         if self.per_layer:
-            for name, sq_val in zip(names, sq_sum_vals):
+            for name, sq_val in zip(names, layers_norm_2):
                 metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val**0.5
-        metrics[f"{p}grad_norm"] = sum(sq_sum_vals) ** 0.5
-        metrics[f"{p}grad_mean"] = mean
-        metrics[f"{p}grad_std"] = max(variance, 0.0) ** 0.5
+
+        global_mean = sum(layers_norm_1) / total_count
+        global_norm_2 = sum(layers_norm_2)
+        metrics[f"{p}grad_norm"] = global_norm_2**0.5
+        metrics[f"{p}grad_mean"] = global_mean
+        metrics[f"{p}grad_std"] = global_norm_2 / total_count - global_mean**2
         if self.track_sparsity:
-            metrics[f"{p}grad_sparsity"] = sum(vals[2 * num_layers :]) / total_count
+            sparse = [
+                torch.where(g.abs() < _EPS, torch.tensor(1.0, device=g.device), torch.tensor(0.0, device=g.device))
+                for g in grads
+            ]
+            metrics[f"{p}grad_sparsity"] = sum(torch._foreach_norm(sparse, 1)) / total_count
         return metrics
 
     # -------------------------
