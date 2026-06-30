@@ -21,6 +21,10 @@ from typing_extensions import override
 
 from lightning.fabric.plugins.precision.amp import MixedPrecision, _optimizer_handles_unscaling
 from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
+from lightning.pytorch.strategies.fsdp import FSDPStrategy
+from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 if TYPE_CHECKING:
@@ -315,6 +319,15 @@ class GradientStatsMonitor(Callback):
     # -------------------------
     # Hooks
     # -------------------------
+
+    @override
+    def on_train_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+        if isinstance(trainer.strategy, (FSDPStrategy, DeepSpeedStrategy, ModelParallelStrategy)):
+            raise MisconfigurationException(
+                f"{type(trainer.strategy).__name__} is not supported by GradientStatsMonitor. "
+                "Support for sharded strategies is planned for a future release. "
+                "GradientStatsMonitor works correctly with single-device and DDP training."
+            )
 
     @override
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
