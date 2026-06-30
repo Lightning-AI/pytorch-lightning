@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import GradientStatsMonitor
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class SimpleModel(pl.LightningModule):
@@ -53,11 +54,12 @@ def test_gradient_logging_called(tmp_path):
     model = SimpleModel()
     loader = get_dataloader()
 
-    cb = GradientStatsMonitor(log_every_n_steps=1)
+    cb = GradientStatsMonitor()
 
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=2,
+        log_every_n_steps=1,
         callbacks=[cb],
         default_root_dir=tmp_path,
         enable_checkpointing=False,
@@ -141,16 +143,16 @@ def test_explosion_warning_triggered(tmp_path):
     assert mock_warn.called
 
 
-def test_log_every_n_steps_zero_raises():
-    with pytest.raises(ValueError, match="logs nothing"):
-        GradientStatsMonitor(log_every_n_steps=0, track_epochs=False)
+def test_nothing_tracked_raises():
+    with pytest.raises(MisconfigurationException, match="must track at least one of batches or epochs"):
+        GradientStatsMonitor(track_batches=False, track_epochs=False)
 
 
-def test_log_every_n_steps_zero_disables_batch_logging(tmp_path):
+def test_track_batches_false_disables_batch_logging(tmp_path):
     model = SimpleModel()
     loader = get_dataloader()
 
-    cb = GradientStatsMonitor(log_every_n_steps=0, track_epochs=True)
+    cb = GradientStatsMonitor(track_batches=False, track_epochs=True)
 
     trainer = Trainer(
         max_epochs=1,
@@ -178,11 +180,12 @@ def test_captures_pre_clip_gradients(tmp_path):
     loader = get_dataloader()
     gradient_clip_val = 1e-6  # near-zero clip; any natural gradient will exceed it
 
-    cb = GradientStatsMonitor(log_every_n_steps=1, track_epochs=False)
+    cb = GradientStatsMonitor(track_epochs=False)
 
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
+        log_every_n_steps=1,
         callbacks=[cb],
         default_root_dir=tmp_path,
         enable_checkpointing=False,
@@ -206,11 +209,12 @@ def test_state_dict_round_trip(tmp_path):
     model = SimpleModel()
     loader = get_dataloader()
 
-    cb = GradientStatsMonitor(log_every_n_steps=1, track_epochs=True)
+    cb = GradientStatsMonitor(track_epochs=True)
 
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=2,
+        log_every_n_steps=1,
         callbacks=[cb],
         default_root_dir=tmp_path,
         enable_checkpointing=False,
@@ -221,7 +225,7 @@ def test_state_dict_round_trip(tmp_path):
     sd = cb.state_dict()
     assert sd["train_stats"]["steps"] > 0
 
-    cb2 = GradientStatsMonitor(log_every_n_steps=1, track_epochs=True)
+    cb2 = GradientStatsMonitor(track_epochs=True)
     cb2.load_state_dict(sd)
 
     assert cb2._train_stats["steps"] == sd["train_stats"]["steps"]

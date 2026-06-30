@@ -133,27 +133,21 @@ class GradientStatsMonitor(Callback):
         if layer_grads is None:
             return
 
-        if self.track_epochs:
-            self.update_epoch_stats(self._train_stats, layer_grads)
-
         threshold = self.explosion_threshold
-        if not should_log and threshold is None:
+        if not self.track_epochs and not should_log and threshold is None:
             return
 
+        metrics = self.compute_batch_stats(layer_grads)
+
+        if self.track_epochs:
+            self.update_epoch_stats(self._train_stats, metrics)
+
+        norm = metrics.get(f"{self.step_prefix}grad_norm")
+        if threshold is not None and norm is not None and float(norm) > threshold:
+            self._warn_explosion(float(norm))
+
         if should_log:
-            # Compute full stats once; reuse the global norm for the explosion check
-            # to avoid iterating over all parameters a second time.
-            metrics = self.compute_batch_stats(layer_grads)
-            if threshold is not None:
-                norm = metrics.get(f"{self.step_prefix}grad_norm")
-                if norm is not None and norm > threshold:
-                    self._warn_explosion(norm)
             self._log_scalars(trainer, pl_module, metrics)
-        else:
-            # Explosion check only — compute just the norm, not the full stat set.
-            norm = sum(g.norm(2).item() ** 2 for g in layer_grads.values()) ** 0.5
-            if threshold is not None and norm > threshold:
-                self._warn_explosion(norm)
 
     def _collect_grads(
         self, trainer: pl.Trainer, pl_module: pl.LightningModule, optimizer: Any
@@ -225,13 +219,13 @@ class GradientStatsMonitor(Callback):
         metrics: dict[str, float] = {}
         if self.per_layer:
             for name, sq_val in zip(names, layers_norm_2):
-                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val**0.5
+                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val
 
         global_mean = sum(layers_norm_1) / total_count
         global_norm_2 = sum(layers_norm_2)
-        metrics[f"{p}grad_norm"] = global_norm_2**0.5
+        metrics[f"{p}grad_norm"] = global_norm_2
         metrics[f"{p}grad_mean"] = global_mean
-        metrics[f"{p}grad_std"] = global_norm_2 / total_count - global_mean**2
+        metrics[f"{p}grad_std"] = (global_norm_2**2 / total_count - global_mean**2) ** 0.5
         if self.track_sparsity:
             sparse = [
                 torch.where(g.abs() < _EPS, torch.tensor(1.0, device=g.device), torch.tensor(0.0, device=g.device))
@@ -253,44 +247,35 @@ class GradientStatsMonitor(Callback):
         """
         return {
             "norm_sum": 0.0,
-            "grad_sum": 0.0,
-            "grad_sq_sum": 0.0,
-            "grad_count": 0,
-            "near_zero_count": 0,
+            "mean_sum": 0.0,
+            "std_sum": 0.0,
+            "sparsity_sum": 0.0,
             "steps": 0,
             "layer_norm_sums": {},
         }
 
-    def update_epoch_stats(self, state: dict[str, Any], layer_grads: dict[str, torch.Tensor]) -> None:
-        """Update the epoch accumulator in-place with one step's gradients.
+    def update_epoch_stats(self, state: dict[str, Any], batch_metrics: dict[str, Any]) -> None:
+        """Update the epoch accumulator in-place with one step's pre-computed metrics.
+
+        ``batch_metrics`` is the dict returned by ``compute_batch_stats`` for this step.
+        Accumulating per-step means is exact for gradient stats because the parameter
+        count (and therefore element count) is constant across steps.
 
         Override to accumulate additional fields introduced in ``init_epoch_stats``.
 
         """
-        names = list(layer_grads.keys())
-        grads = list(layer_grads.values())
-        num_layers = len(grads)
-
-        sq_sums: list[torch.Tensor] = [g.pow(2).sum() for g in grads]
-        to_sync: list[torch.Tensor] = sq_sums + [g.sum() for g in grads]
+        p = self.step_prefix
+        state["norm_sum"] += float(batch_metrics[f"{p}grad_norm"])
+        state["mean_sum"] += float(batch_metrics[f"{p}grad_mean"])
+        state["std_sum"] += float(batch_metrics[f"{p}grad_std"])
         if self.track_sparsity:
-            to_sync += [(g.abs() < _EPS).sum() for g in grads]
-
-        vals = torch.stack(to_sync).tolist()  # one D2H sync
-
-        sq_sum_vals = vals[:num_layers]
-        sum_vals = vals[num_layers : 2 * num_layers]
-
-        state["norm_sum"] += sum(sq_sum_vals) ** 0.5
-        state["grad_count"] += sum(g.numel() for g in grads)
-        state["grad_sum"] += sum(sum_vals)
-        state["grad_sq_sum"] += sum(sq_sum_vals)
-        if self.track_sparsity:
-            state["near_zero_count"] += int(sum(vals[2 * num_layers :]))
+            state["sparsity_sum"] += float(batch_metrics[f"{p}grad_sparsity"])
         if self.per_layer:
-            for name, sq_val in zip(names, sq_sum_vals):
-                key = f"grad_norm/{name.replace('.', '/')}"
-                state["layer_norm_sums"][key] = state["layer_norm_sums"].get(key, 0.0) + sq_val**0.5
+            prefix = f"{p}grad_norm/"
+            for key, val in batch_metrics.items():
+                if key.startswith(prefix):
+                    layer_key = key[len(p) :]  # strip step prefix → "grad_norm/..."
+                    state["layer_norm_sums"][layer_key] = state["layer_norm_sums"].get(layer_key, 0.0) + float(val)
         state["steps"] += 1
 
     def compute_epoch_stats(self, state: dict[str, Any]) -> dict[str, float] | None:
@@ -306,25 +291,24 @@ class GradientStatsMonitor(Callback):
         values from extra state added in ``init_epoch_stats`` / ``update_epoch_stats``.
 
         Note:
-            ``{epoch_prefix}grad_norm`` is the **mean of per-step global norms**
-            (i.e. ``mean(‖g_t‖₂)`` over optimizer steps *t*), not the true L2 norm of all
-            gradients accumulated over the epoch.  The same applies to per-layer norm averages.
+            All epoch metrics are means of their per-step counterparts
+            (e.g. ``{epoch_prefix}grad_norm`` = mean of per-step global norms).
 
         """
         if state["steps"] == 0:
             return None
         p = self.epoch_prefix
-        metrics: dict[str, float] = {f"{p}grad_norm": state["norm_sum"] / state["steps"]}
-        if state["grad_count"] > 0:
-            mean = state["grad_sum"] / state["grad_count"]
-            variance = state["grad_sq_sum"] / state["grad_count"] - mean**2
-            metrics[f"{p}grad_mean"] = mean
-            metrics[f"{p}grad_std"] = max(variance, 0.0) ** 0.5
-        if self.track_sparsity and state["grad_count"] > 0:
-            metrics[f"{p}grad_sparsity"] = state["near_zero_count"] / state["grad_count"]
+        steps = state["steps"]
+        metrics: dict[str, float] = {
+            f"{p}grad_norm": state["norm_sum"] / steps,
+            f"{p}grad_mean": state["mean_sum"] / steps,
+            f"{p}grad_std": state["std_sum"] / steps,
+        }
+        if self.track_sparsity:
+            metrics[f"{p}grad_sparsity"] = state["sparsity_sum"] / steps
         if self.per_layer:
             for key, norm_sum in state["layer_norm_sums"].items():
-                metrics[f"{p}{key}"] = norm_sum / state["steps"]
+                metrics[f"{p}{key}"] = norm_sum / steps
         return metrics
 
     # -------------------------
