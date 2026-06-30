@@ -215,30 +215,33 @@ class GradientStatsMonitor(Callback):
 
         """
         p = self.step_prefix
-        total_norm_sq = 0.0
-        total_count = 0
-        total_sum = 0.0
-        total_sq_sum = 0.0
-        near_zero_count = 0
+        names = list(layer_grads.keys())
+        grads = list(layer_grads.values())
+        num_layers = len(grads)
+        total_count = sum(g.numel() for g in grads)
+
+        sq_sums: list[torch.Tensor] = [g.pow(2).sum() for g in grads]
+        to_sync: list[torch.Tensor] = sq_sums + [g.sum() for g in grads]
+        if self.track_sparsity:
+            to_sync += [(g.abs() < _EPS).sum() for g in grads]
+
+        vals = torch.stack(to_sync).tolist()  # one D2H sync
+
+        sq_sum_vals = vals[:num_layers]
+        sum_vals = vals[num_layers : 2 * num_layers]
+
+        mean = sum(sum_vals) / total_count
+        variance = sum(sq_sum_vals) / total_count - mean**2
+
         metrics: dict[str, float] = {}
-        for name, grad in layer_grads.items():
-            norm = grad.norm(2).item()
-            total_norm_sq += norm**2
-            n = grad.numel()
-            total_count += n
-            total_sum += grad.sum().item()
-            total_sq_sum += grad.pow(2).sum().item()
-            if self.track_sparsity:
-                near_zero_count += int((grad.abs() < _EPS).sum().item())
-            if self.per_layer:
-                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = norm
-        metrics[f"{p}grad_norm"] = total_norm_sq**0.5
-        mean = total_sum / total_count
-        variance = total_sq_sum / total_count - mean**2
+        if self.per_layer:
+            for name, sq_val in zip(names, sq_sum_vals):
+                metrics[f"{p}grad_norm/{name.replace('.', '/')}"] = sq_val**0.5
+        metrics[f"{p}grad_norm"] = sum(sq_sum_vals) ** 0.5
         metrics[f"{p}grad_mean"] = mean
         metrics[f"{p}grad_std"] = max(variance, 0.0) ** 0.5
         if self.track_sparsity:
-            metrics[f"{p}grad_sparsity"] = near_zero_count / total_count
+            metrics[f"{p}grad_sparsity"] = sum(vals[2 * num_layers :]) / total_count
         return metrics
 
     # -------------------------
@@ -268,19 +271,30 @@ class GradientStatsMonitor(Callback):
         Override to accumulate additional fields introduced in ``init_epoch_stats``.
 
         """
-        total_norm_sq = 0.0
-        for name, grad in layer_grads.items():
-            norm = grad.norm(2).item()
-            total_norm_sq += norm**2
-            state["grad_count"] += grad.numel()
-            state["grad_sum"] += grad.sum().item()
-            state["grad_sq_sum"] += grad.pow(2).sum().item()
-            if self.track_sparsity:
-                state["near_zero_count"] += int((grad.abs() < _EPS).sum().item())
-            if self.per_layer:
+        names = list(layer_grads.keys())
+        grads = list(layer_grads.values())
+        num_layers = len(grads)
+
+        sq_sums: list[torch.Tensor] = [g.pow(2).sum() for g in grads]
+        to_sync: list[torch.Tensor] = sq_sums + [g.sum() for g in grads]
+        if self.track_sparsity:
+            to_sync += [(g.abs() < _EPS).sum() for g in grads]
+
+        vals = torch.stack(to_sync).tolist()  # one D2H sync
+
+        sq_sum_vals = vals[:num_layers]
+        sum_vals = vals[num_layers : 2 * num_layers]
+
+        state["norm_sum"] += sum(sq_sum_vals) ** 0.5
+        state["grad_count"] += sum(g.numel() for g in grads)
+        state["grad_sum"] += sum(sum_vals)
+        state["grad_sq_sum"] += sum(sq_sum_vals)
+        if self.track_sparsity:
+            state["near_zero_count"] += int(sum(vals[2 * num_layers :]))
+        if self.per_layer:
+            for name, sq_val in zip(names, sq_sum_vals):
                 key = f"grad_norm/{name.replace('.', '/')}"
-                state["layer_norm_sums"][key] = state["layer_norm_sums"].get(key, 0.0) + norm
-        state["norm_sum"] += total_norm_sq**0.5
+                state["layer_norm_sums"][key] = state["layer_norm_sums"].get(key, 0.0) + sq_val**0.5
         state["steps"] += 1
 
     def compute_epoch_stats(self, state: dict[str, Any]) -> dict[str, float] | None:
