@@ -336,12 +336,7 @@ class WeightAveraging(Callback):
 
     @property
     def _has_updated(self) -> bool:
-        """Whether the average model has been updated at least once.
-
-        Before the first update the :class:`AveragedModel` only holds the initial weights copied in
-        ``setup()``, so it must not be swapped in during validation.
-
-        """
+        """Whether the average model has been updated at least once."""
         return self._latest_update_step > 0 or self._latest_update_epoch > -1
 
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
