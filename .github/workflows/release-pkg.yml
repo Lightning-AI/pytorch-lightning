@@ -36,14 +36,14 @@ jobs:
     needs: build-packages
     if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
       - run: ls -lh dist/
       - name: Upload to release
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@3d6774fae0ed91407dc5ae29d576b166536d1777 # v3.0
         with:
           files: "dist/*/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -53,8 +53,8 @@ jobs:
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ env.PYTHON_VER }}
       - name: install Package
@@ -73,7 +73,7 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
       BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
@@ -103,7 +103,7 @@ jobs:
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           title: "Bump lightning ver `${{ env.TAG }}`"
           committer: GitHub <noreply@github.com>
@@ -140,8 +140,8 @@ jobs:
       matrix:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v6 # needed for local action below
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2; needed for local action below
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -154,7 +154,7 @@ jobs:
 
       - name: Publish distribution 📦 to PyPI
         # pypa/gh-action-pypi-publish v1.13.0
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
           packages_dir: dist/${{ steps.folder.outputs.pkg }}
           verbose: true
