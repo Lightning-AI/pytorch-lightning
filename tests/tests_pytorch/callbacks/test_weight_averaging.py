@@ -210,7 +210,8 @@ def test_ema(tmp_path, batch_norm: bool, iterable_dataset: bool):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+    "accelerator",
+    [pytest.param("gpu", marks=RunIf(standalone=True, min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))],
 )
 def test_ema_accelerator(tmp_path, accelerator):
     model = TestModel()
@@ -218,21 +219,21 @@ def test_ema_accelerator(tmp_path, accelerator):
     _train(model, dataset, tmp_path, EMATestCallback(), accelerator=accelerator, devices=1)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(standalone=True, min_cuda_gpus=2)
 def test_ema_ddp(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp", accelerator="gpu", devices=2)
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(standalone=True, min_cuda_gpus=2)
 def test_ema_ddp_spawn(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, standalone=True)
 def test_ema_ddp_spawn_cpu(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
@@ -240,6 +241,7 @@ def test_ema_ddp_spawn_cpu(tmp_path):
 
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3, 5])
+@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
 def test_ema_resume(tmp_path, crash_on_epoch):
     dataset = RandomDataset(32, 32)
     model1 = TestModel()
@@ -254,7 +256,7 @@ def test_ema_resume(tmp_path, crash_on_epoch):
         assert torch.allclose(param1, param2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
 def test_ema_resume_ddp(tmp_path):
     model = TestModel()
     model.crash_on_epoch = 3
@@ -272,8 +274,8 @@ def test_swa(tmp_path):
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("fsdp", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
+        pytest.param("fsdp", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
     ],
 )
 def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
@@ -338,7 +340,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
     ],
 )
 def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
