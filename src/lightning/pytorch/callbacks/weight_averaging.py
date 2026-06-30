@@ -223,9 +223,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        # Only swap in the averaged weights once the average model has actually been updated. Until then it only holds
-        # the copy of the initial weights made in setup(), so validating with it would discard the trained weights.
-        if self._average_model is not None and self._average_model.n_averaged > 0:
+        if self._average_model is not None:
             self._swap_models(pl_module)
 
     @override
@@ -239,7 +237,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None and self._average_model.n_averaged > 0:
+        if self._average_model is not None:
             self._swap_models(pl_module)
 
     @override
@@ -339,10 +337,16 @@ class WeightAveraging(Callback):
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.
 
+        No-op until the average model has been updated at least once; before the first update the
+        :class:`AveragedModel` only holds the initial weights copied in ``setup()``, so swapping it in
+        during validation would discard the trained weights.
+
         Args:
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
+        if not (self._latest_update_step > 0 or self._latest_update_epoch > -1):
+            return
         assert self._average_model is not None
         average_params = itertools.chain(self._average_model.module.parameters(), self._average_model.module.buffers())
         current_params = itertools.chain(pl_module.parameters(), pl_module.buffers())
