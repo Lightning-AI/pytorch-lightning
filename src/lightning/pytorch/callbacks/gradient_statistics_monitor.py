@@ -19,11 +19,8 @@ from typing import TYPE_CHECKING, Any
 import torch
 from typing_extensions import override
 
-from lightning.fabric.plugins.precision.amp import MixedPrecision, _optimizer_handles_unscaling
+from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
-from lightning.pytorch.strategies.fsdp import FSDPStrategy
-from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -96,6 +93,9 @@ class GradientStatsMonitor(Callback):
         - If no gradients are available (e.g., frozen model or inside no_grad), the callback
           exits silently.
         - Designed to be lightweight and not interfere with the training loop.
+        - When using AMP (``precision="16-mixed"``), ``GradScaler`` skips the optimizer update
+          if non-finite gradients are detected, but this callback has already logged by then.
+          Stats logged on such steps reflect gradients that never produced a parameter update.
 
     """
 
@@ -168,6 +168,7 @@ class GradientStatsMonitor(Callback):
         Returns ``{param_name: flat_grad_tensor}`` or ``None`` if no gradients exist.
 
         """
+        from lightning.fabric.plugins.precision.amp import MixedPrecision
 
         pp = trainer.precision_plugin
         if isinstance(pp, MixedPrecision) and pp.scaler is not None and _optimizer_handles_unscaling(optimizer):
@@ -322,6 +323,10 @@ class GradientStatsMonitor(Callback):
 
     @override
     def on_train_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+        from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
+        from lightning.pytorch.strategies.fsdp import FSDPStrategy
+        from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
+
         if isinstance(trainer.strategy, (FSDPStrategy, DeepSpeedStrategy, ModelParallelStrategy)):
             raise MisconfigurationException(
                 f"{type(trainer.strategy).__name__} is not supported by GradientStatsMonitor. "
