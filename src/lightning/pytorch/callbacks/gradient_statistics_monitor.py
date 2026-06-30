@@ -101,16 +101,16 @@ class GradientStatsMonitor(Callback):
 
     def __init__(
         self,
-        log_every_n_steps: int = 50,
+        track_batches: bool = True,
         track_epochs: bool = True,
         per_layer: bool = False,
         track_sparsity: bool = True,
         explosion_threshold: float | None = 1e4,
     ):
         super().__init__()
-        if not track_epochs and log_every_n_steps <= 0:
-            raise ValueError("GradientStatsMonitor logs nothing: set log_every_n_steps > 0 or track_epochs=True.")
-        self.log_every_n_steps = log_every_n_steps
+        if not track_batches and not track_epochs:
+            raise MisconfigurationException("GradientStatsMonitor must track at least one of batches or epochs.")
+        self.track_batches = track_batches
         self.track_epochs = track_epochs
         self.per_layer = per_layer
         self.track_sparsity = track_sparsity
@@ -354,7 +354,7 @@ class GradientStatsMonitor(Callback):
         if trainer.global_step == self._last_logged_step:
             return
         self._last_logged_step = trainer.global_step
-        should_log = self.log_every_n_steps > 0 and trainer.global_step % self.log_every_n_steps == 0
+        should_log = self.track_batches and trainer.global_step % trainer.log_every_n_steps == 0
         self._on_grad_step(trainer, pl_module, optimizer, should_log=should_log)
 
     @override
@@ -389,7 +389,7 @@ class GradientStatsMonitor(Callback):
     @override
     def state_key(self) -> str:
         return self._generate_state_key(
-            log_every_n_steps=self.log_every_n_steps,
+            track_batches=self.track_batches,
             track_epochs=self.track_epochs,
             per_layer=self.per_layer,
             track_sparsity=self.track_sparsity,
