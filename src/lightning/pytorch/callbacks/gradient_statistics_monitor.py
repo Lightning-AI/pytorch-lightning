@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 import torch
 from typing_extensions import override
 
+from lightning.fabric.plugins.precision.amp import MixedPrecision, _optimizer_handles_unscaling
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -121,9 +122,10 @@ class GradientStatsMonitor(Callback):
         self,
         trainer: pl.Trainer,
         pl_module: pl.LightningModule,
+        optimizer: Any,
         should_log: bool,
     ) -> None:
-        layer_grads = self._collect_grads(pl_module)
+        layer_grads = self._collect_grads(trainer, pl_module, optimizer)
         if layer_grads is None:
             return
 
@@ -149,17 +151,30 @@ class GradientStatsMonitor(Callback):
             if threshold is not None and norm > threshold:
                 self._warn_explosion(norm)
 
-    def _collect_grads(self, pl_module: pl.LightningModule) -> dict[str, torch.Tensor] | None:
-        """Collect per-layer gradients.
+    def _collect_grads(
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, optimizer: Any
+    ) -> dict[str, torch.Tensor] | None:
+        """Collect per-layer gradients, unscaling AMP-scaled values when necessary.
 
-        Returns ``{param_name: flat_grad_tensor}`` for every parameter that has a gradient,
-        or ``None`` if no parameter had a gradient this step.
+        When AMP is active and the optimizer handles its own unscaling (e.g. fused Adam),
+        Lightning skips ``scaler.unscale_()`` before ``on_before_optimizer_step``, so
+        ``param.grad`` is still multiplied by the scaler's scale factor.  In that case
+        ``inv_scale`` cancels it out; otherwise it is ``1.0`` and has no effect.
 
-        Gradients are flattened for easier norm/stat computations.
+        Returns ``{param_name: flat_grad_tensor}`` or ``None`` if no gradients exist.
 
         """
+
+        pp = trainer.precision_plugin
+        if isinstance(pp, MixedPrecision) and pp.scaler is not None and _optimizer_handles_unscaling(optimizer):
+            inv_scale = 1.0 / pp.scaler.get_scale()
+        else:
+            inv_scale = 1.0
+
         layer_grads = {
-            name: param.grad.detach().view(-1) for name, param in pl_module.named_parameters() if param.grad is not None
+            name: (param.grad.detach() * inv_scale).view(-1)
+            for name, param in pl_module.named_parameters()
+            if param.grad is not None
         }
         return layer_grads or None
 
@@ -312,7 +327,7 @@ class GradientStatsMonitor(Callback):
             return
         self._last_logged_step = trainer.global_step
         should_log = self.log_every_n_steps > 0 and trainer.global_step % self.log_every_n_steps == 0
-        self._on_grad_step(trainer, pl_module, should_log=should_log)
+        self._on_grad_step(trainer, pl_module, optimizer, should_log=should_log)
 
     @override
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
