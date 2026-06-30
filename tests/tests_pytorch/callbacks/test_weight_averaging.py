@@ -129,6 +129,8 @@ class SWATestCallback(WeightAveraging):
         super().__init__(avg_fn=get_swa_avg_fn(), **kwargs)
         self.swap_calls = 0
         self.copy_calls = 0
+        # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
+        self.first_epoch: Optional[int] = None
 
     def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
         return epoch_idx in (3, 5, 7)
@@ -145,6 +147,14 @@ class SWATestCallback(WeightAveraging):
         super().on_train_start(trainer, pl_module)
         assert self.swap_calls == 0
         assert self.copy_calls == 0
+
+    def on_train_epoch_start(self, trainer: Trainer, *args: Any) -> None:
+        super().on_train_epoch_start(trainer, *args)
+        # Since the checkpoint loaded was saved `on_train_epoch_end`, the first `FitLoop` iteration will not update the
+        # model and will just call the epoch-level hooks. For that reason, we check that we are not restarting before
+        # choosing the first epoch.
+        if self.first_epoch is None and not trainer.fit_loop.restarting:
+            self.first_epoch = trainer.current_epoch
 
     def on_train_epoch_end(self, trainer: Trainer, *args: Any) -> None:
         super().on_train_epoch_end(trainer, *args)

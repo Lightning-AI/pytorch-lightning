@@ -347,10 +347,6 @@ class WeightAveraging(Callback):
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.
 
-        No-op until the average model has been updated at least once; before the first update the
-        :class:`AveragedModel` only holds the initial weights copied in ``setup()``, so swapping it in
-        during validation would discard the trained weights.
-
         Args:
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
