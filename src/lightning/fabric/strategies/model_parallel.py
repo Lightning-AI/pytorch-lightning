@@ -43,6 +43,7 @@ from lightning.fabric.strategies.strategy import (
     _BackwardSyncControl,
     _validate_keys_for_strict_loading,
 )
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol, _load
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -529,15 +530,18 @@ def _has_dtensor_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(t, DTensor) for t in module.parameters())
 
 
-def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int, strict: bool = True) -> None:
+def _load_raw_module_state_from_path(path: _PATH, module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict from a file path into the FSDP module."""
     if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
             f" full state dict: {path}"
         )
-    # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
-    state_dict = torch.load(path, mmap=True, map_location="cpu") if _TORCH_GREATER_EQUAL_2_3 else _lazy_load(path)
+    if _is_local_file_protocol(str(path)):
+        # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
+        state_dict = torch.load(path, mmap=True, map_location="cpu") if _TORCH_GREATER_EQUAL_2_3 else _lazy_load(path)
+    else:
+        state_dict = _load(path, map_location="cpu")
     _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)
 
 
