@@ -545,9 +545,14 @@ def test_distributed_checkpoint_reader_writer_selection(tmp_path):
     assert isinstance(_get_distributed_checkpoint_writer(str(tmp_path)), FileSystemWriter)
     assert isinstance(_get_distributed_checkpoint_reader(str(tmp_path)), FileSystemReader)
 
-    fsspec_fs = pytest.importorskip("torch.distributed.checkpoint._fsspec_filesystem")
-    assert isinstance(_get_distributed_checkpoint_writer("memory:///w/ckpt"), fsspec_fs.FsspecWriter)
-    assert isinstance(_get_distributed_checkpoint_reader("memory:///w/ckpt"), fsspec_fs.FsspecReader)
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint._fsspec_filesystem import FsspecReader, FsspecWriter
+    else:
+        fsspec_fs = pytest.importorskip("torch.distributed.checkpoint._fsspec_filesystem")
+        FsspecReader, FsspecWriter = fsspec_fs.FsspecReader, fsspec_fs.FsspecWriter
+
+    assert isinstance(_get_distributed_checkpoint_writer("memory:///w/ckpt"), FsspecWriter)
+    assert isinstance(_get_distributed_checkpoint_reader("memory:///w/ckpt"), FsspecReader)
 
 
 def test_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
