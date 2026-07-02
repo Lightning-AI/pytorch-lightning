@@ -484,9 +484,8 @@ def test_model_sharded_context_device_id_cpu():
 
     strategy = FSDPStrategy()
     strategy._parallel_devices = [torch.device("cpu")]
-    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap):
-        with strategy.model_sharded_context():
-            pass
+    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap), strategy.model_sharded_context():
+        pass
     assert captured["device_id"] == torch.device("cpu")
 
 
