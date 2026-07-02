@@ -735,11 +735,9 @@ def test_profiler_invalid_table_kwargs(tmp_path):
 
 def test_setup_train_dataloader_profiled_actions(tmp_path):
     """Ensure that the 'setup_train_dataloader' action is successfully recorded in the profiler."""
-    profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
+    profiler = SimpleProfiler(dirpath=tmp_path, filename="profiler")
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
     trainer.fit(model)
 
-    # Read the profiler output file directly, as `profiler.teardown()` clears `profiler.profiled_actions`.
-    path = profiler.dirpath / f"fit-{profiler.filename}.txt"
-    assert "setup_train_dataloader" in path.read_text()
+    assert "setup_train_dataloader" in profiler.recorded_durations
