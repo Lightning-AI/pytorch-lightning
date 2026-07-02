@@ -446,6 +446,49 @@ def test_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
+def test_setup_model_device_id_cpu():
+    """``_setup_model`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
+
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
+    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+
+    """
+    captured = {}
+
+    class FakeFSDP(nn.Module):
+        def __init__(self, module, **kwargs):
+            super().__init__()
+            captured.update(kwargs)
+            self.module = module
+
+    strategy = FSDPStrategy()
+    model = nn.Linear(2, 2)
+    strategy._parallel_devices = [torch.device("cpu")]
+    strategy._lightning_module = model
+    strategy._process_group = Mock()
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", FakeFSDP):
+        strategy._setup_model(model)
+    assert captured["device_id"] == torch.device("cpu")
+
+
+def test_model_sharded_context_device_id_cpu():
+    """``model_sharded_context`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU."""
+    from contextlib import contextmanager
+
+    captured = {}
+
+    @contextmanager
+    def fake_enable_wrap(*args, **kwargs):
+        captured.update(kwargs)
+        yield
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap), strategy.model_sharded_context():
+        pass
+    assert captured["device_id"] == torch.device("cpu")
+
+
 def test_strategy_cpu_offload():
     """Test the different ways cpu offloading can be enabled."""
     # bool
