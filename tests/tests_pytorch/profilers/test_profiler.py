@@ -740,4 +740,6 @@ def test_setup_train_dataloader_profiled_actions(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
     trainer.fit(model)
 
-    assert "setup_train_dataloader" in profiler.profiled_actions
+    # Read the profiler output file directly, as `profiler.teardown()` clears `profiler.profiled_actions`.
+    path = profiler.dirpath / f"fit-{profiler.filename}.txt"
+    assert "setup_train_dataloader" in path.read_text()
