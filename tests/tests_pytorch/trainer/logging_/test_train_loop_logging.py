@@ -733,14 +733,64 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     )
     trainer.fit(model)
 
+    # `epoch` is stamped once per step: the epoch-end flush that shares a step with the
+    # last step-level flush no longer re-emits a duplicate `epoch` (see #20902).
     mock_log_metrics.assert_has_calls([
         call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
         call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
-        call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
+        call(metrics={"foo_epoch": 0.0}, step=1),
         call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
         call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
-        call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
+        call(metrics={"foo_epoch": 0.0}, step=3),
     ])
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+def test_log_metrics_no_duplicate_epoch_per_step(mock_log_metrics, tmp_path):
+    """The convenience ``epoch`` metric must be logged at most once per step.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/20902: the
+    training-epoch-end and validation-end flushes share a step, and stamping ``epoch`` on both
+    produced duplicate ``epoch`` datapoints (rendered as two points per epoch in e.g. MLflow).
+
+    """
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("train_metric", 1.0, on_step=False, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            self.log("val_metric", 2.0, on_step=False, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+    )
+    trainer.fit(MyModel())
+
+    # count, per step, how many logged batches carried an `epoch` value
+    epoch_counts = collections.Counter()
+    for logged in mock_log_metrics.call_args_list:
+        metrics = logged.kwargs.get("metrics")
+        if metrics is None and logged.args:
+            metrics = logged.args[0]
+        step = logged.kwargs.get("step")
+        if step is None and len(logged.args) > 1:
+            step = logged.args[1]
+        if metrics and "epoch" in metrics:
+            epoch_counts[step] += 1
+
+    assert epoch_counts, "expected `epoch` to be logged at least once"
+    assert all(count == 1 for count in epoch_counts.values()), epoch_counts
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
