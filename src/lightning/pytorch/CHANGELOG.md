@@ -14,9 +14,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21612](https://github.com/Lightning-AI/pytorch-lightning/issues/21612))
 
+- Added `log_key_prefix` parameter to `Trainer` to control the prefix of Trainer-generated metric keys (e.g. `epoch`) ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
+
+- Added `log_key_prefix` parameter to `WandbLogger` to control the prefix of W&B-generated metric keys (e.g. `global_step`) ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
+
 ### Changed
 
--
+- `WandbLogger` no longer hardcodes `trainer/global_step` as the step axis key; the new default is bare `global_step`. Pass `log_key_prefix="trainer/"` to restore previous behaviour ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
 
 ### Removed
 
