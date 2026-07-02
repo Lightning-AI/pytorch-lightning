@@ -49,6 +49,7 @@ callbacks
     Timer
     TQDMProgressBar
     WeightAveraging
+    GradientStatsMonitor
 
 cli
 -----
