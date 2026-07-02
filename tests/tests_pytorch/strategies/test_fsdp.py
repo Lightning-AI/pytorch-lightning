@@ -916,6 +916,44 @@ def test_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path)
     lazy_load_mock.assert_called_once()
 
 
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_full_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_full_checkpoint_remote_honors_explicit_weights_only(load_mock, __, ___):
+    """An explicit `weights_only=True` from the user must be honored for remote full-checkpoints, not silently
+    overridden to `False`."""
+    model = BoringModel()
+    load_mock.return_value = {"state_dict": model.state_dict()}
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/full.ckpt", weights_only=True)
+    assert load_mock.call_args.kwargs["weights_only"] is True
+
+
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_full_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_full_checkpoint_remote_allows_non_tensor_objects(load_mock, __, ___):
+    """Regression: remote full-checkpoints default to `weights_only=False` so non-tensor metadata (which
+    `torch.load` rejects by default since torch 2.6) loads just like the local `_lazy_load` path."""
+    model = BoringModel()
+    load_mock.return_value = {"state_dict": model.state_dict()}
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/full.ckpt")
+    assert load_mock.call_args.kwargs["weights_only"] is False
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),

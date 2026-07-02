@@ -614,7 +614,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path) if _is_local_file_protocol(str(path)) else _load(path, weights_only=False)
+            checkpoint = (
+                _lazy_load(path)
+                if _is_local_file_protocol(str(path))
+                else _load(path, weights_only=False if weights_only is None else weights_only)
+            )
 
             from lightning.fabric.strategies.model_parallel import (
                 _load_raw_module_state,

@@ -641,7 +641,11 @@ class FSDPStrategy(ParallelStrategy):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path) if _is_local_file_protocol(str(path)) else _load(path, weights_only=False)
+            checkpoint = (
+                _lazy_load(path)
+                if _is_local_file_protocol(str(path))
+                else _load(path, weights_only=False if weights_only is None else weights_only)
+            )
             _load_raw_module_state(
                 checkpoint.pop("state_dict"),
                 module=self.model,

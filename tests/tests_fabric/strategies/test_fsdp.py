@@ -623,6 +623,27 @@ def test_load_full_checkpoint_remote_allows_non_tensor_objects(monkeypatch):
     assert captured["weights_only"] is False
 
 
+def test_load_full_checkpoint_remote_honors_explicit_weights_only(monkeypatch):
+    """An explicit `weights_only=True` from the user must be honored for remote full-checkpoints, not silently
+    overridden to `False`."""
+    strategy = FSDPStrategy()
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_full_checkpoint", lambda p: True)
+    monkeypatch.setattr("lightning.fabric.strategies.model_parallel._load_raw_module_state", lambda *a, **k: None)
+
+    captured = {}
+
+    def fake_load(path, weights_only=None):
+        captured["weights_only"] = weights_only
+        return {"model": {"weight": torch.zeros(2)}}
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._load", fake_load)
+
+    strategy.load_checkpoint("memory:///x/full.ckpt", state={"model": nn.Linear(2, 2)}, weights_only=True)
+    assert captured["weights_only"] is True
+
+
 def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
     """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
     import sys
