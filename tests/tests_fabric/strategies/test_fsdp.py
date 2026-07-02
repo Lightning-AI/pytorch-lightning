@@ -210,6 +210,24 @@ def test_setup_module_device_id_cpu():
     assert captured["device_id"] == torch.device("cpu")
 
 
+def test_module_sharded_context_device_id_cpu():
+    """``module_sharded_context`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU."""
+    from contextlib import contextmanager
+
+    captured = {}
+
+    @contextmanager
+    def fake_enable_wrap(*args, **kwargs):
+        captured.update(kwargs)
+        yield
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap), strategy.module_sharded_context():
+        pass
+    assert captured["device_id"] == torch.device("cpu")
+
+
 def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
