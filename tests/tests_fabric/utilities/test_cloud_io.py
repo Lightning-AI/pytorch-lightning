@@ -165,6 +165,21 @@ def test_atomic_save_uses_write_for_local(tmp_path):
 def test_resolve_path_local_vs_remote(tmp_path):
     resolved = _resolve_path(str(tmp_path / "ckpt"))
     assert isinstance(resolved, Path)
+    assert resolved == tmp_path / "ckpt"
+
+    # build the URI from tmp_path: a hardcoded "file:///tmp/..." is not absolute on Windows,
+    # where fsspec would prepend the current drive (e.g. "D:/tmp/...")
+    local_file = tmp_path / "test.txt"
+    resolved_file_uri = _resolve_path(local_file.as_uri())
+    assert isinstance(resolved_file_uri, Path)
+    assert resolved_file_uri == local_file
+
+    # a hand-written drive-less URI: on Windows fsspec resolves it against the current
+    # drive, matching os.path.abspath semantics; on POSIX it is returned unchanged
+    resolved_literal = _resolve_path("file:///tmp/test.txt")
+    assert isinstance(resolved_literal, Path)
+    assert resolved_literal == Path(os.path.abspath("/tmp/test.txt"))
+
     resolved = _resolve_path("gs://bucket/checkpoints/epoch=1.ckpt")
     assert resolved == "gs://bucket/checkpoints/epoch=1.ckpt"
     assert isinstance(resolved, str)
