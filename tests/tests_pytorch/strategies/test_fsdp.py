@@ -959,8 +959,8 @@ def test_load_full_checkpoint_remote_allows_non_tensor_objects(load_mock, __, __
 @mock.patch("lightning.pytorch.strategies.fsdp._is_sharded_checkpoint", return_value=True)
 @mock.patch("lightning.pytorch.strategies.fsdp._load")
 def test_load_sharded_checkpoint_metadata_weights_only(load_mock, _is_sharded_mock, _ctx_mock, _dist_load_mock):
-    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path)
-    so non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path) so
+    non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
     load_mock.return_value = {}
 
     model = BoringModel()

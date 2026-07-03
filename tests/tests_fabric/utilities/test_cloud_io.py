@@ -201,6 +201,16 @@ def test_is_checkpoint_dir_local(tmp_path):
     assert _is_checkpoint_dir(tmp_path / "missing") is False
 
 
+def test_is_checkpoint_dir_remote():
+    fs = fsspec.filesystem("memory")
+    fs.mkdir("/r/adir")
+    with fs.open("/r/a_file", "wb") as f:
+        f.write(b"x")
+    assert _is_checkpoint_dir("memory:///r/adir") is True
+    assert _is_checkpoint_dir("memory:///r/a_file") is False
+    assert _is_checkpoint_dir("memory:///r/missing") is False
+
+
 def test_prepare_directory_checkpoint_local_replaces_file(tmp_path):
     p = tmp_path / "ckpt"
     p.write_text("stray file")
@@ -214,6 +224,7 @@ def test_prepare_directory_checkpoint_remote_memory():
         f.write(b"stray")
     _prepare_directory_checkpoint("memory:///m/ckpt")
     assert not fs.isfile("/m/ckpt")
+    assert fs.isdir("/m/ckpt")
 
 
 def test_remove_checkpoint_local_file_and_dir(tmp_path):
@@ -234,3 +245,11 @@ def test_remove_checkpoint_remote_memory():
         f.write(b"a")
     _remove_checkpoint("memory:///r/ckpt")
     assert not fs.exists("/r/ckpt")
+
+
+def test_remove_checkpoint_remote_file_memory():
+    fs = fsspec.filesystem("memory")
+    with fs.open("/r/file.ckpt", "wb") as f:
+        f.write(b"a")
+    _remove_checkpoint("memory:///r/file.ckpt")
+    assert not fs.exists("/r/file.ckpt")

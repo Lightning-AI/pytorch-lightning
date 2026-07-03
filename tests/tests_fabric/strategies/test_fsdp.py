@@ -645,8 +645,8 @@ def test_load_full_checkpoint_remote_honors_explicit_weights_only(monkeypatch):
 
 
 def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
-    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path)
-    so non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path) so
+    non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
     strategy = FSDPStrategy()
     monkeypatch.setattr(strategy, "broadcast", lambda x: x)
     monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
@@ -681,3 +681,14 @@ def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_writer("memory:///w/ckpt")
+
+
+def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
+    """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
+    import sys
+
+    from lightning.fabric.strategies.fsdp import _get_distributed_checkpoint_reader
+
+    monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
+    with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
+        _get_distributed_checkpoint_reader("memory:///w/ckpt")
