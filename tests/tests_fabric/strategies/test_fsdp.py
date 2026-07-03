@@ -644,6 +644,34 @@ def test_load_full_checkpoint_remote_honors_explicit_weights_only(monkeypatch):
     assert captured["weights_only"] is True
 
 
+def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path)
+    so non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    strategy = FSDPStrategy()
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_sharded_checkpoint", lambda p: True)
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
+    )
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path: None)
+
+    captured = {}
+
+    def fake_load(path, weights_only=None):
+        captured["weights_only"] = weights_only
+        return {}
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._load", fake_load)
+
+    model = nn.Linear(2, 2)
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model})
+    assert captured["weights_only"] is False
+
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True)
+    assert captured["weights_only"] is True
+
+
 def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
     """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
     import sys

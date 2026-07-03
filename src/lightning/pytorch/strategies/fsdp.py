@@ -636,8 +636,12 @@ class FSDPStrategy(ParallelStrategy):
                         )
                         optim.load_state_dict(flattened_osd)
 
-            # Load metadata (anything not a module or optimizer)
-            metadata = _load(_checkpoint_join(path, _METADATA_FILENAME), weights_only=weights_only)
+            # Load metadata (anything not a module or optimizer). Default to `weights_only=False` (like the
+            # full-checkpoint path) so non-tensor metadata loads on torch>=2.6, while honoring an explicit value.
+            metadata = _load(
+                _checkpoint_join(path, _METADATA_FILENAME),
+                weights_only=False if weights_only is None else weights_only,
+            )
             return metadata
 
         if _is_full_checkpoint(path):

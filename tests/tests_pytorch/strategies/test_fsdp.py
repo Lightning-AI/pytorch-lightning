@@ -954,6 +954,30 @@ def test_load_full_checkpoint_remote_allows_non_tensor_objects(load_mock, __, __
     assert load_mock.call_args.kwargs["weights_only"] is False
 
 
+@mock.patch("lightning.pytorch.strategies.fsdp._distributed_checkpoint_load")
+@mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_sharded_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_sharded_checkpoint_metadata_weights_only(load_mock, _is_sharded_mock, _ctx_mock, _dist_load_mock):
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path)
+    so non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    load_mock.return_value = {}
+
+    model = BoringModel()
+    trainer = Trainer()
+    model.trainer = trainer
+
+    strategy = FSDPStrategy()
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/sharded")
+    assert load_mock.call_args.kwargs["weights_only"] is False
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/sharded", weights_only=True)
+    assert load_mock.call_args.kwargs["weights_only"] is True
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
