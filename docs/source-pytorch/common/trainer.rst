@@ -18,7 +18,7 @@ The ``Trainer`` achieves the following:
 1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
-   from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
+   from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc.
 
 3. The trainer allows disabling any key part that you don't want automated.
 
@@ -1395,8 +1395,8 @@ estimated_stepping_batches
 
 The estimated number of batches that will ``optimizer.step()`` during training.
 
-This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
-dataloader if hadn't been set up already.
+This accounts for gradient accumulation and the current trainer configuration. This might set up your training
+dataloader if it hasn't been set up already.
 
 .. code-block:: python
 
