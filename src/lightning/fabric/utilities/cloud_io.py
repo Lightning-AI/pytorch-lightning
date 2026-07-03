@@ -197,6 +197,9 @@ def _checkpoint_join(path: Union[str, Path], name: str) -> Union[str, Path]:
     """Join ``name`` onto a checkpoint ``path`` without corrupting remote URLs."""
     if isinstance(path, Path):
         return path / name
+
+    # Remote URLs stay as strings because `Path`/`os.path.join` use local
+    # filesystem semantics (e.g. '\' on Windows), which can corrupt URLs.
     return str(path).rstrip("/") + "/" + name
 
 
