@@ -859,8 +859,8 @@ def test_tqdm_progress_bar_reset_behavior(tmp_path):
 
 
 def test_tqdm_progress_bar_mid_epoch_resume(tmp_path):
-    """The bar's total and epoch description must be initialized when resuming from a mid-epoch
-    checkpoint, where ``on_train_epoch_start`` is not called (#20603)."""
+    """The bar's total and epoch description must be initialized when resuming from a mid-epoch checkpoint, where
+    ``on_train_epoch_start`` is not called (#20603)."""
     model = BoringModel()
     checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=2, save_top_k=-1)
     trainer_kwargs = {
