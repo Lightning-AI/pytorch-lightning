@@ -272,6 +272,16 @@ class TQDMProgressBar(ProgressBar):
         self.train_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     @override
+    def on_train_batch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
+        if not self.train_progress_bar.total:
+            # Resuming from a mid-epoch checkpoint skips ``on_train_epoch_start``,
+            # so initialize the bar's total and description here instead.
+            total = convert_inf(self.total_train_batches)
+            if total is not None:
+                self.train_progress_bar.total = total
+                self.train_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
+
+    @override
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:

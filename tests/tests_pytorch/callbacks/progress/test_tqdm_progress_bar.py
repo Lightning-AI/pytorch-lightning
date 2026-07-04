@@ -856,3 +856,39 @@ def test_tqdm_progress_bar_reset_behavior(tmp_path):
     assert 2 in val_bar.total_values, (
         f"validation total should be set to 2 after reset(), got total_values: {val_bar.total_values}"
     )
+
+
+def test_tqdm_progress_bar_mid_epoch_resume(tmp_path):
+    """The bar's total and epoch description must be initialized when resuming from a mid-epoch
+    checkpoint, where ``on_train_epoch_start`` is not called (#20603)."""
+    model = BoringModel()
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=2, save_top_k=-1)
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "max_epochs": 1,
+        "limit_train_batches": 4,
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    trainer = Trainer(callbacks=[checkpoint, TQDMProgressBar()], **trainer_kwargs)
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
+    mid_epoch_ckpt = str(tmp_path / "epoch=0-step=2.ckpt")
+
+    totals_seen = []
+    descriptions_seen = []
+
+    class TrackingBar(TQDMProgressBar):
+        def on_train_batch_end(self, trainer, *args, **kwargs):
+            totals_seen.append(self.train_progress_bar.total)
+            descriptions_seen.append(self.train_progress_bar.desc)
+            super().on_train_batch_end(trainer, *args, **kwargs)
+
+    trainer = Trainer(callbacks=[TrackingBar()], **trainer_kwargs)
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model, ckpt_path=mid_epoch_ckpt)
+
+    # two batches remain in the resumed epoch; the bar must know the real total
+    assert totals_seen == [4, 4]
+    assert all(desc.startswith("Epoch 0") for desc in descriptions_seen)
