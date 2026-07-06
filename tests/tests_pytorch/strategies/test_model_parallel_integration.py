@@ -267,7 +267,6 @@ def test_tensor_parallel(distributed, compile):
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
 def test_model_parallel_single_file_checkpoint_with_compile(distributed, tmp_path):
     """Replicate the reporter's setup: compiled model + ModelParallel single-file checkpointing."""
-
     seed_everything(0)
     strategy = ModelParallelStrategy(
         data_parallel_size=1,
@@ -481,7 +480,6 @@ def test_strategy_state_dict(distributed, tmp_path, save_distributed_checkpoint)
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_load_full_state_checkpoint_into_regular_model(distributed, tmp_path):
     """Test that a full-state checkpoint saved from a distributed model can be loaded back into a regular model."""
-
     # Save a regular full-state checkpoint from a distributed model
     model = FSDP2Model()
     strategy = ModelParallelStrategy(save_distributed_checkpoint=False)
@@ -523,7 +521,6 @@ def test_load_full_state_checkpoint_into_regular_model(distributed, tmp_path):
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_load_standard_checkpoint_into_distributed_model(distributed, tmp_path):
     """Test that a regular checkpoint (weights and optimizer states) can be loaded into a distributed model."""
-
     # Save a regular DDP checkpoint
     model = TemplateModel()
     trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)

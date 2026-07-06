@@ -151,7 +151,6 @@ def save_hyperparameters(
     given_hparams: Optional[dict[str, Any]] = None,
 ) -> None:
     """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
-
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
         # args[0] is an empty container
         return
@@ -290,8 +289,9 @@ def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
 
 
 def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
-    """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and the
-    datamodule.
+    """Special getattr for Lightning.
+
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
 
     Raises:
         AttributeError:
@@ -312,8 +312,9 @@ def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[A
 
 
 def lightning_setattr(model: "pl.LightningModule", attribute: str, value: Any) -> None:
-    """Special setattr for Lightning. Checks for attribute in model namespace and the old hparams namespace/dict. Will
-    also set the attribute on datamodule, if it exists.
+    """Special setattr for Lightning.
+
+    Checks for attribute in model namespace and the old hparams namespace/dict. Will also set the attribute on datamodule, if it exists.
 
     Raises:
         AttributeError:

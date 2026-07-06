@@ -187,7 +187,6 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
-
     if accelerator == "auto" or accelerator is None:
         accelerator = _select_auto_accelerator()
     if devices == "auto":

@@ -132,7 +132,6 @@ def test_setup_use_orig_params(_):
 def test_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     FullyShardedDataParallel."""
-
     strategy = FSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _FSDPBackwardSyncControl)
 
@@ -191,8 +190,8 @@ def test_activation_checkpointing():
 def test_setup_module_device_id_cpu():
     """``setup_module`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
 
-    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
-    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a non-CPU accelerator
+    device" guard. Only reachable when the GPU-accelerator guard is bypassed.
 
     """
     captured = {}
@@ -434,7 +433,6 @@ def test_set_timeout(init_process_group_mock):
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
 def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
     """Test that the state dict context manager handles CPU offloading."""
-
     with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
         assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
         assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config

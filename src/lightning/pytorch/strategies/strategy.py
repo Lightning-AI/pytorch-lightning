@@ -448,8 +448,9 @@ class Strategy(ABC):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful when
-        the strategy requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed.
+
+        This is useful when the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
             If ``True``, restore checkpoint after strategy setup.
@@ -515,8 +516,9 @@ class Strategy(ABC):
 
     @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to shard
-        the model instantly, which is useful for extremely large models which can save memory and initialization time.
+        """Provide hook to create modules in a distributed aware context.
+
+        This is useful for when we'd like to shard the model instantly, which is useful for extremely large models which can save memory and initialization time.
 
         Returns: Model parallel context.
 

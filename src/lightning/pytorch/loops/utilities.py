@@ -92,8 +92,9 @@ def _parse_loop_limits(
 
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful for
-    example when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`.
+
+    This is useful for example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.

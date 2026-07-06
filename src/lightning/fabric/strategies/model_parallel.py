@@ -243,9 +243,9 @@ class ModelParallelStrategy(ParallelStrategy):
 
         If distributed checkpointing is enabled (default), the checkpoint gets saved as a directory containing one file
         per process, with model- and optimizer shards stored per file. Additionally, it creates a metadata file
-        `meta.pt` with the rest of the user's state (only saved from rank 0).
-        If distributed checkpointing is disabled (``save_distributed_checkpoint=False``), the checkpoint will be
-        written to a single file containing the weights, optimizer state and other metadata.
+        `meta.pt` with the rest of the user's state (only saved from rank 0). If distributed checkpointing is disabled
+        (``save_distributed_checkpoint=False``), the checkpoint will be written to a single file containing the weights,
+        optimizer state and other metadata.
 
         """
         if storage_options is not None:
