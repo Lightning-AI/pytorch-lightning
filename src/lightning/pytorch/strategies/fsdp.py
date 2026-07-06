@@ -308,13 +308,16 @@ class FSDPStrategy(ParallelStrategy):
                 del self.kwargs["auto_wrap_policy"]
         else:
             _warn_if_shared_params_across_fsdp_units(model, self.kwargs.get("auto_wrap_policy"))
-            log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+            # CPU is not a supported FSDP target; this branch only honors the torch>=2.5 contract,
+            # which rejects device_id=None (root_device.index is None on CPU). The GPU path is unchanged.
+            device_id = self.root_device if self.root_device.type == "cpu" else self.root_device.index
+            log.debug(f"setting up FSDP model with device id: {device_id}, kwargs: {self.kwargs}")
             model = FullyShardedDataParallel(
                 module=model,
                 cpu_offload=self.cpu_offload,
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
-                device_id=self.root_device.index,
+                device_id=device_id,
                 **self.kwargs,
             )
 
@@ -403,12 +406,15 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
+        # CPU is not a supported FSDP target; this branch only honors the torch>=2.5 contract,
+        # which rejects device_id=None (root_device.index is None on CPU). The GPU path is unchanged.
+        device_id = self.root_device if self.root_device.type == "cpu" else self.root_device.index
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
-            device_id=self.root_device.index,
+            device_id=device_id,
             **self.kwargs,
         ):
             yield

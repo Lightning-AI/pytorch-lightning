@@ -188,6 +188,46 @@ def test_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
+def test_setup_module_device_id_cpu():
+    """``setup_module`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
+
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
+    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+
+    """
+    captured = {}
+
+    class FakeFSDP(nn.Module):
+        def __init__(self, module, **kwargs):
+            super().__init__()
+            captured.update(kwargs)
+            self.module = module
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", FakeFSDP):
+        strategy.setup_module(nn.Linear(2, 2))
+    assert captured["device_id"] == torch.device("cpu")
+
+
+def test_module_sharded_context_device_id_cpu():
+    """``module_sharded_context`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU."""
+    from contextlib import contextmanager
+
+    captured = {}
+
+    @contextmanager
+    def fake_enable_wrap(*args, **kwargs):
+        captured.update(kwargs)
+        yield
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap), strategy.module_sharded_context():
+        pass
+    assert captured["device_id"] == torch.device("cpu")
+
+
 def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
