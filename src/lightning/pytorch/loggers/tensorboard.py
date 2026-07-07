@@ -136,8 +136,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         if isinstance(self.sub_dir, str):
             log_dir = os.path.join(log_dir, self.sub_dir)
         log_dir = os.path.expandvars(log_dir)
-        log_dir = os.path.expanduser(log_dir)
-        return log_dir
+        return os.path.expanduser(log_dir)
 
     @property
     @override
