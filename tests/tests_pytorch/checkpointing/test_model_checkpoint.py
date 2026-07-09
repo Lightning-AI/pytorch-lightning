@@ -1168,7 +1168,6 @@ class TroubleCallbackOnBeforeZeroGrad(Callback):
 )
 def test_model_checkpoint_on_exception_in_other_callbacks(tmp_path, TroubledCallback):
     """Test that an checkpoint is saved when an exception is raised in an other callback."""
-
     model = BoringModel()
     troubled_callback = TroubledCallback()
 
@@ -2101,7 +2100,6 @@ def test_load_with_inf_data_loader(tmp_path):
 
 def test_save_last_without_save_on_train_epoch_and_without_val(tmp_path):
     """Test that save_last=True works correctly when save_on_train_epoch_end=False in a model without validation."""
-
     # Remove validation methods to test the edge case
     model = BoringModel()
     model.validation_step = None

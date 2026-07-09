@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Neptune Logger (Deprecated)
----------------------------
+"""Neptune Logger (Deprecated) ---------------------------
 
 Neptune has been sunset. Please migrate to LitLogger.
+
 """
 
 from typing import Any

@@ -103,11 +103,14 @@ class GradientAccumulationScheduler(Callback):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Performns a configuration validation before training starts and raises errors for incompatible settings."""
-
         if not pl_module.automatic_optimization:
             raise RuntimeError(
-                """Automatic gradient accumulation and the `GradientAccumulationScheduler` is not supported for
-                manual optimization. Please remove the callback or switch to automatic optimization."""
+                """Automatic gradient accumulation and the `GradientAccumulationScheduler` is not supported for manual
+                optimization.
+
+                Please remove the callback or switch to automatic optimization.
+
+                """
             )
 
         overridden_optimizer_step = is_overridden("optimizer_step", pl_module)

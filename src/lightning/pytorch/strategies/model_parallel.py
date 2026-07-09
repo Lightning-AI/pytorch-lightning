@@ -371,14 +371,13 @@ class ModelParallelStrategy(ParallelStrategy):
 def _align_compiled_param_names_with_module(state_dict: dict[str, Any], module: torch.nn.Module) -> dict[str, Any]:
     """Align optimizer state dict keys with a module that may have compiled submodules.
 
-    When ``torch.compile`` wraps a submodule, its parameters appear under ``_orig_mod``.
-    For example, ``model.0.weight`` becomes ``model._orig_mod.0.weight``.  The optimizer
-    state dict returned by ``get_optimizer_state_dict`` may not include the ``_orig_mod``
-    prefix, causing a mismatch when ``rekey_optim_state_dict`` builds its mapping from
+    When ``torch.compile`` wraps a submodule, its parameters appear under ``_orig_mod``. For example, ``model.0.weight``
+    becomes ``model._orig_mod.0.weight``.  The optimizer state dict returned by ``get_optimizer_state_dict`` may not
+    include the ``_orig_mod`` prefix, causing a mismatch when ``rekey_optim_state_dict`` builds its mapping from
     ``module.named_parameters()``.
 
-    This function inserts ``._orig_mod`` into the state dict keys where necessary so that
-    they match the module's ``named_parameters()`` output.
+    This function inserts ``._orig_mod`` into the state dict keys where necessary so that they match the module's
+    ``named_parameters()`` output.
 
     """
     from torch._dynamo import OptimizedModule

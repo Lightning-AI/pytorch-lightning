@@ -376,8 +376,9 @@ class WandbLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Union["Run", "RunDisabled"]:
-        r"""Actual wandb object. To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the
-        following.
+        r"""Actual wandb object.
+
+        To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 
@@ -478,7 +479,6 @@ class WandbLogger(Logger):
         Can be defined either with `columns` and `data` or with `dataframe`.
 
         """
-
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only

@@ -166,16 +166,17 @@ class LightningModule(
     def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS: ...
 
     def optimizers(self, use_pl_optimizer: bool = True) -> MODULE_OPTIMIZERS:
-        """Returns the optimizer(s) that are being used during training. Useful for manual optimization.
+        """Returns the optimizer(s) that are being used during training.
 
-        Args:
-            use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
-                :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision,
-                profiling, and counting of step calls for proper logging and checkpointing. It specifically wraps the
-                ``step`` method and custom optimizers that don't have this method are not supported.
+        Useful for manual optimization.
+                Args:
+                    use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
+                        :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision,
+                        profiling, and counting of step calls for proper logging and checkpointing. It specifically wraps the
+                        ``step`` method and custom optimizers that don't have this method are not supported.
 
-        Returns:
-            A single optimizer, or a list of optimizers in case multiple ones are present.
+                Returns:
+                    A single optimizer, or a list of optimizers in case multiple ones are present.
 
         """
         if self._fabric:
@@ -196,11 +197,12 @@ class LightningModule(
         return opts
 
     def lr_schedulers(self) -> Union[None, list[LRSchedulerPLType], LRSchedulerPLType]:
-        """Returns the learning rate scheduler(s) that are being used during training. Useful for manual optimization.
+        """Returns the learning rate scheduler(s) that are being used during training.
 
-        Returns:
-            A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
-            schedulers were returned in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
+        Useful for manual optimization.
+                Returns:
+                    A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
+                    schedulers were returned in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
         """
         if not self.trainer.lr_scheduler_configs:
@@ -246,8 +248,9 @@ class LightningModule(
 
     @property
     def example_input_array(self) -> Optional[Union[Tensor, tuple, dict]]:
-        """The example input array is a specification of what the module can consume in the :meth:`forward` method. The
-        return type is interpreted as follows:
+        """The example input array is a specification of what the module can consume in the :meth:`forward` method.
+
+        The return type is interpreted as follows:
 
         -   Single tensor: It is assumed the model takes a single argument, i.e.,
             ``model.forward(model.example_input_array)``
@@ -364,16 +367,17 @@ class LightningModule(
         return batch
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        r"""Prints only from process 0. Use this in any distributed mode to log only once.
+        r"""Prints only from process 0.
 
-        Args:
-            *args: The thing to print. The same as for Python's built-in print function.
-            **kwargs: The same as for Python's built-in print function.
+        Use this in any distributed mode to log only once.
+                Args:
+                    *args: The thing to print. The same as for Python's built-in print function.
+                    **kwargs: The same as for Python's built-in print function.
 
-        Example::
+                Example::
 
-            def forward(self, x):
-                self.print(x, 'in forward')
+                    def forward(self, x):
+                        self.print(x, 'in forward')
 
         """
         if self.trainer.is_global_zero:
@@ -1118,8 +1122,9 @@ class LightningModule(
             self.trainer.strategy.backward(loss, None, *args, **kwargs)
 
     def backward(self, loss: Tensor, *args: Any, **kwargs: Any) -> None:
-        """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your own
-        implementation if you need to.
+        """Called to perform backward on the loss returned in :meth:`training_step`.
+
+        Override this hook with your own implementation if you need to.
 
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
@@ -1297,25 +1302,26 @@ class LightningModule(
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
     ) -> None:
-        """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
+        """Perform gradient clipping for the optimizer parameters.
 
-        Args:
-            optimizer: Current optimizer being used.
-            gradient_clip_val: The value at which to clip gradients. By default, value passed in Trainer
-                will be available here.
-            gradient_clip_algorithm: The gradient clipping algorithm to use. By default, value
-                passed in Trainer will be available here.
+        Called before :meth:`optimizer_step`.
+                Args:
+                    optimizer: Current optimizer being used.
+                    gradient_clip_val: The value at which to clip gradients. By default, value passed in Trainer
+                        will be available here.
+                    gradient_clip_algorithm: The gradient clipping algorithm to use. By default, value
+                        passed in Trainer will be available here.
 
-        Example::
+                Example::
 
-            def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
-                # Implement your own custom logic to clip gradients
-                # You can call `self.clip_gradients` with your settings:
-                self.clip_gradients(
-                    optimizer,
-                    gradient_clip_val=gradient_clip_val,
-                    gradient_clip_algorithm=gradient_clip_algorithm
-                )
+                    def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
+                        # Implement your own custom logic to clip gradients
+                        # You can call `self.clip_gradients` with your settings:
+                        self.clip_gradients(
+                            optimizer,
+                            gradient_clip_val=gradient_clip_val,
+                            gradient_clip_algorithm=gradient_clip_algorithm
+                        )
 
         """
         self.clip_gradients(

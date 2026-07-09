@@ -208,7 +208,6 @@ class ManualOptimizationExtendedModel(BoringModel):
 def test_manual_optimization_and_return_tensor(tmp_path):
     """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
     `training_step`"""
-
     model = ManualOptimizationExtendedModel()
     trainer = Trainer(
         max_epochs=1,

@@ -8,7 +8,6 @@ from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnect
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
 def test_uses_provided_step(mock_convert):
     """Test that the LoggerConnector uses explicitly provided step to log metrics."""
-
     trainer = MagicMock(spec=Trainer)
     trainer.loggers = [logger := MagicMock(spec=Logger)]
     connector = _LoggerConnector(trainer)
@@ -25,7 +24,6 @@ def test_uses_provided_step(mock_convert):
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
 def test_uses_step_metric(mock_convert):
     """Test that the LoggerConnector uses explicitly provided step metric to log metrics."""
-
     trainer = MagicMock(spec=Trainer)
     trainer.loggers = [logger := MagicMock(spec=Logger)]
     connector = _LoggerConnector(trainer)
@@ -43,7 +41,6 @@ def test_uses_step_metric(mock_convert):
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
 def test_uses_batches_that_stepped(mock_convert):
     """Test that the LoggerConnector uses implicitly provided batches_that_stepped to log metrics."""
-
     trainer = MagicMock(spec=Trainer)
     trainer.fit_loop = MagicMock()
     trainer.loggers = [logger := MagicMock(spec=Logger)]

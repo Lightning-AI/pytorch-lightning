@@ -142,17 +142,13 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
 def test_import_deepspeed_lazily():
     """Test that we are importing deepspeed only when necessary."""
     code = dedent(
-        """
-        import lightning.pytorch
-        import sys
+        """Import lightning.pytorch import sys.
 
-        assert 'deepspeed' not in sys.modules
-        from lightning.pytorch.strategies import DeepSpeedStrategy
-        from lightning.pytorch.plugins import DeepSpeedPrecision
-        assert 'deepspeed' not in sys.modules
+        assert 'deepspeed' not in sys.modules from lightning.pytorch.strategies import DeepSpeedStrategy from
+        lightning.pytorch.plugins import DeepSpeedPrecision assert 'deepspeed' not in sys.modules
 
-        import deepspeed
-        assert 'deepspeed' in sys.modules
+        import deepspeed assert 'deepspeed' in sys.modules
+
         """
     )
     # run in complete isolation

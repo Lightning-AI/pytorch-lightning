@@ -48,7 +48,6 @@ def test_clip_gradients():
 def test_optimizer_amp_scaling_support_in_step_method():
     """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
     gradient clipping (example: fused Adam)."""
-
     optimizer = Mock(_step_supports_amp_scaling=True)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
 

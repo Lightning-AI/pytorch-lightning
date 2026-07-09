@@ -126,7 +126,6 @@ def test_top_k_ddp(save_mock, tmp_path, k, epochs, val_check_interval, expected)
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_model_checkpoint_ddp_monitor_none(tmp_path):
     """Ensure that ModelCheckpoint with monitor=None works correctly under DDP and exercises the file_exists path."""
-
     model = BoringModel()
     checkpoint = callbacks.ModelCheckpoint(dirpath=tmp_path, monitor=None, save_top_k=1)
 

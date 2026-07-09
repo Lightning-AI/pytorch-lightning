@@ -82,7 +82,6 @@ class TorchCheckpointIO(CheckpointIO):
             FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
 
         """
-
         # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(path)
         if not fs.exists(path):

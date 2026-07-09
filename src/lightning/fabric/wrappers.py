@@ -292,8 +292,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
 class _FabricDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
-        device automatically if the device is specified.
+        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`.
+
+        It moves the data to the device automatically if the device is specified.
 
         Args:
             dataloader: The dataloader to wrap
@@ -391,11 +392,12 @@ def is_wrapped(obj: object) -> bool:
 def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     """Wraps the ``torch.compile`` function and captures the compile arguments.
 
-    We extract the compile arguments so that we can reapply ``torch.compile`` in ``Fabric.setup()`` with the
-    same arguments as the user passed to the original call. The arguments get stored in a dictionary
-    ``_compile_kwargs`` on the returned compiled module.
+    We extract the compile arguments so that we can reapply ``torch.compile`` in ``Fabric.setup()`` with the same
+    arguments as the user passed to the original call. The arguments get stored in a dictionary ``_compile_kwargs`` on
+    the returned compiled module.
 
     """
+
     # Limitation: Currently, the global compile config does not get captured on a per-model basis.
     # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
 
