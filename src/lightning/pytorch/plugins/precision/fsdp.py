@@ -65,6 +65,7 @@ class FSDPPrecision(Precision):
 
         self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
         self.precision = precision
+        self.device_type = "cuda"
 
         precision_to_type = {
             "bf16-mixed": torch.float32,
@@ -127,7 +128,7 @@ class FSDPPrecision(Precision):
     @override
     def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
-            return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
+            return torch.autocast(self.device_type, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return _DtypeContextManager(self._desired_input_dtype)
 
     @override
