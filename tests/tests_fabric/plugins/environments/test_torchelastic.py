@@ -45,7 +45,9 @@ def test_default_attributes():
         "WORLD_SIZE": "20",
         "RANK": "1",
         "LOCAL_RANK": "2",
+        "LOCAL_WORLD_SIZE": "5",
         "GROUP_RANK": "3",
+        "GROUP_WORLD_SIZE": "4",
     },
 )
 def test_attributes_from_environment_variables(caplog):
@@ -57,6 +59,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    assert env.num_nodes() == 4
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_global_rank(100)
@@ -92,3 +95,16 @@ def test_validate_user_settings():
     env.validate_settings(num_devices=4, num_nodes=2)
     with pytest.raises(ValueError, match=re.escape("the product (2 * 2) does not match the world size (8)")):
         env.validate_settings(num_devices=2, num_nodes=2)
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "WORLD_SIZE": "20",
+        "LOCAL_WORLD_SIZE": "5",
+    },
+)
+def test_num_nodes_fallback_to_local_world_size():
+    """Test that num_nodes falls back to WORLD_SIZE / LOCAL_WORLD_SIZE when GROUP_WORLD_SIZE is not set."""
+    env = TorchElasticEnvironment()
+    assert env.num_nodes() == 4
