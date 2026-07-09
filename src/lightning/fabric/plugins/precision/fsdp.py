@@ -118,7 +118,9 @@ class FSDPPrecision(Precision):
     @override
     def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
-            return torch.autocast(self.device_type, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
+            return torch.autocast(
+                self.device_type, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16)
+            )
         return self.tensor_init_context()
 
     @override
