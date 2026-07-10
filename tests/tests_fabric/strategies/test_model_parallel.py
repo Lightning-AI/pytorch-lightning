@@ -154,9 +154,9 @@ def test_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True)
 @mock.patch("torch.distributed.checkpoint.state_dict.get_model_state_dict", return_value={})
 @mock.patch("torch.distributed.checkpoint.state_dict.get_optimizer_state_dict", return_value={})
-@mock.patch("lightning.fabric.strategies.model_parallel.torch.save")
-@mock.patch("lightning.fabric.strategies.model_parallel.shutil")
-def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, _, __, ___, tmp_path):
+@mock.patch("lightning.fabric.strategies.model_parallel._atomic_save")
+@mock.patch("lightning.fabric.strategies.model_parallel._remove_checkpoint")
+def test_save_checkpoint_path_exists(remove_checkpoint_mock, atomic_save_mock, _, __, ___, tmp_path):
     strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m), save_distributed_checkpoint=False)
 
     # save_distributed_checkpoint=False, path exists, path is not a sharded checkpoint: error
@@ -175,15 +175,15 @@ def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, _, __, ___, t
     model = Mock()
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=path, state={"model": model})
-    shutil_mock.rmtree.assert_called_once_with(path)
+    remove_checkpoint_mock.assert_called_once_with(path)
 
     # save_distributed_checkpoint=False, path exists, path is a file: no error (overwrite)
     path = tmp_path / "file.pt"
     path.touch()
     model = Mock(spec=nn.Module)
-    torch_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
     strategy.save_checkpoint(path=path, state={"model": model})
-    torch_save_mock.assert_called_once()
+    atomic_save_mock.assert_called_once()
 
     strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m), save_distributed_checkpoint=True)
     save_mock = mock.patch("torch.distributed.checkpoint.save")
@@ -359,3 +359,75 @@ def test_meta_device_materialization():
         model = strategy.setup_module(model)
     assert all(not p.is_meta for p in model.parameters())
     assert all(not b.is_meta for b in model.buffers())
+
+
+def test_model_parallel_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
+    """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
+    from lightning.fabric.strategies import model_parallel as mp
+
+    captured = {}
+    monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: True)
+    monkeypatch.setattr(mp, "_distributed_checkpoint_save", lambda state, path: captured.update(path=path))
+    monkeypatch.setattr(mp, "_prepare_directory_checkpoint", lambda p: None)
+    monkeypatch.setattr(mp, "_is_checkpoint_dir", lambda p: False)
+    monkeypatch.setattr(mp, "_atomic_save", lambda obj, path: captured.update(meta=str(path)))
+    monkeypatch.setattr(
+        "torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda obj, options=None: {"w": 1}
+    )
+
+    model = nn.Linear(2, 2)
+    mp._save_checkpoint(path="gs://bucket/run/ckpt", state={"model": model}, full_state_dict=False, rank=0)
+    assert captured["path"] == "gs://bucket/run/ckpt"
+    assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
+
+
+def test_model_parallel_load_checkpoint_does_not_corrupt_remote_path(monkeypatch):
+    """Regression: on load, a gs:// URL must reach the DCP/metadata layer uncorrupted (not gs:/)."""
+    from lightning.fabric.strategies import model_parallel as mp
+
+    captured = {}
+    monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
+    monkeypatch.setattr(mp, "_is_sharded_checkpoint", lambda p: True)
+    monkeypatch.setattr(mp, "_is_full_checkpoint", lambda p: False)
+    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: captured.update(path=path))
+    monkeypatch.setattr(mp, "_load", lambda path, weights_only=None: captured.update(meta=str(path)) or {})
+    monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
+
+    model = nn.Linear(2, 2)
+    mp._load_checkpoint(path="gs://bucket/run/ckpt", state={"model": model}, strict=False)
+    assert captured["path"] == "gs://bucket/run/ckpt"
+    assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
+
+
+class _NonTensorMeta:
+    """A non-tensor, picklable object that ``weights_only=True`` unpickling rejects."""
+
+    def __init__(self, value):
+        self.value = value
+
+
+def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, tmp_path):
+    """Regression: sharded-checkpoint metadata holding non-tensor objects must load on torch>=2.6.
+
+    ``torch.load``/``_load`` default to ``weights_only=True`` on torch>=2.6, which rejects arbitrary
+    pickled objects. ``_load_checkpoint`` must default to ``weights_only=False`` (like the FSDP strategy)
+    so metadata such as callback/loop state round-trips.
+    """
+    from lightning.fabric.strategies import model_parallel as mp
+    from lightning.fabric.utilities.cloud_io import _atomic_save
+    from lightning.fabric.utilities.load import _METADATA_FILENAME
+
+    ckpt_dir = tmp_path / "sharded-checkpoint"
+    ckpt_dir.mkdir()
+    _atomic_save({"user_meta": _NonTensorMeta(42)}, ckpt_dir / _METADATA_FILENAME)
+    assert _is_sharded_checkpoint(ckpt_dir)
+
+    monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
+    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: None)
+    monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
+
+    model = nn.Linear(2, 2)
+    state = {"model": model, "user_meta": None}
+    mp._load_checkpoint(path=ckpt_dir, state=state, strict=False)
+    assert isinstance(state["user_meta"], _NonTensorMeta)
+    assert state["user_meta"].value == 42

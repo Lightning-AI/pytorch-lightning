@@ -128,8 +128,8 @@ def test_save_checkpoint_storage_options(tmp_path):
 @RunIf(min_torch="2.4")
 @mock.patch("lightning.pytorch.strategies.model_parallel.ModelParallelStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save")
-@mock.patch("lightning.pytorch.strategies.model_parallel.shutil")
-def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, tmp_path):
+@mock.patch("lightning.pytorch.strategies.model_parallel._remove_checkpoint")
+def test_save_checkpoint_path_exists(remove_checkpoint_mock, atomic_save_mock, tmp_path):
     strategy = ModelParallelStrategy(save_distributed_checkpoint=False)
 
     # save_distributed_checkpoint=False, path exists, path is not a sharded checkpoint: error
@@ -146,14 +146,14 @@ def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, tmp_path):
     (path / "meta.pt").touch()
     assert _is_sharded_checkpoint(path)
     strategy.save_checkpoint(Mock(), filepath=path)
-    shutil_mock.rmtree.assert_called_once_with(path)
+    remove_checkpoint_mock.assert_called_once_with(path)
 
     # save_distributed_checkpoint=False, path exists, path is a file: no error (overwrite)
     path = tmp_path / "file.pt"
     path.touch()
-    torch_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
     strategy.save_checkpoint(Mock(), filepath=path)
-    torch_save_mock.assert_called_once()
+    atomic_save_mock.assert_called_once()
 
     strategy = ModelParallelStrategy(save_distributed_checkpoint=True)
 
@@ -326,3 +326,24 @@ def test_align_compiled_param_names_no_compile():
 
     # Keys should be unchanged
     assert set(result["state"].keys()) == {"model.0.weight", "model.0.bias"}
+
+
+def test_model_parallel_pytorch_save_checkpoint_remote_path(monkeypatch):
+    """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
+    from lightning.pytorch.strategies import model_parallel as mp
+
+    strategy = ModelParallelStrategy()
+    strategy._save_distributed_checkpoint = True
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr(type(strategy), "global_rank", property(lambda self: 0))
+
+    captured = {}
+    monkeypatch.setattr(mp, "_distributed_checkpoint_save", lambda state, path: captured.update(path=path))
+    monkeypatch.setattr(mp, "_prepare_directory_checkpoint", lambda p: None)
+    monkeypatch.setattr(mp, "_is_checkpoint_dir", lambda p: False)
+    monkeypatch.setattr(mp, "_atomic_save", lambda obj, path: captured.update(meta=str(path)))
+
+    checkpoint = {"state_dict": {"w": 1}, "optimizer_states": []}
+    strategy.save_checkpoint(checkpoint, "gs://bucket/run/ckpt")
+    assert captured["path"] == "gs://bucket/run/ckpt"
+    assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
