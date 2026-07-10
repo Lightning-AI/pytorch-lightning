@@ -361,6 +361,7 @@ def test_meta_device_materialization():
     assert all(not b.is_meta for b in model.buffers())
 
 
+@RunIf(min_torch="2.4")
 def test_model_parallel_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
     """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
     from lightning.fabric.strategies import model_parallel as mp
@@ -381,6 +382,7 @@ def test_model_parallel_save_checkpoint_does_not_corrupt_remote_path(monkeypatch
     assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
 
 
+@RunIf(min_torch="2.4")
 def test_model_parallel_load_checkpoint_does_not_corrupt_remote_path(monkeypatch):
     """Regression: on load, a gs:// URL must reach the DCP/metadata layer uncorrupted (not gs:/)."""
     from lightning.fabric.strategies import model_parallel as mp
@@ -406,6 +408,7 @@ class _NonTensorMeta:
         self.value = value
 
 
+@RunIf(min_torch="2.4")
 def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, tmp_path):
     """Regression: sharded-checkpoint metadata holding non-tensor objects must load on torch>=2.6.
 
