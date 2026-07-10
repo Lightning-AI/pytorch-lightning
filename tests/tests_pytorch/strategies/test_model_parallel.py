@@ -328,6 +328,7 @@ def test_align_compiled_param_names_no_compile():
     assert set(result["state"].keys()) == {"model.0.weight", "model.0.bias"}
 
 
+@RunIf(min_torch="2.4")
 def test_model_parallel_pytorch_save_checkpoint_remote_path(monkeypatch):
     """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
     from lightning.pytorch.strategies import model_parallel as mp
