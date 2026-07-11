@@ -1,10 +1,14 @@
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
-from pathlib import Path
 
-import torch
-
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _resolve_path,
+    get_filesystem,
+)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
@@ -43,16 +47,17 @@ def _process_cli_args(args: Namespace) -> Namespace:
         _log.error("Processing distributed checkpoints requires PyTorch >= 2.3.")
         sys.exit(1)
 
-    checkpoint_folder = Path(args.checkpoint_folder)
-    if not checkpoint_folder.exists():
+    checkpoint_folder = _resolve_path(args.checkpoint_folder)
+    checkpoint_fs = get_filesystem(checkpoint_folder)
+    if not checkpoint_fs.exists(str(checkpoint_folder)):
         _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
         sys.exit(1)
-    if not checkpoint_folder.is_dir():
+    if not _is_checkpoint_dir(checkpoint_folder):
         _log.error(
             f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
         )
         sys.exit(1)
-    if not (checkpoint_folder / _METADATA_FILENAME).is_file():
+    if not checkpoint_fs.isfile(str(_checkpoint_join(checkpoint_folder, _METADATA_FILENAME))):
         _log.error(
             "Only FSDP-sharded checkpoints saved with Lightning are supported for consolidation. The provided folder"
             f" is not in that format: {checkpoint_folder}"
@@ -60,10 +65,10 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     if args.output_file is None:
-        output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".consolidated")
+        output_file = _resolve_path(str(checkpoint_folder).rstrip("/") + ".consolidated")
     else:
-        output_file = Path(args.output_file)
-    if output_file.exists():
+        output_file = _resolve_path(args.output_file)
+    if get_filesystem(output_file).exists(str(output_file)):
         _log.error(
             "The path for the converted checkpoint already exists. Choose a different path by providing"
             f" `--output_file` or move/delete the file first: {output_file}"
@@ -76,5 +81,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
 if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
+    print(f"{config=}")
+    # exit(0)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-    torch.save(checkpoint, config.output_file)
+    _atomic_save(checkpoint, config.output_file)
