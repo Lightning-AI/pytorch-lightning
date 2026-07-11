@@ -95,28 +95,36 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
             This points to the file that the checkpoint will be stored in.
 
     """
-    bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
-    torch.save(checkpoint, bytesbuffer)
 
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted
         fs, urlpath = fsspec.core.url_to_fs(str(filepath))
         with fs.transaction:
-            is_azure = False
-            if module_available("adlfs"):
-                from adlfs import AzureBlobFileSystem
+            if _is_object_storage(fs):
+                is_azure = False
+                if module_available("adlfs"):
+                    from adlfs import AzureBlobFileSystem
 
-                is_azure = isinstance(fs, AzureBlobFileSystem)
+                    is_azure = isinstance(fs, AzureBlobFileSystem)
 
-            if _is_object_storage(fs) and not is_azure:
-                # Use fs.pipe() for S3/GCS where it triggers parallel multipart uploads,
-                # giving 4-5x throughput improvement for checkpoints >= 500 MB.
-                # Azure is excluded because adlfs stages blocks sequentially, making pipe() slower.
-                fs.pipe(urlpath, bytesbuffer.getvalue())
+                # Object storage cannot stream `torch.save`, so build the payload in memory first.
+                bytesbuffer = io.BytesIO()
+                torch.save(checkpoint, bytesbuffer)
+                if is_azure:
+                    # Azure uses a plain write because adlfs stages blocks sequentially, making
+                    # pipe() slower.
+                    with fs.open(urlpath, "wb") as f:
+                        f.write(bytesbuffer.getvalue())
+                else:
+                    # Use fs.pipe() for S3/GCS where it triggers parallel multipart uploads,
+                    # giving 4-5x throughput improvement for checkpoints >= 500 MB.
+                    fs.pipe(urlpath, bytesbuffer.getvalue())
             else:
+                # Stream directly to the file so we never hold a second full copy of the checkpoint
+                # in memory. This matters for large FSDP/ModelParallel full state dicts on local disk.
                 with fs.open(urlpath, "wb") as f:
-                    f.write(bytesbuffer.getvalue())
+                    torch.save(checkpoint, f)
     except PermissionError as e:
         if isinstance(e.__context__, OSError) and getattr(e.__context__, "errno", None) == errno.EXDEV:
             raise RuntimeError(

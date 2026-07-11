@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import io
 import os
 from pathlib import Path
 from unittest import mock
@@ -253,3 +254,24 @@ def test_remove_checkpoint_remote_file_memory():
         f.write(b"a")
     _remove_checkpoint("memory:///r/file.ckpt")
     assert not fs.exists("/r/file.ckpt")
+
+
+def test_atomic_save_streams_to_local_file_without_buffering(tmp_path):
+    """Local saves stream straight to the file handle instead of holding a second full copy in memory."""
+    filepath = tmp_path / "checkpoint.ckpt"
+    saved_targets = []
+    real_torch_save = torch.save
+
+    def spy_save(obj, f, *args, **kwargs):
+        saved_targets.append(f)
+        return real_torch_save(obj, f, *args, **kwargs)
+
+    with mock.patch("lightning.fabric.utilities.cloud_io.torch.save", side_effect=spy_save):
+        _atomic_save({"key": torch.tensor([1, 2, 3])}, filepath)
+
+    assert filepath.exists()
+    # serialized exactly once, directly into the file handle rather than an in-memory BytesIO copy
+    assert len(saved_targets) == 1
+    assert not isinstance(saved_targets[0], io.BytesIO)
+    loaded = torch.load(filepath, weights_only=True)
+    torch.testing.assert_close(loaded["key"], torch.tensor([1, 2, 3]))
