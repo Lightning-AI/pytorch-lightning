@@ -80,7 +80,5 @@ def _process_cli_args(args: Namespace) -> Namespace:
 if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
-    print(f"{config=}")
-    exit(0)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
     _atomic_save(checkpoint, config.output_file)
