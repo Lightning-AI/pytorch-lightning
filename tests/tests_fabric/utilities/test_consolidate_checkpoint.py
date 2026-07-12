@@ -106,21 +106,21 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
 def test_process_cli_args_remote_filesystem(tmp_path, caplog, monkeypatch):
     """Test that remote fsspec paths are supported."""
     pytest.importorskip("fsspec")
-    
+
     monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
-    
+
     # Create a memory:// checkpoint with metadata
     import fsspec
-    
+
     fs = fsspec.filesystem("memory")
     memory_checkpoint_folder = "memory://checkpoints"
     fs.makedirs(memory_checkpoint_folder, exist_ok=True)
-    
+
     # Create metadata file
     metadata_path = f"{memory_checkpoint_folder}/{_METADATA_FILENAME}"
     with fs.open(metadata_path, "w") as f:
         f.write("metadata")
-    
+
     # Test remote path handling
     config = _process_cli_args(Namespace(checkpoint_folder=memory_checkpoint_folder, output_file=None))
     assert config.checkpoint_folder == memory_checkpoint_folder
@@ -130,20 +130,20 @@ def test_process_cli_args_remote_filesystem(tmp_path, caplog, monkeypatch):
 def test_process_cli_args_remote_output_file(tmp_path, caplog, monkeypatch):
     """Test that remote output file paths are supported."""
     pytest.importorskip("fsspec")
-    
+
     monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
-    
+
     import fsspec
-    
+
     fs = fsspec.filesystem("memory")
     memory_checkpoint_folder = "memory://checkpoints"
     fs.makedirs(memory_checkpoint_folder, exist_ok=True)
-    
+
     # Create metadata file
     metadata_path = f"{memory_checkpoint_folder}/{_METADATA_FILENAME}"
     with fs.open(metadata_path, "w") as f:
         f.write("metadata")
-    
+
     # Test remote output path
     output_path = "memory://outputs/consolidated.ckpt"
     config = _process_cli_args(Namespace(checkpoint_folder=memory_checkpoint_folder, output_file=output_path))

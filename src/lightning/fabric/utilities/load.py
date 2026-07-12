@@ -248,13 +248,14 @@ def _load_distributed_checkpoint(checkpoint_folder: Union[Path, str]) -> dict[st
     if not _TORCH_GREATER_EQUAL_2_3:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.3.")
 
+    from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
+    from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
+
     from lightning.fabric.utilities.cloud_io import (
         _checkpoint_join,
         _get_distributed_checkpoint_reader,
         _load,
     )
-    from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
-    from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
     checkpoint: dict[str, Any] = {}
     _load_state_dict(

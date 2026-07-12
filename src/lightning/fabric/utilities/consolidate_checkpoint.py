@@ -2,7 +2,6 @@ import logging
 import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import Union
 
 from lightning.fabric.utilities.cloud_io import (
     _atomic_save,
@@ -50,20 +49,21 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
-    
+
     # Validate checkpoint folder exists and is a directory
     if not _is_checkpoint_dir(checkpoint_folder):
         _log.error(f"The provided checkpoint folder does not exist or is not a directory: {checkpoint_folder}")
         sys.exit(1)
-    
+
     # Check for metadata file
     metadata_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
     if isinstance(metadata_file, Path):
         has_metadata = metadata_file.is_file()
     else:
         from lightning.fabric.utilities.cloud_io import get_filesystem
+
         has_metadata = get_filesystem(metadata_file).exists(metadata_file)
-    
+
     if not has_metadata:
         _log.error(
             "Only FSDP-sharded checkpoints saved with Lightning are supported for consolidation. The provided folder"
@@ -78,7 +78,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
             output_file = checkpoint_folder.rstrip("/") + ".consolidated"
     else:
         output_file = _resolve_path(args.output_file)
-    
+
     # Check if output file already exists
     if isinstance(output_file, Path):
         if output_file.exists():
@@ -89,6 +89,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
             sys.exit(1)
     else:
         from lightning.fabric.utilities.cloud_io import get_filesystem
+
         if get_filesystem(output_file).exists(output_file):
             _log.error(
                 "The path for the converted checkpoint already exists. Choose a different path by providing"
