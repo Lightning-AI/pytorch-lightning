@@ -3,7 +3,9 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from lightning.fabric.utilities.cloud_io import _atomic_save, _checkpoint_join, _resolve_path, get_filesystem
+import torch
+
+from lightning.fabric.utilities.cloud_io import _checkpoint_join, _resolve_path, get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
@@ -43,7 +45,6 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
-    checkpoint_folder = checkpoint_folder.expanduser() if isinstance(checkpoint_folder, Path) else checkpoint_folder
     if isinstance(checkpoint_folder, Path):
         if not checkpoint_folder.exists():
             _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
@@ -68,7 +69,6 @@ def _process_cli_args(args: Namespace) -> Namespace:
         output_file = _resolve_path(str(checkpoint_folder).rstrip("/") + ".consolidated")
     else:
         output_file = _resolve_path(args.output_file)
-    output_file = output_file.expanduser() if isinstance(output_file, Path) else output_file
     if get_filesystem(output_file).exists(str(output_file)):
         _log.error(
             "The path for the converted checkpoint already exists. Choose a different path by providing"
@@ -83,4 +83,6 @@ if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-    _atomic_save(checkpoint, config.output_file)
+    # TODO: replace `torch.save` with `_atomic_save` once #21799 lands.
+    # `_atomic_save` can silently succeed without writing anything on permission errors.
+    torch.save(checkpoint, config.output_file)

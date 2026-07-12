@@ -189,7 +189,7 @@ def _resolve_path(path: _PATH) -> Union[str, Path]:
     """
     if _is_local_file_protocol(str(path)):
         _, urlpath = url_to_fs(str(path))
-        return Path(urlpath)
+        return Path(urlpath).expanduser().resolve()
     return str(path)
 
 
