@@ -17,6 +17,7 @@ from pathlib import Path
 from unittest import mock
 
 import fsspec
+import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from fsspec.spec import AbstractFileSystem
@@ -275,3 +276,22 @@ def test_atomic_save_streams_to_local_file_without_buffering(tmp_path):
     assert not isinstance(saved_targets[0], io.BytesIO)
     loaded = torch.load(filepath, weights_only=True)
     torch.testing.assert_close(loaded["key"], torch.tensor([1, 2, 3]))
+
+
+class _RaisesOnPickle:
+    """Object that makes torch.save fail partway through serialization."""
+
+    def __reduce__(self):
+        raise RuntimeError("simulated crash inside torch.save")
+
+
+def test_atomic_save_local_interrupted_save_creates_no_partial_file(tmp_path):
+    """A torch.save that raises mid-serialization must not leave a partial file at a new path."""
+    filepath = tmp_path / "checkpoint.ckpt"
+    checkpoint = {"weights": torch.zeros(1_000_000), "poison": _RaisesOnPickle()}
+
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        _atomic_save(checkpoint, filepath)
+
+    assert not filepath.exists()
+    assert os.listdir(tmp_path) == []
