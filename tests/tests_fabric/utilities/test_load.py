@@ -22,6 +22,7 @@ from lightning.fabric.utilities.load import (
     _move_state_into,
     _NotYetLoadedTensor,
 )
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_lazy_load_module(tmp_path):
@@ -143,6 +144,7 @@ def test_move_state_into():
     assert destination["banana"].count == 100
 
 
+@RunIf(min_torch="2.3")
 def test_load_distributed_checkpoint_remote(monkeypatch):
     """Regression: consolidating a checkpoint on remote storage must use an fsspec-aware reader instead of the
     local-only `FileSystemReader`."""

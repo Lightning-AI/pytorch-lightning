@@ -108,17 +108,22 @@ def test_process_cli_args_remote(caplog, monkeypatch):
     """The checkpoint folder and output file can live on remote (fsspec) storage, e.g. S3."""
     monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
 
-    # Checkpoint does not exist on the remote filesystem
+    # Checkpoint does not exist on the remote filesystem. Directories are virtual on object storage, so this is
+    # reported the same way as "not a valid FSDP checkpoint" rather than a separate "does not exist" check
+    # (`isdir`/`exists` are unreliable there; see `_is_sharded_checkpoint`).
     with (
         caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
         pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder="memory:///consolidate-remote/missing"))
-    assert "checkpoint folder does not exist" in caplog.text
+    assert "Only FSDP-sharded checkpoints saved with Lightning are supported" in caplog.text
     caplog.clear()
 
-    # Create a fake sharded checkpoint directly on the in-memory filesystem
+    # Create a fake sharded checkpoint directly on the in-memory filesystem. Unlike real object storage,
+    # `MemoryFileSystem` needs the directory to be created explicitly before writing a file into it -- older
+    # fsspec versions don't infer the parent directory from a nested file path.
     fs = get_filesystem("memory:///consolidate-remote/ckpt")
+    fs.makedirs("/consolidate-remote/ckpt", exist_ok=True)
     with fs.open("memory:///consolidate-remote/ckpt/meta.pt", "wb") as f:
         f.write(b"fake")
 

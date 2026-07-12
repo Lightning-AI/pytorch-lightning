@@ -1,14 +1,9 @@
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
-from lightning.fabric.utilities.cloud_io import (
-    _atomic_save,
-    _checkpoint_join,
-    _is_checkpoint_dir,
-    _resolve_path,
-    get_filesystem,
-)
+from lightning.fabric.utilities.cloud_io import _atomic_save, _checkpoint_join, _resolve_path, get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
@@ -48,16 +43,20 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
-    checkpoint_fs = get_filesystem(checkpoint_folder)
-    if not checkpoint_fs.exists(str(checkpoint_folder)):
-        _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
-        sys.exit(1)
-    if not _is_checkpoint_dir(checkpoint_folder):
-        _log.error(
-            f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
-        )
-        sys.exit(1)
-    if not checkpoint_fs.isfile(str(_checkpoint_join(checkpoint_folder, _METADATA_FILENAME))):
+    if isinstance(checkpoint_folder, Path):
+        if not checkpoint_folder.exists():
+            _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
+            sys.exit(1)
+        if not checkpoint_folder.is_dir():
+            _log.error(
+                f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
+            )
+            sys.exit(1)
+
+    # Directories are virtual on remote/object storage, where `isdir()`/`exists()` can be unreliable. The presence
+    # of the metadata file that Lightning writes alongside the checkpoint shards is a more robust signal there
+    # (see `_is_sharded_checkpoint` in `lightning.fabric.strategies.fsdp`).
+    if not get_filesystem(checkpoint_folder).isfile(str(_checkpoint_join(checkpoint_folder, _METADATA_FILENAME))):
         _log.error(
             "Only FSDP-sharded checkpoints saved with Lightning are supported for consolidation. The provided folder"
             f" is not in that format: {checkpoint_folder}"
@@ -81,5 +80,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
 if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
+    print(f"{config=}")
+    exit(0)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
     _atomic_save(checkpoint, config.output_file)
