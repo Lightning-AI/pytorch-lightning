@@ -237,30 +237,39 @@ def _move_state_into(
             destination[key] = state
 
 
-def _load_distributed_checkpoint(checkpoint_folder: Path) -> dict[str, Any]:
+def _load_distributed_checkpoint(checkpoint_folder: Union[Path, str]) -> dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
+
+    Supports both local paths and fsspec URLs (e.g., ``s3://bucket/path``).
 
     """
     if not _TORCH_GREATER_EQUAL_2_3:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.3.")
 
-    from torch.distributed.checkpoint import FileSystemReader
+    from lightning.fabric.utilities.cloud_io import (
+        _checkpoint_join,
+        _get_distributed_checkpoint_reader,
+        _load,
+    )
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
     checkpoint: dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
-        storage_reader=FileSystemReader(checkpoint_folder),
+        storage_reader=_get_distributed_checkpoint_reader(checkpoint_folder),
         planner=_EmptyStateDictLoadPlanner(),
         no_dist=True,
     )
 
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
-    extra_file = checkpoint_folder / _METADATA_FILENAME
-    extra = torch.load(extra_file, map_location="cpu") if extra_file.is_file() else {}
+    extra_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
+    try:
+        extra = _load(extra_file)
+    except FileNotFoundError:
+        extra = {}
     checkpoint.update(extra)
 
     return checkpoint
