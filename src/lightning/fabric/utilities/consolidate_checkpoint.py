@@ -43,6 +43,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
+    checkpoint_folder = checkpoint_folder.expanduser() if not isinstance(checkpoint_folder, str) else checkpoint_folder
     if isinstance(checkpoint_folder, Path):
         if not checkpoint_folder.exists():
             _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
@@ -67,6 +68,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
         output_file = _resolve_path(str(checkpoint_folder).rstrip("/") + ".consolidated")
     else:
         output_file = _resolve_path(args.output_file)
+    output_file = output_file.expanduser() if not isinstance(output_file, str) else output_file
     if get_filesystem(output_file).exists(str(output_file)):
         _log.error(
             "The path for the converted checkpoint already exists. Choose a different path by providing"
