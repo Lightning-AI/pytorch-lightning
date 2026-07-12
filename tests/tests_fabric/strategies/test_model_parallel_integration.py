@@ -731,3 +731,36 @@ def test_load_raw_module_state(distributed):
         _load_raw_module_state(state_dict, model, strict=True)
 
     _load_raw_module_state(state_dict, model, strict=False)
+
+
+@RunIf(min_torch="2.4", min_cuda_gpus=4, standalone=True)
+def test_save_sharded_and_consolidate_and_load_remote(distributed, tmp_path):
+    """ModelParallel sharded save + consolidation + full load over an fsspec (local://) URL."""
+    from lightning.fabric.utilities.cloud_io import _atomic_save
+
+    strategy = ModelParallelStrategy(_parallelize_feed_forward_fsdp2_tp, data_parallel_size=2, tensor_parallel_size=2)
+    fabric = Fabric(accelerator="cuda", devices=4, strategy=strategy)
+    fabric.launch()
+    model = fabric.setup(FeedForward())
+    optimizer = fabric.setup_optimizers(torch.optim.Adam(model.parameters()))
+    state = {"model": model, "optimizer": optimizer, "steps": 5}
+    fabric.backward(model(torch.rand(1, 32, device=fabric.device)).sum())
+    optimizer.step()
+
+    sharded_path = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))
+    fabric.save("local://" + sharded_path, state)
+
+    full_url = fabric.broadcast("local://" + str(tmp_path / "checkpoint_full.pt"))
+    if fabric.global_rank == 0:
+        checkpoint = _load_distributed_checkpoint(Path(sharded_path))
+        _atomic_save(checkpoint, full_url)
+    fabric.barrier()
+
+    strategy = ModelParallelStrategy(_parallelize_feed_forward_fsdp2_tp, data_parallel_size=2, tensor_parallel_size=2)
+    fabric = Fabric(accelerator="cuda", devices=4, strategy=strategy)
+    fabric.launch()
+    model = fabric.setup(FeedForward())
+    optimizer = fabric.setup_optimizers(torch.optim.Adam(model.parameters()))
+    state = {"model": model, "optimizer": optimizer, "steps": 0}
+    fabric.load(full_url, state)
+    assert state["steps"] == 5
