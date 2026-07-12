@@ -178,7 +178,7 @@ def test_resolve_path_local_vs_remote(tmp_path):
     # drive, matching os.path.abspath semantics; on POSIX it is returned unchanged
     resolved_literal = _resolve_path("file:///tmp/test.txt")
     assert isinstance(resolved_literal, Path)
-    assert resolved_literal == Path(os.path.abspath("/tmp/test.txt"))
+    assert resolved_literal == Path(os.path.abspath("/tmp/test.txt")).resolve()
 
     resolved = _resolve_path("gs://bucket/checkpoints/epoch=1.ckpt")
     assert resolved == "gs://bucket/checkpoints/epoch=1.ckpt"
