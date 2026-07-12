@@ -124,7 +124,7 @@ def test_process_cli_args_remote(caplog, monkeypatch):
     # fsspec versions don't infer the parent directory from a nested file path.
     fs = get_filesystem("memory:///consolidate-remote/ckpt")
     fs.makedirs("/consolidate-remote/ckpt", exist_ok=True)
-    with fs.open("memory:///consolidate-remote/ckpt/meta.pt", "wb") as f:
+    with fs.open(f"memory:///consolidate-remote/ckpt/{_METADATA_FILENAME}", "wb") as f:
         f.write(b"fake")
 
     config = _process_cli_args(Namespace(checkpoint_folder="memory:///consolidate-remote/ckpt", output_file=None))
