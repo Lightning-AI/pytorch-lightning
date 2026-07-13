@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import shutil
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -43,6 +41,7 @@ from lightning.fabric.strategies.fsdp import (
     _auto_wrap_policy_kwargs,
     _distributed_checkpoint_load,
     _distributed_checkpoint_save,
+    _get_distributed_checkpoint_reader,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
     _init_cpu_offload,
@@ -55,6 +54,16 @@ from lightning.fabric.strategies.fsdp import (
     _warn_if_shared_params_across_fsdp_units,
 )
 from lightning.fabric.strategies.model_parallel import _load_raw_module_state
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _is_local_file_protocol,
+    _load,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+)
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
@@ -564,14 +573,12 @@ class FSDPStrategy(ParallelStrategy):
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
 
-        path = Path(self.broadcast(filepath))
-        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+        path = _resolve_path(self.broadcast(filepath))
+        if self._state_dict_type == "full" and _is_checkpoint_dir(path) and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         if self._state_dict_type == "sharded":
-            if path.is_file():
-                path.unlink()
-            path.mkdir(parents=True, exist_ok=True)
+            _prepare_directory_checkpoint(path)
 
             converted_state = {"model": checkpoint.pop("state_dict")}
             converted_state.update({
@@ -582,10 +589,10 @@ class FSDPStrategy(ParallelStrategy):
             _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
-                torch.save(checkpoint, path / _METADATA_FILENAME)
+                _atomic_save(checkpoint, _checkpoint_join(path, _METADATA_FILENAME))
         elif self._state_dict_type == "full":
             if _is_sharded_checkpoint(path):
-                shutil.rmtree(path)
+                _remove_checkpoint(path)
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
@@ -593,7 +600,7 @@ class FSDPStrategy(ParallelStrategy):
     @override
     def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(checkpoint_path))
+        path = _resolve_path(self.broadcast(checkpoint_path))
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -611,11 +618,9 @@ class FSDPStrategy(ParallelStrategy):
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
-                    from torch.distributed.checkpoint import FileSystemReader
-
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                    reader = FileSystemReader(path=path)
+                    reader = _get_distributed_checkpoint_reader(path)
                     # the optimizer states must be loaded separately
                     for idx, optim in enumerate(self.optimizers):
                         optim_key = f"optimizer_{idx}"
@@ -631,12 +636,20 @@ class FSDPStrategy(ParallelStrategy):
                         )
                         optim.load_state_dict(flattened_osd)
 
-            # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
+            # Load metadata (anything not a module or optimizer). Default to `weights_only=False` (like the
+            # full-checkpoint path) so non-tensor metadata loads on torch>=2.6, while honoring an explicit value.
+            metadata = _load(
+                _checkpoint_join(path, _METADATA_FILENAME),
+                weights_only=False if weights_only is None else weights_only,
+            )
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path)
+            checkpoint = (
+                _lazy_load(path)
+                if _is_local_file_protocol(str(path))
+                else _load(path, weights_only=False if weights_only is None else weights_only)
+            )
             _load_raw_module_state(
                 checkpoint.pop("state_dict"),
                 module=self.model,

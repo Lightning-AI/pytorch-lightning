@@ -770,8 +770,8 @@ def test_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context")
 @mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
 @mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save")
-@mock.patch("lightning.pytorch.strategies.fsdp.shutil")
-def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
+@mock.patch("lightning.pytorch.strategies.fsdp._remove_checkpoint")
+def test_save_checkpoint_path_exists(remove_checkpoint_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -788,7 +788,7 @@ def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_
     (path / "meta.pt").touch()
     assert _is_sharded_checkpoint(path)
     strategy.save_checkpoint(Mock(), filepath=path)
-    shutil_mock.rmtree.assert_called_once_with(path)
+    remove_checkpoint_mock.assert_called_once_with(path)
 
     # state_dict_type='full', path exists, path is a file: no error (overwrite)
     path = tmp_path / "file.pt"
@@ -916,6 +916,68 @@ def test_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path)
     lazy_load_mock.assert_called_once()
 
 
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_full_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_full_checkpoint_remote_honors_explicit_weights_only(load_mock, __, ___):
+    """An explicit `weights_only=True` from the user must be honored for remote full-checkpoints, not silently
+    overridden to `False`."""
+    model = BoringModel()
+    load_mock.return_value = {"state_dict": model.state_dict()}
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/full.ckpt", weights_only=True)
+    assert load_mock.call_args.kwargs["weights_only"] is True
+
+
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_full_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_full_checkpoint_remote_allows_non_tensor_objects(load_mock, __, ___):
+    """Regression: remote full-checkpoints default to `weights_only=False` so non-tensor metadata (which
+    `torch.load` rejects by default since torch 2.6) loads just like the local `_lazy_load` path."""
+    model = BoringModel()
+    load_mock.return_value = {"state_dict": model.state_dict()}
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/full.ckpt")
+    assert load_mock.call_args.kwargs["weights_only"] is False
+
+
+@mock.patch("lightning.pytorch.strategies.fsdp._distributed_checkpoint_load")
+@mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.pytorch.strategies.fsdp._is_sharded_checkpoint", return_value=True)
+@mock.patch("lightning.pytorch.strategies.fsdp._load")
+def test_load_sharded_checkpoint_metadata_weights_only(load_mock, _is_sharded_mock, _ctx_mock, _dist_load_mock):
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path) so
+    non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    load_mock.return_value = {}
+
+    model = BoringModel()
+    trainer = Trainer()
+    model.trainer = trainer
+
+    strategy = FSDPStrategy()
+    strategy._lightning_module = model
+    strategy.model = model
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/sharded")
+    assert load_mock.call_args.kwargs["weights_only"] is False
+
+    strategy.load_checkpoint(checkpoint_path="memory:///x/sharded", weights_only=True)
+    assert load_mock.call_args.kwargs["weights_only"] is True
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
@@ -1021,3 +1083,26 @@ def test_device_mesh_type_annotation():
     parser.add_argument("--device_mesh", type=annot)
     args = parser.parse_args(["--device_mesh=[1, 4]"])
     assert args.device_mesh == (1, 4)
+
+
+def test_pl_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
+    """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
+    import torch
+
+    from lightning.pytorch.strategies import FSDPStrategy
+
+    strategy = FSDPStrategy()
+    strategy._state_dict_type = "sharded"
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+
+    captured = {}
+    monkeypatch.setattr(
+        "lightning.pytorch.strategies.fsdp._distributed_checkpoint_save",
+        lambda state, path: captured.update(path=path),
+    )
+    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._prepare_directory_checkpoint", lambda p: None)
+    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._is_checkpoint_dir", lambda p: False)
+    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._atomic_save", lambda obj, path: None)
+    checkpoint = {"state_dict": {"w": torch.zeros(2)}, "optimizer_states": []}
+    strategy.save_checkpoint(checkpoint, "gs://bucket/run/ckpt")
+    assert captured["path"] == "gs://bucket/run/ckpt"
