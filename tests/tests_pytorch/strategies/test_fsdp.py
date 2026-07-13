@@ -449,8 +449,8 @@ def test_activation_checkpointing():
 def test_setup_model_device_id_cpu():
     """``_setup_model`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
 
-    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
-    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a non-CPU accelerator
+    device" guard. Only reachable when the GPU-accelerator guard is bypassed.
 
     """
     captured = {}
@@ -667,7 +667,6 @@ def test_strategy_load_optimizer_states(wrap_min_params, tmp_path):
     can be restored to FSDP, it means that the optimizer states were restored correctly.
 
     """
-
     # restore model to ddp
     model = TestBoringModel()
     trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)

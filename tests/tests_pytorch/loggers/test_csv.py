@@ -54,7 +54,6 @@ def test_manual_versioning(tmp_path):
 
 def test_manual_versioning_file_exists(tmp_path):
     """Test that a warning is emitted and existing files get overwritten."""
-
     # Simulate an existing 'version_0' vrom a previous run
     (tmp_path / "exp" / "version_0").mkdir(parents=True)
     previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"

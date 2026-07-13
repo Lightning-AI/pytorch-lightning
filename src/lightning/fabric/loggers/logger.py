@@ -56,11 +56,12 @@ class Logger(ABC):
 
     @abstractmethod
     def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
-        """Records metrics. This method logs metrics as soon as it received them.
+        """Records metrics.
 
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
+        This method logs metrics as soon as it received them.
+                Args:
+                    metrics: Dictionary with metric names as keys and measured quantities as values
+                    step: Step number at which the metrics should be recorded
 
         """
         pass

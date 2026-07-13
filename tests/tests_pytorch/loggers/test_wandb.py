@@ -573,7 +573,6 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1", "caption 2"])
     wandb_mock.Audio.assert_called_with("2.mp3", caption="caption 2")
     wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Audio(), wandb_mock.Audio()]})
-
     # test log_audio without a list
     with pytest.raises(TypeError, match="""Expected a list as "audios", found <class 'str'>"""):
         logger.log_audio(key="samples", audios="1.mp3")
@@ -603,7 +602,6 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1", "caption 2"])
     wandb_mock.Video.assert_called_with("2.mp4", caption="caption 2")
     wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Video(), wandb_mock.Video()]})
-
     # test log_video without a list
     with pytest.raises(TypeError, match="""Expected a list as "videos", found <class 'str'>"""):
         logger.log_video(key="samples", videos="1.mp4")

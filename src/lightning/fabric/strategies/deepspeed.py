@@ -337,8 +337,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
     ) -> tuple["DeepSpeedEngine", list[Optimizer], Any]:
-        """Set up a model and multiple optimizers together, along with an optional learning rate scheduler. Currently,
-        only a single optimizer is supported.
+        """Set up a model and multiple optimizers together, along with an optional learning rate scheduler.
+
+        Currently, only a single optimizer is supported.
 
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine`, a list with a single

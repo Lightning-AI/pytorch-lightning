@@ -195,8 +195,8 @@ def test_custom_torch_batch_sampler(predicting):
 def test_custom_torch_batch_sampler_doppelganger(predicting):
     """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit from it.
 
-    This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
-    as attributes.
+    This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them as
+    attributes.
 
     """
 
@@ -308,7 +308,6 @@ def test_custom_batch_sampler_no_sampler():
 
 def test_batch_sampler_shuffle_setting():
     """Test whether the `shuffle` state is correctly set in the `BatchSampler`."""
-
     random_sampler = RandomSampler(range(10))
     seq_sampler = SequentialSampler(range(10))
     shuffled_dataloader = DataLoader(

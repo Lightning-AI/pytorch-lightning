@@ -217,7 +217,6 @@ def test_should_stop_early_stopping_conditions_met(
 @pytest.mark.parametrize("max_steps", [7, 20])
 def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
     """Test trainer with infinite iterator (no __len__)"""
-
     batch_size = 4
     model = BoringModel()
 

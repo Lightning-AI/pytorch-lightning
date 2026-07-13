@@ -101,7 +101,6 @@ def deepspeed_zero_config(deepspeed_config):
 @pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmp_path, strategy):
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly set."""
-
     trainer = Trainer(
         accelerator="cpu",
         fast_dev_run=True,

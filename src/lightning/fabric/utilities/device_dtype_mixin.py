@@ -60,8 +60,9 @@ class _DeviceDtypeModuleMixin(Module):
 
     @override
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
-        """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
-        different objects. So it should be called before constructing optimizer if the module will live on GPU while
+        """Moves all model parameters and buffers to the GPU.
+
+        This also makes associated parameters and buffers different objects. So it should be called before constructing optimizer if the module will live on GPU while
         being optimized.
 
         Arguments:

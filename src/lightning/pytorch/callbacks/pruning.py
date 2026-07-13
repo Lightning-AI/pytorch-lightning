@@ -444,8 +444,9 @@ class ModelPruning(Callback):
     def sanitize_parameters_to_prune(
         pl_module: LightningModule, parameters_to_prune: _PARAM_LIST = (), parameter_names: Sequence[str] = ()
     ) -> _PARAM_LIST:
-        """This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``. If
-        ``parameters_to_prune is None``, it will be generated with all parameters of the model.
+        """This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
+
+        If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
 
         Raises:
             MisconfigurationException:
