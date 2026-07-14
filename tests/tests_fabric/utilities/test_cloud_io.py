@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import errno
 import os
 from pathlib import Path
 from unittest import mock
@@ -162,6 +163,39 @@ def test_atomic_save_uses_write_for_local(tmp_path):
     assert filepath.exists()
     loaded = torch.load(filepath, weights_only=True)
     torch.testing.assert_close(loaded["key"], checkpoint["key"])
+
+
+def test_atomic_save_permission_error_propagation():
+    """Test that _atomic_save propagates PermissionError if it is not an EXDEV error."""
+    checkpoint = {"key": torch.tensor([1, 2, 3])}
+    filepath = "memory://checkpoint.ckpt"
+
+    mock_fs = mock.MagicMock()
+    mock_fs.open.side_effect = PermissionError("Permission denied")
+    mock_fs.pipe.side_effect = PermissionError("Permission denied")
+
+    with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")):
+        with pytest.raises(PermissionError, match="Permission denied"):
+            _atomic_save(checkpoint, filepath)
+
+
+def test_atomic_save_exdev_to_runtime_error():
+    """Test that _atomic_save maps PermissionError with EXDEV context to RuntimeError."""
+    checkpoint = {"key": torch.tensor([1, 2, 3])}
+    filepath = "memory://checkpoint.ckpt"
+
+    mock_fs = mock.MagicMock()
+
+    os_error = OSError(errno.EXDEV, "Cross-device link")
+    permission_error = PermissionError("Permission denied")
+    permission_error.__context__ = os_error
+
+    mock_fs.open.side_effect = permission_error
+    mock_fs.pipe.side_effect = permission_error
+
+    with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")):
+        with pytest.raises(RuntimeError, match="Upgrade fsspec to enable cross-device local checkpoints"):
+            _atomic_save(checkpoint, filepath)
 
 
 def test_resolve_path_local_vs_remote(tmp_path):
