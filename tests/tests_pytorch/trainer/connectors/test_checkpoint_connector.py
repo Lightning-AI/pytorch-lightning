@@ -22,6 +22,7 @@ import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -247,6 +248,105 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
     assert not trainer._checkpoint_connector._user_managed
     trainer.test()
     assert trainer.ckpt_path == best_path
+
+
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_best_ckpt_path_from_disk_in_fresh_process(tmp_path, trainer_fn):
+    """Test that ckpt_path="best" is resolved from disk when training happened in a separate process.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21254. A fresh Trainer/process has an
+    empty in-memory ``best_model_path``, so ``"best"`` must be recovered from the persisted callback state on disk.
+
+    """
+
+    class LogValLossModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            self.log("val_loss", loss)
+            return {"x": loss}
+
+    # train in one "process": a best checkpoint is written to disk
+    model = LogValLossModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=False,
+        callbacks=[checkpoint_callback],
+    )
+    trainer.fit(model)
+    best_model_path = checkpoint_callback.best_model_path
+    assert best_model_path
+    assert os.path.exists(best_model_path)
+
+    # simulate a fresh process: a new Trainer with a fresh ModelCheckpoint that has empty in-memory state
+    fresh_checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    assert fresh_checkpoint.best_model_path == ""
+    fresh_trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        logger=False,
+        callbacks=[fresh_checkpoint],
+    )
+
+    fn = getattr(fresh_trainer, trainer_fn)
+    fn(LogValLossModel(), ckpt_path="best")
+    assert os.path.normpath(fresh_trainer.ckpt_path) == os.path.normpath(best_model_path)
+
+
+def test_best_ckpt_path_from_disk_on_remote_filesystem(tmp_path):
+    """``ckpt_path="best"`` must be recoverable when checkpoints live on a non-local (fsspec) filesystem.
+
+    Guards the disk-recovery path against assuming a local filesystem: candidates are opened through the callback's
+    own ``self._fs`` (not ``torch.load`` on a raw path) and the recovered path is not ``normpath``-mangled, so
+    ``memory://``/``s3://``-style paths work.
+
+    """
+    remote_dir = "memory://test_best_ckpt_remote_fs"
+    remote_fs = get_filesystem(remote_dir)
+    if remote_fs.exists(remote_dir):  # isolate from a previous run without clearing the shared memory store
+        remote_fs.rm(remote_dir, recursive=True)
+
+    class LogValLossModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = self.step(batch)
+            self.log("val_loss", loss)
+            return {"x": loss}
+
+    # train: a best checkpoint is written to the remote filesystem
+    checkpoint_callback = ModelCheckpoint(dirpath=remote_dir, monitor="val_loss", save_top_k=1, mode="min")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=False,
+        callbacks=[checkpoint_callback],
+    )
+    trainer.fit(LogValLossModel())
+    best_model_path = checkpoint_callback.best_model_path
+    assert best_model_path.startswith("memory:")
+    assert get_filesystem(best_model_path).exists(best_model_path)
+
+    # fresh process: empty in-memory state, must recover "best" from the remote filesystem
+    fresh_checkpoint = ModelCheckpoint(dirpath=remote_dir, monitor="val_loss", save_top_k=1, mode="min")
+    assert fresh_checkpoint.best_model_path == ""
+    fresh_trainer = Trainer(default_root_dir=tmp_path, limit_val_batches=2, logger=False, callbacks=[fresh_checkpoint])
+    fresh_trainer.validate(LogValLossModel(), ckpt_path="best")
+    assert fresh_trainer.ckpt_path == best_model_path
+
+
+def test_best_ckpt_path_no_disk_fallback_raises(tmp_path):
+    """Test that ckpt_path="best" still raises a clear error when no checkpoint exists on disk."""
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=1, mode="min")
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, callbacks=[checkpoint_callback])
+    with pytest.raises(ValueError, match="is not configured to save the best model"):
+        trainer.validate(model, ckpt_path="best")
 
 
 @pytest.mark.parametrize(("strict_loading", "expected"), [(None, True), (True, True), (False, False)])

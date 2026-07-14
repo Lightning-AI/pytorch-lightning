@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed `validate`/`test`/`predict` with `ckpt_path="best"` raising a `ValueError` in a fresh process by recovering `best_model_path` from the persisted checkpoint state on disk ([#21254](https://github.com/Lightning-AI/pytorch-lightning/issues/21254))
+
 ---
 
 ## [2.6.4] - 2026-05-20

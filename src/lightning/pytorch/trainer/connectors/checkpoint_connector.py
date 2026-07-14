@@ -172,11 +172,19 @@ class _CheckpointConnector:
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
                         f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
-                raise ValueError(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
-                )
-            # load best weights
-            ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
+                # `best_model_path` is in-memory state that is empty in a process that did not run `fit`. Fall back to
+                # the best path persisted in the checkpoints on disk, mirroring the `"last"` disk-scan below.
+                if isinstance(self.trainer.checkpoint_callback, ModelCheckpoint):
+                    has_best_model_path = self.trainer.checkpoint_callback._find_best_model_path_on_disk(self.trainer)
+                if not has_best_model_path:
+                    raise ValueError(
+                        f'`.{fn}(ckpt_path="best")` is set but no best model checkpoint could be found. Either'
+                        " `ModelCheckpoint` is not configured to save the best model, or you trained in a different"
+                        f" process and no recoverable checkpoint exists on disk. Pass the checkpoint path explicitly"
+                        f" via `.{fn}(ckpt_path=...)`."
+                    )
+            # load best weights (from in-memory state, or recovered from disk above)
+            ckpt_path = has_best_model_path or getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
         elif ckpt_path == "last":
             candidates = {getattr(ft, "ckpt_path", None) for ft in ft_checkpoints}
