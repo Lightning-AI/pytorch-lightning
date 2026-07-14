@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `_validate_checkpoint_directory` in DeepSpeed strategy failing for remote filesystem URIs (S3, GCS, HDFS) by replacing `pathlib.Path` with fsspec-based checks ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
+- Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
 - Fixed `FSDPStrategy` raising `RuntimeError` under PyTorch 2.5+ when `root_device` is CPU, by passing an explicit `torch.device("cpu")` instead of `device_id=None` (relevant only when the GPU-accelerator guard is bypassed) ([#21774](https://github.com/Lightning-AI/pytorch-lightning/pull/21774))
 

@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import platform
-import posixpath
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
@@ -913,21 +912,18 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
 
     if not path_is_ds_checkpoint:
         # Case 1: User may have accidentally passed the subfolder "checkpoint"
-        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(posixpath.dirname(path_str), fs)
-        if parent_is_ds_checkpoint:
+        parent = os.path.dirname(path_str)
+        if _is_deepspeed_checkpoint(parent, fs):
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a subfolder."
-                f" Try to load using this parent directory instead: {posixpath.dirname(path_str)}"
+                f" Try to load using this parent directory instead: {parent}"
             )
         # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
-        parent_parent_is_ds_checkpoint = fs.isfile(path_str) and _is_deepspeed_checkpoint(
-            posixpath.dirname(posixpath.dirname(path_str)), fs
-        )
-        if parent_parent_is_ds_checkpoint:
+        grandparent = os.path.dirname(parent)
+        if fs.isfile(path_str) and _is_deepspeed_checkpoint(grandparent, fs):
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed"
-                f" checkpoint folder."
-                f" Try to load using this parent directory instead: {posixpath.dirname(posixpath.dirname(path_str))}"
+                f" checkpoint folder. Try to load using this parent directory instead: {grandparent}"
             )
         raise FileNotFoundError(default_message)
 
