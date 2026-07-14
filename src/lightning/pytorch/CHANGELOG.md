@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
+
 ---
 
 ## [2.6.4] - 2026-05-20
