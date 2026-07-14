@@ -27,7 +27,6 @@ from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-from tests_pytorch.helpers.runif import RunIf
 
 
 class IterDataset(IterableDataset):
@@ -485,7 +484,6 @@ def test_transfer_hooks_with_unpacking(tmp_path):
     assert dm.count_called_on_after_batch_transfer == 4
 
 
-@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
 def test_fetching_is_profiled():
     """Test that fetching is profiled."""
 

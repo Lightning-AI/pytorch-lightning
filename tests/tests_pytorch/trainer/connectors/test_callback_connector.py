@@ -32,7 +32,7 @@ from lightning.pytorch.callbacks import (
 )
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector, _validate_callbacks_list
 
 
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
@@ -104,12 +104,12 @@ def test_checkpoint_callbacks_are_last(tmp_path):
     ]
 
 
-class StatefulCallback0(Callback):
+class StatefulCallbackContent0(Callback):
     def state_dict(self):
         return {"content0": 0}
 
 
-class StatefulCallback1(Callback):
+class StatefulCallbackContent1(Callback):
     def __init__(self, unique=None, other=None):
         self._unique = unique
         self._other = other
@@ -126,9 +126,9 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     """Test that all callback states get saved even if the ModelCheckpoint is not given as last and when there are
     multiple callbacks of the same type."""
 
-    callback0 = StatefulCallback0()
-    callback1 = StatefulCallback1(unique="one")
-    callback2 = StatefulCallback1(unique="two", other=2)
+    callback0 = StatefulCallbackContent0()
+    callback1 = StatefulCallbackContent1(unique="one")
+    callback2 = StatefulCallbackContent1(unique="two", other=2)
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
@@ -147,9 +147,9 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     trainer.fit(model)
 
     ckpt = torch.load(str(tmp_path / "all_states.ckpt"), weights_only=True)
-    state0 = ckpt["callbacks"]["StatefulCallback0"]
-    state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
-    state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
+    state0 = ckpt["callbacks"]["StatefulCallbackContent0"]
+    state1 = ckpt["callbacks"]["StatefulCallbackContent1{'unique': 'one'}"]
+    state2 = ckpt["callbacks"]["StatefulCallbackContent1{'unique': 'two'}"]
     assert "content0" in state0
     assert state0["content0"] == 0
     assert "content1" in state1
@@ -323,3 +323,80 @@ def test_validate_unique_callback_state_key():
 
     with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `MockCallback`"):
         Trainer(callbacks=[MockCallback(), MockCallback()])
+
+
+# Test with single stateful callback
+class StatefulCallback(Callback):
+    def state_dict(self):
+        return {"state": 1}
+
+
+# Test with multiple stateful callbacks with unique state keys
+class StatefulCallback1(Callback):
+    @property
+    def state_key(self):
+        return "unique_key_1"
+
+    def state_dict(self):
+        return {"state": 1}
+
+
+class StatefulCallback2(Callback):
+    @property
+    def state_key(self):
+        return "unique_key_2"
+
+    def state_dict(self):
+        return {"state": 2}
+
+
+@pytest.mark.parametrize(
+    ("callbacks"),
+    [
+        [Callback(), Callback()],
+        [StatefulCallback()],
+        [StatefulCallback1(), StatefulCallback2()],
+    ],
+)
+def test_validate_callbacks_list_function(callbacks: list):
+    """Test the _validate_callbacks_list function directly with various scenarios."""
+    _validate_callbacks_list(callbacks)
+
+
+# Test with multiple stateful callbacks with same state key
+class ConflictingCallback(Callback):
+    @property
+    def state_key(self):
+        return "same_key"
+
+    def state_dict(self):
+        return {"state": 1}
+
+
+# Test with different types of stateful callbacks that happen to have same state key
+class AnotherConflictingCallback(Callback):
+    @property
+    def state_key(self):
+        return "same_key"  # Same key as ConflictingCallback
+
+    def state_dict(self):
+        return {"state": 3}
+
+
+@pytest.mark.parametrize(
+    ("callbacks", "match_msg"),
+    [
+        (
+            [ConflictingCallback(), ConflictingCallback()],
+            "Found more than one stateful callback of type `ConflictingCallback`",
+        ),
+        (
+            [ConflictingCallback(), Callback(), ConflictingCallback()],
+            "Found more than one stateful callback of type `ConflictingCallback`",
+        ),
+        ([ConflictingCallback(), AnotherConflictingCallback()], "Found more than one stateful callback"),
+    ],
+)
+def test_raising_error_validate_callbacks_list_function(callbacks: list, match_msg: str):
+    with pytest.raises(RuntimeError, match=match_msg):
+        _validate_callbacks_list(callbacks)

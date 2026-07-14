@@ -21,61 +21,63 @@ subprojects:
     checks:
       - "pl-cpu-guardian" # aggregated check for all cases
 
-  - id: "pytorch_lightning: Azure GPU"
-    paths:
-      - ".actions/*"
-      - ".azure/gpu-tests-pytorch.yml"
-      # only the azure GPU workflow runs the examples
-      # all examples don't need to be added because they aren't used in CI, but these are
-      - "examples/run_pl_examples.sh"
-      - "examples/pytorch/basics/backbone_image_classifier.py"
-      - "examples/pytorch/basics/autoencoder.py"
-      - "requirements/pytorch/**"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "tests/tests_pytorch/**"
-      - "tests/run_standalone_*.sh"
-      - "pyproject.toml" # includes pytest config
-      - "requirements/fabric/**"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "!requirements/docs.txt"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "pytorch-lightning (GPUs) (testing Lightning | latest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | oldest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
+  # Temporarily Disabled until LitBot is available again
+  # - id: "pytorch_lightning: lit GPU"
+  #   paths:
+  #     - ".actions/*"
+  #     - ".lightning/workflows/pytorch.yml"
+  #     # only the azure GPU workflow runs the examples
+  #     # all examples don't need to be added because they aren't used in CI, but these are
+  #     - "examples/run_pl_examples.sh"
+  #     - "examples/pytorch/basics/backbone_image_classifier.py"
+  #     - "examples/pytorch/basics/autoencoder.py"
+  #     - "requirements/pytorch/**"
+  #     - "src/lightning/__init__.py"
+  #     - "src/lightning/__setup__.py"
+  #     - "src/lightning/__version__.py"
+  #     - "src/lightning/pytorch/**"
+  #     - "src/pytorch_lightning/*"
+  #     - "tests/tests_pytorch/**"
+  #     - "tests/run_standalone_*.sh"
+  #     - "pyproject.toml" # includes pytest config
+  #     - "requirements/fabric/**"
+  #     - "src/lightning/fabric/**"
+  #     - "src/lightning_fabric/*"
+  #     - "!requirements/docs.txt"
+  #     - "!requirements/*/docs.txt"
+  #     - "!*.md"
+  #     - "!**/*.md"
+  #   checks:
+  #     - "pytorch.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, pytorch, 3.10)"
+  #     - "pytorch.yml / Lit Job (lightning, 3.12)"
+  #     - "pytorch.yml / Lit Job (pytorch, 3.12)"
 
-  - id: "pytorch_lightning: Benchmarks"
-    paths:
-      - ".azure/gpu-benchmarks.yml"
-      - "requirements/fabric/**"
-      - "requirements/pytorch/**"
-      - "src/lightning/fabric/**"
-      - "src/lightning/pytorch/**"
-      - "tests/parity_fabric/**"
-      - "tests/parity_pytorch/**"
-      - "!requirements/fabric/docs.txt"
-      - "!requirements/pytorch/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "lightning.Benchmarks"
-
-  # Temporarily disabled
-  #  - id: "pytorch-lightning: TPU workflow"
-  #    paths:
-  #      # tpu CI availability is very limited, so we only require tpu tests
-  #      # to pass when their configurations are modified
-  #      - ".github/workflows/tpu-tests.yml.disabled"
-  #      - "tests/tests_pytorch/run_tpu_tests.sh"
-  #    checks:
-  #      - "test-on-tpus (pytorch, pjrt, v4-8)"
+  # - id: "Benchmarks"
+  #   paths:
+  #     - ".lightning/workflows/benchmark.yml"
+  #     - "requirements/fabric/**"
+  #     - "requirements/pytorch/**"
+  #     - "src/lightning/fabric/**"
+  #     - "src/lightning/pytorch/**"
+  #     - "tests/parity_fabric/**"
+  #     - "tests/parity_pytorch/**"
+  #     - "!requirements/fabric/docs.txt"
+  #     - "!requirements/pytorch/docs.txt"
+  #     - "!*.md"
+  #     - "!**/*.md"
+  #   checks:
+  #     - "benchmark.yml / Lit Job (fabric)"
+  #     - "benchmark.yml / Lit Job (pytorch)"
+  #
+  # # Temporarily disabled
+  # #  - id: "pytorch-lightning: TPU workflow"
+  # #    paths:
+  # #      # tpu CI availability is very limited, so we only require tpu tests
+  # #      # to pass when their configurations are modified
+  # #      - ".github/workflows/tpu-tests.yml.disabled"
+  # #      - "tests/tests_pytorch/run_tpu_tests.sh"
+  # #    checks:
+  # #      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
     paths:
@@ -111,34 +113,6 @@ subprojects:
       - "docs-make (pytorch, doctest)"
       - "docs-make (pytorch, html)"
 
-  - id: "pytorch_lightning: Docker"
-    paths:
-      - ".actions/*"
-      - ".github/workflows/docker-build.yml"
-      - "dockers/**"
-      - "requirements/pytorch/**"
-      - "requirements/fabric/**"
-      - "setup.py"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "build-cuda (3.10, 2.1.2, 12.1.1)"
-      - "build-cuda (3.11, 2.2.2, 12.1.1)"
-      - "build-cuda (3.11, 2.3.1, 12.1.1)"
-      - "build-cuda (3.11, 2.4.1, 12.1.1)"
-      - "build-cuda (3.12, 2.5.1, 12.1.1)"
-      - "build-cuda (3.12, 2.6.0, 12.4.1)"
-      #- "build-NGC"
-      - "build-pl (3.10, 2.1, 12.1.1)"
-      - "build-pl (3.11, 2.2, 12.1.1)"
-      - "build-pl (3.11, 2.3, 12.1.1)"
-      - "build-pl (3.11, 2.4, 12.1.1)"
-      - "build-pl (3.12, 2.5, 12.1.1)"
-      - "build-pl (3.12, 2.6, 12.4.1)"
-      - "build-pl (3.12, 2.7, 12.6.3)"
-      - "build-pl (3.12, 2.8, 12.6.3, true)"
-
   # SECTION: lightning_fabric
 
   - id: "lightning_fabric: CPU workflow"
@@ -156,40 +130,40 @@ subprojects:
     checks:
       - "fabric-cpu-guardian" # aggregated check for all cases
 
-  - id: "lightning_fabric: Azure GPU"
-    paths:
-      - ".actions/*"
-      - ".azure/gpu-tests-fabric.yml"
-      - "examples/fabric/**"
-      - "examples/run_fabric_examples.sh"
-      - "requirements/fabric/**"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "tests/run_standalone_*.sh"
-      - "pyproject.toml" # includes pytest config
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "lightning-fabric (GPUs) (testing Fabric | oldest)"
-      - "lightning-fabric (GPUs) (testing Fabric | latest)"
-      - "lightning-fabric (GPUs) (testing Lightning | latest)"
-
-  # Temporarily disabled
-  #  - id: "lightning_fabric: TPU workflow"
-  #    paths:
-  #      # tpu CI availability is very limited, so we only require tpu tests
-  #      # to pass when their configurations are modified
-  #      - ".github/workflows/tpu-tests.yml.disabled"
-  #      - "tests/tests_fabric/run_tpu_tests.sh"
-  #    checks:
-  #      - "test-on-tpus (pytorch, pjrt, v4-8)"
-
-  # SECTION: common
+  # - id: "lightning_fabric: lit GPU"
+  #   paths:
+  #     - ".actions/*"
+  #     - ".lightning/workflows/fabric.yml"
+  #     - "examples/fabric/**"
+  #     - "examples/run_fabric_examples.sh"
+  #     - "requirements/fabric/**"
+  #     - "src/lightning/__init__.py"
+  #     - "src/lightning/__setup__.py"
+  #     - "src/lightning/__version__.py"
+  #     - "src/lightning/fabric/**"
+  #     - "src/lightning_fabric/*"
+  #     - "tests/tests_fabric/**"
+  #     - "tests/run_standalone_*.sh"
+  #     - "pyproject.toml" # includes pytest config
+  #     - "!requirements/*/docs.txt"
+  #     - "!*.md"
+  #     - "!**/*.md"
+  #   checks:
+  #     - "fabric.yml / Lit Job (nvidia/cuda:12.1.1-devel-ubuntu22.04, fabric, 3.10)"
+  #     - "fabric.yml / Lit Job (fabric, 3.12)"
+  #     - "fabric.yml / Lit Job (lightning, 3.12)"
+  #
+  # # Temporarily disabled
+  # #  - id: "lightning_fabric: TPU workflow"
+  # #    paths:
+  # #      # tpu CI availability is very limited, so we only require tpu tests
+  # #      # to pass when their configurations are modified
+  # #      - ".github/workflows/tpu-tests.yml.disabled"
+  # #      - "tests/tests_fabric/run_tpu_tests.sh"
+  # #    checks:
+  # #      - "test-on-tpus (pytorch, pjrt, v4-8)"
+  #
+  # # SECTION: common
 
   - id: "mypy"
     paths:

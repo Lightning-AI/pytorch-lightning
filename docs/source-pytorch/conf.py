@@ -86,20 +86,6 @@ _transform_changelog(
     os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
-# Copy Accelerator docs
-assist_local.AssistantCLI.pull_docs_files(
-    gh_user_repo="Lightning-AI/lightning-Habana",
-    target_dir="docs/source-pytorch/integrations/hpu",
-    # checkout="refs/tags/1.6.0",
-    checkout="5549fa927d5501d31aac0c9b2ed479be62a02cbc",
-)
-# the HPU also need some images
-URL_RAW_DOCS_HABANA = "https://raw.githubusercontent.com/Lightning-AI/lightning-Habana/1.5.0/docs/source"
-for img in ["_images/HPUProfiler.png", "_images/IGP.png"]:
-    img_ = os.path.join(_PATH_HERE, "integrations", "hpu", img)
-    os.makedirs(os.path.dirname(img_), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_HABANA}/{img}", img_)
-
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-Universe/lightning-Hivemind",
@@ -360,13 +346,11 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
-    "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
     # "comet_ml": ("https://www.comet.com/docs/v2/", None),
-    # "neptune": ("https://docs.neptune.ai/", None),
     # "wandb": ("https://docs.wandb.ai//", None),
 }
 nitpicky = True
@@ -374,6 +358,7 @@ nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "typing.Self"),
+    ("py:data", "typing.Union"),
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
@@ -467,16 +452,10 @@ nitpick_ignore = [
     ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfigType"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerConfig"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
-    ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
-    ("py:class", "lightning_habana.pytorch.strategies.HPUDDPStrategy"),
-    ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
-    ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
     ("py:obj", "logger.experiment"),
     ("py:class", "mlflow.tracking.MlflowClient"),
     ("py:attr", "model"),
     ("py:meth", "move_data_to_device"),
-    ("py:class", "neptune.Run"),
-    ("py:class", "neptune.handler.Handler"),
     ("py:meth", "on_after_batch_transfer"),
     ("py:meth", "on_before_batch_transfer"),
     ("py:meth", "on_save_checkpoint"),
@@ -516,6 +495,7 @@ nitpick_ignore = [
     ("py:func", "wandb.init"),
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
+    ("py:class", "litlogger.Experiment"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -529,6 +509,7 @@ def setup(app):
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
     app.add_js_file("copybutton.js")
     app.add_css_file("main.css")
+    app.add_css_file("paramlinks.css", priority=800)
 
 
 # copy all notebooks to local folder
@@ -622,10 +603,10 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
 from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
 from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch.loggers.litlogger import _LITLOGGER_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 
@@ -645,8 +626,9 @@ linkcheck_ignore = [
     r"installation.html$",
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
+    "https://medium.com/pytorch-lightning/quick-contribution-guide-86d977171b3a",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
-    "https://developer.habana.ai", # returns 403 error but redirects to intel.com documentation
+    "https://www.supermicro.com", # returns 403 error
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",

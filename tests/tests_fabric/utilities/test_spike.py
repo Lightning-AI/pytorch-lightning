@@ -30,7 +30,7 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
             )
 
 
-@pytest.mark.flaky(max_runs=3)
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
     # NOTE FOR ALL FOLLOWING TESTS:

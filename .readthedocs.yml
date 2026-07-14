@@ -29,9 +29,9 @@ sphinx:
   fail_on_warning: true
 
 build:
-  os: ubuntu-20.04
+  os: ubuntu-24.04
   tools:
-    python: "3.9"
+    python: "3.10"
   apt_packages:
     - texlive-latex-extra
     - dvipng

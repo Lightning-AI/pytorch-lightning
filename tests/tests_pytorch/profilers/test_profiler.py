@@ -86,12 +86,12 @@ def test_simple_profiler_overhead(simple_profiler):
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording an action*"):
         simple_profiler.stop(action)
 
     simple_profiler.start(action)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempted to start test*"):
         simple_profiler.start(action)
 
     simple_profiler.stop(action)
@@ -194,8 +194,31 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+def test_simple_profiler_uses_math_fsum(monkeypatch):
+    profiler = SimpleProfiler()
+    profiler.recorded_durations["action"] = [1.0, 2.0, 3.0]
+    profiler.start_time = 0.0
+
+    fsum_calls: list[list[float]] = []
+
+    def _fake_fsum(values):
+        fsum_calls.append(list(values))
+        return sum(values)
+
+    monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
+
+    # Test non-extended report
+    profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+
 @pytest.mark.parametrize("extended", [True, False])
-@patch("time.monotonic", return_value=70)
+@patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
@@ -322,10 +345,37 @@ def test_advanced_profiler_dump_states(tmp_path):
     assert len(data) > 0
 
 
+@pytest.mark.parametrize("char", ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"])
+def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
+    """Profiler should sanitize action names to produce filesystem-safe .prof filenames.
+
+    This guards against errors when callbacks or actions include path-unsafe characters (e.g., metric names with '/').
+
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    action_name = f"before{char}after"
+    with profiler.profile(action_name):
+        pass
+
+    profiler.describe()
+
+    prof_files = [f for f in os.listdir(tmp_path) if f.endswith(".prof")]
+    assert len(prof_files) == 1
+    prof_name = prof_files[0]
+
+    # Ensure none of the path-unsafe characters are present in the produced filename
+    forbidden = ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"]
+    for bad in forbidden:
+        assert bad not in prof_name
+
+    # File should be non-empty
+    assert (tmp_path / prof_name).read_bytes()
+
+
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Attempting to stop recording*"):
         advanced_profiler.stop(action)
 
     advanced_profiler.start(action)
@@ -681,3 +731,13 @@ def test_profiler_invalid_table_kwargs(tmp_path):
         with pytest.raises(KeyError) as exc_info:
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmp_path, filename="profile")
         assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
+
+
+def test_setup_train_dataloader_profiled_actions(tmp_path):
+    """Ensure that the 'setup_train_dataloader' action is successfully recorded in the profiler."""
+    profiler = SimpleProfiler(dirpath=tmp_path, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
+    trainer.fit(model)
+
+    assert "setup_train_dataloader" in profiler.recorded_durations

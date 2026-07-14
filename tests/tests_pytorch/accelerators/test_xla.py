@@ -46,8 +46,7 @@ class WeightSharingModule(BoringModel):
     def forward(self, x):
         x = self.layer_1(x)
         x = self.layer_2(x)
-        x = self.layer_3(x)
-        return x
+        return self.layer_3(x)
 
 
 @RunIf(tpu=True, standalone=True)
@@ -230,8 +229,7 @@ class NestedModule(BoringModel):
     def forward(self, x):
         x = self.net_a(x)
         x = self.layer_2(x)
-        x = self.net_b(x)
-        return x
+        return self.net_b(x)
 
 
 @RunIf(tpu=True)
@@ -312,7 +310,7 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 

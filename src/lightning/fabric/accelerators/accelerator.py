@@ -56,6 +56,12 @@ class Accelerator(ABC):
     def is_available() -> bool:
         """Detect if the hardware is available."""
 
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        """The name of the accelerator."""
+
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        """Register the accelerator with the registry."""
         pass

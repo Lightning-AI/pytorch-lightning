@@ -310,6 +310,7 @@ class Strategy(ABC):
         path: _PATH,
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
+        weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -323,6 +324,11 @@ class Strategy(ABC):
                 - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
 
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -330,7 +336,7 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        checkpoint = self.checkpoint_io.load_checkpoint(path)
+        checkpoint = self.checkpoint_io.load_checkpoint(path, weights_only=weights_only)
         if not state:
             return checkpoint
 

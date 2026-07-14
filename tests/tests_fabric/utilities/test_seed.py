@@ -10,6 +10,7 @@ import torch
 
 from lightning.fabric.utilities.seed import (
     _collect_rng_states,
+    _generate_seed_sequence,
     _set_rng_states,
     pl_worker_init_function,
     reset_seed,
@@ -70,6 +71,14 @@ def test_seed_everything_accepts_valid_seed_argument():
 def test_seed_everything_accepts_valid_seed_from_env():
     """Ensure that seed_everything uses the valid seed from the PL_GLOBAL_SEED environment variable."""
     assert seed_everything() == 17
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything_non_verbose_no_warning():
+    """Ensure that no warning is emitted when verbose is False and no seed is provided."""
+    with warnings.catch_warnings(record=True) as caught:
+        seed_everything(verbose=False)
+    assert caught == []
 
 
 def test_reset_seed_no_op():
@@ -145,3 +154,23 @@ def test_pl_worker_init_function(base_seed, num_workers, num_ranks):
     assert len(stdlib_rands) == num_ranks * num_workers
     assert len(numpy_rands) == num_ranks * num_workers
     assert len(torch_rands | stdlib_rands | numpy_rands) == 3 * num_workers * num_ranks
+
+
+def test_generate_seed_sequence_no_collision():
+    """Test that _generate_seed_sequence produces unique seeds for different base seeds."""
+    base_seeds = [0, 1, 42, 123, 999, 12345]
+    generated_seeds = []
+    random_outputs = []
+
+    for base_seed in base_seeds:
+        seed_everything(base_seed)
+        process_seed = torch.initial_seed()
+        generated_seed = _generate_seed_sequence(process_seed, worker_id=0, global_rank=0, count=1)[0]
+        generated_seeds.append(generated_seed)
+        torch.manual_seed(generated_seed)
+        random_outputs.append(tuple(torch.randn(10).tolist()))
+
+    assert len(set(generated_seeds)) == len(generated_seeds), (
+        "Generated seeds should be unique for different base seeds"
+    )
+    assert len(set(random_outputs)) == len(random_outputs), "Random outputs should be unique for different base seeds"

@@ -60,8 +60,7 @@ class ConvNet(ParityModel):
         x = torch.flatten(x, 1)  # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+        return self.fc3(x)
 
     def get_optimizer(self):
         return torch.optim.SGD(self.parameters(), lr=0.0001)

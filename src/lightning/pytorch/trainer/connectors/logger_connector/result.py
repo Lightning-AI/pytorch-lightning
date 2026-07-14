@@ -91,8 +91,7 @@ class _Sync:
         """Used to compute the syncing function and cache it."""
         fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
         # save the function as `_fn` as the meta are being re-created and the object references need to match.
-        # ignore typing, bad support for `partial`: mypy/issues/1484
-        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore[unused-ignore]
+        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)
 
     @property
     def __call__(self) -> Any:

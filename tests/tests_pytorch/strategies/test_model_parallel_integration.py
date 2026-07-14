@@ -74,8 +74,7 @@ def _parallelize_feed_forward_fsdp2(model, device_mesh):
 
 def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
     model = _parallelize_feed_forward_tp(model, device_mesh)
-    model = _parallelize_feed_forward_fsdp2(model, device_mesh)
-    return model
+    return _parallelize_feed_forward_fsdp2(model, device_mesh)
 
 
 def _parallelize_with_compile(parallelize):
@@ -134,6 +133,33 @@ class FSDP2TensorParallelModel(TemplateModel):
         if self._compile:
             parallelize = _parallelize_with_compile(parallelize)
         parallelize(self.model, device_mesh=self.device_mesh)
+
+
+class SimpleCompiledModule(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(nn.Linear(32, 64), nn.ReLU(), nn.Linear(64, 32))
+        self._loss = nn.MSELoss()
+
+    def configure_model(self):
+        self.model = torch.compile(self.model)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        preds = self.model(x)
+        return self._loss(preds, y)
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=1e-3)
+
+
+def _compiled_model_dataloader(batch_size: int = 32, num_batches: int = 2):
+    total_samples = batch_size * num_batches
+    generator = torch.Generator().manual_seed(0)
+    features = torch.randn(total_samples, 32, generator=generator)
+    targets = torch.randn(total_samples, 32, generator=generator)
+    dataset = torch.utils.data.TensorDataset(features, targets)
+    return DataLoader(dataset, batch_size=batch_size)
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
@@ -236,6 +262,44 @@ def test_tensor_parallel(distributed, compile):
         model = Model(compile=compile)
 
     trainer.fit(model)
+
+
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
+def test_model_parallel_single_file_checkpoint_with_compile(distributed, tmp_path):
+    """Replicate the reporter's setup: compiled model + ModelParallel single-file checkpointing."""
+
+    seed_everything(0)
+    strategy = ModelParallelStrategy(
+        data_parallel_size=1,
+        tensor_parallel_size=1,
+        save_distributed_checkpoint=False,
+    )
+
+    trainer = Trainer(
+        accelerator="auto",
+        devices=1,
+        strategy=strategy,
+        max_steps=2,
+        limit_train_batches=2,
+        enable_checkpointing=False,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        default_root_dir=tmp_path,
+    )
+
+    dataloader = _compiled_model_dataloader(batch_size=32, num_batches=2)
+
+    with trainer.init_module(empty_init=True):
+        model = SimpleCompiledModule()
+
+    trainer.fit(model, dataloader)
+
+    if trainer.is_global_zero:
+        checkpoint_path = tmp_path / "compiled-model.ckpt"
+        trainer.save_checkpoint(checkpoint_path)
+
+    trainer.strategy.barrier()
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)

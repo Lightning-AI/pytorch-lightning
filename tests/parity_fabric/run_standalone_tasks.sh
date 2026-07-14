@@ -18,6 +18,10 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 
 MAX_RETRIES=3
+# parsing argument from call like `bash run_standalone_tasks.sh cuda`
+ACCELERATOR=$1
+# optional tolerance argument, default to 0.01
+TOLERANCE=${2:-0.01}
 
 retry_command() {
   local command="$@"
@@ -39,5 +43,4 @@ retry_command() {
   return $exit_code
 }
 
-retry_command "python -m test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02"
-retry_command "python -m test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01"
+retry_command "python -m test_parity_ddp --accelerator="$ACCELERATOR" --devices=2 --tolerance=$TOLERANCE"

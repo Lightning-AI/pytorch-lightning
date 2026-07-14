@@ -13,14 +13,12 @@
 # limitations under the License.
 import os
 import sys
-from contextlib import nullcontext
 from unittest import mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -34,7 +32,7 @@ _PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True, deepspeed=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
-def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
+def test_trainer_compiled_model_deepspeed(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -69,22 +67,52 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     assert trainer.model._compiler_ctx is None
 
     # some strategies do not support it
-    if RequirementCache("deepspeed"):
-        compiled_model = torch.compile(model)
-        mock_cuda_count(monkeypatch, 2)
+    compiled_model = torch.compile(model)
+    mock_cuda_count(monkeypatch, 2)
 
-        # TODO: Update deepspeed to avoid deprecation warning for `torch.cuda.amp.custom_fwd` on import
-        warn_context = (
-            pytest.warns(FutureWarning, match="torch.cuda.amp.*is deprecated")
-            if _TORCH_GREATER_EQUAL_2_4
-            else nullcontext()
-        )
+    trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
 
-        with warn_context:
-            trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
+    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
+        trainer.fit(compiled_model)
 
-        with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-            trainer.fit(compiled_model)
+
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@RunIf(dynamo=True)
+@mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
+def test_trainer_compiled_model_ddp(_, tmp_path, monkeypatch, mps_count_0):
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "fast_dev_run": True,
+        "logger": False,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+    }
+
+    model = BoringModel()
+    compiled_model = torch.compile(model)
+    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
+
+    # can train with compiled model
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(compiled_model)
+    assert trainer.model._compiler_ctx["compiler"] == "dynamo"
+
+    # the compiled model can be uncompiled
+    to_uncompiled_model = to_uncompiled(compiled_model)
+    assert model._compiler_ctx is None
+    assert compiled_model._compiler_ctx is None
+    assert to_uncompiled_model._compiler_ctx is None
+
+    # the compiled model needs to be passed
+    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
+        to_uncompiled(to_uncompiled_model)
+
+    # the uncompiled model can be fitted
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+    assert trainer.model._compiler_ctx is None
 
     # ddp does
     trainer = Trainer(strategy="ddp", **trainer_kwargs)

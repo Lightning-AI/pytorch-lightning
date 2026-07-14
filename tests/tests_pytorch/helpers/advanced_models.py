@@ -46,8 +46,7 @@ class Generator(nn.Module):
 
     def forward(self, z):
         img = self.model(z)
-        img = img.view(img.size(0), *self.img_shape)
-        return img
+        return img.view(img.size(0), *self.img_shape)
 
 
 class Discriminator(nn.Module):
@@ -204,8 +203,7 @@ class ParityModuleMNIST(LightningModule):
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
         x = self.c_d1_drop(x)
-        x = self.c_d2(x)
-        return x
+        return self.c_d2(x)
 
     def training_step(self, batch, batch_nb):
         x, y = batch

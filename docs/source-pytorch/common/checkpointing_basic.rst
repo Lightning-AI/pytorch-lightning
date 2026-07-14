@@ -58,12 +58,45 @@ Lightning automatically saves a checkpoint for you in your current working direc
     # simply by using the Trainer you get automatic checkpointing
     trainer = Trainer()
 
-To change the checkpoint path use the `default_root_dir` argument:
+
+Checkpoint save location
+========================
+
+The location where checkpoints are saved depends on whether you have configured a logger:
+
+**Without a logger**, checkpoints are saved to the ``default_root_dir``:
 
 .. code-block:: python
 
-    # saves checkpoints to 'some/path/' at every epoch end
-    trainer = Trainer(default_root_dir="some/path/")
+    # saves checkpoints to 'some/path/checkpoints/'
+    trainer = Trainer(default_root_dir="some/path/", logger=False)
+
+**With a logger**, checkpoints are saved to the logger's directory, **not** to ``default_root_dir``:
+
+.. code-block:: python
+
+    from lightning.pytorch.loggers import CSVLogger
+
+    # checkpoints will be saved to 'logs/my_experiment/version_0/checkpoints/'
+    # NOT to 'some/path/checkpoints/'
+    trainer = Trainer(
+        default_root_dir="some/path/",  # This will be ignored for checkpoints!
+        logger=CSVLogger("logs", "my_experiment")
+    )
+
+To explicitly control the checkpoint location when using a logger, use the
+:class:`~lightning.pytorch.callbacks.ModelCheckpoint` callback:
+
+.. code-block:: python
+
+    from lightning.pytorch.callbacks import ModelCheckpoint
+
+    # explicitly set checkpoint directory
+    checkpoint_callback = ModelCheckpoint(dirpath="my/custom/checkpoint/path/")
+    trainer = Trainer(
+        logger=CSVLogger("logs", "my_experiment"),
+        callbacks=[checkpoint_callback]
+    )
 
 
 ----

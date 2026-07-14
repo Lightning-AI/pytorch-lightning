@@ -74,11 +74,16 @@ class MPSAccelerator(Accelerator):
         mps_disabled = os.getenv("DISABLE_MPS", "0") == "1"
         return not mps_disabled and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
 
+    @staticmethod
+    @override
+    def name() -> str:
+        return "mps"
+
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
-            "mps",
+            cls.name(),
             cls,
             description=cls.__name__,
         )

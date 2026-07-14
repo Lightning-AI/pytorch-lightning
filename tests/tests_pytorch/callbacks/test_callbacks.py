@@ -18,6 +18,7 @@ from unittest.mock import Mock, patch
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -132,7 +133,8 @@ def test_resume_callback_state_saved_by_type_stateful(tmp_path):
 
     callback = OldStatefulCallback(state=222)
     trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[callback])
-    trainer.fit(model, ckpt_path=ckpt_path)
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
+    trainer.fit(model, ckpt_path=ckpt_path, weights_only=weights_only)
     assert callback.state == 111
 
 

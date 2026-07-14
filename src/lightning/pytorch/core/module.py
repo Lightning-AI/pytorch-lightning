@@ -64,7 +64,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -1136,11 +1136,23 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
+    @torch.compiler.disable
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
         prevent dangling gradients in multiple-optimizer setup.
 
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Mutating
+            ``requires_grad`` on parameters is not supported by Dynamo/AOTAutograd (it can change a
+            tensor's leaf-ness mid-graph), so tracing this bookkeeping helper would either fail with
+            ``Unsupported: setattr() on Tensor.requires_grad`` or produce a ``KeyError`` on the
+            internal ``param_requires_grad_state`` mapping when the traced parameter references diverge
+            from those held by ``trainer.optimizers``. Disabling the compiler on this method keeps the
+            behavior identical for eager users while making it safe to call from a compiled
+            ``training_step``.
 
         Args:
             optimizer: The optimizer to toggle.
@@ -1165,8 +1177,12 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
+    @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        See :meth:`toggle_optimizer` for details on why this method is decorated with
+        :func:`torch.compiler.disable`.
 
         Args:
             optimizer: The optimizer to untoggle.
@@ -1390,21 +1406,24 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def freeze(self) -> None:
+    def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
-        Example::
+        .. code-block:: python
 
             model = MyLightningModule(...)
             model.freeze()
+
+        Returns:
+            :class:`LightningModule` with all parameters frozen.
 
         """
         for param in self.parameters():
             param.requires_grad = False
 
-        self.eval()
+        return self.eval()
 
-    def unfreeze(self) -> None:
+    def unfreeze(self) -> Self:
         """Unfreeze all parameters for training.
 
         .. code-block:: python
@@ -1412,11 +1431,14 @@ class LightningModule(
             model = MyLightningModule(...)
             model.unfreeze()
 
+        Returns:
+            :class:`LightningModule` self with all parameters unfrozen.
+
         """
         for param in self.parameters():
             param.requires_grad = True
 
-        self.train()
+        return self.train()
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
@@ -1492,26 +1514,30 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, dict[str, ScriptModule]]:
-        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
-        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
-        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
-        scripted you should override this method. In case you want to return multiple modules, we recommend using a
-        dictionary.
+        """By default compiles the whole model to a ``torch.jit.ScriptModule``. If you want to use tracing, please
+        provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is provided,
+        or the model has :attr:`example_input_array` set. If you would like to customize the modules that are scripted
+        you should override this method. In case you want to return multiple modules, we recommend using a dictionary.
+
+        .. deprecated::
+            ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
+            TorchScript is deprecated in PyTorch. Use ``torch.export.export()`` for model exporting instead.
+            See https://pytorch.org/docs/stable/export.html for more information.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
-              :func:`torch.jit.trace` function.
+            **kwargs: Additional arguments that will be passed to the ``torch.jit.script`` or
+              ``torch.jit.trace`` function.
 
         Note:
             - Requires the implementation of the
               :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
-              to use this feature without limitations. See also the :mod:`torch.jit`
+              to use this feature without limitations. See also the ``torch.jit``
               documentation for supported features.
 
         Example::
@@ -1536,6 +1562,11 @@ class LightningModule(
             defined or not.
 
         """
+        rank_zero_deprecation(
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
+            "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
+            "See https://pytorch.org/docs/stable/export.html for more information."
+        )
         mode = self.training
 
         if method == "script":
@@ -1690,6 +1721,7 @@ class LightningModule(
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
         strict: Optional[bool] = None,
+        weights_only: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1723,6 +1755,11 @@ class LightningModule(
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Defaults to ``True`` unless ``LightningModule.strict_loading`` is
                 set, in which case it defaults to the value of ``LightningModule.strict_loading``.
+            weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other
+                primitive types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+                ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+                ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -1778,6 +1815,7 @@ class LightningModule(
             map_location,
             hparams_file,
             strict,
+            weights_only,
             **kwargs,
         )
         return cast(Self, loaded)

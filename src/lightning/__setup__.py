@@ -41,7 +41,7 @@ def _prepare_extras() -> dict[str, Any]:
     }
 
     # project specific extras groups
-    extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
+    extras["fabric-all"] = extras["fabric-extra"] + extras["fabric-strategies"] + extras["fabric-examples"]
     extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
@@ -94,7 +94,7 @@ def _setup_args() -> dict[str, Any]:
         "include_package_data": True,
         "zip_safe": False,
         "keywords": ["deep learning", "pytorch", "AI"],
-        "python_requires": ">=3.9",
+        "python_requires": ">=3.10",
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
@@ -123,9 +123,9 @@ def _setup_args() -> dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
             "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
         ],  # todo: consider aggregation/union of tags from particular packages
     }

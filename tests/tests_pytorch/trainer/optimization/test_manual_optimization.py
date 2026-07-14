@@ -324,8 +324,7 @@ class CustomMapping(collections.abc.Mapping):
 
     def __copy__(self):
         cls = self.__class__
-        new_obj = cls(self._store.copy())
-        return new_obj
+        return cls(self._store.copy())
 
     def copy(self):
         return self.__copy__()

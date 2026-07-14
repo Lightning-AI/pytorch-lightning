@@ -9,7 +9,6 @@ ______________________________________________________________________
 
 <p align="center">
   <a href="https://www.pytorchlightning.ai/">Website</a> •
-  <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://lightning.ai/docs/pytorch/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
@@ -251,9 +250,6 @@ trainer = Trainer(logger=loggers.CometLogger())
 
 # mlflow
 trainer = Trainer(logger=loggers.MLFlowLogger())
-
-# neptune
-trainer = Trainer(logger=loggers.NeptuneLogger())
 
 # ... and dozens more
 ```

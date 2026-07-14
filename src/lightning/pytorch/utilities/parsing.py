@@ -91,7 +91,7 @@ def get_init_args(frame: types.FrameType) -> dict[str, Any]:  # pragma: no-cover
 
 def _get_init_args(frame: types.FrameType) -> tuple[Optional[Any], dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if "__class__" not in local_vars:
+    if "__class__" not in local_vars or frame.f_code.co_name != "__init__":
         return None, {}
     cls = local_vars["__class__"]
     init_parameters = inspect.signature(cls.__init__).parameters
@@ -204,6 +204,9 @@ def save_hyperparameters(
 
     # `hparams` are expected here
     obj._set_hparams(hp)
+    # Remove ignored hparams from the stored hyperparameters.
+    # Allows a derived class to drop hparams previously saved by a base class.
+    obj.remove_ignored_hparams(ignore)
 
     for k, v in obj._hparams.items():
         if isinstance(v, nn.Module):
