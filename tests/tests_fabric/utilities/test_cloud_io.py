@@ -174,9 +174,11 @@ def test_atomic_save_permission_error_propagation():
     mock_fs.open.side_effect = PermissionError("Permission denied")
     mock_fs.pipe.side_effect = PermissionError("Permission denied")
 
-    with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")):
-        with pytest.raises(PermissionError, match="Permission denied"):
-            _atomic_save(checkpoint, filepath)
+    with (
+        mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")),
+        pytest.raises(PermissionError, match="Permission denied"),
+    ):
+        _atomic_save(checkpoint, filepath)
 
 
 def test_atomic_save_exdev_to_runtime_error():
@@ -193,9 +195,11 @@ def test_atomic_save_exdev_to_runtime_error():
     mock_fs.open.side_effect = permission_error
     mock_fs.pipe.side_effect = permission_error
 
-    with mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")):
-        with pytest.raises(RuntimeError, match="Upgrade fsspec to enable cross-device local checkpoints"):
-            _atomic_save(checkpoint, filepath)
+    with (
+        mock.patch("fsspec.core.url_to_fs", return_value=(mock_fs, "checkpoint.ckpt")),
+        pytest.raises(RuntimeError, match="Upgrade fsspec to enable cross-device local checkpoints"),
+    ):
+        _atomic_save(checkpoint, filepath)
 
 
 def test_resolve_path_local_vs_remote(tmp_path):
