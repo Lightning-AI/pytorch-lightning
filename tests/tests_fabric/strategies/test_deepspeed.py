@@ -300,12 +300,12 @@ def test_validate_checkpoint_directory_local_path(tmp_path):
     checkpoint_dir.mkdir()
     _validate_checkpoint_directory(tmp_path)  # now a valid DeepSpeed checkpoint
 
-    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"):
         _validate_checkpoint_directory(checkpoint_dir)
 
     checkpoint_file = checkpoint_dir / "zero_pp_rank_0_mp_rank_00_model_states.pt"
     checkpoint_file.touch()
-    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"):
         _validate_checkpoint_directory(checkpoint_file)
 
 
