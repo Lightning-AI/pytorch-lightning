@@ -1136,11 +1136,23 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
+    @torch.compiler.disable
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
         prevent dangling gradients in multiple-optimizer setup.
 
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Mutating
+            ``requires_grad`` on parameters is not supported by Dynamo/AOTAutograd (it can change a
+            tensor's leaf-ness mid-graph), so tracing this bookkeeping helper would either fail with
+            ``Unsupported: setattr() on Tensor.requires_grad`` or produce a ``KeyError`` on the
+            internal ``param_requires_grad_state`` mapping when the traced parameter references diverge
+            from those held by ``trainer.optimizers``. Disabling the compiler on this method keeps the
+            behavior identical for eager users while making it safe to call from a compiled
+            ``training_step``.
 
         Args:
             optimizer: The optimizer to toggle.
@@ -1165,8 +1177,12 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
+    @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        See :meth:`toggle_optimizer` for details on why this method is decorated with
+        :func:`torch.compiler.disable`.
 
         Args:
             optimizer: The optimizer to untoggle.
