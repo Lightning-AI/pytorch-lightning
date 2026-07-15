@@ -247,13 +247,9 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
 
 def test_get_default_process_group_backend_for_device(monkeypatch):
     """Test that each device type maps to its correct default process group backend."""
-    # register a custom backend for the test WITHOUT mutating global torch state:
-    # `rename_privateuse1_backend` is process-global and irreversible, so doing it here
-    # leaks a dangling "pcu" device into every subsequent test in the same worker, which
-    # breaks tensor-moving code paths on newer PyTorch. Patch the map instead.
-    backend_map = dict(torch.distributed.Backend.default_device_backend_map)
-    backend_map["pcu"] = "pccl"
-    monkeypatch.setattr(torch.distributed.Backend, "default_device_backend_map", backend_map)
+    # patch the map instead of registering a real backend: `rename_privateuse1_backend` is irreversible
+    # and would leak a dangling "pcu" device into subsequent tests
+    monkeypatch.setitem(torch.distributed.Backend.default_device_backend_map, "pcu", "pccl")
 
     # test that the default backend is correctly set for each device
     devices = [torch.device("cpu"), torch.device("cuda:0"), Mock(type="pcu")]
