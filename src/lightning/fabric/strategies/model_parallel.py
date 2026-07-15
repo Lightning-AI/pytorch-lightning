@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-import shutil
 from collections.abc import Generator
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
 
 import torch
@@ -43,7 +41,16 @@ from lightning.fabric.strategies.strategy import (
     _BackwardSyncControl,
     _validate_keys_for_strict_loading,
 )
-from lightning.fabric.utilities.cloud_io import _is_local_file_protocol, _load
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _is_local_file_protocol,
+    _load,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+)
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -261,7 +268,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 " so saving them is disabled."
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = Path(self.broadcast(path))
+        path = _resolve_path(self.broadcast(path))
         _save_checkpoint(
             path=path,
             state=state,
@@ -286,7 +293,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f" {type(self).__name__}.load_checkpoint(..., state={{'model': model, ...}})"
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(path))
+        path = _resolve_path(self.broadcast(path))
 
         if isinstance(state, Module):
             _load_raw_module_state_from_path(path, module=state, world_size=self.world_size, strict=strict)
@@ -348,13 +355,13 @@ class _FSDPNoSync(AbstractContextManager):
 
 
 def _save_checkpoint(
-    path: Path,
+    path: _PATH,
     state: dict[str, Union[Module, Optimizer, Any]],
     full_state_dict: bool,
     rank: int,
     filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
 ) -> None:
-    if path.is_dir() and full_state_dict and not _is_sharded_checkpoint(path):
+    if _is_checkpoint_dir(path) and full_state_dict and not _is_sharded_checkpoint(path):
         raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
     modules = [module for module in state.values() if _has_dtensor_modules(module)]
@@ -395,21 +402,19 @@ def _save_checkpoint(
 
     if full_state_dict:
         if _is_sharded_checkpoint(path):
-            shutil.rmtree(path)
+            _remove_checkpoint(path)
         converted_state.update(metadata)
         if rank == 0:
-            torch.save(converted_state, path)
+            _atomic_save(converted_state, path)
     else:
-        if path.is_file():
-            path.unlink()
-        path.mkdir(parents=True, exist_ok=True)
+        _prepare_directory_checkpoint(path)
         _distributed_checkpoint_save(converted_state, path)
         if rank == 0:
-            torch.save(metadata, path / _METADATA_FILENAME)
+            _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME))
 
 
 def _load_checkpoint(
-    path: Path,
+    path: _PATH,
     state: dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
@@ -452,7 +457,10 @@ def _load_checkpoint(
             set_optimizer_state_dict(module, optim, optim_state_dict=optim_state[optim_key], options=state_dict_options)
 
         # Load metadata (anything not a module or optimizer)
-        metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
+        metadata = _load(
+            _checkpoint_join(path, _METADATA_FILENAME),
+            weights_only=False if weights_only is None else weights_only,
+        )
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
         for key in requested_metadata_keys:
@@ -464,7 +472,11 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
+        weights_only = False if weights_only is None else weights_only
+        if _is_local_file_protocol(str(path)):
+            checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
+        else:
+            checkpoint = _load(path, map_location="cpu", weights_only=weights_only)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(

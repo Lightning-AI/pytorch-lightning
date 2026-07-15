@@ -434,17 +434,24 @@ def test_set_timeout(init_process_group_mock):
 
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
 def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
-    """Test that the state dict context manager handles CPU offloading."""
-
-    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
+    """Test that the state dict context manager only offloads to CPU when the shards live on an accelerator."""
+    # Shards on accelerator: offload to CPU.
+    accelerator_param = Mock()
+    accelerator_param.device = torch.device("cuda", 0)
+    module = Mock(spec=FullyShardedDataParallel)
+    module.parameters = Mock(return_value=iter([accelerator_param]))
+    with _get_full_state_dict_context(module=module, world_size=4):
         assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
         assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
     set_type_mock.reset_mock()
 
-    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=4):
-        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
-        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
+    # Shards on CPU: do not offload (prevents PyTorch use-after-free).
+    module = Mock(spec=FullyShardedDataParallel)
+    module.parameters = Mock(return_value=iter([torch.nn.Parameter(torch.zeros(1))]))
+    with _get_full_state_dict_context(module=module, world_size=4):
+        assert not set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
+        assert not set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
 
 def test_device_mesh_type_annotation():
