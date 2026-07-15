@@ -8,7 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `using_sparse_model` and `sparse_cuda_acceleration_factor` parameters to `Throughput` so MFU defaults to the dense peak and opts into the sparse peak explicitly ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
+
+- Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `FSDPStrategy` ([#21775](https://github.com/Lightning-AI/pytorch-lightning/pull/21775))
+
+- Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21821](https://github.com/Lightning-AI/pytorch-lightning/pull/21821))
+
+- Added support for remote storage (fsspec URLs) in checkpoint consolidation (`python -m lightning.fabric.utilities.consolidate_checkpoint` and the `lightning consolidate` CLI) ([#21826](https://github.com/Lightning-AI/pytorch-lightning/pull/21826))
 
 ### Changed
 
@@ -20,16 +26,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
---
+- Fixed `FSDPStrategy` raising `RuntimeError` under PyTorch 2.5+ when `root_device` is CPU, by passing an explicit `torch.device("cpu")` instead of `device_id=None` (relevant only when the GPU-accelerator guard is bypassed) ([#21774](https://github.com/Lightning-AI/pytorch-lightning/pull/21774))
 
-## [2.6.2] - 2026-03-19
+- Fixed inconsistent FLOPs reporting on NVIDIA H100/H200 GPUs by defaulting to dense FLOPs, with sparse FLOPs now requiring an explicit opt-in. ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
+
+- Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
+
+---
+
+## [2.6.4] - 2026-05-20
+
+> Versions 2.6.2 and 2.6.3 were skipped due to a supply chain security compromise. See [#21691](https://github.com/Lightning-AI/pytorch-lightning/issues/21691) for details.
 
 ### Fixed
 
 - Fixed FSDP mixed precision (`bf16-mixed`, `16-mixed`) initializing model parameters in half precision instead of fp32 ([#21586](https://github.com/Lightning-AI/pytorch-lightning/pull/21586))
-
 - Fixed `device_mesh` type hint in `FSDPStrategy` to accept a 2-element tuple via the CLI ([#21581](https://github.com/Lightning-AI/pytorch-lightning/pull/21581))
 
 ---
