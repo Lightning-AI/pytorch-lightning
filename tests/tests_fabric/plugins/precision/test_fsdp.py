@@ -85,6 +85,13 @@ def test_fsdp_precision_scaler_with_bf16():
     assert precision.scaler is None
 
 
+def test_fsdp_precision_scaler_with_16_mixed():
+    # a user-provided scaler is valid for 16-mixed and must be kept
+    scaler = Mock()
+    precision = FSDPPrecision(precision="16-mixed", scaler=scaler)
+    assert precision.scaler is scaler
+
+
 @RunIf(min_cuda_gpus=1)
 def test_fsdp_precision_forward_context_f16():
     """Test to ensure that the context manager correctly is set to bfloat16."""
