@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 import lightning.fabric
+from lightning.fabric.utilities.cloud_io import _resolve_path, get_filesystem
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 
@@ -58,7 +59,7 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
         pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder=checkpoint_folder))
-    assert f"checkpoint folder does not exist or is not a directory: {checkpoint_folder}" in caplog.text
+    assert f"checkpoint folder does not exist: {_resolve_path(checkpoint_folder)}" in caplog.text
     caplog.clear()
 
     # Checkpoint exists but is not a folder
@@ -103,48 +104,45 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     caplog.clear()
 
 
-def test_process_cli_args_remote_filesystem(tmp_path, caplog, monkeypatch):
-    """Test that remote fsspec paths are supported."""
-    pytest.importorskip("fsspec")
-
+def test_process_cli_args_remote(caplog, monkeypatch):
+    """The checkpoint folder and output file can live on remote (fsspec) storage, e.g. S3."""
     monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
 
-    # Create a memory:// checkpoint with metadata
-    import fsspec
+    # Checkpoint does not exist on the remote filesystem. Directories are virtual on object storage, so this is
+    # reported the same way as "not a valid FSDP checkpoint" rather than a separate "does not exist" check
+    # (`isdir`/`exists` are unreliable there; see `_is_sharded_checkpoint`).
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
+    ):
+        _process_cli_args(Namespace(checkpoint_folder="memory:///consolidate-remote/missing"))
+    assert "Only FSDP-sharded checkpoints saved with Lightning are supported" in caplog.text
+    caplog.clear()
 
-    fs = fsspec.filesystem("memory")
-    memory_checkpoint_folder = "memory://checkpoints"
-    fs.makedirs(memory_checkpoint_folder, exist_ok=True)
+    # Create a fake sharded checkpoint directly on the in-memory filesystem. Unlike real object storage,
+    # `MemoryFileSystem` needs the directory to be created explicitly before writing a file into it -- older
+    # fsspec versions don't infer the parent directory from a nested file path.
+    fs = get_filesystem("memory:///consolidate-remote/ckpt")
+    fs.makedirs("/consolidate-remote/ckpt", exist_ok=True)
+    with fs.open(f"memory:///consolidate-remote/ckpt/{_METADATA_FILENAME}", "wb") as f:
+        f.write(b"fake")
 
-    # Create metadata file
-    metadata_path = f"{memory_checkpoint_folder}/{_METADATA_FILENAME}"
-    with fs.open(metadata_path, "w") as f:
-        f.write("metadata")
+    config = _process_cli_args(Namespace(checkpoint_folder="memory:///consolidate-remote/ckpt", output_file=None))
+    assert config.checkpoint_folder == "memory:///consolidate-remote/ckpt"
+    assert config.output_file == "memory:///consolidate-remote/ckpt.consolidated"
 
-    # Test remote path handling
-    config = _process_cli_args(Namespace(checkpoint_folder=memory_checkpoint_folder, output_file=None))
-    assert config.checkpoint_folder == memory_checkpoint_folder
-    assert config.output_file == "memory://checkpoints.consolidated"
-
-
-def test_process_cli_args_remote_output_file(tmp_path, caplog, monkeypatch):
-    """Test that remote output file paths are supported."""
-    pytest.importorskip("fsspec")
-
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
-
-    import fsspec
-
-    fs = fsspec.filesystem("memory")
-    memory_checkpoint_folder = "memory://checkpoints"
-    fs.makedirs(memory_checkpoint_folder, exist_ok=True)
-
-    # Create metadata file
-    metadata_path = f"{memory_checkpoint_folder}/{_METADATA_FILENAME}"
-    with fs.open(metadata_path, "w") as f:
-        f.write("metadata")
-
-    # Test remote output path
-    output_path = "memory://outputs/consolidated.ckpt"
-    config = _process_cli_args(Namespace(checkpoint_folder=memory_checkpoint_folder, output_file=output_path))
-    assert config.output_file == output_path
+    # Output file already exists on the remote filesystem
+    with fs.open("memory:///consolidate-remote/out.pt", "wb") as f:
+        f.write(b"fake")
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
+    ):
+        _process_cli_args(
+            Namespace(
+                checkpoint_folder="memory:///consolidate-remote/ckpt",
+                output_file="memory:///consolidate-remote/out.pt",
+            )
+        )
+    assert "path for the converted checkpoint already exists" in caplog.text
+    caplog.clear()

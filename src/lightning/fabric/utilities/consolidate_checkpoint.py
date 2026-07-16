@@ -3,12 +3,9 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from lightning.fabric.utilities.cloud_io import (
-    _atomic_save,
-    _checkpoint_join,
-    _is_checkpoint_dir,
-    _resolve_path,
-)
+import torch
+
+from lightning.fabric.utilities.cloud_io import _checkpoint_join, _resolve_path, get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
@@ -50,21 +47,20 @@ def _process_cli_args(args: Namespace) -> Namespace:
 
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
 
-    # Validate checkpoint folder exists and is a directory
-    if not _is_checkpoint_dir(checkpoint_folder):
-        _log.error(f"The provided checkpoint folder does not exist or is not a directory: {checkpoint_folder}")
-        sys.exit(1)
+    if isinstance(checkpoint_folder, Path):
+        if not checkpoint_folder.exists():
+            _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
+            sys.exit(1)
+        if not checkpoint_folder.is_dir():
+            _log.error(
+                f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
+            )
+            sys.exit(1)
 
-    # Check for metadata file
-    metadata_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
-    if isinstance(metadata_file, Path):
-        has_metadata = metadata_file.is_file()
-    else:
-        from lightning.fabric.utilities.cloud_io import get_filesystem
-
-        has_metadata = get_filesystem(metadata_file).exists(metadata_file)
-
-    if not has_metadata:
+    # Directories are virtual on remote/object storage, where `isdir()`/`exists()` can be unreliable. The presence
+    # of the metadata file that Lightning writes alongside the checkpoint shards is a more robust signal there
+    # (see `_is_sharded_checkpoint` in `lightning.fabric.strategies.fsdp`).
+    if not get_filesystem(checkpoint_folder).isfile(str(_checkpoint_join(checkpoint_folder, _METADATA_FILENAME))):
         _log.error(
             "Only FSDP-sharded checkpoints saved with Lightning are supported for consolidation. The provided folder"
             f" is not in that format: {checkpoint_folder}"
@@ -72,30 +68,15 @@ def _process_cli_args(args: Namespace) -> Namespace:
         sys.exit(1)
 
     if args.output_file is None:
-        if isinstance(checkpoint_folder, Path):
-            output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".consolidated")
-        else:
-            output_file = checkpoint_folder.rstrip("/") + ".consolidated"
+        output_file = _resolve_path(str(checkpoint_folder).rstrip("/") + ".consolidated")
     else:
         output_file = _resolve_path(args.output_file)
-
-    # Check if output file already exists
-    if isinstance(output_file, Path):
-        if output_file.exists():
-            _log.error(
-                "The path for the converted checkpoint already exists. Choose a different path by providing"
-                f" `--output_file` or move/delete the file first: {output_file}"
-            )
-            sys.exit(1)
-    else:
-        from lightning.fabric.utilities.cloud_io import get_filesystem
-
-        if get_filesystem(output_file).exists(output_file):
-            _log.error(
-                "The path for the converted checkpoint already exists. Choose a different path by providing"
-                f" `--output_file` or move/delete the file first: {output_file}"
-            )
-            sys.exit(1)
+    if get_filesystem(output_file).exists(str(output_file)):
+        _log.error(
+            "The path for the converted checkpoint already exists. Choose a different path by providing"
+            f" `--output_file` or move/delete the file first: {output_file}"
+        )
+        sys.exit(1)
 
     return Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
 
@@ -104,4 +85,6 @@ if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-    _atomic_save(checkpoint, config.output_file)
+    # TODO: replace `torch.save` with `_atomic_save` once #21799 lands.
+    # `_atomic_save` can silently succeed without writing anything on permission errors.
+    torch.save(checkpoint, config.output_file)

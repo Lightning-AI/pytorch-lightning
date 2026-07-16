@@ -911,8 +911,13 @@ def _get_full_state_dict_context(
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    # TODO: This can be cleaned up once PyTorch Lightning picks up the PyTorch version containing
+    # the fix https://github.com/pytorch/pytorch/pull/188990 as the root cause is in PyTorch.
+    # Offloading to CPU when FSDP is on CPU triggers a use-after-free in PyTorch's FlatParamHandle.to_cpu().
+    param = next(module.parameters(), None)
+    offload_to_cpu = param is None or param.device.type != "cpu"
+    state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
     state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,

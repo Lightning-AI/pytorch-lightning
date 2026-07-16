@@ -159,8 +159,8 @@ if _CLICK_AVAILABLE:
     def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
         """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
 
-        Only supports FSDP sharded checkpoints at the moment. Supports local paths and fsspec URLs (e.g.,
-        s3://bucket/path).
+        Only supports FSDP sharded checkpoints at the moment. Supports checkpoints stored on remote filesystems (e.g.
+        S3, GCS) through fsspec URLs.
 
         """
         args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)

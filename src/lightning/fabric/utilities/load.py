@@ -17,7 +17,6 @@ from collections import OrderedDict
 from collections.abc import Sequence
 from functools import partial
 from io import BytesIO
-from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
@@ -27,6 +26,12 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
+from lightning.fabric.utilities.cloud_io import (
+    _checkpoint_join,
+    _get_distributed_checkpoint_reader,
+    _load,
+    get_filesystem,
+)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _PATH, _Stateful
 
@@ -237,12 +242,11 @@ def _move_state_into(
             destination[key] = state
 
 
-def _load_distributed_checkpoint(checkpoint_folder: Union[Path, str]) -> dict[str, Any]:
+def _load_distributed_checkpoint(checkpoint_folder: _PATH) -> dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
-    The current implementation assumes that the entire checkpoint fits in CPU memory.
-
-    Supports both local paths and fsspec URLs (e.g., ``s3://bucket/path``).
+    The current implementation assumes that the entire checkpoint fits in CPU memory. Supports checkpoints stored on
+    remote filesystems through fsspec.
 
     """
     if not _TORCH_GREATER_EQUAL_2_3:
@@ -267,10 +271,8 @@ def _load_distributed_checkpoint(checkpoint_folder: Union[Path, str]) -> dict[st
 
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
     extra_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
-    try:
-        extra = _load(extra_file)
-    except FileNotFoundError:
-        extra = {}
+    fs = get_filesystem(checkpoint_folder)
+    extra = _load(extra_file, map_location="cpu") if fs.isfile(str(extra_file)) else {}
     checkpoint.update(extra)
 
     return checkpoint
