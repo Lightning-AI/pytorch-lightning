@@ -255,12 +255,6 @@ def _load_distributed_checkpoint(checkpoint_folder: _PATH) -> dict[str, Any]:
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
-    from lightning.fabric.utilities.cloud_io import (
-        _checkpoint_join,
-        _get_distributed_checkpoint_reader,
-        _load,
-    )
-
     checkpoint: dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
