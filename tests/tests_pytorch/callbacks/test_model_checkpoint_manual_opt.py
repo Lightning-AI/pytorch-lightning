@@ -119,6 +119,91 @@ def test_model_checkpoint_manual_opt():
             )
 
 
+class SimpleModuleValMonitor(LightningModule):
+    """Like SimpleModule, but the monitored metric is validation-only, so the save is deferred to
+    on_validation_end instead of being handled immediately in on_train_batch_end."""
+
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(3, 1)
+        self.automatic_optimization = False
+        self.fake_val_losses = [
+            torch.tensor(1.0),
+            torch.tensor(1.0),
+            torch.tensor(0.0),
+            torch.tensor(1.0),
+        ]
+        self.saved_models = {}
+
+    def training_step(self, batch, batch_idx):
+        out = self.layer(batch[0])
+        loss = torch.nn.functional.binary_cross_entropy_with_logits(out, batch[1].float())
+        # Save model before optimization
+        save_model(self.layer, batch_idx, self.saved_models)
+        optimizer = self.optimizers()
+        optimizer.zero_grad()
+        self.manual_backward(loss)
+        optimizer.step()
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        self.log("val_loss", self.fake_val_losses[batch_idx], on_step=False, on_epoch=True, logger=True)
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.parameters(), lr=0.01)
+
+
+def test_model_checkpoint_manual_opt_deferred_validation():
+    """The pre-optimization-step snapshot must also be used when the monitored metric is validation-only
+    and the save is deferred to on_validation_end, not just when it's handled immediately in
+    on_train_batch_end."""
+    with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
+        dataset = FakeDataset()
+        train_dataloader = DataLoader(dataset, batch_size=1)
+        val_dataloader = DataLoader(dataset, batch_size=1)
+        model = SimpleModuleValMonitor()
+        trainer = Trainer(
+            max_epochs=1,
+            callbacks=[
+                ModelCheckpoint(
+                    save_top_k=1,
+                    monitor="val_loss",
+                    dirpath=tmpdir,
+                    mode="min",
+                    save_last=False,
+                    every_n_train_steps=1,
+                    train_time_interval=None,
+                    every_n_epochs=0,
+                    save_on_train_epoch_end=False,
+                    save_weights_only=True,
+                )
+            ],
+            num_sanity_val_steps=0,
+            logger=False,  # Disable logging to prevent creating lightning_logs
+        )
+        try:
+            trainer.fit(model, train_dataloader, val_dataloader)
+        finally:
+            trainer._teardown()
+
+        best_ckpt_path = trainer.checkpoint_callback.best_model_path
+        best_ckpt = torch.load(best_ckpt_path, weights_only=True)["state_dict"]
+
+        # The checkpoint must match one of the pre-optimization snapshots captured during training_step,
+        # never the live, fully-trained, post-optimization weights.
+        live_weights = model.layer.cpu().state_dict()
+        matches_live = all(
+            torch.equal(live_weights[name.removeprefix("layer.")], value) for name, value in best_ckpt.items()
+        )
+        assert not matches_live, "Checkpoint saved the live, post-optimization weights instead of a pre-opt snapshot"
+
+        matches_any_snapshot = any(
+            all(torch.equal(snapshot[name.removeprefix("layer.")], value) for name, value in best_ckpt.items())
+            for snapshot in model.saved_models.values()
+        )
+        assert matches_any_snapshot, "Checkpoint doesn't match any pre-optimization snapshot"
+
+
 def test_model_checkpoint_manual_opt_warning():
     """Test that a warning is raised when using manual optimization without saving the state."""
 
