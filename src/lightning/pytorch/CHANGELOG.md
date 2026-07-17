@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21797](https://github.com/Lightning-AI/pytorch-lightning/issues/21797))
 
+- Added support for using the `FSDPStrategy` on CPU (`accelerator="cpu"`) ([#21812](https://github.com/Lightning-AI/pytorch-lightning/issues/21812))
+
 ### Changed
 
 -

@@ -14,15 +14,17 @@ import torch
 import torch.nn as nn
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy, always_wrap_policy, size_based_auto_wrap_policy, wrap
+from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.pytorch import Trainer
+from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import HalfPrecision
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies import FSDPStrategy
@@ -194,12 +196,123 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param, shard_param)
 
 
-def test_invalid_on_cpu(tmp_path, cuda_count_0):
-    """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
-    with pytest.raises(ValueError, match="The strategy `fsdp` requires a GPU accelerator"):
-        trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy="fsdp")
-        assert isinstance(trainer.strategy, FSDPStrategy)
-        trainer.strategy.setup_environment()
+def test_fsdp_on_cpu_allowed(tmp_path, cuda_count_0):
+    """FSDP on CPU is allowed (enables CPU-based FSDP checkpointing)."""
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy="fsdp")
+    assert isinstance(trainer.strategy, FSDPStrategy)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+class _CPUFSDPTrainableModel(BoringModel):
+    """Overfits a fixed dataset so that the training loss must drop if FSDP actually trains the model.
+
+    If ``params_to_compare`` is given, the (already resharded) parameters are asserted to match it at the start of
+    training. This is used to verify that a checkpoint written after training reads back with identical weights.
+    """
+
+    def __init__(self, params_to_compare: Optional[list[torch.Tensor]] = None):
+        super().__init__()
+        self.layer: Optional[nn.Module] = None
+        self.losses: list[float] = []
+        self.params_to_compare = params_to_compare
+
+    def configure_model(self) -> None:
+        if self.layer is None:
+            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 4), torch.nn.ReLU(), torch.nn.Linear(4, 2))
+        if isinstance(self.layer, FullyShardedDataParallel):
+            return
+        # wrap the two Linear layers and the container so their parameters are really flattened/sharded by FSDP
+        self.layer[0] = wrap(self.layer[0])
+        self.layer[2] = wrap(self.layer[2])
+        self.layer = wrap(self.layer)
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.layer.parameters(), lr=0.15)
+
+    def training_step(self, batch, batch_idx):
+        loss = self.step(batch)
+        self.losses.append(loss.detach().item())
+        return {"loss": loss}
+
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        # FSDP must be genuinely engaged here, not a silent fallback to plain CPU training
+        assert isinstance(self.layer, FullyShardedDataParallel)
+
+    def on_train_start(self):
+        # when resuming, the checkpoint has been loaded and resharded by now: the local shards must match exactly
+        if self.params_to_compare is None:
+            return
+        for expected, actual in zip(self.params_to_compare, self.trainer.model.parameters()):
+            torch.testing.assert_close(expected, actual, atol=0, rtol=0, equal_nan=True)
+
+    def train_dataloader(self):
+        # a small, fixed dataset the model can overfit, so the loss drop is deterministic and not flaky
+        return DataLoader(RandomDataset(32, 16), batch_size=8)
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 16), batch_size=8)
+
+
+@pytest.mark.filterwarnings("ignore::FutureWarning")
+@RunIf(standalone=True, skip_windows=True)
+@pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
+def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
+    """FSDP on CPU across 2 ranks trains and round-trips a checkpoint.
+
+    Exercises both the ``full`` (single-file) and ``sharded`` (per-rank directory) checkpoint formats: the module is
+    genuinely FSDP-wrapped, the loss drops sharply over 15 epochs, and the checkpoint written after training reads back
+    with identical sharded parameters.
+    """
+
+    def _make_trainer(max_epochs: int) -> Trainer:
+        return Trainer(
+            accelerator="cpu",
+            devices=2,
+            strategy=FSDPStrategy(state_dict_type=state_dict_type),
+            max_epochs=max_epochs,
+            default_root_dir=tmp_path,
+            enable_checkpointing=False,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+
+    seed_everything(42)
+    model = _CPUFSDPTrainableModel()
+    trainer = _make_trainer(max_epochs=15)
+    trainer.fit(model)
+
+    # the model was really trained under a 2-rank sharding regime with FSDP engaged (also asserted live per step)
+    assert trainer.strategy.world_size == 2
+    assert isinstance(model.layer, FullyShardedDataParallel)
+
+    # trainable: the loss dropped by more than 10x between the start and the end of training
+    assert len(model.losses) > 5
+    first = sum(model.losses[:3]) / 3
+    last = sum(model.losses[-3:]) / 3
+    assert last < 0.1 * first, f"loss did not drop enough: first={first:.4f} last={last:.4f}"
+
+    # --- checkpoint write ---
+    # broadcast one path so every rank writes to (and later reads from) the same location
+    ckpt_path = Path(trainer.strategy.broadcast(str(tmp_path / "checkpoint")))
+    trainer.save_checkpoint(ckpt_path)
+
+    # the two formats must produce genuinely different on-disk layouts
+    if state_dict_type == "sharded":
+        assert ckpt_path.is_dir() and _is_sharded_checkpoint(ckpt_path)
+    else:
+        assert ckpt_path.is_file() and not _is_sharded_checkpoint(ckpt_path)
+
+    # snapshot the trained local shards on this rank for a read-back comparison
+    trained_params = deepcopy(list(trainer.model.parameters()))
+
+    # --- checkpoint read ---
+    # a fresh model + trainer must load the checkpoint and recover the exact trained parameters; the comparison runs in
+    # `on_train_start`, once the checkpoint has been loaded and resharded (one extra epoch guarantees the hook fires)
+    seed_everything(42)
+    reloaded_model = _CPUFSDPTrainableModel(params_to_compare=trained_params)
+    resumed_trainer = _make_trainer(max_epochs=15)
+    resumed_trainer.fit(reloaded_model, ckpt_path=ckpt_path)
 
 
 def test_custom_mixed_precision():
