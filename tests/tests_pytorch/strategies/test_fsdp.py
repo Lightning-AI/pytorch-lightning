@@ -208,6 +208,7 @@ class _CPUFSDPTrainableModel(BoringModel):
 
     If ``params_to_compare`` is given, the (already resharded) parameters are asserted to match it at the start of
     training. This is used to verify that a checkpoint written after training reads back with identical weights.
+
     """
 
     def __init__(self, params_to_compare: Optional[list[torch.Tensor]] = None):
@@ -262,6 +263,7 @@ def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
     Exercises both the ``full`` (single-file) and ``sharded`` (per-rank directory) checkpoint formats: the module is
     genuinely FSDP-wrapped, the loss drops sharply over 15 epochs, and the checkpoint written after training reads back
     with identical sharded parameters.
+
     """
 
     def _make_trainer(max_epochs: int) -> Trainer:
@@ -299,9 +301,11 @@ def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
 
     # the two formats must produce genuinely different on-disk layouts
     if state_dict_type == "sharded":
-        assert ckpt_path.is_dir() and _is_sharded_checkpoint(ckpt_path)
+        assert ckpt_path.is_dir()
+        assert _is_sharded_checkpoint(ckpt_path)
     else:
-        assert ckpt_path.is_file() and not _is_sharded_checkpoint(ckpt_path)
+        assert ckpt_path.is_file()
+        assert not _is_sharded_checkpoint(ckpt_path)
 
     # snapshot the trained local shards on this rank for a read-back comparison
     trained_params = deepcopy(list(trainer.model.parameters()))
