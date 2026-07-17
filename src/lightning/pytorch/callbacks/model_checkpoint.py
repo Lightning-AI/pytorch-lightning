@@ -346,6 +346,7 @@ class ModelCheckpoint(Checkpoint):
         Shared between the immediate save path (``on_train_batch_end``, when the monitored metric is already
         available) and the deferred save path (``on_validation_end``, when the monitored metric is validation-only
         and only becomes available after ``training_step`` has already advanced past the step being saved).
+
         """
         if (
             hasattr(pl_module, "saved_models")

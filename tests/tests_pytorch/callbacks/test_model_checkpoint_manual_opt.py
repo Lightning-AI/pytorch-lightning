@@ -120,8 +120,8 @@ def test_model_checkpoint_manual_opt():
 
 
 class SimpleModuleValMonitor(LightningModule):
-    """Like SimpleModule, but the monitored metric is validation-only, so the save is deferred to
-    on_validation_end instead of being handled immediately in on_train_batch_end."""
+    """Like SimpleModule, but the monitored metric is validation-only, so the save is deferred to on_validation_end
+    instead of being handled immediately in on_train_batch_end."""
 
     def __init__(self):
         super().__init__()
@@ -154,9 +154,8 @@ class SimpleModuleValMonitor(LightningModule):
 
 
 def test_model_checkpoint_manual_opt_deferred_validation():
-    """The pre-optimization-step snapshot must also be used when the monitored metric is validation-only
-    and the save is deferred to on_validation_end, not just when it's handled immediately in
-    on_train_batch_end."""
+    """The pre-optimization-step snapshot must also be used when the monitored metric is validation-only and the save
+    is deferred to on_validation_end, not just when it's handled immediately in on_train_batch_end."""
     with cleanup_after_test(), tempfile.TemporaryDirectory() as tmpdir:
         dataset = FakeDataset()
         train_dataloader = DataLoader(dataset, batch_size=1)
