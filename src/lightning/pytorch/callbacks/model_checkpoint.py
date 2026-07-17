@@ -336,6 +336,72 @@ class ModelCheckpoint(Checkpoint):
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
 
+    def _save_checkpoint_with_manual_opt_state(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", monitor_candidates: dict[str, Tensor]
+    ) -> None:
+        """Save a checkpoint under manual optimization, using the pre-optimization-step model state captured in
+        ``training_step`` (via ``pl_module.saved_models``) if available, so the saved checkpoint reflects the state
+        that actually produced the monitored metric rather than the state after subsequent optimizer steps.
+
+        Shared between the immediate save path (``on_train_batch_end``, when the monitored metric is already
+        available) and the deferred save path (``on_validation_end``, when the monitored metric is validation-only
+        and only becomes available after ``training_step`` has already advanced past the step being saved).
+        """
+        if (
+            hasattr(pl_module, "saved_models")
+            and isinstance(pl_module.saved_models, dict)
+            and pl_module.saved_models
+            and hasattr(pl_module, "layer")
+            and isinstance(pl_module.layer, torch.nn.Module)
+        ):
+            saved_models = pl_module.saved_models
+            latest_step = max(saved_models.keys())
+            # Save the checkpoint with the pre-optimization state
+            with torch.no_grad():
+                # Save the current state
+                original_state = {k: v.detach().clone() for k, v in pl_module.layer.state_dict().items()}
+                try:
+                    # Restore the pre-optimization state
+                    saved_state = saved_models[latest_step]
+                    if not isinstance(saved_state, dict):
+                        raise TypeError("Saved model state must be a dictionary")
+
+                    pl_module.layer.load_state_dict(saved_state)
+                    # Save the checkpoint
+                    self._save_topk_checkpoint(trainer, monitor_candidates)
+                    self._save_last_checkpoint(trainer, monitor_candidates)
+                    self._last_time_checked = time.monotonic()
+                finally:
+                    # Restore the original state
+                    pl_module.layer.load_state_dict(original_state)
+        else:
+            # Fallback to default behavior if no saved state is available
+            if trainer.is_global_zero:
+                rank_zero_warn(
+                    "Using ModelCheckpoint with manual optimization and every_n_train_steps, but no "
+                    "pre-optimization state was saved. The checkpoint will contain the model state "
+                    "AFTER optimization. To save the pre-optimization state, save the model state in "
+                    "training_step before "
+                    "optimizer.step(). "
+                    "Example:\n"
+                    "def training_step(self, batch, batch_idx):\n"
+                    "    # ... forward pass, loss calculation, backward pass ...\n"
+                    "    # Save model state before optimization\n"
+                    "    if not hasattr(self, 'saved_models'):\n"
+                    "        self.saved_models = {}\n"
+                    "    self.saved_models[batch_idx] = {\n"
+                    "        k: v.detach().clone() for k, v in self.layer.state_dict().items()\n"
+                    "    }\n"
+                    "    # Then perform optimization\n"
+                    "    optimizer.zero_grad()\n"
+                    "    self.manual_backward(loss)\n"
+                    "    optimizer.step()",
+                    category=UserWarning,
+                )
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
+            self._last_time_checked = time.monotonic()
+
     @override
     def on_train_batch_end(
         self,
@@ -362,66 +428,7 @@ class ModelCheckpoint(Checkpoint):
                 self._defer_save_until_validation = True
                 return
 
-            # For manual optimization, we save the model state that was captured in training_step
-            # before the optimizer step. The test case saves this state in model.saved_models.
-            if (
-                hasattr(pl_module, "saved_models")
-                and isinstance(pl_module.saved_models, dict)
-                and pl_module.saved_models
-                and hasattr(pl_module, "layer")
-                and isinstance(pl_module.layer, torch.nn.Module)
-            ):
-                # Get the latest saved state
-                saved_models = pl_module.saved_models
-                if not saved_models:  # Check if dictionary is not empty
-                    return
-
-                latest_step = max(saved_models.keys())
-                # Save the checkpoint with the pre-optimization state
-                with torch.no_grad():
-                    # Save the current state
-                    original_state = {k: v.detach().clone() for k, v in pl_module.layer.state_dict().items()}
-                    try:
-                        # Restore the pre-optimization state
-                        saved_state = saved_models[latest_step]
-                        if not isinstance(saved_state, dict):
-                            raise TypeError("Saved model state must be a dictionary")
-
-                        pl_module.layer.load_state_dict(saved_state)
-                        # Save the checkpoint
-                        self._save_topk_checkpoint(trainer, monitor_candidates)
-                        self._save_last_checkpoint(trainer, monitor_candidates)
-                        self._last_time_checked = time.monotonic()
-                    finally:
-                        # Restore the original state
-                        pl_module.layer.load_state_dict(original_state)
-            else:
-                # Fallback to default behavior if no saved state is available
-                if not pl_module.automatic_optimization and trainer.is_global_zero:
-                    rank_zero_warn(
-                        "Using ModelCheckpoint with manual optimization and every_n_train_steps, but no "
-                        "pre-optimization state was saved. The checkpoint will contain the model state "
-                        "AFTER optimization. To save the pre-optimization state, save the model state in "
-                        "training_step before "
-                        "optimizer.step(). "
-                        "Example:\n"
-                        "def training_step(self, batch, batch_idx):\n"
-                        "    # ... forward pass, loss calculation, backward pass ...\n"
-                        "    # Save model state before optimization\n"
-                        "    if not hasattr(self, 'saved_models'):\n"
-                        "        self.saved_models = {}\n"
-                        "    self.saved_models[batch_idx] = {\n"
-                        "        k: v.detach().clone() for k, v in self.layer.state_dict().items()\n"
-                        "    }\n"
-                        "    # Then perform optimization\n"
-                        "    optimizer.zero_grad()\n"
-                        "    self.manual_backward(loss)\n"
-                        "    optimizer.step()",
-                        category=UserWarning,
-                    )
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-                self._save_last_checkpoint(trainer, monitor_candidates)
-                self._last_time_checked = time.monotonic()
+            self._save_checkpoint_with_manual_opt_state(trainer, pl_module, monitor_candidates)
             return
 
         # Original logic for automatic optimization
@@ -505,8 +512,14 @@ class ModelCheckpoint(Checkpoint):
             # If a step/time-triggered save was deferred due to a missing monitored metric,
             # perform the save now that validation metrics are available.
             if self._defer_save_until_validation:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-                self._save_last_checkpoint(trainer, monitor_candidates)
+                if not pl_module.automatic_optimization:
+                    # Use the same pre-optimization-state swap as the immediate save path in
+                    # on_train_batch_end, otherwise this would save the live, fully-trained weights
+                    # instead of the state that actually produced the monitored metric.
+                    self._save_checkpoint_with_manual_opt_state(trainer, pl_module, monitor_candidates)
+                else:
+                    self._save_topk_checkpoint(trainer, monitor_candidates)
+                    self._save_last_checkpoint(trainer, monitor_candidates)
                 self._defer_save_until_validation = False
                 return
 
