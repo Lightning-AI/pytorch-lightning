@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -28,9 +29,11 @@ class SyncBNModule(LightningModule):
         self.linear = nn.Linear(1, 10)
         self.bn_outputs = []
 
+    @override
     def on_train_start(self) -> None:
         assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
 
+    @override
     def training_step(self, batch, batch_idx):
         with torch.no_grad():
             out_bn = self.bn_layer(batch)
@@ -38,9 +41,11 @@ class SyncBNModule(LightningModule):
         out = self.linear(out_bn)
         return out.sum()
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.02)
 
+    @override
     def train_dataloader(self):
         dataset = torch.arange(64, dtype=torch.float).view(-1, 1)
         # we need to set a distributed sampler ourselves to force shuffle=False

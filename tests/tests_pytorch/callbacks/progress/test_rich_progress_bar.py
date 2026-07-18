@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pickle
 from collections import defaultdict
 from unittest import mock
@@ -52,15 +53,19 @@ def test_rich_progress_bar_refresh_rate_enabled():
 @pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
 def test_rich_progress_bar(tmp_path, dataset):
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             return DataLoader(dataset=dataset)
 
+        @override
         def val_dataloader(self):
             return DataLoader(dataset=dataset)
 
+        @override
         def test_dataloader(self):
             return DataLoader(dataset=dataset)
 
+        @override
         def predict_dataloader(self):
             return DataLoader(dataset=dataset)
 
@@ -140,6 +145,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmp_path):
     """Test to ensure that when the user keyboard interrupts, we close the progress bar."""
 
     class TestModel(BoringModel):
+        @override
         def on_train_start(self) -> None:
             raise KeyboardInterrupt
 
@@ -169,6 +175,7 @@ def test_rich_progress_bar_configure_columns():
     custom_column = TextColumn("[progress.description]Testing Rich!")
 
     class CustomRichProgressBar(RichProgressBar):
+        @override
         def configure_columns(self, trainer):
             return [custom_column]
 
@@ -323,6 +330,7 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmp_path):
 @RunIf(rich=True)
 def test_rich_progress_bar_metric_display_task_id(tmp_path):
     class CustomModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             res = super().training_step(*args, **kwargs)
             self.log("train_loss", res["loss"], prog_bar=True)
@@ -373,6 +381,7 @@ def test_rich_progress_bar_correct_value_epoch_end(tmp_path):
     class MockedProgressBar(RichProgressBar):
         calls = defaultdict(list)
 
+        @override
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
@@ -386,14 +395,17 @@ def test_rich_progress_bar_correct_value_epoch_end(tmp_path):
             return items
 
     class MyModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("a", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("b", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def test_step(self, batch, batch_idx):
             self.log("c", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().test_step(batch, batch_idx)
@@ -546,6 +558,7 @@ def test_rich_progress_bar_metrics_format(tmp_path, metrics_format):
     metric_name = "train_loss"
 
     class CustomModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             res = super().training_step(*args, **kwargs)
             self.log(metric_name, res["loss"], prog_bar=True)
@@ -588,9 +601,11 @@ def test_rich_progress_bar_empty_val_dataloader_model(tmp_path):
     """Test that RichProgressBar doesn't crash with empty val_dataloader list from model."""
 
     class EmptyListModel(BoringModel):
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
+        @override
         def val_dataloader(self):
             return []
 

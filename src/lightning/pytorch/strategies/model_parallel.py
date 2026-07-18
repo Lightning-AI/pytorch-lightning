@@ -103,8 +103,8 @@ class ModelParallelStrategy(ParallelStrategy):
             raise RuntimeError("Accessing the device mesh before processes have initialized is not allowed.")
         return self._device_mesh
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -113,8 +113,8 @@ class ModelParallelStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
@@ -124,13 +124,13 @@ class ModelParallelStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
-    @property
     @override
+    @property
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def lightning_restore_optimizer(self) -> bool:
         return False
 

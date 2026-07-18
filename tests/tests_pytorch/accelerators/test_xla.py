@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from typing_extensions import override
 import collections
 import os
 from copy import deepcopy
@@ -43,6 +44,7 @@ class WeightSharingModule(BoringModel):
         self.layer_3 = nn.Linear(32, 10, bias=False)
         self.layer_3.weight = self.layer_1.weight
 
+    @override
     def forward(self, x):
         x = self.layer_1(x)
         x = self.layer_2(x)
@@ -115,10 +117,12 @@ class ManualOptimizationModel(BoringModel):
     def should_update(self):
         return self.count % 2 == 0
 
+    @override
     def on_train_batch_start(self, batch, batch_idx):
         self.called["on_train_batch_start"] += 1
         self.weight_before = self.layer.weight.clone()
 
+    @override
     def training_step(self, batch, batch_idx):
         self.called["training_step"] += 1
         opt = self.optimizers()
@@ -130,6 +134,7 @@ class ManualOptimizationModel(BoringModel):
             opt.zero_grad()
         return loss
 
+    @override
     def on_train_batch_end(self, *_):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
@@ -140,11 +145,13 @@ class ManualOptimizationModel(BoringModel):
         assert_emtpy_grad(self.layer.weight.grad)
         self.count += 1
 
+    @override
     def on_train_start(self):
         opt = self.optimizers()
         self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
         self.opt_step_mock = self.opt_step_patch.start()
 
+    @override
     def on_train_end(self):
         # this might fail if run in an environment with too many ranks, as the total
         # length of the dataloader will be distributed among them and then each rank might not do 3 steps
@@ -214,6 +221,7 @@ class SubModule(nn.Module):
         super().__init__()
         self.layer = layer
 
+    @override
     def forward(self, x):
         return self.layer(x)
 
@@ -226,6 +234,7 @@ class NestedModule(BoringModel):
         self.layer_2 = nn.Linear(10, 32, bias=False)
         self.net_b = SubModule(self.layer)
 
+    @override
     def forward(self, x):
         x = self.net_a(x)
         x = self.layer_2(x)

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 
+from typing_extensions import override
 import pytest
 import torch
 
@@ -21,6 +22,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class MultiOptModel(BoringModel):
+    @override
     def configure_optimizers(self):
         opt_a = torch.optim.SGD(self.layer.parameters(), lr=0.001)
         opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
@@ -31,6 +33,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
     """Test that multiple optimizers in automatic optimization is not allowed."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
@@ -42,6 +45,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())
 
@@ -59,6 +63,7 @@ def test_multiple_optimizers_manual(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
 

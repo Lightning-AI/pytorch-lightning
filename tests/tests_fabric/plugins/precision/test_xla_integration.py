@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from unittest import mock
 
@@ -29,6 +30,7 @@ class BoringPrecisionModule(nn.Module):
         self.expected_dtype = expected_dtype
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x):
         # TODO: These should be float16/bfloat16
         assert x.dtype == torch.float32

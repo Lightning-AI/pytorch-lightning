@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 from copy import deepcopy
 from unittest.mock import Mock
 
@@ -65,6 +66,7 @@ def test_fabric_call_lightning_module_hooks():
     """Test that `Fabric.call` can call hooks on the LightningModule."""
 
     class HookedModel(BoringModel):
+        @override
         def on_train_start(self):
             pass
 

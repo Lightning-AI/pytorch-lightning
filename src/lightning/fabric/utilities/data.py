@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import functools
 import inspect
 import os
@@ -493,14 +494,17 @@ class AttributeDict(dict):
         except KeyError as e:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'") from e
 
+    @override
     def __setattr__(self, key: str, val: Any) -> None:
         self[key] = val
 
+    @override
     def __delattr__(self, item: str) -> None:
         if item not in self:
             raise KeyError(item)
         del self[item]
 
+    @override
     def __repr__(self) -> str:
         if not len(self):
             return ""

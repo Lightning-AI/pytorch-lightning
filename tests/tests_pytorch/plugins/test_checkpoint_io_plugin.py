@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from pathlib import Path
 from typing import Any, Optional
@@ -29,14 +30,17 @@ from lightning.pytorch.strategies import SingleDeviceStrategy
 
 
 class CustomCheckpointIO(CheckpointIO):
+    @override
     def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         torch.save(checkpoint, path)
 
+    @override
     def load_checkpoint(
         self, path: _PATH, storage_options: Optional[Any] = None, weights_only: bool = True
     ) -> dict[str, Any]:
         return torch.load(path, weights_only=True)
 
+    @override
     def remove_checkpoint(self, path: _PATH) -> None:
         os.remove(path)
 
@@ -111,6 +115,7 @@ def test_async_checkpoint_plugin(tmp_path):
     checkpoint_plugin.remove_checkpoint = Mock(wraps=checkpoint_plugin.remove_checkpoint)
 
     class CustomBoringModel(BoringModel):
+        @override
         def on_fit_start(self):
             base_ckpt_io = self.trainer.strategy.checkpoint_io.checkpoint_io
             base_ckpt_io.save_checkpoint = Mock(wraps=base_ckpt_io.save_checkpoint)

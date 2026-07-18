@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import logging
 from unittest.mock import Mock, patch
 
@@ -94,6 +95,7 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
     """
 
     class NewBoring(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("loss", self.step(batch))
             return {"loss": self.step(batch)}
@@ -136,12 +138,15 @@ def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         step_outs = []
         batch_end_ins = []
 
+        @override
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
+        @override
         def training_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 
+        @override
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
             self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
@@ -160,9 +165,11 @@ def test_no_batch_idx_gradient_accumulation():
     class MyModel(BoringModel):
         last_batch_idx = -1
 
+        @override
         def training_step(self, batch):  # no batch_idx
             return self.step(batch)
 
+        @override
         def optimizer_step(self, epoch, batch_idx, *args, **kwargs):
             assert batch_idx in (1, 3)
             self.last_batch_idx = batch_idx

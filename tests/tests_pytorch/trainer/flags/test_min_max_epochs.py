@@ -1,3 +1,4 @@
+from typing_extensions import override
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
@@ -41,6 +42,7 @@ def test_max_epochs_not_set_warning(tmp_path):
     """Test that a warning is only emitted when `max_epochs` was not set by the user."""
 
     class CustomModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             self.trainer.should_stop = True
 

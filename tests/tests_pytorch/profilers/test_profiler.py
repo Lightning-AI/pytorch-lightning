@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import logging
 import os
 import platform
@@ -601,6 +602,7 @@ def test_profiler_teardown(tmp_path, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
     class TestCallback(Callback):
+        @override
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
             # describe sets it to None
             assert trainer.profiler._output_file is None

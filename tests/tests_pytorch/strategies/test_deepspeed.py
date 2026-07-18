@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import contextlib
 import json
 import os
@@ -44,15 +45,18 @@ class ModelParallelBoringModel(BoringModel):
         super().__init__()
         self.layer = None
 
+    @override
     def configure_model(self) -> None:
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
 
 class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
@@ -62,6 +66,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         super().__init__()
         self.layer = None
 
+    @override
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         loss = self.step(batch)
@@ -69,13 +74,16 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.manual_backward(loss)
         opt.step()
 
+    @override
     def configure_model(self) -> None:
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
+    @override
     @property
     def automatic_optimization(self) -> bool:
         return False
@@ -180,6 +188,7 @@ def test_deepspeed_defaults():
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_warn_deepspeed_ignored(tmp_path):
     class TestModel(BoringModel):
+        @override
         def backward(self, loss: Tensor, *args, **kwargs) -> None:
             return loss.backward()
 
@@ -209,9 +218,11 @@ def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, v
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             return DataLoader(dataset_cls(32, 64))
 
+        @override
         def configure_model(self) -> None:
             assert isinstance(self.trainer.strategy, DeepSpeedStrategy)
             config = self.trainer.strategy.config
@@ -243,6 +254,7 @@ def test_deepspeed_run_configure_optimizers(tmp_path):
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class TestCB(Callback):
+        @override
         def on_train_start(self, trainer, pl_module) -> None:
             assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
@@ -251,6 +263,7 @@ def test_deepspeed_run_configure_optimizers(tmp_path):
             assert trainer.lr_scheduler_configs[0].name == "Sean"
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             [optimizer], [scheduler] = super().configure_optimizers()
             return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "name": "Sean"}}
@@ -283,6 +296,7 @@ def test_deepspeed_config(tmp_path, deepspeed_zero_config):
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class TestCB(Callback):
+        @override
         def on_train_start(self, trainer, pl_module) -> None:
             from deepspeed.runtime.lr_schedules import WarmupLR
 
@@ -322,6 +336,7 @@ def test_deepspeed_custom_precision_params(tmp_path):
     changes."""
 
     class TestCB(Callback):
+        @override
         def on_train_start(self, trainer, pl_module) -> None:
             assert trainer.strategy.config["fp16"]["loss_scale"] == 10
             assert trainer.strategy.config["fp16"]["initial_scale_power"] == 11
@@ -355,6 +370,7 @@ def test_deepspeed_inference_precision_during_inference(precision, tmp_path):
     changes."""
 
     class TestCB(Callback):
+        @override
         def on_validation_start(self, trainer, pl_module) -> None:
             assert trainer.strategy.config[precision]
             raise SystemExit()
@@ -430,6 +446,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmp_path, deepspeed_zero_
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
+        @override
         def setup(self, trainer, pl_module, stage=None) -> None:
             assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
@@ -571,12 +588,14 @@ def test_deepspeed_strategy_exclude_frozen_parameters_integration(tmp_path):
             super().__init__()
             self.frozen_layer = torch.nn.Linear(32, 32)
 
+        @override
         def configure_model(self) -> None:
             super().configure_model()
             # Freeze the additional layer parameters
             for param in self.frozen_layer.parameters():
                 param.requires_grad = False
 
+        @override
         def forward(self, x):
             x = self.frozen_layer(x)
             return super().forward(x)
@@ -614,6 +633,7 @@ class ModelParallelClassificationModel(LightningModule):
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
+    @override
     def configure_model(self) -> None:
         # As of deepspeed v0.9.3, in ZeRO stage 3 all submodules need to be created within this hook,
         # including the metrics. Otherwise, modules that aren't affected by `deepspeed.zero.Init()`
@@ -625,12 +645,14 @@ class ModelParallelClassificationModel(LightningModule):
             self.test_acc = metric.clone()
             self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
+    @override
     def forward(self, x):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
         return F.softmax(x, dim=1)
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
@@ -639,30 +661,35 @@ class ModelParallelClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True, sync_dist=True)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x, y = batch
         logits = self.forward(x)
         self.test_acc(logits, y)
         return self.test_acc.compute()
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
+    @override
     def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         if not hasattr(self, "model"):
             self.configure_model()
@@ -673,10 +700,12 @@ class ModelParallelClassificationModel(LightningModule):
 
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
+    @override
     @property
     def automatic_optimization(self) -> bool:
         return False
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
@@ -828,6 +857,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmp_path):
     initial_trainer.fit(initial_model, datamodule=dm)
 
     class TestCallback(Callback):
+        @override
         def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             original_deepspeed_strategy = initial_trainer.strategy
             current_deepspeed_strategy = trainer.strategy
@@ -878,6 +908,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmp_path, offload_o
         def __init__(self):
             self.on_train_batch_start_called = False
 
+        @override
         def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int) -> None:
             deepspeed_engine = trainer.strategy.model
             assert trainer.global_step == deepspeed_engine.global_steps
@@ -939,14 +970,17 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmp_path):
             super().__init__()
             self.layer_2 = torch.nn.Linear(32, 32)
 
+        @override
         def configure_model(self) -> None:
             if self.layer is None:
                 self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             x = self.layer_2(x)
             return self.layer(x)
 
+        @override
         def on_train_epoch_start(self) -> None:
             assert all(x.dtype == torch.float16 for x in self.parameters())
 
@@ -974,6 +1008,7 @@ def test_deepspeed_multigpu_test_rnn(tmp_path):
             super().__init__()
             self.rnn = torch.nn.GRU(32, 32)
 
+        @override
         def on_train_epoch_start(self) -> None:
             assert all(x.dtype == torch.float16 for x in self.parameters())
 
@@ -1065,6 +1100,7 @@ def test_deepspeed_multigpu_no_schedulers(tmp_path):
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_skip_backward_raises(tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             return None
 
@@ -1093,6 +1129,7 @@ def test_scheduler_step_count(mock_step, tmp_path, max_epoch, limit_train_batche
     step or epoch."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
@@ -1128,6 +1165,7 @@ def test_deepspeed_configure_gradient_clipping(tmp_path):
     of deepspeed."""
 
     class TestModel(BoringModel):
+        @override
         def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
@@ -1168,6 +1206,7 @@ def test_deepspeed_multi_save_same_filepath(tmp_path):
     checkpoints."""
 
     class CustomModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             self.log("grank", self.global_rank)
             return super().training_step(*args, **kwargs)
@@ -1241,6 +1280,7 @@ def test_deepspeed_configure_optimizer_device_set(tmp_path):
     estimated_stepping_batches works correctly as a result."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             assert self.trainer.estimated_stepping_batches == 1
             assert self.device.type == "cuda"

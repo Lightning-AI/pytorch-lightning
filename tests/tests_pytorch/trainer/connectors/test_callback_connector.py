@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import contextlib
 import logging
 from unittest import mock
@@ -105,6 +106,7 @@ def test_checkpoint_callbacks_are_last(tmp_path):
 
 
 class StatefulCallbackContent0(Callback):
+    @override
     def state_dict(self):
         return {"content0": 0}
 
@@ -114,10 +116,12 @@ class StatefulCallbackContent1(Callback):
         self._unique = unique
         self._other = other
 
+    @override
     @property
     def state_key(self):
         return self._generate_state_key(unique=self._unique)
 
+    @override
     def state_dict(self):
         return {"content1": self._unique}
 
@@ -313,10 +317,12 @@ def test_validate_unique_callback_state_key():
     """Test that we raise an error if the state keys collide, leading to missing state in the checkpoint."""
 
     class MockCallback(Callback):
+        @override
         @property
         def state_key(self):
             return "same_key"
 
+        @override
         def state_dict(self):
             # pretend these callbacks are stateful by overriding the `state_dict` hook
             return {"state": 1}
@@ -327,25 +333,30 @@ def test_validate_unique_callback_state_key():
 
 # Test with single stateful callback
 class StatefulCallback(Callback):
+    @override
     def state_dict(self):
         return {"state": 1}
 
 
 # Test with multiple stateful callbacks with unique state keys
 class StatefulCallback1(Callback):
+    @override
     @property
     def state_key(self):
         return "unique_key_1"
 
+    @override
     def state_dict(self):
         return {"state": 1}
 
 
 class StatefulCallback2(Callback):
+    @override
     @property
     def state_key(self):
         return "unique_key_2"
 
+    @override
     def state_dict(self):
         return {"state": 2}
 
@@ -365,20 +376,24 @@ def test_validate_callbacks_list_function(callbacks: list):
 
 # Test with multiple stateful callbacks with same state key
 class ConflictingCallback(Callback):
+    @override
     @property
     def state_key(self):
         return "same_key"
 
+    @override
     def state_dict(self):
         return {"state": 1}
 
 
 # Test with different types of stateful callbacks that happen to have same state key
 class AnotherConflictingCallback(Callback):
+    @override
     @property
     def state_key(self):
         return "same_key"  # Same key as ConflictingCallback
 
+    @override
     def state_dict(self):
         return {"state": 3}
 

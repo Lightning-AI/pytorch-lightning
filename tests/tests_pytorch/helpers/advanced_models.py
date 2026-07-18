@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import numpy as np
 import torch
 import torch.nn as nn
@@ -44,6 +45,7 @@ class Generator(nn.Module):
             nn.Tanh(),
         )
 
+    @override
     def forward(self, z):
         img = self.model(z)
         return img.view(img.size(0), *self.img_shape)
@@ -62,6 +64,7 @@ class Discriminator(nn.Module):
             nn.Sigmoid(),
         )
 
+    @override
     def forward(self, img):
         img_flat = img.view(img.size(0), -1)
         return self.model(img_flat)
@@ -91,12 +94,14 @@ class BasicGAN(LightningModule):
 
         self.example_input_array = torch.rand(2, self.hidden_dim)
 
+    @override
     def forward(self, z):
         return self.generator(z)
 
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
+    @override
     def training_step(self, batch, batch_idx):
         imgs, _ = batch
         self.last_imgs = imgs
@@ -148,6 +153,7 @@ class BasicGAN(LightningModule):
         optimizer2.zero_grad()
         self.untoggle_optimizer(optimizer2)
 
+    @override
     def configure_optimizers(self):
         lr = self.learning_rate
         b1 = self.b1
@@ -157,6 +163,7 @@ class BasicGAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
+    @override
     def train_dataloader(self):
         return DataLoader(TrialMNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=16)
 
@@ -169,10 +176,12 @@ class ParityModuleRNN(LightningModule):
         self.example_input_array = torch.rand(2, 3, 10)
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
+    @override
     def forward(self, x):
         seq, _ = self.rnn(x)
         return self.linear_out(seq)
 
+    @override
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self(x)
@@ -180,9 +189,11 @@ class ParityModuleRNN(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
+    @override
     def train_dataloader(self):
         return DataLoader(AverageDataset(), batch_size=30)
 
@@ -197,6 +208,7 @@ class ParityModuleMNIST(LightningModule):
         self.example_input_array = torch.rand(2, 1, 28, 28)
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
+    @override
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = self.c_d1(x)
@@ -205,6 +217,7 @@ class ParityModuleMNIST(LightningModule):
         x = self.c_d1_drop(x)
         return self.c_d2(x)
 
+    @override
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self(x)
@@ -212,9 +225,11 @@ class ParityModuleMNIST(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
+    @override
     def train_dataloader(self):
         return DataLoader(MNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=128, num_workers=1)
 
@@ -234,10 +249,12 @@ class TBPTTModule(LightningModule):
         self.rnn = nn.LSTM(self.in_features, self.hidden_dim, batch_first=True)
         self.linear_out = nn.Linear(in_features=self.hidden_dim, out_features=self.out_features)
 
+    @override
     def forward(self, x, hs):
         seq, hs = self.rnn(x, hs)
         return self.linear_out(seq), hs
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         split_x, split_y = [
@@ -263,8 +280,10 @@ class TBPTTModule(LightningModule):
 
         return
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.001)
 
+    @override
     def train_dataloader(self):
         return DataLoader(AverageDataset(), batch_size=self.batch_size)

@@ -1,3 +1,4 @@
+from typing_extensions import override
 import contextlib
 
 import pytest
@@ -17,6 +18,7 @@ class IdentityModule(LightningModule):
         self.spike_global_rank = spike_global_rank
         self.spike_value = spike_value
 
+    @override
     def training_step(self, batch, batch_idx: int):
         # initialize it all to weights one so that input = output but with gradients
         with torch.no_grad():
@@ -31,11 +33,13 @@ class IdentityModule(LightningModule):
 
         return self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-3)
 
 
 class MyTrainerSpikeDetection(SpikeDetection):
+    @override
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         context = (
             pytest.raises(TrainingSpikeException) if batch_idx == 4 and self.should_raise else contextlib.nullcontext()

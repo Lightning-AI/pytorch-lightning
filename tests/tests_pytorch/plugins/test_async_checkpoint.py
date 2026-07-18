@@ -1,3 +1,4 @@
+from typing_extensions import override
 import time
 from typing import Any, Optional
 
@@ -12,15 +13,18 @@ class _CaptureCheckpointIO(CheckpointIO):
     def __init__(self) -> None:
         self.saved: Optional[dict[str, Any]] = None
 
+    @override
     def save_checkpoint(self, checkpoint: dict[str, Any], path: str, storage_options: Optional[Any] = None) -> None:
         # Simulate some delay to increase race window
         time.sleep(0.05)
         # Store the received checkpoint object (not a deep copy) to inspect tensor values
         self.saved = checkpoint
 
+    @override
     def load_checkpoint(self, path: str, map_location: Optional[Any] = None) -> dict[str, Any]:
         raise NotImplementedError
 
+    @override
     def remove_checkpoint(self, path: str) -> None:
         pass
 

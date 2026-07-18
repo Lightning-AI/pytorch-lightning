@@ -1,3 +1,4 @@
+from typing_extensions import override
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -98,9 +99,11 @@ def test_load_from_checkpoint_device_placement_with_extra_state(tmp_path):
     """Test that the device gets chosen based on the device of the saved tensors in the checkpoint."""
 
     class ExtraStateModel(BoringModel):
+        @override
         def get_extra_state(self):
             return {"extra": "state"}  # state without tensors
 
+        @override
         def set_extra_state(self, state):
             pass
 

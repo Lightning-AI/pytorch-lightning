@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import logging
 import os
 from contextlib import AbstractContextManager
@@ -65,16 +66,19 @@ class SwaTestModel(BoringModel):
         self.iterable_dataset = iterable_dataset
         self.crash_on_epoch = crash_on_epoch
 
+    @override
     def training_step(self, batch, batch_idx):
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
             raise Exception("SWA crash test")
         return super().training_step(batch, batch_idx)
 
+    @override
     def train_dataloader(self):
         dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
         dset = dset_cls(32, 64)
         return DataLoader(dset, batch_size=2)
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         return {
@@ -92,14 +96,17 @@ class SwaTestCallback(StochasticWeightAveraging):
     # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0
     first_epoch: Optional[int] = None
 
+    @override
     def update_parameters(self, *args, **kwargs):
         self.update_parameters_calls += 1
         return StochasticWeightAveraging.update_parameters(*args, **kwargs)
 
+    @override
     def transfer_weights(self, *args, **kwargs):
         self.transfer_weights_calls += 1
         return StochasticWeightAveraging.transfer_weights(*args, **kwargs)
 
+    @override
     def on_train_epoch_start(self, trainer, *args):
         super().on_train_epoch_start(trainer, *args)
         if self.first_epoch is None and not trainer.fit_loop.restarting:
@@ -113,6 +120,7 @@ class SwaTestCallback(StochasticWeightAveraging):
             assert trainer.lr_scheduler_configs[0].interval == "epoch"
             assert trainer.lr_scheduler_configs[0].frequency == 1
 
+    @override
     def on_train_epoch_end(self, trainer, *args):
         super().on_train_epoch_end(trainer, *args)
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
@@ -124,6 +132,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         elif trainer.current_epoch > self.swa_end:
             assert self.n_averaged == self._max_epochs - self.swa_start
 
+    @override
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
 
@@ -242,6 +251,7 @@ def test_swa_deepcopy(tmp_path):
             super().__init__(*args, **kwargs)
             self.setup_called = False
 
+        @override
         def setup(self, trainer, pl_module, stage) -> None:
             super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
@@ -266,14 +276,17 @@ def test_swa_multiple_lrs(tmp_path):
             self.layer2 = torch.nn.Linear(32, 2)
             self.on_train_epoch_start_called = False
 
+        @override
         def forward(self, x):
             x = self.layer1(x)
             return self.layer2(x)
 
+        @override
         def configure_optimizers(self):
             params = [{"params": self.layer1.parameters(), "lr": 0.1}, {"params": self.layer2.parameters(), "lr": 0.2}]
             return torch.optim.Adam(params)
 
+        @override
         def on_train_epoch_start(self):
             optimizer = trainer.optimizers[0]
             assert [pg["lr"] for pg in optimizer.param_groups] == [0.1, 0.2]
@@ -324,6 +337,7 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
 
 
 class CustomSchedulerModel(SwaTestModel):
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
 

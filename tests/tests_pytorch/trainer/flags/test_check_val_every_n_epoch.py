@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 from torch.utils.data import DataLoader
 
@@ -27,9 +28,11 @@ def test_check_val_every_n_epoch(tmp_path, max_epochs, expected_val_loop_calls, 
         val_epoch_calls = 0
         val_batches = []
 
+        @override
         def on_train_epoch_end(self, *args, **kwargs):
             self.val_batches.append(self.trainer.progress_bar_callback.total_val_batches)
 
+        @override
         def on_validation_epoch_start(self) -> None:
             self.val_epoch_calls += 1
 
@@ -59,10 +62,12 @@ def test_check_val_every_n_epoch_with_max_steps(tmp_path):
             super().__init__()
             self.validation_called_at_step = set()
 
+        @override
         def validation_step(self, *args):
             self.validation_called_at_step.add(self.global_step)
             return super().validation_step(*args)
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, data_samples_train))
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from unittest import mock
 from unittest.mock import Mock, call
 
@@ -95,6 +96,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
     update_eval_epoch_metrics_mock.side_effect = lambda _: order.append("log_epoch_metrics")
 
     class LessBoringModel(BoringModel):
+        @override
         def on_validation_end(self):
             order.append("on_validation_end")
             super().on_validation_end()
@@ -125,14 +127,17 @@ def test_memory_consumption_validation(tmp_path):
         def num_params(self):
             return sum(p.numel() for p in self.parameters())
 
+        @override
         def train_dataloader(self):
             # batch target memory >= 100x boring_model size
             batch_size = self.num_params * 100 // 32 + 1
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
+        @override
         def val_dataloader(self):
             return self.train_dataloader()
 
+        @override
         def training_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
@@ -142,6 +147,7 @@ def test_memory_consumption_validation(tmp_path):
             assert current - initial_memory < upper
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
@@ -177,12 +183,15 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         step_outs = []
         batch_end_ins = []
 
+        @override
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
+        @override
         def validation_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
@@ -200,8 +209,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx): ...
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -211,8 +222,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
@@ -220,8 +233,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dl_idx): ...
 
+        @override
         def test_step(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -232,9 +247,11 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.test(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
+        @override
         def test_dataloader(self):
             return [super().test_dataloader(), super().test_dataloader()]
 
@@ -245,8 +262,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def validation_step(self, batch, batch_idx, *_): ...
 
+        @override
         def test_step(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
@@ -254,8 +273,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def validation_step(self, batch, batch_idx, **_): ...
 
+        @override
         def test_step(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -269,8 +290,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -282,8 +305,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
+        @override
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
@@ -291,8 +316,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def on_validation_batch_start(self, batch, batch_idx, dl_idx): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -303,17 +330,23 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def on_validation_batch_start(self, batch, batch_idx): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx): ...
 
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
+        @override
         def test_dataloader(self):
             return [super().test_dataloader(), super().test_dataloader()]
 
@@ -326,8 +359,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def on_validation_batch_start(self, batch, batch_idx, *_): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
@@ -335,8 +370,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def on_validation_batch_start(self, batch, batch_idx, **_): ...
 
+        @override
         def on_test_batch_start(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -350,8 +387,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -363,8 +402,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class GoodDefault(BoringModel):
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
@@ -372,8 +413,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer.test(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -384,17 +427,23 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx): ...
 
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
+        @override
         def test_dataloader(self):
             return [super().test_dataloader(), super().test_dataloader()]
 
@@ -407,8 +456,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.test(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, *_): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
@@ -416,8 +467,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer.test(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def on_validation_batch_end(self, outputs, batch, batch_idx, **_): ...
 
+        @override
         def on_test_batch_end(self, outputs, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -442,9 +495,11 @@ def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn
     seen = []
 
     class MyModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             seen.append(batch)
 
+        @override
         def test_step(self, batch, batch_idx):
             seen.append(batch)
 
@@ -467,10 +522,12 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmp_path):
             self.validation_step_called = False
             self.test_step_called = False
 
+        @override
         def validation_step(self, batch):
             self.validation_step_called = True
             return {"x": self.step(batch)}
 
+        @override
         def test_step(self, batch):
             self.test_step_called = True
             return {"y": self.step(batch)}

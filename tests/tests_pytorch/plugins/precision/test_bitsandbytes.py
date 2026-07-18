@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from typing_extensions import override
 import platform
 import sys
 from unittest.mock import Mock
@@ -49,9 +50,11 @@ def test_bitsandbytes_plugin(monkeypatch):
     _NF4Linear.quantize = quantize_mock
 
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

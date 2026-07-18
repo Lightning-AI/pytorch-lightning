@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -30,11 +31,13 @@ def test_finetuning_with_ckpt_path(tmp_path):
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmp_path, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("val_loss", loss, on_epoch=True, prog_bar=True)

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from copy import deepcopy
 from unittest import mock
@@ -274,6 +275,7 @@ def test_deepspeed_with_bfloat16_precision():
             super().__init__()
             self.layer = nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             assert x.dtype == torch.bfloat16
             return self.layer(x)

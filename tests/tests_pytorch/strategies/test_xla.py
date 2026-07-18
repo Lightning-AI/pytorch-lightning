@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from unittest import mock
 from unittest.mock import Mock
@@ -25,6 +26,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModelTPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # assert strategy attributes for device setting
         assert self.device == torch.device("xla", index=0)

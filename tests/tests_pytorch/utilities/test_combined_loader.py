@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import math
 import pickle
 from collections.abc import Sequence
@@ -284,6 +285,7 @@ class TestIterableDataset(IterableDataset):
     def __init__(self, size: int = 10):
         self.size = size
 
+    @override
     def __iter__(self):
         self.sampler = SequentialSampler(range(self.size))
         self.sampler_iter = iter(self.sampler)
@@ -335,6 +337,7 @@ def test_combined_loader_simultaneous_workers(mode):
             super().__init__(*args, **kwargs)
             self.workers_active = False
 
+        @override
         def _get_iterator(self):
             self.workers_active = True
             return super()._get_iterator()
@@ -398,6 +401,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
         def __init__(self, size: int = 10):
             self.size = size
 
+        @override
         def __iter__(self):
             self.sampler = SequentialSampler(range(self.size))
             self.iter_sampler = iter(self.sampler)
@@ -410,6 +414,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
         def __init__(self, size: int = 10):
             self.size = size
 
+        @override
         def __getitem__(self, index):
             return index
 
@@ -434,6 +439,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
         def __len__(self):
             return len(self.data)
 
+        @override
         def __getitem__(self, index):
             return self.data[index]
 
@@ -521,6 +527,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
                 assert last_batch == {"a": torch.tensor([8]), "b": torch.tensor([0])}
 
     class InfiniteDataset(IterableDataset):
+        @override
         def __iter__(self):
             while True:
                 yield 1

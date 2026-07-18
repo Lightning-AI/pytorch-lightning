@@ -289,8 +289,8 @@ class MLFlowLogger(Logger):
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 
-    @property
     @override
+    @property
     def save_dir(self) -> Optional[str]:
         """The root file directory in which MLflow experiments are saved.
 
@@ -303,8 +303,8 @@ class MLFlowLogger(Logger):
             return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
         return None
 
-    @property
     @override
+    @property
     def name(self) -> Optional[str]:
         """Get the experiment id.
 
@@ -314,8 +314,8 @@ class MLFlowLogger(Logger):
         """
         return self.experiment_id
 
-    @property
     @override
+    @property
     def version(self) -> Optional[str]:
         """Get the run id.
 

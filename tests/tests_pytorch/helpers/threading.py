@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from threading import Thread
 
 
@@ -21,12 +22,14 @@ class ThreadExceptionHandler(Thread):
         super().__init__(*args, **kwargs)
         self.exception = None
 
+    @override
     def run(self):
         try:
             super().run()
         except Exception as e:
             self.exception = e
 
+    @override
     def join(self):
         super().join()
         if self.exception:

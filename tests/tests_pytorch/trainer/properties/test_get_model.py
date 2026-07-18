@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import pytest
 
 from lightning.pytorch import Trainer
@@ -20,9 +21,11 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
+    @override
     def on_fit_start(self):
         assert self == self.trainer.lightning_module
 
+    @override
     def on_fit_end(self):
         assert self == self.trainer.lightning_module
 

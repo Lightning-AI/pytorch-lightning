@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 import pickle
 from pathlib import Path
@@ -650,6 +651,7 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
     monkeypatch.chdir(tmp_path)
 
     class InspectParsedCLI(LightningCLI):
+        @override
         def before_instantiate_classes(self):
             assert self.config.trainer.logger.init_args.log_model == expected
 

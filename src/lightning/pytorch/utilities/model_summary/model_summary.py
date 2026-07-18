@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities related to model weights summary."""
 
+from typing_extensions import override
 import contextlib
 import logging
 import math
@@ -409,6 +410,7 @@ class ModelSummary:
         if "Out sizes" in layer_summaries:
             layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
+    @override
     def __str__(self) -> str:
         arrays = self._get_summary_data()
 
@@ -427,6 +429,7 @@ class ModelSummary:
             *arrays,
         )
 
+    @override
     def __repr__(self) -> str:
         return str(self)
 

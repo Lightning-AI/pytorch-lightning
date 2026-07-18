@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import glob
 import os
 import sys
@@ -65,6 +66,7 @@ class LimitNbEpochs(Callback):
         self.limit = nb
         self._count = 0
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._count += 1
         if self._count >= self.limit:

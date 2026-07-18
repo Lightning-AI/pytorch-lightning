@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from collections import Counter
 from collections.abc import Iterator
 from typing import Any
@@ -33,6 +34,7 @@ class IterDataset(IterableDataset):
     def __init__(self, size=3):
         self.size = size
 
+    @override
     def __iter__(self):
         yield from range(1, self.size + 1)
 
@@ -41,6 +43,7 @@ class SizedDataset(Dataset):
     def __len__(self):
         return 3
 
+    @override
     def __getitem__(self, idx):
         return idx + 1
 
@@ -87,6 +90,7 @@ def test_profiler_closing(multiple_iterables):
         def __init__(self):
             self.list = list(range(1))
 
+        @override
         def __iter__(self):
             return iter(self.list)
 
@@ -105,6 +109,7 @@ def test_profiler_closing(multiple_iterables):
 
 
 class EmptyIterDataset(IterableDataset):
+    @override
     def __iter__(self):
         return iter([])
 
@@ -176,6 +181,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmp_path):
             self.count = 0
             self.batches = []
 
+        @override
         def training_step(self, dataloader_iter):
             assert isinstance(self.trainer.fit_loop._data_fetcher, _DataLoaderIterDataFetcher)
             # fetch 2 batches
@@ -199,6 +205,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmp_path):
                 loss.backward()
                 opt.step()
 
+        @override
         def on_train_epoch_end(self):
             # since the dataset is sized, the loop stops at the limit even though the training_step controls the
             # consumption of batches
@@ -220,16 +227,19 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
             assert data_fetcher.fetched == batch_idx + 1
             return batch
 
+        @override
         def validation_step(self, dataloader_iter):
             data_fetcher = self.trainer.validate_loop._data_fetcher
             batch = self.fetch(data_fetcher, dataloader_iter)
             return super().validation_step(batch, 0)
 
+        @override
         def test_step(self, dataloader_iter):
             data_fetcher = self.trainer.test_loop._data_fetcher
             batch = self.fetch(data_fetcher, dataloader_iter)
             return super().test_step(batch, 0)
 
+        @override
         def predict_step(self, dataloader_iter):
             data_fetcher = self.trainer.predict_loop._data_fetcher
             batch = self.fetch(data_fetcher, dataloader_iter)
@@ -259,6 +269,7 @@ class AsyncBoringModel(BoringModel):
     def _async_op(self, batch: Any) -> DummyWaitable:
         return DummyWaitable(val=batch)
 
+    @override
     def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
         if self.batch_i_handle is None:
             batch_i_raw, _, _ = next(dataloader_iter)
@@ -286,6 +297,7 @@ class AsyncBoringModel(BoringModel):
 
         return {"loss": loss, "is_last": is_last}
 
+    @override
     def train_dataloader(self):
         return DataLoader(RandomDataset(BATCH_SIZE, DATASET_LEN))
 
@@ -321,16 +333,20 @@ class DataLoaderIterMonitorModel(BoringModel):
             self.record[stage]["fetched"] += 1
         return self.layer(batch).sum()
 
+    @override
     def training_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "training")
 
+    @override
     def validation_step(self, dataloader_iter):
         stage = "sanity_validation" if self.trainer.sanity_checking else "validation"
         return self.shared_step(dataloader_iter, stage)
 
+    @override
     def test_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "test")
 
+    @override
     def predict_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "predict")
 
@@ -416,6 +432,7 @@ def test_stop_iteration_with_dataloader_iter(trigger_stop_iteration, tmp_path):
             super().__init__()
             self.trigger_stop_iteration = trigger_stop_iteration
 
+        @override
         def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
             batch_idx = self.trainer.fit_loop.epoch_loop.batch_idx
@@ -423,6 +440,7 @@ def test_stop_iteration_with_dataloader_iter(trigger_stop_iteration, tmp_path):
                 raise StopIteration
             return output
 
+        @override
         def train_dataloader(self):
             if self.trigger_stop_iteration:
                 return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
@@ -441,6 +459,7 @@ def test_transfer_hooks_with_unpacking(tmp_path):
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 
     class RandomDictDataset(RandomDataset):
+        @override
         def __getitem__(self, index):
             return {"x": self.data[index], "y_true": torch.ones((2,)), "other": torch.ones((1,))}
 
@@ -449,29 +468,36 @@ def test_transfer_hooks_with_unpacking(tmp_path):
         count_called_transfer_batch_to_device = 0
         count_called_on_after_batch_transfer = 0
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDictDataset(32, 2))
 
+        @override
         def val_dataloader(self):
             return DataLoader(RandomDictDataset(32, 2))
 
+        @override
         def on_before_batch_transfer(self, batch, dataloader_idx: int):
             self.count_called_on_before_batch_transfer += 1
             return batch["x"], batch["y_true"]
 
+        @override
         def transfer_batch_to_device(self, *args, **kwargs):
             self.count_called_transfer_batch_to_device += 1
             return super().transfer_batch_to_device(*args, **kwargs)
 
+        @override
         def on_after_batch_transfer(self, batch, dataloader_idx: int):
             self.count_called_on_after_batch_transfer += 1
             return super().on_after_batch_transfer(batch, dataloader_idx)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             x, _ = batch
             return super().training_step(x, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             x, _ = batch
             return super().validation_step(x, batch_idx)
@@ -488,9 +514,11 @@ def test_fetching_is_profiled():
     """Test that fetching is profiled."""
 
     class MyModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             return super().validation_step(batch, batch_idx)
 
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
@@ -539,6 +567,7 @@ def test_fetching_is_profiled():
 
     # now test profiling when the dataloader_iter is polled manually
     class MyModel(BoringModel):
+        @override
         def training_step(self, dataloader_iter):
             _ = next(dataloader_iter)
             batch, _, _ = next(dataloader_iter)

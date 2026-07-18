@@ -13,6 +13,7 @@
 # limitations under the License.
 """Integration tests for Automatic Mixed Precision (AMP) training."""
 
+from typing_extensions import override
 import pytest
 import torch
 import torch.nn as nn
@@ -28,6 +29,7 @@ class MixedPrecisionModule(nn.Module):
         self.expected_dtype = expected_dtype
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x):
         assert x.dtype == self.expected_dtype
         if x.device.type == "cpu":

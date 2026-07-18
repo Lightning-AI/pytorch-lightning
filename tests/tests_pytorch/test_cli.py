@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import glob
 import inspect
 import json
@@ -164,6 +165,7 @@ def test_lightning_cli_args_callbacks(cleandir):
     ]
 
     class TestModel(BoringModel):
+        @override
         def on_fit_start(self):
             callback = [c for c in self.trainer.callbacks if isinstance(c, LearningRateMonitor)]
             assert len(callback) == 1
@@ -193,6 +195,7 @@ def test_lightning_cli_single_arg_callback():
 @pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_configurable_callbacks(cleandir, run):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(LearningRateMonitor, "learning_rate_monitor")
 
@@ -214,6 +217,7 @@ def test_lightning_cli_args_cluster_environments(cleandir):
     plugins = [{"class_path": "lightning.fabric.plugins.environments.SLURMEnvironment"}]
 
     class TestModel(BoringModel):
+        @override
         def on_fit_start(self):
             # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
             assert isinstance(self.trainer._accelerator_connector.cluster_environment, SLURMEnvironment)
@@ -353,6 +357,7 @@ def test_lightning_cli_logger_save_config(cleandir):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, save_to_log_dir=False, **kwargs)
 
+        @override
         def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             nonlocal config
             config = self.parser.dump(self.config)
@@ -495,6 +500,7 @@ class BoringCkptPathModel(BoringModel):
 
 def test_lightning_cli_ckpt_path_argument_hparams(cleandir):
     class CkptPathCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("model.out_dim", "model.hidden_dim", compute_fn=lambda x: x * 2)
 
@@ -533,6 +539,7 @@ class BoringCkptPathSubclass(BoringCkptPathModel):
 
 def test_lightning_cli_ckpt_path_argument_hparams_subclass_mode(cleandir):
     class CkptPathCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("model.init_args.out_dim", "model.init_args.hidden_dim", compute_fn=lambda x: x * 2)
 
@@ -637,6 +644,7 @@ class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
 
 def test_lightning_cli_link_arguments(cleandir):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
             parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
@@ -658,6 +666,7 @@ def test_lightning_cli_link_arguments(cleandir):
     assert hparams == {"batch_size": 12, "num_classes": 5}
 
     class MyLightningCLI2(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
@@ -695,6 +704,7 @@ class DeepLinkTargetModel(BoringModel):
         self.save_hyperparameters()
         self.optimizer = optimizer
 
+    @override
     def configure_optimizers(self):
         optimizer = self.optimizer(self.parameters())
         return {"optimizer": optimizer}
@@ -702,6 +712,7 @@ class DeepLinkTargetModel(BoringModel):
 
 def test_lightning_cli_link_arguments_subcommands_nested_target(cleandir):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.link_arguments(
                 "data.num_classes",
@@ -734,6 +745,7 @@ def test_lightning_cli_link_arguments_subcommands_nested_target(cleandir):
 
 
 class EarlyExitTestModel(BoringModel):
+    @override
     def on_fit_start(self):
         raise MisconfigurationException("Error on fit start")
 
@@ -795,6 +807,7 @@ def test_cli_config_filename(tmp_path):
 @pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_optimizer(run):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
 
@@ -816,6 +829,7 @@ def test_lightning_cli_optimizer(run):
 
 def test_lightning_cli_optimizer_and_lr_scheduler():
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
@@ -839,8 +853,10 @@ def test_cli_no_need_configure_optimizers(cleandir):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def training_step(self, *_): ...
 
+        @override
         def train_dataloader(self): ...
 
         # did not define `configure_optimizers`
@@ -862,6 +878,7 @@ def test_cli_no_need_configure_optimizers(cleandir):
 
 def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
             parser.add_lr_scheduler_args((torch.optim.lr_scheduler.StepLR, torch.optim.lr_scheduler.ExponentialLR))
@@ -889,6 +906,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
     class MyLightningCLI(LightningCLI):
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
                 (torch.optim.Optimizer,) if use_generic_base_class else torch.optim.Adam,
@@ -946,6 +964,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
             self.optim2 = optim2
             self.scheduler = scheduler
 
+        @override
         def configure_optimizers(self):
             optim1 = self.optim1(self.parameters())
             optim2 = self.optim2(self.parameters())
@@ -996,6 +1015,7 @@ class TestModelSaveHparams(BoringModel):
         self.scheduler = scheduler
         self.activation = activation
 
+    @override
     def configure_optimizers(self):
         optimizer = self.optimizer(self.parameters())
         scheduler = self.scheduler(optimizer)
@@ -1226,6 +1246,7 @@ def test_lightning_cli_custom_subcommand():
 
     class TestCLI(LightningCLI):
         @staticmethod
+        @override
         def subcommands():
             subcommands = LightningCLI.subcommands()
             subcommands["foo"] = {"model"}
@@ -1430,6 +1451,7 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
         def __init__(self, *args):
             super().__init__(*args, run=False)
 
+        @override
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(nested_key="opt1", link_to="model.opt1_config")
             parser.add_optimizer_args(
@@ -1706,6 +1728,7 @@ def test_cli_configureoptimizers_can_be_overridden():
             super().__init__(BoringModel, run=False)
 
         @staticmethod
+        @override
         def configure_optimizers(self, optimizer, lr_scheduler=None):
             assert isinstance(self, BoringModel)
             assert lr_scheduler is None

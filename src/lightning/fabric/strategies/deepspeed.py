@@ -324,8 +324,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         zero_optimization = self.config.get("zero_optimization")
         return zero_optimization is not None and zero_optimization.get("stage") == 3
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 

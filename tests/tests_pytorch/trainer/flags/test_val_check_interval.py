@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import logging
 import re
 import time
@@ -34,9 +35,11 @@ def test_val_check_interval(tmp_path, max_epochs, denominator):
             self.train_epoch_calls = 0
             self.val_epoch_calls = 0
 
+        @override
         def on_train_epoch_start(self) -> None:
             self.train_epoch_calls += 1
 
+        @override
         def on_validation_epoch_start(self) -> None:
             if not self.trainer.sanity_checking:
                 self.val_epoch_calls += 1
@@ -84,10 +87,12 @@ def test_validation_check_interval_exceed_data_length_correct(tmp_path, use_infi
             super().__init__()
             self.validation_called_at_step = set()
 
+        @override
         def validation_step(self, *args):
             self.validation_called_at_step.add(self.trainer.fit_loop.total_batch_idx + 1)
             return super().validation_step(*args)
 
+        @override
         def train_dataloader(self):
             train_ds = (
                 RandomIterableDataset(32, count=max_steps + 100)
@@ -204,6 +209,7 @@ def test_time_and_epoch_gated_val_check(
         val_batches = []
         val_epoch_calls = 0
 
+        @override
         def on_train_batch_end(self, *args, **kwargs):
             if (
                 isinstance(self.trainer.check_val_every_n_epoch, int)
@@ -212,10 +218,12 @@ def test_time_and_epoch_gated_val_check(
             ):
                 time.monotonic()
 
+        @override
         def on_train_epoch_end(self, *args, **kwargs):
             print(trainer.fit_loop.epoch_loop.val_loop.batch_progress.current.completed)
             self.val_batches.append(trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed)
 
+        @override
         def on_validation_epoch_start(self) -> None:
             self.val_epoch_calls += 1
 

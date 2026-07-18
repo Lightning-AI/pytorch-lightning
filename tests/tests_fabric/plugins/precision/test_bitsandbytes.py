@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from typing_extensions import override
 import platform
 import sys
 from unittest.mock import Mock
@@ -246,6 +247,7 @@ def test_load_quantized_checkpoint(tmp_path):
             super().__init__()
             self.linear = torch.nn.Linear(16, 16, bias=False)
 
+        @override
         def forward(self, x):
             return self.linear(x)
 

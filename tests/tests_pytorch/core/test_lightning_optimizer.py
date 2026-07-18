@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
@@ -29,6 +30,7 @@ def test_lightning_optimizer(tmp_path):
     """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -78,6 +80,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmp_p
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt_1, opt_2 = self.optimizers()
 
@@ -99,6 +102,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmp_p
             # since the optimizer is mocked, the step output is a Mock
             assert isinstance(step_output, Mock)
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
@@ -176,10 +180,12 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmp_path
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
+        @override
         def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
             if batch_idx % 2 == 0:
                 optimizer.zero_grad()
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
@@ -199,6 +205,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmp_path):
     """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
+        @override
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **_):
             assert isinstance(optimizer_closure, Closure)
             # zero_grad is called inside the closure
@@ -207,6 +214,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmp_path):
             if batch_idx % 2 == 0:
                 optimizer.step()
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
@@ -238,6 +246,7 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
     seed_everything(0)
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return torch.optim.LBFGS(self.parameters())
 
@@ -292,6 +301,7 @@ class OptimizerWithHooks(Optimizer):
         if mod.training:
             self.state[mod]["grad"] = grad_output[0] * batch_size
 
+    @override
     def step(self, closure=None):
         closure()
         for group in self.param_groups:
@@ -311,11 +321,13 @@ def test_lightning_optimizer_keeps_hooks():
 
 def test_params_groups_and_state_are_accessible(tmp_path):
     class TestModel(BoringModel):
+        @override
         def on_train_start(self):
             # Update the learning rate manually on the unwrapped optimizer
             assert not isinstance(self.trainer.optimizers[0], LightningOptimizer)
             self.trainer.optimizers[0].param_groups[0]["lr"] = 2.0
 
+        @override
         def training_step(self, batch, batch_idx):
             opt = self.optimizers()
             assert opt.param_groups[0]["lr"] == 2.0
@@ -324,9 +336,11 @@ def test_params_groups_and_state_are_accessible(tmp_path):
             self.__loss = loss
             return loss
 
+        @override
         def configure_optimizers(self):
             return SGD(self.layer.parameters(), lr=0.1)
 
+        @override
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, **__):
             # check attributes are accessible
             assert all("lr" in pg for pg in optimizer.param_groups)

@@ -83,8 +83,8 @@ class _MultiProcessingLauncher(_Launcher):
         self.procs: list[mp.Process] = []
         self._already_fit = False
 
-    @property
     @override
+    @property
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
@@ -265,6 +265,7 @@ class _MultiProcessingLauncher(_Launcher):
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
 
+    @override
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["procs"] = []  # SpawnProcess can't be pickled

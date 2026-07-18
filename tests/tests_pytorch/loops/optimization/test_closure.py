@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 import torch
 
@@ -21,6 +22,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 def test_optimizer_step_no_closure_raises(tmp_path):
     class TestModel(BoringModel):
+        @override
         def optimizer_step(self, epoch=None, batch_idx=None, optimizer=None, optimizer_closure=None, **_):
             # does not call `optimizer_closure()`
             pass
@@ -31,8 +33,10 @@ def test_optimizer_step_no_closure_raises(tmp_path):
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             class BrokenSGD(torch.optim.SGD):
+                @override
                 def step(self, closure=None):
                     # forgot to pass the closure
                     return super().step()
@@ -55,16 +59,19 @@ def test_closure_with_no_grad_optimizer(tmp_path):
 
     class NoGradAdamW(torch.optim.AdamW):
         @torch.no_grad()
+        @override
         def step(self, closure):
             if closure is not None:
                 closure()
             return super().step()
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             assert torch.is_grad_enabled()
             return super().training_step(batch, batch_idx)
 
+        @override
         def configure_optimizers(self):
             return NoGradAdamW(self.parameters(), lr=0.1)
 

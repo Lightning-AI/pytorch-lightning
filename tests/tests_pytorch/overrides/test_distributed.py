@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from collections.abc import Iterable
 
 import pytest
@@ -24,11 +25,13 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class MyModel(LightningModule):
+    @override
     def setup(self, stage: str) -> None:
         self.layer = torch.nn.Linear(1, 1)
         weights = self.layer.weight.item(), self.layer.bias.item()
         self.rank_0_weights = self.trainer.strategy.broadcast(weights)
 
+    @override
     def test_step(self, batch, batch_idx):
         current = self.layer.weight.item(), self.layer.bias.item()
         assert self.rank_0_weights == current

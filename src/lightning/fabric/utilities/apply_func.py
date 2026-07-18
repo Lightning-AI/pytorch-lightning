@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities used for collections."""
 
+from typing_extensions import override
 from abc import ABC
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Union
@@ -68,6 +69,7 @@ class _TransferableDataType(ABC):
     """
 
     @classmethod
+    @override
     def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is _TransferableDataType:
             to = getattr(subclass, "to", None)

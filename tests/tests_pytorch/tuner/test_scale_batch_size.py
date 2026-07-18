@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import glob
 import logging
 import math
@@ -37,6 +38,7 @@ class BatchSizeDataModule(BoringDataModule):
         if batch_size is not None:
             self.batch_size = batch_size
 
+    @override
     def train_dataloader(self):
         return DataLoader(self.random_train, batch_size=getattr(self, "batch_size", 1))
 
@@ -47,15 +49,19 @@ class BatchSizeModel(BoringModel):
         if batch_size is not None:
             self.batch_size = batch_size
 
+    @override
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
+    @override
     def val_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
+    @override
     def test_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
+    @override
     def predict_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
@@ -149,9 +155,11 @@ def test_auto_scale_batch_size_set_model_attribute(tmp_path, use_hparams):
             super().__init__()
             self.save_hyperparameters()
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
+        @override
         def val_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
@@ -177,9 +185,11 @@ def test_auto_scale_batch_size_set_datamodule_attribute(tmp_path, use_hparams):
             super().__init__()
             self.save_hyperparameters()
 
+        @override
         def train_dataloader(self):
             return DataLoader(self.random_train, batch_size=self.hparams.batch_size)
 
+        @override
         def val_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
@@ -446,6 +456,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmp_path):
     """Test that an error is raised with batch size finder is called with multiple eval dataloaders."""
 
     class CustomModel(BoringModel):
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
@@ -463,10 +474,12 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmp_path):
 @patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmp_path, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):
+        @override
         def training_step(self, *_, **__):
             if self.batch_size > 100:
                 raise RuntimeError
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 1000), batch_size=self.batch_size)
 
@@ -554,12 +567,14 @@ def test_scale_batch_size_checkpoint_cleanup_on_error(tmp_path):
             self.current_step = 0
             self.batch_size = 2
 
+        @override
         def training_step(self, batch, batch_idx):
             self.current_step += 1
             if self.current_step >= self.fail_on_step:
                 raise RuntimeError("Intentional failure for testing cleanup")
             return super().training_step(batch, batch_idx)
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
@@ -606,6 +621,7 @@ class FailsAtBatchSizeBoringModel(BoringModel):
         self.batch_size = batch_size
         self.fail_at = fail_at
 
+    @override
     def training_step(self, batch, batch_idx):
         # Simulate OOM error when batch size is too large
         if self.batch_size >= self.fail_at:

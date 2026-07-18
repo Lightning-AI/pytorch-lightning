@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from unittest.mock import Mock
 
 import pytest
@@ -97,6 +98,7 @@ def test_trainer_predict_verify_config(tmp_path, datamodule):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
@@ -105,9 +107,11 @@ def test_trainer_predict_verify_config(tmp_path, datamodule):
             super().__init__()
             self._dataloaders = dataloaders
 
+        @override
         def test_dataloader(self):
             return self._dataloaders
 
+        @override
         def predict_dataloader(self):
             return self._dataloaders
 

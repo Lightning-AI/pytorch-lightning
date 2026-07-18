@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -38,11 +39,13 @@ class TestModel(BoringModel):
         self.layer = nn.Sequential(*layers)
         self.crash_on_epoch = None
 
+    @override
     def training_step(self, batch: Tensor, batch_idx: int) -> None:
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
             raise Exception("CRASH")
         return super().training_step(batch, batch_idx)
 
+    @override
     def configure_optimizers(self) -> None:
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
@@ -52,10 +55,12 @@ class LargeTestModel(BoringModel):
         super().__init__()
         self.layer = None
 
+    @override
     def configure_model(self):
         print("XXX configure_model")
         self.layer = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -86,19 +91,23 @@ class EMATestCallback(WeightAveraging):
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
         self.first_epoch: Optional[int] = None
 
+    @override
     def _swap_models(self, *args: Any, **kwargs: Any):
         self.swap_calls += 1
         return super()._swap_models(*args, **kwargs)
 
+    @override
     def _copy_average_to_current(self, *args: Any, **kwargs: Any):
         self.copy_calls += 1
         return super()._copy_average_to_current(*args, **kwargs)
 
+    @override
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_start(trainer, pl_module)
         assert self.swap_calls == 0
         assert self.copy_calls == 0
 
+    @override
     def on_train_epoch_start(self, trainer: Trainer, *args: Any) -> None:
         super().on_train_epoch_start(trainer, *args)
         # Since the checkpoint loaded was saved `on_train_epoch_end`, the first `FitLoop` iteration will not update the
@@ -107,12 +116,14 @@ class EMATestCallback(WeightAveraging):
         if self.first_epoch is None and not trainer.fit_loop.restarting:
             self.first_epoch = trainer.current_epoch
 
+    @override
     def on_train_epoch_end(self, trainer: Trainer, *args: Any) -> None:
         super().on_train_epoch_end(trainer, *args)
         assert self._average_model.n_averaged == trainer.global_step
         assert self.swap_calls == (trainer.current_epoch + 1 - self.first_epoch) * 2
         assert self.copy_calls == 0
 
+    @override
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         # length=32, batch_size=4, accumulate_grad_batches=2
@@ -132,22 +143,27 @@ class SWATestCallback(WeightAveraging):
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
         self.first_epoch: Optional[int] = None
 
+    @override
     def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
         return epoch_idx in (3, 5, 7)
 
+    @override
     def _swap_models(self, *args: Any, **kwargs: Any):
         self.swap_calls += 1
         return super()._swap_models(*args, **kwargs)
 
+    @override
     def _copy_average_to_current(self, *args: Any, **kwargs: Any):
         self.copy_calls += 1
         return super()._copy_average_to_current(*args, **kwargs)
 
+    @override
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_start(trainer, pl_module)
         assert self.swap_calls == 0
         assert self.copy_calls == 0
 
+    @override
     def on_train_epoch_start(self, trainer: Trainer, *args: Any) -> None:
         super().on_train_epoch_start(trainer, *args)
         # Since the checkpoint loaded was saved `on_train_epoch_end`, the first `FitLoop` iteration will not update the
@@ -156,6 +172,7 @@ class SWATestCallback(WeightAveraging):
         if self.first_epoch is None and not trainer.fit_loop.restarting:
             self.first_epoch = trainer.current_epoch
 
+    @override
     def on_train_epoch_end(self, trainer: Trainer, *args: Any) -> None:
         super().on_train_epoch_end(trainer, *args)
         if trainer.current_epoch < 3:
@@ -169,6 +186,7 @@ class SWATestCallback(WeightAveraging):
         assert self.swap_calls == (trainer.current_epoch + 1 - self.first_epoch) * 2
         assert self.copy_calls == 0
 
+    @override
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         assert self._average_model.n_averaged == 3
@@ -185,6 +203,7 @@ def test_weight_averaging_deepcopy(tmp_path):
             super().__init__(*args, **kwargs)
             self.setup_called = False
 
+        @override
         def setup(self, trainer, pl_module, stage) -> None:
             super().setup(trainer, pl_module, stage)
             assert self._average_model.module.train_dataloader is not pl_module.train_dataloader

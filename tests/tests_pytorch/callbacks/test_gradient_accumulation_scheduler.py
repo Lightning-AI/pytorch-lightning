@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import math
 from unittest.mock import Mock, patch
 
@@ -114,10 +115,12 @@ def test_warn_if_model_has_overridden_optimization_hooks():
     """Test that the callback warns if optimization hooks were overridden in the LightningModule."""
 
     class OverriddenOptimizerStepModel(BoringModel):
+        @override
         def optimizer_step(self, *args, **kwargs):
             super().optimizer_step(*args, **kwargs)
 
     class OverriddenZeroGradModel(BoringModel):
+        @override
         def optimizer_zero_grad(self, *args, **kwargs):
             super().optimizer_zero_grad(*args, **kwargs)
 

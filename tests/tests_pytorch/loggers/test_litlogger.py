@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from argparse import Namespace
 from unittest.mock import MagicMock, call
@@ -276,6 +277,7 @@ def test_litlogger_with_trainer(litlogger_mock, tmp_path):
     """Test LitLogger works with Trainer."""
 
     class LoggingModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             self.log("train_loss", loss["loss"])

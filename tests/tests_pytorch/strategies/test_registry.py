@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from unittest import mock
 
 import pytest
@@ -129,12 +130,15 @@ def test_ddp_find_unused_parameters_strategy_registry(
 
 def test_custom_registered_strategy_to_strategy_flag():
     class CustomCheckpointIO(CheckpointIO):
+        @override
         def save_checkpoint(self, checkpoint, path):
             pass
 
+        @override
         def load_checkpoint(self, path):
             pass
 
+        @override
         def remove_checkpoint(self, path):
             pass
 

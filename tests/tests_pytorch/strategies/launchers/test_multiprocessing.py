@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from multiprocessing import Process
 from unittest import mock
@@ -184,6 +185,7 @@ class SimpleModel(BoringModel):
         self.tied_layer.weight = self.layer.weight
         self.register_buffer("buffer", torch.ones(3))
 
+    @override
     def on_fit_start(self) -> None:
         assert not self.layer.weight.is_shared()
         assert not self.tied_layer.weight.is_shared()

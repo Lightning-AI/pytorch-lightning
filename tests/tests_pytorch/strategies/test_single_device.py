@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pickle
 from unittest.mock import MagicMock, Mock
 
@@ -34,6 +35,7 @@ def test_single_cpu():
 
 
 class BoringModelGPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device("cuda:0")
@@ -82,15 +84,19 @@ def test_strategy_pickle():
 
 
 class BoringModelNoDataloaders(BoringModel):
+    @override
     def train_dataloader(self):
         raise NotImplementedError
 
+    @override
     def val_dataloader(self):
         raise NotImplementedError
 
+    @override
     def test_dataloader(self):
         raise NotImplementedError
 
+    @override
     def predict_dataloader(self):
         raise NotImplementedError
 

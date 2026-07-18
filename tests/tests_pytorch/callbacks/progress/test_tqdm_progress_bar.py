@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import math
 import os
 import pickle
@@ -119,21 +120,27 @@ def test_tqdm_progress_bar_totals(tmp_path, num_dl):
             dls = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
             return dls[0] if num_dl == 1 else dls
 
+        @override
         def val_dataloader(self):
             return self._get_dataloaders()
 
+        @override
         def test_dataloader(self):
             return self._get_dataloaders()
 
+        @override
         def predict_dataloader(self):
             return self._get_dataloaders()
 
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             return
 
@@ -244,14 +251,17 @@ def test_tqdm_progress_bar_progress_refresh(tmp_path, refresh_rate: int):
         val_batches_seen = 0
         test_batches_seen = 0
 
+        @override
         def on_train_batch_end(self, *args):
             super().on_train_batch_end(*args)
             self.train_batches_seen += 1
 
+        @override
         def on_validation_batch_end(self, *args):
             super().on_validation_batch_end(*args)
             self.val_batches_seen += 1
 
+        @override
         def on_test_batch_end(self, *args):
             super().on_test_batch_end(*args)
             self.test_batches_seen += 1
@@ -290,10 +300,12 @@ def test_num_sanity_val_steps_progress_bar(tmp_path, limit_val_batches: int):
         val_pbar_total = 0
         sanity_pbar_total = 0
 
+        @override
         def on_sanity_check_end(self, *args):
             self.sanity_pbar_total = self.val_progress_bar.total
             super().on_sanity_check_end(*args)
 
+        @override
         def on_validation_epoch_end(self, *args):
             self.val_pbar_total = self.val_progress_bar.total
             super().on_validation_epoch_end(*args)
@@ -416,6 +428,7 @@ def test_tensor_to_float_conversion(tmp_path):
     """Check tensor gets converted to float."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("a", torch.tensor(0.123), prog_bar=True, on_epoch=False)
             self.log("b", torch.tensor([1]), prog_bar=True, on_epoch=False)
@@ -460,18 +473,22 @@ def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
 
 
 class PrintModel(BoringModel):
+    @override
     def training_step(self, *args, **kwargs):
         self.print("training_step", end="")
         return super().training_step(*args, **kwargs)
 
+    @override
     def validation_step(self, *args, **kwargs):
         self.print("validation_step", file=sys.stderr)
         return super().validation_step(*args, **kwargs)
 
+    @override
     def test_step(self, *args, **kwargs):
         self.print("test_step")
         return super().test_step(*args, **kwargs)
 
+    @override
     def predict_step(self, *args, **kwargs):
         self.print("predict_step")
         return super().predict_step(*args, **kwargs)
@@ -667,6 +684,7 @@ def test_get_progress_bar_metrics(tmp_path):
     """Test that the metrics shown in the progress bar can be customized."""
 
     class TestProgressBar(TQDMProgressBar):
+        @override
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
@@ -706,6 +724,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmp_path):
     class MockedProgressBar(TQDMProgressBar):
         calls = defaultdict(list)
 
+        @override
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
@@ -719,14 +738,17 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmp_path):
             return items
 
     class MyModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("a", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("b", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def test_step(self, batch, batch_idx):
             self.log("c", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().test_step(batch, batch_idx)

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from functools import partial
 from unittest import mock
@@ -32,9 +33,11 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class SerialLoaderBoringModel(BoringModel):
+    @override
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 2000), batch_size=32)
 
+    @override
     def val_dataloader(self):
         return DataLoader(RandomDataset(32, 2000), batch_size=32)
 
@@ -155,6 +158,7 @@ def test_model_16bit_multiple_tpu_devices(tmp_path):
 
 
 class CustomBoringModel(BoringModel):
+    @override
     def validation_step(self, *args, **kwargs):
         out = super().validation_step(*args, **kwargs)
         self.log("val_loss", out["x"])
@@ -302,9 +306,11 @@ def test_tpu_sync_dist():
 
 
 class AssertXLADebugModel(BoringModel):
+    @override
     def on_train_start(self):
         assert os.environ.get("PT_XLA_DEBUG") == "1", "PT_XLA_DEBUG was not set in environment variables"
 
+    @override
     def teardown(self, stage):
         assert "PT_XLA_DEBUG" not in os.environ
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pickle
 from argparse import Namespace
 from copy import deepcopy
@@ -46,37 +47,45 @@ class CustomLogger(Logger):
         return self._experiment
 
     @rank_zero_only
+    @override
     def log_hyperparams(self, params):
         self.hparams_logged = params
 
     @rank_zero_only
+    @override
     def log_metrics(self, metrics, step):
         self.metrics_logged = metrics
 
     @rank_zero_only
+    @override
     def finalize(self, status):
         self.finalized_status = status
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
 
+    @override
     @property
     def name(self):
         return self._name
 
+    @override
     @property
     def version(self):
         return self._version
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
 
 
 def test_custom_logger(tmp_path):
     class CustomModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("train_loss", loss)
@@ -94,6 +103,7 @@ def test_custom_logger(tmp_path):
 
 def test_multiple_loggers(tmp_path):
     class CustomModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("train_loss", loss)
@@ -137,6 +147,7 @@ def test_adding_step_key(tmp_path):
             super().__init__(*args, **kwargs)
             self.logged_step = 0
 
+        @override
         def log_metrics(self, metrics, step):
             if "val_acc" in metrics:
                 assert step == self.logged_step
@@ -144,10 +155,12 @@ def test_adding_step_key(tmp_path):
             super().log_metrics(metrics, step)
 
     class CustomModel(BoringModel):
+        @override
         def on_train_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "train_acc": self.logger.logged_step / 10})
 
+        @override
         def on_validation_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "val_acc": self.logger.logged_step / 10})
@@ -193,6 +206,7 @@ def test_np_sanitization():
             self.logged_params = None
 
         @rank_zero_only
+        @override
         def log_hyperparams(self, params):
             params = _convert_params(params)
             params = _sanitize_params(params)

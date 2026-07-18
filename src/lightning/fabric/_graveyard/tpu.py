@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import sys
 from typing import Any
 
@@ -43,6 +44,7 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
         super().__init__(*args, **kwargs)
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if "single_tpu" not in strategy_registry:
             strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")

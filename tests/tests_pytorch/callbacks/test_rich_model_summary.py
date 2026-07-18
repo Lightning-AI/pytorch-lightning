@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from typing import Any
 from unittest import mock
 
@@ -48,6 +49,7 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     model_summary = RichModelSummary()
 
     class TestModel(BoringModel):
+        @override
         @property
         def example_input_array(self) -> Any:
             return torch.randn(4, 32)

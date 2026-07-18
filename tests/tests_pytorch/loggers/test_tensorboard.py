@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from argparse import Namespace
 from unittest import mock
@@ -111,10 +112,12 @@ def test_tensorboard_no_name(tmp_path, name):
 def test_tensorboard_log_sub_dir(tmp_path):
     class TestLogger(TensorBoardLogger):
         # for reproducibility
+        @override
         @property
         def version(self):
             return "version"
 
+        @override
         @property
         def name(self):
             return "name"
@@ -248,6 +251,7 @@ def test_tensorboard_with_accumulated_gradients(mock_log_metrics, tmp_path):
             super().__init__()
             self.indexes = []
 
+        @override
         def training_step(self, *args):
             self.log("foo", 1, on_step=True, on_epoch=True)
             if not self.trainer.fit_loop._should_accumulate() and self.trainer._logger_connector.should_update_logs:

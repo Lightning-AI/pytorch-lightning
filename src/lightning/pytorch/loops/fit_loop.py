@@ -376,6 +376,7 @@ class _FitLoop(_Loop):
 
         self.epoch_loop.update_restart_stage()
 
+    @override
     def reset_restart_stage(self) -> None:
         self._restart_stage = RestartStage.NONE
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 
 from lightning.pytorch import Callback, Trainer
@@ -29,53 +30,69 @@ def _device_check_helper(batch_device, module_device):
 
 
 class BatchHookObserverCallback(Callback):
+    @override
     def on_train_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_validation_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_test_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_predict_batch_start(self, trainer, pl_module, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
+    @override
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *_):
         _device_check_helper(batch.device, pl_module.device)
 
 
 class BatchHookObserverModel(BoringModel):
+    @override
     def on_train_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_train_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_validation_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_validation_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_test_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_test_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_predict_batch_start(self, batch, *_):
         _device_check_helper(batch.device, self.device)
 
+    @override
     def on_predict_batch_end(self, outputs, batch, *_):
         _device_check_helper(batch.device, self.device)
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 import torch
 from torch import optim
@@ -60,6 +61,7 @@ def test_lr_monitor_single_lr_with_momentum(tmp_path, opt: str):
             super().__init__()
             self.opt = opt
 
+        @override
         def configure_optimizers(self):
             if self.opt == "SGD":
                 opt_kwargs = {"momentum": 0.9}
@@ -98,6 +100,7 @@ def test_log_momentum_no_momentum_optimizer(tmp_path):
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = optim.ASGD(self.parameters(), lr=1e-2)
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -126,6 +129,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmp_path):
     """Test that learning rates are extracted and logged for no lr scheduler."""
 
     class CustomBoringModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return optim.SGD(self.parameters(), lr=0.1)
 
@@ -157,6 +161,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmp_path, opt: str):
             super().__init__()
             self.opt = opt
 
+        @override
         def configure_optimizers(self):
             if self.opt == "SGD":
                 opt_kwargs = {"momentum": 0.9}
@@ -188,6 +193,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmp_path):
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = optim.ASGD(self.parameters(), lr=1e-2)
             return [optimizer]
@@ -230,6 +236,7 @@ def test_lr_monitor_multi_lrs(tmp_path, logging_interval: str):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
 
@@ -243,11 +250,13 @@ def test_lr_monitor_multi_lrs(tmp_path, logging_interval: str):
             self.manual_backward(loss)
             opt2.step()
 
+        @override
         def on_train_epoch_end(self):
             scheduler1, scheduler2 = self.lr_schedulers()
             scheduler1.step()
             scheduler2.step()
 
+        @override
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
             optimizer2 = optim.Adam(self.parameters(), lr=1e-2)
@@ -293,6 +302,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmp_path, logging_interval: str):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
 
@@ -306,6 +316,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmp_path, logging_interval: str):
             self.manual_backward(loss)
             opt2.step()
 
+        @override
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
             optimizer2 = optim.Adam(self.parameters(), lr=1e-2)
@@ -346,6 +357,7 @@ def test_lr_monitor_param_groups(tmp_path):
     """Test that learning rates are extracted and logged for single lr scheduler."""
 
     class CustomClassificationModel(ClassificationModel):
+        @override
         def configure_optimizers(self):
             param_groups = [
                 {"params": list(self.parameters())[:2], "lr": self.lr * 0.1},
@@ -377,6 +389,7 @@ def test_lr_monitor_param_groups(tmp_path):
 
 def test_lr_monitor_custom_name(tmp_path):
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
             lr_scheduler = {"scheduler": scheduler, "name": "my_logging_name"}
@@ -399,6 +412,7 @@ def test_lr_monitor_custom_name(tmp_path):
 
 def test_lr_monitor_custom_pg_name(tmp_path):
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD([{"params": list(self.layer.parameters()), "name": "linear"}], lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -426,10 +440,12 @@ def test_lr_monitor_duplicate_custom_pg_names(tmp_path):
             self.linear_a = torch.nn.Linear(32, 16)
             self.linear_b = torch.nn.Linear(16, 2)
 
+        @override
         def forward(self, x):
             x = self.linear_a(x)
             return self.linear_b(x)
 
+        @override
         def configure_optimizers(self):
             param_groups = [
                 {"params": list(self.linear_a.parameters()), "name": "linear"},
@@ -467,6 +483,7 @@ def test_multiple_optimizers_basefinetuning(tmp_path):
             )
             self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2, opt3 = self.optimizers()
 
@@ -488,14 +505,17 @@ def test_multiple_optimizers_basefinetuning(tmp_path):
             opt3.step()
             opt3.zero_grad()
 
+        @override
         def on_train_epoch_end(self) -> None:
             lr_sched1, lr_sched2 = self.lr_schedulers()
             lr_sched1.step()
             lr_sched2.step()
 
+        @override
         def forward(self, x):
             return self.layer(self.backbone(x))
 
+        @override
         def configure_optimizers(self):
             parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
             opt = optim.SGD(parameters, lr=0.1)
@@ -509,6 +529,7 @@ def test_multiple_optimizers_basefinetuning(tmp_path):
             return optimizers, schedulers
 
     class Check(Callback):
+        @override
         def on_train_epoch_start(self, trainer, pl_module) -> None:
             num_param_groups = sum(len(opt.param_groups) for opt in trainer.optimizers)
 
@@ -538,11 +559,13 @@ def test_multiple_optimizers_basefinetuning(tmp_path):
                 assert list(lr_monitor.lrs) == expected
 
     class TestFinetuning(BackboneFinetuning):
+        @override
         def freeze_before_training(self, pl_module):
             self.freeze(pl_module.backbone[0])
             self.freeze(pl_module.backbone[1])
             self.freeze(pl_module.layer)
 
+        @override
         def finetune_function(self, pl_module, epoch: int, optimizer):
             """Called when the epoch begins."""
             if epoch == 1 and isinstance(optimizer, torch.optim.SGD):
@@ -600,10 +623,12 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmp_path):
             self.linear_a = torch.nn.Linear(32, 16)
             self.linear_b = torch.nn.Linear(16, 2)
 
+        @override
         def forward(self, x):
             x = self.linear_a(x)
             return self.linear_b(x)
 
+        @override
         def configure_optimizers(self):
             param_groups = [
                 {
@@ -648,6 +673,7 @@ def test_lr_monitor_update_callback_metrics(tmp_path):
     """Test that the `LearningRateMonitor` callback updates trainer.callback_metrics."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
@@ -687,6 +713,7 @@ def test_lr_monitor_with_float64_lr(tmp_path):
     import numpy as np
 
     class Float64LRModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return optim.SGD(self.parameters(), lr=np.float64(0.01))
 
@@ -735,6 +762,7 @@ def test_lr_monitor_log_key_prefix_with_momentum_and_weight_decay(tmp_path):
     """Test that prefix is applied to momentum and weight decay metric names as well."""
 
     class CustomModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = optim.Adam(self.parameters(), lr=1e-2, betas=(0.9, 0.999), weight_decay=0.01)
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -766,6 +794,7 @@ def test_lr_monitor_log_key_prefix_multi_optimizers(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
 
@@ -779,6 +808,7 @@ def test_lr_monitor_log_key_prefix_multi_optimizers(tmp_path):
             self.manual_backward(loss)
             opt2.step()
 
+        @override
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
             optimizer2 = optim.SGD(self.parameters(), lr=1e-2)

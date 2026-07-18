@@ -1,3 +1,4 @@
+from typing_extensions import override
 import math
 import os
 from datetime import timedelta
@@ -21,6 +22,7 @@ class TinyDataset(Dataset):
     def __len__(self):
         return len(self.x)
 
+    @override
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
@@ -31,6 +33,7 @@ class TrainMetricModule(LightningModule):
         self.layer = nn.Linear(1, 1)
         self._counter = 0.0
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.layer(x)
@@ -40,9 +43,11 @@ class TrainMetricModule(LightningModule):
         self.log("train_score", torch.tensor(self._counter), on_step=True, on_epoch=False, prog_bar=False, logger=True)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         pass
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -148,19 +153,23 @@ class ValMetricModule(LightningModule):
         self.layer = nn.Linear(1, 1)
         self._val_scores = [float(s) for s in val_scores]
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.layer(x)
         loss = F.mse_loss(y_hat, y)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         pass
 
+    @override
     def on_validation_epoch_end(self):
         score = self._val_scores[self.current_epoch]
         self.log("auroc", torch.tensor(score, dtype=torch.float32), prog_bar=False, logger=True)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 

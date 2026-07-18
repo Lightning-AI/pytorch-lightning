@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -54,6 +55,7 @@ class ConvNet(ParityModel):
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
+    @override
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
@@ -62,9 +64,11 @@ class ConvNet(ParityModel):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
+    @override
     def get_optimizer(self):
         return torch.optim.SGD(self.parameters(), lr=0.0001)
 
+    @override
     def get_dataloader(self):
         # multiply * 8 just in case world size is larger than 1
         dataset_size = self.num_steps * self.batch_size * 8
@@ -77,5 +81,6 @@ class ConvNet(ParityModel):
             num_workers=2,
         )
 
+    @override
     def get_loss_function(self):
         return F.cross_entropy

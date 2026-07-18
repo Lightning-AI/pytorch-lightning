@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from typing import Any
 
 import torch
@@ -27,29 +28,36 @@ class TestAccelerator(Accelerator):
         self.param2 = param2
         super().__init__()
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         pass
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices):
         return devices
 
     @staticmethod
+    @override
     def get_parallel_devices(devices):
         return ["foo"] * devices
 
     @staticmethod
+    @override
     def auto_device_count():
         return 3
 
     @staticmethod
+    @override
     def is_available():
         return True
 
     @staticmethod
+    @override
     def name():
         return "test_accelerator"
 
@@ -64,32 +72,39 @@ def test_accelerator_registry_with_new_accelerator():
             self.param2 = param2
             super().__init__()
 
+        @override
         def setup_device(self, device: torch.device) -> None:
             pass
 
         def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
+        @override
         def teardown(self) -> None:
             pass
 
         @staticmethod
+        @override
         def parse_devices(devices):
             return devices
 
         @staticmethod
+        @override
         def get_parallel_devices(devices):
             return ["foo"] * devices
 
         @staticmethod
+        @override
         def auto_device_count():
             return 3
 
         @staticmethod
+        @override
         def is_available():
             return True
 
         @staticmethod
+        @override
         def name():
             return "custom_accelerator"
 

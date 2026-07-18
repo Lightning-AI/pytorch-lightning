@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import gc
 import logging
 import math
@@ -184,6 +185,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmp_path, accumulate_grad_b
     """Verify optimizer.step() applied to last batch while grad accumulation."""
 
     class TestModel(BoringModel):
+        @override
         def state_dict(self, *args, **kwargs):
             return deepcopy(super().state_dict(*args, **kwargs))
 
@@ -192,6 +194,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmp_path, accumulate_grad_b
             values = [torch.equal(d1[k], d2[k]) for k in keys]
             return all(values) if equal else not any(values)
 
+        @override
         def backward(self, *args, **kwargs) -> None:
             pre_bwd_state_dict = self.state_dict()
             assert self.check(self.start_state_dict, pre_bwd_state_dict)
@@ -203,6 +206,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmp_path, accumulate_grad_b
 
             return out
 
+        @override
         def optimizer_step(self, *args, **kwargs):
             pre_opt_step_state_dict = self.state_dict()
             assert self.check(self.start_state_dict, pre_opt_step_state_dict)
@@ -216,10 +220,12 @@ def test_gradient_accumulation_scheduling_last_batch(tmp_path, accumulate_grad_b
             self.opt_step_called = True
             return out
 
+        @override
         def on_train_batch_start(self, *_):
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
 
+        @override
         def on_train_batch_end(self, outputs, batch, batch_idx):
             end_state_dict = self.state_dict()
             is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
@@ -412,12 +418,15 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmp_path, tmpdir_server, url_
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
+        @override
         def on_train_epoch_end(self):
             self.num_epochs_end_seen += 1
 
+        @override
         def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
 
+        @override
         def on_load_checkpoint(self, _):
             self.num_on_load_checkpoint_called += 1
 
@@ -545,6 +554,7 @@ def test_trainer_min_steps_and_epochs(tmp_path):
     num_train_samples = math.floor(len(BoringModel().train_dataloader()) * 0.5)
 
     class CustomModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             # try to force stop right after first step
             if self.global_step > 0:
@@ -589,6 +599,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmp_path, caplog):
     class TestModel(BoringModel):
         training_step_invoked = 0
 
+        @override
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
@@ -755,13 +766,16 @@ def test_checkpoint_find_last(tmp_path):
 @pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_checkpoint_path_input(tmp_path, ckpt_path, save_top_k, fn):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def test_step(self, *args):
             return self.validation_step(*args)
 
+        @override
         def predict_step(self, batch, *_):
             return self(batch)
 
@@ -825,13 +839,16 @@ def test_checkpoint_path_input(tmp_path, ckpt_path, save_top_k, fn):
 @pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_tested_checkpoint_path_best(tmp_path, enable_checkpointing, fn):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def test_step(self, *args):
             return self.validation_step(*args)
 
+        @override
         def predict_step(self, batch, *_):
             return self(batch)
 
@@ -886,6 +903,7 @@ def test_disabled_training(tmp_path):
     class CurrentModel(BoringModel):
         training_step_invoked = False
 
+        @override
         def training_step(self, *args, **kwargs):
             self.training_step_invoked = True
             return super().training_step(*args, **kwargs)
@@ -940,6 +958,7 @@ def test_disabled_validation(tmp_path):
     class CurrentModel(BoringModel):
         validation_step_invoked = False
 
+        @override
         def validation_step(self, *args, **kwargs):
             self.validation_step_invoked = True
             return super().validation_step(*args, **kwargs)
@@ -982,9 +1001,11 @@ def test_on_exception_hook(tmp_path):
         def __init__(self):
             super().__init__()
 
+        @override
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
+        @override
         def on_test_start(self, trainer, pl_module):
             raise MisconfigurationException
 
@@ -993,6 +1014,7 @@ def test_on_exception_hook(tmp_path):
             super().__init__()
             self.exception = None
 
+        @override
         def on_exception(self, trainer, pl_module, exception):
             self.exception = exception
 
@@ -1025,6 +1047,7 @@ def test_keyboard_interrupt(tmp_path):
         def __init__(self):
             super().__init__()
 
+        @override
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
@@ -1060,6 +1083,7 @@ def test_gradient_clipping_by_norm(tmp_path, precision):
     )
 
     class TestModel(ClassificationModel):
+        @override
         def configure_gradient_clipping(self, *args, **kwargs):
             super().configure_gradient_clipping(*args, **kwargs)
             # test that gradient is clipped correctly
@@ -1088,6 +1112,7 @@ def test_gradient_clipping_by_value(tmp_path, precision):
     )
 
     class TestModel(BoringModel):
+        @override
         def configure_gradient_clipping(self, *args, **kwargs):
             super().configure_gradient_clipping(*args, **kwargs)
             # test that gradient is clipped correctly
@@ -1125,9 +1150,11 @@ def test_num_sanity_val_steps(tmp_path, limit_val_batches):
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
     class CustomModelMixedVal(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             return super().validation_step(batch, batch_idx)
 
+        @override
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64), batch_size=8), DataLoader(RandomDataset(32, 64))]
 
@@ -1148,9 +1175,11 @@ def test_num_sanity_val_steps_neg_one(tmp_path, limit_val_batches):
     `limit_val_batches` Trainer argument."""
 
     class CustomModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             return super().validation_step(batch, batch_idx)
 
+        @override
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
@@ -1228,10 +1257,12 @@ def test_trainer_setup_call(tmp_path, stage):
     """Test setup call gets the correct stage."""
 
     class CurrentModel(BoringModel):
+        @override
         def setup(self, stage):
             self.stage = stage
 
     class CurrentCallback(Callback):
+        @override
         def setup(self, trainer, model, stage):
             assert model is not None
             self.stage = stage
@@ -1255,6 +1286,7 @@ def test_trainer_setup_call(tmp_path, stage):
 @patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmp_path, train_batches, max_steps, log_interval):
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             self.log("foo", -1)
             return super().training_step(*args, **kwargs)
@@ -1278,9 +1310,11 @@ class TestLightningDataModule(LightningDataModule):
         super().__init__()
         self._dataloaders = dataloaders
 
+    @override
     def test_dataloader(self):
         return self._dataloaders
 
+    @override
     def predict_dataloader(self):
         return self._dataloaders
 
@@ -1293,11 +1327,13 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
+    @override
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
 
+    @override
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
         expected = 1 if trainer._accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
@@ -1306,6 +1342,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
+    @override
     def on_predict_epoch_end(self, trainer, pl_module):
         if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
@@ -1369,6 +1406,7 @@ def test_trainer_predict_no_return(tmp_path):
     """Test trainer.predict warns when nothing is returned."""
 
     class CustomBoringModel(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
                 return None
@@ -1381,6 +1419,7 @@ def test_trainer_predict_no_return(tmp_path):
 
 def test_trainer_predict_grad(tmp_path):
     class CustomBoringModel(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
@@ -1436,6 +1475,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmp_path
             super().__init__(*args, **kwargs)
             self.output_dir = output_dir
 
+        @override
         def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
             assert not batch_indices if is_iterable_dataset else batch_indices
 
@@ -1492,6 +1532,7 @@ def test_trainer_access_in_configure_optimizers(tmp_path):
     """Verify that the configure optimizer function can reference the trainer."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             assert self.trainer is not None, "Expect to have access to the trainer within `configure_optimizers`"
 
@@ -1514,6 +1555,7 @@ def test_setup_hook_device_and_layers(tmp_path, accelerator):
     expected_device = torch.device(accelerator, 0)
 
     class TestModel(BoringModel):
+        @override
         def setup(self, stage: str) -> None:
             # The `self.device` attribute already points to what device the model will land on
             assert self.device == expected_device
@@ -1523,6 +1565,7 @@ def test_setup_hook_device_and_layers(tmp_path, accelerator):
             self.new_layer = torch.nn.Linear(2, 2)
             assert self.new_layer.weight.device == torch.device("cpu")
 
+        @override
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             # will crash if not moved to correct device
@@ -1563,22 +1606,27 @@ def test_train_loop_system(tmp_path):
     }
 
     class TestOptimizer(SGD):
+        @override
         def step(self, *args, **kwargs):
             called_methods.append("step")
             return super().step(*args, **kwargs)
 
+        @override
         def zero_grad(self, *args, **kwargs):
             called_methods.append("zero_grad")
             return super().zero_grad(*args, **kwargs)
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return TestOptimizer(self.parameters(), lr=0.1)
 
+        @override
         def training_step(self, *args, **kwargs):
             called_methods.append("training_step")
             return super().training_step(*args, **kwargs)
 
+        @override
         def backward(self, *args, **kwargs):
             called_methods.append("backward")
             return super().backward(*args, **kwargs)
@@ -1637,18 +1685,22 @@ def test_exception_when_testing_or_validating_with_fast_dev_run():
 
 
 class TrainerStagesModel(BoringModel):
+    @override
     def on_train_start(self) -> None:
         assert self.trainer.model.training
         assert self.training
 
+    @override
     def on_validation_start(self) -> None:
         assert not self.trainer.model.training
         assert not self.training
 
+    @override
     def on_test_start(self) -> None:
         assert not self.trainer.model.training
         assert not self.training
 
+    @override
     def on_predict_start(self) -> None:
         assert not self.trainer.model.training
         assert not self.training
@@ -1669,6 +1721,7 @@ def test_model_in_correct_mode_during_stages(tmp_path, strategy, devices):
 
 
 class TestDummyModelForCheckpoint(BoringModel):
+    @override
     def validation_step(self, batch, batch_idx):
         loss = self.step(batch)
         self.log("x", loss)
@@ -1693,6 +1746,7 @@ def test_fit_test_synchronization(tmp_path):
 
 
 class CustomCallbackOnLoadCheckpoint(Callback):
+    @override
     def state_dict(self) -> dict:
         return {"a": None}
 
@@ -1742,15 +1796,18 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
     """This tests ensures calling the trainer several times reset the memory back to 0."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             self.log("train_loss", loss["loss"])
             return loss
 
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.layer.parameters(), lr=0.1)
 
     class Check(Callback):
+        @override
         def on_train_epoch_start(self, trainer, *_):
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
 
@@ -1790,15 +1847,19 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
 
 
 class TrainerStagesErrorsModel(BoringModel):
+    @override
     def on_train_start(self) -> None:
         raise Exception("Error during train")
 
+    @override
     def on_validation_start(self) -> None:
         raise Exception("Error during validation")
 
+    @override
     def on_test_start(self) -> None:
         raise Exception("Error during test")
 
+    @override
     def on_predict_start(self) -> None:
         raise Exception("Error during predict")
 
@@ -1806,6 +1867,7 @@ class TrainerStagesErrorsModel(BoringModel):
 class ExceptionCounter(Callback):
     exceptions = 0
 
+    @override
     def on_exception(self, *_):
         self.exceptions += 1
 
@@ -1849,16 +1911,20 @@ def test_trainer_metrics_reset_before_each_task(tmp_path):
             assert trainer.progress_bar_metrics == {}
             assert trainer.logged_metrics == {}
 
+        @override
         def on_train_start(self, trainer, *args, **kwargs):
             self._make_assertions(trainer)
 
+        @override
         def on_validation_start(self, trainer, *args, **kwargs):
             if trainer.state.fn == TrainerFn.VALIDATING:
                 self._make_assertions(trainer)
 
+        @override
         def on_test_start(self, trainer, *args, **kwargs):
             self._make_assertions(trainer)
 
+        @override
         def on_predict_start(self, trainer, *args, **kwargs):
             self._make_assertions(trainer)
 
@@ -1866,14 +1932,17 @@ def test_trainer_metrics_reset_before_each_task(tmp_path):
         def __init__(self):
             super().__init__()
 
+        @override
         def training_step(self, *args, **kwargs):
             self.log("train/metric", 7.0)
             return super().training_step(*args, **kwargs)
 
+        @override
         def validation_step(self, *args, **kwargs):
             self.log("val/metric", 14.0)
             return super().validation_step(*args, **kwargs)
 
+        @override
         def test_step(self, *args, **kwargs):
             self.log("test/metric", 21.0)
             return super().test_step(*args, **kwargs)
@@ -1888,6 +1957,7 @@ def test_trainer_metrics_reset_before_each_task(tmp_path):
 
 def test_detect_anomaly_nan(tmp_path):
     class NanModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
             output["loss"] = output["loss"] * torch.tensor(float("nan"))
@@ -2051,6 +2121,7 @@ def test_trainer_save_checkpoint_no_model_attached():
 
 def test_trainer_calls_logger_finalize_on_exception(tmp_path):
     class CustomModel(BoringModel):
+        @override
         def on_fit_start(self):
             super().on_fit_start()
             raise Exception("logger-finalize")
@@ -2072,6 +2143,7 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
     exception = exception_type("Test exception")
 
     class ExceptionModel(BoringModel):
+        @override
         def on_fit_start(self):
             raise exception
 
@@ -2090,6 +2162,7 @@ def test_trainer_calls_datamodule_on_exception(exception_type, tmp_path):
     exception = exception_type("Test exception")
 
     class ExceptionModel(BoringModel):
+        @override
         def on_fit_start(self):
             raise exception
 

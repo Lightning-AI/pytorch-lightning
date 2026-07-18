@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import glob
 import logging
 import math
@@ -47,6 +48,7 @@ def test_error_with_multiple_optimizers(tmp_path):
             self.save_hyperparameters()
             self.automatic_optimization = False
 
+        @override
         def configure_optimizers(self):
             optimizer1 = torch.optim.SGD(self.parameters(), lr=self.hparams.lr)
             optimizer2 = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -125,6 +127,7 @@ def test_tuner_lr_find(tmp_path, use_hparams):
             self.save_hyperparameters()
             self.lr = lr
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
 
@@ -151,6 +154,7 @@ def test_trainer_arg_str(tmp_path, use_hparams):
             self.save_hyperparameters()
             self.my_fancy_lr = my_fancy_lr
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr)
 
@@ -175,6 +179,7 @@ def test_call_to_trainer_method(tmp_path, opt):
             super().__init__()
             self.save_hyperparameters()
 
+        @override
         def configure_optimizers(self):
             return (
                 torch.optim.Adagrad(self.parameters(), lr=self.hparams.lr)
@@ -247,6 +252,7 @@ def test_suggestion_parameters_work(tmp_path):
             super().__init__()
             self.lr = lr
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.lr)
 
@@ -272,6 +278,7 @@ def test_suggestion_with_non_finite_values(tmp_path):
             super().__init__()
             self.lr = lr
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.lr)
 
@@ -325,6 +332,7 @@ def test_lr_finder_ends_before_num_training(tmp_path):
             super().__init__()
             self.save_hyperparameters()
 
+        @override
         def on_before_optimizer_step(self, optimizer):
             assert self.global_step < num_training
 
@@ -422,16 +430,19 @@ def test_lr_finder_callback_restarting(tmp_path):
             super().__init__()
             self.learning_rate = 0.123
 
+        @override
         def on_train_batch_start(self, batch, batch_idx):
             if getattr(self, "_expected_max_steps", None) is not None:
                 assert self.trainer.fit_loop.max_steps == self._expected_max_steps
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.learning_rate)
 
     class CustomLearningRateFinder(LearningRateFinder):
         milestones = (1,)
 
+        @override
         def lr_find(self, trainer, pl_module) -> None:
             pl_module._expected_max_steps = trainer.global_step + self._num_training_steps
             super().lr_find(trainer, pl_module)
@@ -439,6 +450,7 @@ def test_lr_finder_callback_restarting(tmp_path):
             assert not trainer.fit_loop.restarting
             assert not trainer.fit_loop.epoch_loop.restarting
 
+        @override
         def on_train_epoch_start(self, trainer, pl_module):
             if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
                 self.lr_find(trainer, pl_module)
@@ -493,6 +505,7 @@ def test_lr_finder_callback_val_batches(tmp_path):
             super().__init__()
             self.lr = lr
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=self.lr)
 
@@ -520,6 +533,7 @@ def test_lr_finder_training_step_none_output(tmp_path):
             super().__init__()
             self.lr = 0.123
 
+        @override
         def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
             if self.trainer.global_step in none_steps:
                 return None
@@ -549,12 +563,14 @@ def test_lr_finder_with_early_stopping(tmp_path):
             super().__init__()
             self.learning_rate = 0.1
 
+        @override
         def validation_step(self, batch, batch_idx):
             output = self.step(batch)
             # Log validation loss that EarlyStopping will monitor
             self.log("val_loss", output, on_epoch=True)
             return output
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
@@ -639,6 +655,7 @@ def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
         def __len__(self) -> int:
             return len(self.x)
 
+        @override
         def __getitem__(self, idx):
             return self.x[idx], self.y[idx]
 
@@ -649,12 +666,14 @@ def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
             self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
             self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
+        @override
         def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
             x, y = batch
             z = self.encoder(x)
             x_hat = self.decoder(z)
             return F.mse_loss(x_hat, y)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
 
@@ -763,12 +782,14 @@ def test_lr_finder_checkpoint_cleanup_on_error(tmp_path):
             self.current_step = 0
             self.learning_rate = 1e-3
 
+        @override
         def training_step(self, batch, batch_idx):
             self.current_step += 1
             if self.current_step >= self.fail_on_step:
                 raise RuntimeError("Intentional failure for testing cleanup")
             return super().training_step(batch, batch_idx)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -813,10 +834,12 @@ def test_lr_finder_with_backbone_finetuning_callback(tmp_path):
             self.head = torch.nn.Linear(8, 2)
             self.learning_rate = 1e-3
 
+        @override
         def forward(self, x):
             backbone_features = self.backbone(x)
             return self.head(backbone_features)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate)
 
@@ -855,6 +878,7 @@ def test_lr_finder_respects_weights_only(tmp_path):
             super().__init__()
             self.net = torch.nn.Linear(in_features, out_features)
 
+        @override
         def forward(self, x):
             return self.net(x)
 
@@ -867,11 +891,13 @@ def test_lr_finder_respects_weights_only(tmp_path):
             self.loss = loss
             self.lr = lr
 
+        @override
         def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.layer(x)
             return self.loss(y_hat, y)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.lr)
 

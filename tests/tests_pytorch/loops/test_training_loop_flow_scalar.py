@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
@@ -29,12 +30,14 @@ def test__training_step__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.training_step_called = True
             return acc
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -59,6 +62,7 @@ def test__training_step__tr_batch_end__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -66,9 +70,11 @@ def test__training_step__tr_batch_end__flow_scalar(tmp_path):
             self.out = acc
             return acc
 
+        @override
         def on_train_batch_end(self, tr_step_output, *_):
             assert self.count_num_graphs({"loss": tr_step_output}) == 0
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -93,6 +99,7 @@ def test__training_step__epoch_end__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -100,6 +107,7 @@ def test__training_step__epoch_end__flow_scalar(tmp_path):
             self.training_step_called = True
             return acc
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -141,11 +149,13 @@ def test_train_step_no_return(tmp_path):
     """Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch):
             self.training_step_called = True
             loss = self.step(batch[0])
             self.log("a", loss, on_step=True, on_epoch=True)
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
 
@@ -175,6 +185,7 @@ def test_training_step_no_return_when_even(tmp_path):
     """Tests correctness when some training steps have been skipped."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             loss = self.step(batch[0])
@@ -220,9 +231,11 @@ def test_training_step_none_batches(tmp_path):
             self.counter += 1
             return result
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 4), collate_fn=self.collate_none_when_even)
 
+        @override
         def on_train_batch_end(self, outputs, batch, batch_idx):
             if batch_idx % 2 == 0:
                 assert outputs is None

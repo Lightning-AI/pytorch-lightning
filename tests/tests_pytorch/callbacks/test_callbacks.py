@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from pathlib import Path
 from re import escape
 from unittest.mock import Mock, patch
@@ -30,6 +31,7 @@ def test_callbacks_configured_in_model(tmp_path):
     trainer_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
+        @override
         def configure_callbacks(self):
             return [model_callback_mock]
 
@@ -80,6 +82,7 @@ def test_configure_callbacks_hook_multiple_calls(tmp_path):
     model_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
+        @override
         def configure_callbacks(self):
             return model_callback_mock
 
@@ -109,13 +112,16 @@ class OldStatefulCallback(Callback):
     def __init__(self, state):
         self.state = state
 
+    @override
     @property
     def state_key(self):
         return type(self)
 
+    @override
     def state_dict(self):
         return {"state": self.state}
 
+    @override
     def load_state_dict(self, state_dict) -> None:
         self.state = state_dict["state"]
 

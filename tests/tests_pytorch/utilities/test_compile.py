@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 import sys
 from unittest import mock
@@ -165,6 +166,7 @@ def test_compile_uncompile():
 @mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("loss", loss)

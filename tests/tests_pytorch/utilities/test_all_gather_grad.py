@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import numpy as np
 import pytest
 import torch
@@ -56,6 +57,7 @@ def test_all_gather_collection(tmp_path):
     class TestModel(BoringModel):
         on_train_epoch_end_called = False
 
+        @override
         def on_train_epoch_end(self):
             losses = torch.rand(2, 2).t()
             gathered_loss = self.all_gather({
@@ -109,6 +111,7 @@ def test_all_gather_sync_grads(tmp_path):
     class TestModel(BoringModel):
         training_step_called = False
 
+        @override
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)

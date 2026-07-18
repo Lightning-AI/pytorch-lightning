@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import copy
 import logging
 import math
@@ -49,10 +50,12 @@ class EarlyStoppingTestRestore(EarlyStopping):
         # cache the state for each epoch
         self.saved_states = []
 
+    @override
     def on_train_start(self, trainer, pl_module):
         if self.expected_state:
             assert self.state_dict() == self.expected_state
 
+    @override
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
         self.saved_states.append(self.state_dict().copy())
@@ -136,6 +139,7 @@ def test_early_stopping_patience(tmp_path, loss_values: list, patience: int, exp
     class ModelOverrideValidationReturn(BoringModel):
         validation_return_values = torch.tensor(loss_values)
 
+        @override
         def on_validation_epoch_end(self):
             loss = self.validation_return_values[self.current_epoch]
             self.log("test_val_loss", loss)
@@ -166,6 +170,7 @@ def test_early_stopping_patience_train(
     class ModelOverrideTrainReturn(BoringModel):
         train_return_values = torch.tensor(loss_values)
 
+        @override
         def on_train_epoch_end(self):
             loss = self.train_return_values[self.current_epoch]
             self.log("train_loss", loss)
@@ -227,6 +232,7 @@ def test_early_stopping_no_val_step(tmp_path):
 )
 def test_early_stopping_thresholds(tmp_path, stopping_threshold, divergence_threshold, losses, expected_epoch):
     class CurrentModel(BoringModel):
+        @override
         def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("abc", val_loss)
@@ -252,6 +258,7 @@ def test_early_stopping_on_non_finite_monitor(tmp_path, stop_value):
     expected_stop_epoch = 2
 
     class CurrentModel(BoringModel):
+        @override
         def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("val_loss", val_loss)
@@ -296,6 +303,7 @@ def test_min_epochs_min_steps_global_step(tmp_path, limit_train_batches, min_epo
         assert limit_train_batches < min_steps
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", batch_idx)
             return super().training_step(batch, batch_idx)
@@ -352,16 +360,19 @@ class EarlyStoppingModel(BoringModel):
         self.log("abc", torch.tensor(loss))
         self.log("cba", torch.tensor(0))
 
+    @override
     def on_train_epoch_end(self):
         if not self.early_stop_on_train:
             return
         self._epoch_end()
 
+    @override
     def on_validation_epoch_end(self):
         if self.early_stop_on_train:
             return
         self._epoch_end()
 
+    @override
     def on_train_end(self) -> None:
         assert self.trainer.current_epoch - 1 == self.expected_end_epoch, "Early Stopping Failed"
 
@@ -442,6 +453,7 @@ def test_multiple_early_stopping_callbacks(
 )
 def test_check_on_train_epoch_end_smart_handling(tmp_path, case):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("foo", 1)
             return super().validation_step(batch, batch_idx)
@@ -510,6 +522,7 @@ def test_early_stopping_log_info(log_rank_zero_only, world_size, global_rank, ex
 
 
 class ModelWithHighLoss(BoringModel):
+    @override
     def on_validation_epoch_end(self):
         self.log("val_loss", 10.0)
 
@@ -519,6 +532,7 @@ class ModelWithDecreasingLoss(BoringModel):
         super().__init__()
         self.epoch_losses = [5.0, 3.0, 1.0, 0.5]
 
+    @override
     def on_validation_epoch_end(self):
         loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 0.1
         self.log("val_loss", loss)
@@ -529,6 +543,7 @@ class ModelWithIncreasingLoss(BoringModel):
         super().__init__()
         self.epoch_losses = [1.0, 2.0, 5.0, 10.0]
 
+    @override
     def on_validation_epoch_end(self):
         loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 15.0
         self.log("val_loss", loss)
@@ -539,6 +554,7 @@ class ModelWithNaNLoss(BoringModel):
         super().__init__()
         self.epoch_losses = [1.0, 0.5, float("nan")]
 
+    @override
     def on_validation_epoch_end(self):
         loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else float("nan")
         self.log("val_loss", loss)
@@ -549,6 +565,7 @@ class ModelWithImprovingLoss(BoringModel):
         super().__init__()
         self.epoch_losses = [5.0, 4.0, 3.0, 2.0, 1.0]
 
+    @override
     def on_validation_epoch_end(self):
         loss = self.epoch_losses[self.current_epoch] if self.current_epoch < len(self.epoch_losses) else 0.1
         self.log("val_loss", loss)

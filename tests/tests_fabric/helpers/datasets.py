@@ -1,3 +1,4 @@
+from typing_extensions import override
 from collections.abc import Iterator
 
 import torch
@@ -10,6 +11,7 @@ class RandomDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
+    @override
     def __getitem__(self, index: int) -> Tensor:
         return self.data[index]
 
@@ -22,6 +24,7 @@ class RandomIterableDataset(IterableDataset):
         self.count = count
         self.size = size
 
+    @override
     def __iter__(self) -> Iterator[Tensor]:
         for _ in range(self.count):
             yield torch.randn(self.size)

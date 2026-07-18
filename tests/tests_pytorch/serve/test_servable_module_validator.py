@@ -1,3 +1,4 @@
+from typing_extensions import override
 import pytest
 import torch
 from torch import Tensor
@@ -9,9 +10,11 @@ from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 
 class ServableBoringModel(BoringModel, ServableModule):
+    @override
     def configure_payload(self):
         return {"body": {"x": list(range(32))}}
 
+    @override
     def configure_serialization(self):
         def deserialize(x):
             return torch.tensor(x, dtype=torch.float)
@@ -21,10 +24,12 @@ class ServableBoringModel(BoringModel, ServableModule):
 
         return {"x": deserialize}, {"output": serialize}
 
+    @override
     def serve_step(self, x: Tensor) -> dict[str, Tensor]:
         assert torch.equal(x, torch.arange(32, dtype=torch.float))
         return {"output": torch.tensor([0, 1])}
 
+    @override
     def configure_response(self):
         return {"output": [0, 1]}
 

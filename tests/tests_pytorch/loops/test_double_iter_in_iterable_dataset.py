@@ -15,6 +15,7 @@
 # This test tests the resuming of training from a checkpoint file using an IterableDataset.
 # And contains code mentioned in the issue: #19427.
 # Ref: https://github.com/Lightning-AI/pytorch-lightning/issues/19427
+from typing_extensions import override
 import multiprocessing as mp
 import os
 import sys
@@ -35,6 +36,7 @@ class QueueDataset(IterableDataset):
         super().__init__()
         self.queue = queue
 
+    @override
     def __iter__(self) -> Iterator:
         for _ in range(5):
             tensor, _ = self.queue.get(timeout=5)

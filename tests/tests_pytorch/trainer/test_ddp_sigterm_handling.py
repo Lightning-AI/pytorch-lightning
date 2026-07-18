@@ -1,3 +1,4 @@
+from typing_extensions import override
 import os
 import signal
 import time
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.skipif(
 
 
 class DummyModel(LightningModule):
+    @override
     def training_step(self, batch, batch_idx):
         # Simulate SIGTERM in rank 0 at batch 2
         if self.trainer.global_rank == 0 and batch_idx == 2:

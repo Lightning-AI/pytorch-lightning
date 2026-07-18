@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import math
 import os
 import pickle
@@ -56,11 +57,13 @@ def test_model_checkpoint_state_key():
 
 
 class LogInTwoMethods(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
         self.log("early_stop_on", out["loss"])
         return out
 
+    @override
     def on_validation_epoch_end(self):
         self.log("val_acc", torch.tensor(1.23))
 
@@ -101,16 +104,19 @@ def test_model_checkpoint_score_and_ckpt(
             self.val_logs = torch.randn(max_epochs, limit_val_batches)
             self.scores = []
 
+        @override
         def training_step(self, batch, batch_idx):
             log_value = self.train_log_epochs[self.current_epoch, batch_idx]
             self.log("train_log", log_value, on_epoch=True)
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             log_value = self.val_logs[self.current_epoch, batch_idx]
             self.log("val_log", log_value)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def configure_optimizers(self):
             optimizer = optim.SGD(self.parameters(), lr=lr)
 
@@ -125,10 +131,12 @@ def test_model_checkpoint_score_and_ckpt(
 
             return [optimizer], [lr_scheduler]
 
+        @override
         def on_train_epoch_end(self):
             if "train" in monitor:
                 self.scores.append(self.trainer.logged_metrics[monitor])
 
+        @override
         def on_validation_epoch_end(self):
             if not self.trainer.sanity_checking and "val" in monitor:
                 self.scores.append(self.trainer.logged_metrics[monitor])
@@ -210,15 +218,18 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
             self.val_loop_count = 0
             self.scores = []
 
+        @override
         def validation_step(self, batch, batch_idx):
             log_value = self.val_logs[self.val_loop_count, batch_idx]
             self.log("val_log", log_value)
             return super().validation_step(batch, batch_idx)
 
+        @override
         def on_validation_epoch_end(self):
             self.val_loop_count += 1
             self.scores.append(self.trainer.logged_metrics[monitor])
 
+        @override
         def configure_optimizers(self):
             optimizer = optim.SGD(self.parameters(), lr=lr)
 
@@ -368,13 +379,16 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         self.expected_count = expected_count
         self.state_dict_count = 0
 
+    @override
     def on_train_start(self, trainer, pl_module):
         torch.save = Mock(wraps=torch.save)
 
+    @override
     def state_dict(self):
         super().state_dict()
         self.state_dict_count += 1
 
+    @override
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         assert self.best_model_path
@@ -627,6 +641,7 @@ def test_none_monitor_not_alternating(tmp_path):
     """Regression test for the case where the callback saved alternating `model.ckpt` and `model-v1.ckpt` files."""
 
     class ListDirModel(BoringModel):
+        @override
         def on_train_epoch_start(self):
             if self.current_epoch > 0:
                 assert os.listdir(tmp_path) == ["model.ckpt"]
@@ -776,6 +791,7 @@ def test_model_checkpoint_on_exception_run_condition_on_validation_start(tmp_pat
 
     # Don't save checkpoint if sanity check fails
     class TroubledModelSanityCheck(BoringModel):
+        @override
         def on_validation_start(self) -> None:
             if self.trainer.sanity_checking:
                 print("Trouble!")
@@ -803,6 +819,7 @@ def test_model_checkpoint_on_exception_fast_dev_run_on_train_batch_start(tmp_pat
 
     # Don't save checkpoint if fast dev run fails
     class TroubledModelFastDevRun(BoringModel):
+        @override
         def on_train_batch_start(self, batch, batch_idx) -> None:
             if self.trainer.fast_dev_run and batch_idx == 1:
                 raise RuntimeError("Trouble!")
@@ -829,6 +846,7 @@ def test_model_checkpoint_on_exception_run_condition_on_train_batch_start(tmp_pa
 
     # Don't save checkpoint if already saved a checkpoint
     class TroubledModelAlreadySavedCheckpoint(BoringModel):
+        @override
         def on_train_batch_start(self, batch, batch_idx) -> None:
             if self.trainer.global_step == 1:
                 raise RuntimeError("Trouble!")
@@ -849,136 +867,159 @@ def test_model_checkpoint_on_exception_run_condition_on_train_batch_start(tmp_pa
 
 
 class TroubledModelInTrainingStep(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         if batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelInValidationStep(BoringModel):
+    @override
     def validation_step(self, batch, batch_idx):
         if not self.trainer.sanity_checking and batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelBackward(BoringModel):
+    @override
     def backward(self, loss):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnBeforeBackward(BoringModel):
+    @override
     def on_before_backward(self, loss):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnAfterBackward(BoringModel):
+    @override
     def on_after_backward(self):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnBeforeZeroGrad(BoringModel):
+    @override
     def on_before_zero_grad(self, optimizer):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnFitEnd(BoringModel):
+    @override
     def on_fit_end(self):
         raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnTrainEnd(BoringModel):
+    @override
     def on_train_end(self):
         raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationStart(BoringModel):
+    @override
     def on_validation_start(self):
         if not self.trainer.sanity_checking and self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationEnd(BoringModel):
+    @override
     def on_validation_end(self):
         if not self.trainer.sanity_checking:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnTrainBatchStart(BoringModel):
+    @override
     def on_train_batch_start(self, batch, batch_idx):
         if batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnTrainBatchEnd(BoringModel):
+    @override
     def on_train_batch_end(self, outputs, batch, batch_idx):
         if batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnTrainEpochStart(BoringModel):
+    @override
     def on_train_epoch_start(self):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnTrainEpochEnd(BoringModel):
+    @override
     def on_train_epoch_end(self):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationBatchStart(BoringModel):
+    @override
     def on_validation_batch_start(self, batch, batch_idx):
         if not self.trainer.sanity_checking and batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationBatchEnd(BoringModel):
+    @override
     def on_validation_batch_end(self, outputs, batch, batch_idx):
         if not self.trainer.sanity_checking and batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationEpochStart(BoringModel):
+    @override
     def on_validation_epoch_start(self):
         if not self.trainer.sanity_checking and self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationEpochEnd(BoringModel):
+    @override
     def on_validation_epoch_end(self):
         if not self.trainer.sanity_checking and self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationModelEval(BoringModel):
+    @override
     def on_validation_model_eval(self):
         if not self.trainer.sanity_checking and self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnValidationModelTrain(BoringModel):
+    @override
     def on_validation_model_train(self):
         if not self.trainer.sanity_checking and self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOnBeforeOptimizerStep(BoringModel):
+    @override
     def on_before_optimizer_step(self, optimizer):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelConfigureGradienClipping(BoringModel):
+    @override
     def configure_gradient_clipping(self, optimizer, gradient_clip_val=None, gradient_clip_algorithm=None):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledModelOptimizerStep(BoringModel):
+    @override
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure=None):
         optimizer.step(closure=optimizer_closure)
         if self.current_epoch == 1:
@@ -986,6 +1027,7 @@ class TroubledModelOptimizerStep(BoringModel):
 
 
 class TroubledModelOptimizerZeroGrad(BoringModel):
+    @override
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         if self.current_epoch == 1:
             raise RuntimeError("Trouble!")
@@ -1049,94 +1091,110 @@ def test_model_checkpoint_on_exception_parametrized(tmp_path, TroubledModel):
 
 
 class TroubledCallbackOnFitEnd(Callback):
+    @override
     def on_fit_end(self, trainer, pl_module):
         raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnTrainBatchStart(Callback):
+    @override
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         if batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnTrainBatchEnd(Callback):
+    @override
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         if batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnTrainEpochStart(Callback):
+    @override
     def on_train_epoch_start(self, trainer, pl_module):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnTrainEpochEnd(Callback):
+    @override
     def on_train_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationEpochStart(Callback):
+    @override
     def on_validation_epoch_start(self, trainer, pl_module):
         if not trainer.sanity_checking and trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationEpochEnd(Callback):
+    @override
     def on_validation_epoch_end(self, trainer, pl_module):
         if not trainer.sanity_checking and trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationBatchStart(Callback):
+    @override
     def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx):
         if not trainer.sanity_checking and batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationBatchEnd(Callback):
+    @override
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         if not trainer.sanity_checking and batch_idx == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnTrainEnd(Callback):
+    @override
     def on_train_end(self, trainer, pl_module):
         raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationStart(Callback):
+    @override
     def on_validation_start(self, trainer, pl_module):
         if not trainer.sanity_checking:
             raise RuntimeError("Trouble!")
 
 
 class TroubledCallbackOnValidationEnd(Callback):
+    @override
     def on_validation_end(self, trainer, pl_module):
         if not trainer.sanity_checking:
             raise RuntimeError("Trouble!")
 
 
 class TroubleCallbackOnBeforeBackward(Callback):
+    @override
     def on_before_backward(self, trainer, pl_module, loss):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubleCallbackOnAfterBackward(Callback):
+    @override
     def on_after_backward(self, trainer, pl_module):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubleCallbackOnBeforeOptimizerStep(Callback):
+    @override
     def on_before_optimizer_step(self, trainer, pl_module, optimizer):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
 
 
 class TroubleCallbackOnBeforeZeroGrad(Callback):
+    @override
     def on_before_zero_grad(self, trainer, pl_module, optimizer):
         if trainer.current_epoch == 1:
             raise RuntimeError("Trouble!")
@@ -1377,6 +1435,7 @@ def test_checkpointing_with_nan_as_first(tmp_path, mode):
     monitor += [5, 7, 8] if mode == "max" else [8, 7, 5]
 
     class CurrentModel(LogInTwoMethods):
+        @override
         def on_validation_epoch_end(self):
             val_loss = monitor[self.current_epoch]
             self.log("abc", val_loss)
@@ -1406,6 +1465,7 @@ def test_checkpoint_repeated_strategy(tmp_path):
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmp_path, filename="{epoch:02d}")
 
     class ExtendedBoringModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("val_loss", loss)
@@ -1443,6 +1503,7 @@ def test_checkpoint_repeated_strategy_extended(tmp_path):
     nothing run."""
 
     class ExtendedBoringModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("val_loss", loss)
@@ -1583,6 +1644,7 @@ def test_current_score(tmp_path):
     """Check that the current_score value is correct and was saved."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", (self.current_epoch + 1) / 10)
             return super().training_step(*args)
@@ -1616,6 +1678,7 @@ def test_current_score_when_nan(tmp_path, mode: str):
     """Check that ModelCheckpoint handles NaN values correctly."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", float("nan"))
             return super().training_step(*args)
@@ -1797,6 +1860,7 @@ def test_model_checkpoint_saveload_ckpt(tmp_path):
                 assert getattr(cb_restore, key) != written_ckpt[key]
 
     class CustomModelCheckpoint(ModelCheckpoint):
+        @override
         def on_load_checkpoint(self, *args, **kwargs):
             assert self.dirpath is not None
             return super().on_load_checkpoint(*args, **kwargs)
@@ -2064,9 +2128,11 @@ def test_load_with_inf_data_loader(tmp_path):
     dataset = RandomIterableDataset(size=32, count=10)
 
     class ModelWithIterableDataset(BoringModel):
+        @override
         def train_dataloader(self) -> DataLoader:
             return DataLoader(dataset)
 
+        @override
         def val_dataloader(self) -> DataLoader:
             return DataLoader(dataset)
 
@@ -2134,6 +2200,7 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
             super().__init__()
             self.validation_step_outputs = []
 
+        @override
         def validation_step(self, batch, batch_idx):
             outputs = super().validation_step(batch, batch_idx)
             epoch = self.trainer.current_epoch
@@ -2142,6 +2209,7 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
             self.validation_step_outputs.append(outputs)
             return outputs
 
+        @override
         def on_validation_epoch_end(self):
             if self.validation_step_outputs:
                 avg_loss = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()

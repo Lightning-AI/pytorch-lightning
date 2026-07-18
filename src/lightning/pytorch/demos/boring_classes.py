@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional
 
@@ -37,6 +38,7 @@ class RandomDictDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
+    @override
     def __getitem__(self, index: int) -> dict[str, Tensor]:
         a = self.data[index]
         b = a + 2
@@ -55,6 +57,7 @@ class RandomDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
+    @override
     def __getitem__(self, index: int) -> Tensor:
         return self.data[index]
 
@@ -71,6 +74,7 @@ class RandomIterableDataset(IterableDataset):
         self.count = count
         self.size = size
 
+    @override
     def __iter__(self) -> Iterator[Tensor]:
         for _ in range(self.count):
             yield torch.randn(self.size)
@@ -85,6 +89,7 @@ class RandomIterableDatasetWithLen(IterableDataset):
         self.count = count
         self.size = size
 
+    @override
     def __iter__(self) -> Iterator[Tensor]:
         for _ in range(len(self)):
             yield torch.randn(self.size)
@@ -114,6 +119,7 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         return self.layer(x)
 
@@ -127,29 +133,37 @@ class BoringModel(LightningModule):
         output = self(batch)
         return self.loss(output)
 
+    @override
     def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
+    @override
     def validation_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"x": self.step(batch)}
 
+    @override
     def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"y": self.step(batch)}
 
+    @override
     def configure_optimizers(self) -> tuple[list[torch.optim.Optimizer], list[LRScheduler]]:
         optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
+    @override
     def train_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
+    @override
     def val_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
+    @override
     def test_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
+    @override
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
@@ -163,6 +177,7 @@ class BoringDataModule(LightningDataModule):
         super().__init__()
         self.random_full = RandomDataset(32, 64 * 4)
 
+    @override
     def setup(self, stage: str) -> None:
         if stage == "fit":
             self.random_train = Subset(self.random_full, indices=range(64))
@@ -176,15 +191,19 @@ class BoringDataModule(LightningDataModule):
         if stage == "predict":
             self.random_predict = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
 
+    @override
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.random_train)
 
+    @override
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.random_val)
 
+    @override
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.random_test)
 
+    @override
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.random_predict)
 
@@ -197,6 +216,7 @@ class BoringDataModuleNoLen(LightningDataModule):
     def __init__(self) -> None:
         super().__init__()
 
+    @override
     def setup(self, stage: str) -> None:
         if stage == "fit":
             self.random_train = RandomIterableDataset(32, 512)
@@ -210,15 +230,19 @@ class BoringDataModuleNoLen(LightningDataModule):
         if stage == "predict":
             self.random_predict = RandomIterableDataset(32, 64)
 
+    @override
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.random_train)
 
+    @override
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.random_val)
 
+    @override
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.random_test)
 
+    @override
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.random_predict)
 
@@ -227,6 +251,7 @@ class IterableBoringDataModule(LightningDataModule):
     def __init__(self) -> None:
         super().__init__()
 
+    @override
     def setup(self, stage: str) -> None:
         if stage == "fit":
             self.train_datasets = [
@@ -252,18 +277,22 @@ class IterableBoringDataModule(LightningDataModule):
                 RandomIterableDataset(4, 128),
             ]
 
+    @override
     def train_dataloader(self) -> Iterable[DataLoader]:
         combined_train = apply_to_collection(self.train_datasets, Dataset, lambda x: DataLoader(x))
         return combined_train
 
+    @override
     def val_dataloader(self) -> DataLoader:
         combined_val = apply_to_collection(self.val_datasets, Dataset, lambda x: DataLoader(x))
         return combined_val
 
+    @override
     def test_dataloader(self) -> DataLoader:
         combined_test = apply_to_collection(self.test_datasets, Dataset, lambda x: DataLoader(x))
         return combined_test
 
+    @override
     def predict_dataloader(self) -> DataLoader:
         combined_predict = apply_to_collection(self.predict_datasets, Dataset, lambda x: DataLoader(x))
         return combined_predict
@@ -278,6 +307,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
+    @override
     def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         opt = self.optimizers()
         assert isinstance(opt, (Optimizer, LightningOptimizer))
@@ -298,14 +328,17 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+    @override
     def training_step(self, batch: Any, batch_nb: int) -> STEP_OUTPUT:
         x = batch
         x = self(x)
         return x.sum()
 
+    @override
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
@@ -324,6 +357,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         x = self.conv1(x)
         x = F.relu(x)

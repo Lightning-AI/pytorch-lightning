@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import itertools
 
 import pytest
@@ -24,6 +25,7 @@ from tests_pytorch.helpers.runif import _xfail_gloo_windows
 
 def test_prediction_loop_stores_predictions(tmp_path):
     class MyModel(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx):
             return batch_idx
 
@@ -69,6 +71,7 @@ def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distribute
     )
 
     class MyModel(BoringModel):
+        @override
         def predict_dataloader(self):
             dataset = RandomDataset(32, 64)
             sampler = None
@@ -90,6 +93,7 @@ def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distribute
 
 def test_prediction_loop_with_iterable_dataset(tmp_path):
     class MyModel(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             return (batch, batch_idx, dataloader_idx)
 
@@ -119,12 +123,15 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
         step_outs = []
         batch_end_ins = []
 
+        @override
         def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
+        @override
         def predict_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
@@ -140,6 +147,7 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -147,12 +155,14 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -161,8 +171,10 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def predict_step(self, batch, batch_idx): ...
 
+        @override
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
 
@@ -171,12 +183,14 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def predict_step(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def predict_step(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -188,6 +202,7 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def on_predict_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -197,12 +212,14 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
+        @override
         def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def on_predict_batch_start(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -211,8 +228,10 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def on_predict_batch_start(self, batch, batch_idx): ...
 
+        @override
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
 
@@ -223,12 +242,14 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def on_predict_batch_start(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def on_predict_batch_start(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -240,6 +261,7 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
@@ -249,12 +271,14 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
@@ -263,8 +287,10 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx): ...
 
+        @override
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
 
@@ -273,12 +299,14 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
+        @override
         def on_predict_batch_end(self, outputs, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
@@ -292,6 +320,7 @@ def test_prediction_loop_when_batch_idx_argument_is_not_given(tmp_path):
             super().__init__()
             self.predict_step_called = False
 
+        @override
         def predict_step(self, batch):
             self.predict_step_called = True
             return self.step(batch)

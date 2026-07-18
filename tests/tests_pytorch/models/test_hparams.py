@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import copy
 import functools
 import os
@@ -267,6 +268,7 @@ def test_explicit_missing_args_hparams(tmp_path):
 
 def test_class_nesting():
     class MyModule(LightningModule):
+        @override
         def forward(self): ...
 
     # make sure PL modules are always nn.Module
@@ -349,6 +351,7 @@ class UnconventionalArgsBoringModel(CustomBoringModel):
 
 
 class _MetaType(type):
+    @override
     def __call__(cls, *args, **kwargs):
         instance = super().__call__(*args, **kwargs)  # Create the instance
         if hasattr(instance, "_after_init"):
@@ -453,6 +456,7 @@ def test_collect_init_arguments_in_other_methods():
             return self.model
 
     class ConcreteModelCreator(_ABCModelCreator):
+        @override
         def init(self, model=None, **kwargs) -> LightningModule:
             return super().init(model=model or CustomBoringModel(**kwargs))
 
@@ -979,6 +983,7 @@ class NoHparamsModel(BoringModel):
 
 
 class DataModuleWithoutHparams(LightningDataModule):
+    @override
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
         return DataLoader(RandomDataset(32, 64), batch_size=32)
 
@@ -988,6 +993,7 @@ class DataModuleWithHparams(LightningDataModule):
         super().__init__()
         self.save_hyperparameters(hparams)
 
+    @override
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
         return DataLoader(RandomDataset(32, 64), batch_size=32)
 

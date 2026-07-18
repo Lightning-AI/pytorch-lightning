@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import math
 import os
 import shutil
@@ -223,6 +224,7 @@ class _EvaluationLoop(_Loop):
         else:
             self._restart_stage = RestartStage.NONE
 
+    @override
     def reset_restart_stage(self) -> None:
         self._restart_stage = RestartStage.NONE
 

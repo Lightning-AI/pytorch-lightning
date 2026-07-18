@@ -1,3 +1,4 @@
+from typing_extensions import override
 import math
 
 import pytest
@@ -18,6 +19,7 @@ class TinyDataset(Dataset):
     def __len__(self):
         return len(self.x)
 
+    @override
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
@@ -29,16 +31,19 @@ class ValMetricModule(LightningModule):
         self._val_scores = [float(s) for s in val_scores]
 
     # LightningModule API (minimal)
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.layer(x)
         loss = F.mse_loss(y_hat, y)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         # do nothing per-step; we log at epoch end
         pass
 
+    @override
     def on_validation_epoch_end(self):
         # Log a validation metric only at validation epoch end
         # Values increase across epochs; best should be the last epoch
@@ -46,6 +51,7 @@ class ValMetricModule(LightningModule):
         # use logger=True so it lands in trainer.callback_metrics
         self.log("auroc", torch.tensor(score, dtype=torch.float32), prog_bar=False, logger=True)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 

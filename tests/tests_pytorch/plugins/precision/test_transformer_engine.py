@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from typing_extensions import override
 import sys
 from contextlib import nullcontext
 from unittest.mock import ANY, Mock
@@ -61,10 +62,12 @@ def test_configure_model(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", te_mock)
 
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(8, 16)
             assert self.l.weight.dtype == torch.float16
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

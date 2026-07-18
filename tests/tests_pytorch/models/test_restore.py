@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import glob
 import logging as log
 import os
@@ -43,15 +44,19 @@ class ModelTrainerPropertyParity(Callback):
         assert trainer.global_step == pl_module.global_step
         assert trainer.current_epoch == pl_module.current_epoch
 
+    @override
     def on_train_start(self, trainer, pl_module):
         self._check_properties(trainer, pl_module)
 
+    @override
     def on_train_batch_start(self, trainer, pl_module, *_):
         self._check_properties(trainer, pl_module)
 
+    @override
     def on_train_batch_end(self, trainer, pl_module, *_):
         self._check_properties(trainer, pl_module)
 
+    @override
     def on_train_end(self, trainer, pl_module):
         self._check_properties(trainer, pl_module)
 
@@ -61,11 +66,13 @@ class ValTestLossBoringModel(BoringModel):
         super().__init__()
         self.save_hyperparameters()
 
+    @override
     def validation_step(self, batch, batch_idx):
         out = super().validation_step(batch, batch_idx)
         self.log("val_loss", out["x"])
         return out
 
+    @override
     def test_step(self, batch, batch_idx):
         out = super().test_step(batch, batch_idx)
         self.log("test_loss", out["y"])
@@ -109,6 +116,7 @@ def test_trainer_properties_restore_ckpt_path(tmp_path):
     """Test that required trainer properties are set correctly when resuming from checkpoint in different phases."""
 
     class CustomClassifModel(ClassificationModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -169,6 +177,7 @@ def test_trainer_properties_restore_ckpt_path(tmp_path):
             assert self.trainer.global_step == 0
             assert self._check_model_state_dict()
 
+        @override
         def on_train_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"] + 1
             assert self.trainer.global_step == state_dict["global_step"]
@@ -176,10 +185,12 @@ def test_trainer_properties_restore_ckpt_path(tmp_path):
             assert self._check_optimizers()
             assert self._check_schedulers()
 
+        @override
         def on_validation_start(self):
             if self.trainer.state.fn == TrainerFn.VALIDATING:
                 self._test_on_val_test_predict_start()
 
+        @override
         def on_test_start(self):
             self._test_on_val_test_predict_start()
 
@@ -222,6 +233,7 @@ def test_correct_step_and_epoch(tmp_path):
     assert trainer.global_step == 0
 
     class TestModel(BoringModel):
+        @override
         def on_train_start(self) -> None:
             assert self.trainer.current_epoch == first_max_epochs
             assert self.trainer.global_step == first_max_epochs * train_batches
@@ -237,6 +249,7 @@ def test_fit_twice(tmp_path):
     epochs = []
 
     class TestModel(BoringModel):
+        @override
         def on_train_epoch_end(self, *_):
             epochs.append(self.current_epoch)
 
@@ -268,6 +281,7 @@ def test_try_resume_from_non_existing_checkpoint(tmp_path):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
+    @override
     def on_fit_start(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
@@ -621,6 +635,7 @@ class ExceptionModel(BoringModel):
         super().__init__()
         self.stop_batch_idx = stop_batch_idx
 
+    @override
     def training_step(self, batch, batch_idx):
         if batch_idx == self.stop_batch_idx:
             raise CustomException()
@@ -628,6 +643,7 @@ class ExceptionModel(BoringModel):
 
 
 class ShouldStopModel(ExceptionModel):
+    @override
     def training_step(self, batch, batch_idx):
         if batch_idx == self.stop_batch_idx:
             # setting should_stop is treated differently to raising an exception.

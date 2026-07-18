@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import itertools
 import logging
 import warnings
@@ -30,6 +31,7 @@ def test_outputs_format(tmp_path):
     """Tests that outputs objects passed to model hooks and methods are consistent and in the correct format."""
 
     class HookedModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
             self.log("foo", 123)
@@ -42,6 +44,7 @@ def test_outputs_format(tmp_path):
             assert "foo" in output
             assert output["foo"] == 123
 
+        @override
         def on_train_batch_end(self, outputs, *_):
             HookedModel._check_output(outputs)
 
@@ -70,6 +73,7 @@ def test_training_starts_with_seed(tmp_path, seed_once):
             super().__init__()
             self.seen_batches = []
 
+        @override
         def training_step(self, batch, batch_idx):
             self.seen_batches.append(batch.view(-1))
             return super().training_step(batch, batch_idx)
@@ -96,6 +100,7 @@ def test_training_starts_with_seed(tmp_path, seed_once):
 @pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8), (4, 12)])
 def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path):
     class CurrentModel(BoringModel):
+        @override
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
                 return -1
@@ -122,11 +127,13 @@ def test_should_stop_mid_epoch(tmp_path):
             super().__init__()
             self.validation_called_at = None
 
+        @override
         def training_step(self, batch, batch_idx):
             if batch_idx == 4:
                 self.trainer.should_stop = True
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, *args):
             self.validation_called_at = (self.trainer.current_epoch, self.trainer.global_step)
             return super().validation_step(*args)
@@ -258,6 +265,7 @@ def test_progress_bar_steps(tmp_path, max_steps):
             super().__init__()
             self.data = data
 
+        @override
         def __iter__(self):
             yield from self.data  # yield just a tensor, not a tuple
 
@@ -315,6 +323,7 @@ def test_lr_updated_on_train_batch_start_returns_minus_one(tmp_path, max_epochs,
     still updated when it should, at the end of the epoch."""
 
     class TestModel(BoringModel):
+        @override
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
                 return -1

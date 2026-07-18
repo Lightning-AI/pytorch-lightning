@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import logging
 import time
 from datetime import timedelta
@@ -28,6 +29,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_trainer_flag(caplog, tmp_path):
     class TestModel(BoringModel):
+        @override
         def on_fit_start(self):
             raise SystemExit()
 

@@ -1,3 +1,4 @@
+from typing_extensions import override
 # Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +42,7 @@ class CustomNotImplementedErrorDataloader(CustomInfDataloader):
         """Raise NotImplementedError."""
         raise NotImplementedError
 
+    @override
     def __next__(self):
         if self.count >= 2:
             raise StopIteration

@@ -1,3 +1,4 @@
+from typing_extensions import override
 import os
 from unittest.mock import Mock
 
@@ -44,22 +45,27 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmp_path, fast_dev_run)
             self.on_validation_epoch_end_call_count = 0
             self.test_step_call_count = 0
 
+        @override
         def training_step(self, batch, batch_idx):
             self.log("some_metric", torch.tensor(7.0))
             self.logger.experiment.dummy_log("some_distribution", torch.randn(7) + batch_idx)
             self.training_step_call_count += 1
             return super().training_step(batch, batch_idx)
 
+        @override
         def on_train_epoch_end(self):
             self.on_train_epoch_end_call_count += 1
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.validation_step_call_count += 1
             return super().validation_step(batch, batch_idx)
 
+        @override
         def on_validation_epoch_end(self):
             self.on_validation_epoch_end_call_count += 1
 
+        @override
         def test_step(self, batch, batch_idx):
             self.test_step_call_count += 1
             return super().test_step(batch, batch_idx)

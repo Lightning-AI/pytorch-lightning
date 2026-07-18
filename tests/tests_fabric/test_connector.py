@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from typing_extensions import override
 import inspect
 import os
 import sys
@@ -125,10 +126,12 @@ def test_custom_cluster_environment_in_slurm_environment(_):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
+        @override
         @property
         def main_address(self):
             return "asdf"
 
+        @override
         @property
         def creates_processes_externally(self) -> bool:
             return True
@@ -162,32 +165,39 @@ def test_custom_cluster_environment_in_slurm_environment(_):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_custom_accelerator(*_):
     class Accel(Accelerator):
+        @override
         def setup_device(self, device: torch.device) -> None:
             pass
 
         def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
+        @override
         def teardown(self) -> None:
             pass
 
         @staticmethod
+        @override
         def parse_devices(devices):
             return devices
 
         @staticmethod
+        @override
         def get_parallel_devices(devices):
             return [torch.device("cpu")] * devices
 
         @staticmethod
+        @override
         def auto_device_count() -> int:
             return 1
 
         @staticmethod
+        @override
         def is_available() -> bool:
             return True
 
         @staticmethod
+        @override
         def name() -> str:
             return "custom_acc_name"
 

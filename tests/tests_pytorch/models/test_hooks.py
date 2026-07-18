@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from functools import partial, update_wrapper
 from inspect import getmembers, isfunction
 from unittest import mock
@@ -48,6 +49,7 @@ class HookedDataModule(BoringDataModule):
             setattr(self, h, partial_h)
 
     # override so that it gets called
+    @override
     def prepare_data(self): ...
 
 
@@ -56,6 +58,7 @@ def test_on_before_zero_grad_called(tmp_path, max_steps):
     class CurrentTestModel(BoringModel):
         on_before_zero_grad_called = 0
 
+        @override
         def on_before_zero_grad(self, optimizer):
             self.on_before_zero_grad_called += 1
 
@@ -76,11 +79,13 @@ def test_on_train_epoch_end_metrics_collection(tmp_path):
     num_epochs = 3
 
     class CurrentModel(BoringModel):
+        @override
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             self.log_dict({"step_metric": torch.tensor(-1), "shared_metric": 100}, logger=False, prog_bar=True)
             return output
 
+        @override
         def on_train_epoch_end(self):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
@@ -127,6 +132,7 @@ def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_d
         transfer_batch_to_device_hook_rank = None
         on_after_batch_transfer_hook_rank = None
 
+        @override
         def on_after_batch_transfer(self, batch, dataloader_idx):
             assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
@@ -135,6 +141,7 @@ def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_d
             batch.targets *= 2
             return batch
 
+        @override
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
@@ -175,12 +182,14 @@ def test_transfer_batch_hook_ddp(tmp_path):
         return CustomBatch(batch)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             assert batch.samples.device == self.device
             assert isinstance(batch_idx, int)
             # the actual training step is not needed for the assertions
             return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
+        @override
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
 
@@ -222,6 +231,7 @@ class HookedCallback(Callback):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
+    @override
     def state_dict(*args, **kwargs):
         return {"foo": True}
 
@@ -388,18 +398,22 @@ class HookedModel(BoringModel):
         return out
 
     # override so that it gets called
+    @override
     def configure_model(self): ...
 
     # override so that it gets called
+    @override
     def on_validation_model_train(self): ...
 
     # override so that it gets called
+    @override
     def on_test_model_train(self): ...
 
     # override so that it gets called
     def on_predict_model_train(self): ...
 
     # override so that it gets called
+    @override
     def prepare_data(self): ...
 
 
@@ -425,6 +439,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
             super().__init__(*args)
             self.automatic_optimization = automatic_optimization
 
+        @override
         def training_step(self, batch, batch_idx):
             if self.automatic_optimization:
                 return super().training_step(batch, batch_idx)
@@ -778,29 +793,35 @@ def test_hooks_with_different_argument_names(tmp_path):
             assert x.size() == (1, 32)
             assert isinstance(batch_nb, int)
 
+        @override
         def training_step(self, x1, batch_nb1):
             self.assert_args(x1, batch_nb1)
             return super().training_step(x1, batch_nb1)
 
+        @override
         def validation_step(self, x2, batch_nb2):
             self.assert_args(x2, batch_nb2)
             return super().validation_step(x2, batch_nb2)
 
         # we don't support a different name for `dataloader_idx`
+        @override
         def test_step(self, x3, batch_nb3, dataloader_idx):
             self.assert_args(x3, batch_nb3)
             assert isinstance(dataloader_idx, int)
             return super().test_step(x3, batch_nb3)
 
         # we don't support a different name for `dataloader_idx`
+        @override
         def predict_step(self, x4, batch_nb4, dataloader_idx):
             self.assert_args(x4, batch_nb4)
             assert isinstance(dataloader_idx, int)
             return super().predict_step(x4, batch_nb4, dataloader_idx)
 
+        @override
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
+        @override
         def predict_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
@@ -883,6 +904,7 @@ def test_trainer_datamodule_hook_system(tmp_path):
 @pytest.mark.parametrize("override_configure_model", [True, False])
 def test_load_from_checkpoint_hook_calls(override_configure_model, tmp_path):
     class CustomHookedDataModule(HookedDataModule):
+        @override
         def state_dict(self):
             return {"foo": "bar"}
 
@@ -940,6 +962,7 @@ def test_train_eval_mode_restored(tmp_path):
             self.frozen.eval()
             self.frozen.requires_grad_(False)
 
+        @override
         def training_step(self, *args, **kwargs):
             assert self.layer.weight.requires_grad
             assert self.layer.training
@@ -947,6 +970,7 @@ def test_train_eval_mode_restored(tmp_path):
             assert not self.frozen.weight.requires_grad
             return super().training_step(*args, **kwargs)
 
+        @override
         def validation_step(self, *args, **kwargs):
             assert self.layer.weight.requires_grad
             assert not self.layer.training
@@ -954,6 +978,7 @@ def test_train_eval_mode_restored(tmp_path):
             assert not self.frozen.weight.requires_grad
             return super().validation_step(*args, **kwargs)
 
+        @override
         def test_step(self, *args, **kwargs):
             assert self.layer.weight.requires_grad
             assert not self.layer.training
@@ -961,6 +986,7 @@ def test_train_eval_mode_restored(tmp_path):
             assert not self.frozen.weight.requires_grad
             return super().test_step(*args, **kwargs)
 
+        @override
         def predict_step(self, *args, **kwargs):
             assert self.layer.weight.requires_grad
             assert not self.layer.training

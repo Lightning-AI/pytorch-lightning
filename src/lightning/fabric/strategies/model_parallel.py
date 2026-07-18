@@ -109,24 +109,25 @@ class ModelParallelStrategy(ParallelStrategy):
 
         self._device_mesh: Optional[DeviceMesh] = None
 
+    @override
     @property
     def device_mesh(self) -> "DeviceMesh":
         if self._device_mesh is None:
             raise RuntimeError("Accessing the device mesh before processes have initialized is not allowed.")
         return self._device_mesh
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> CheckpointIO:
         raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -143,8 +144,8 @@ class ModelParallelStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
@@ -339,9 +340,11 @@ class _FSDPNoSync(AbstractContextManager):
             if isinstance(mod, FSDPModule):
                 mod.set_requires_gradient_sync(requires_grad_sync, recurse=False)
 
+    @override
     def __enter__(self) -> None:
         self._set_requires_grad_sync(not self._enabled)
 
+    @override
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self._set_requires_grad_sync(self._enabled)
 

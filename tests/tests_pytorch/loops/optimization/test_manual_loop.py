@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import pytest
 import torch
 
@@ -35,6 +36,7 @@ def test_warning_invalid_trainstep_output(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             return 5
 

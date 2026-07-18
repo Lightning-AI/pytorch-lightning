@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from collections import namedtuple
 from unittest import mock
@@ -222,6 +223,7 @@ def test_non_blocking():
 )
 def test_input_tensors_cast_before_transfer_to_device(strategy, precision, expected_dtype):
     class CustomBoringModel(BoringModel):
+        @override
         def transfer_batch_to_device(self, batch, *args, **kwargs):
             assert batch.dtype == expected_dtype
             return super().transfer_batch_to_device(batch, *args, **kwargs)

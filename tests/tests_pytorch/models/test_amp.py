@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from unittest import mock
 
@@ -26,6 +27,7 @@ from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 class AMPTestModel(BoringModel):
+    @override
     def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
@@ -33,6 +35,7 @@ class AMPTestModel(BoringModel):
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return self.loss(output)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
         output = self(batch)

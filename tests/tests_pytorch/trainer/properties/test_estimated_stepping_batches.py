@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import logging
 import os
 from unittest import mock
@@ -144,6 +145,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 
 class MultiprocessModel(BoringModel):
+    @override
     def on_train_start(self):
         assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // self.trainer.world_size
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 from unittest.mock import patch
 
 import pytest
@@ -130,6 +131,7 @@ class TestRichIntegration:
         """Test that tensor metrics are converted to float for RichProgressBar."""
 
         class MyModel(BoringModel):
+            @override
             def training_step(self, batch, batch_idx):
                 self.log("my_tensor_metric", torch.tensor(1.23), prog_bar=True)
                 return super().training_step(batch, batch_idx)

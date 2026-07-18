@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from datetime import timedelta
 from unittest import mock
@@ -46,6 +47,7 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
             self._root_device = root_device
             super().__init__(process_group_backend=process_group_backend)
 
+        @override
         @property
         def root_device(self):
             return self._root_device

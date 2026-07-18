@@ -13,6 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 
+from typing_extensions import override
 import inspect
 import os
 from collections.abc import Iterable, Sized
@@ -253,6 +254,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         )
         return cast(Self, loaded)
 
+    @override
     def __str__(self) -> str:
         """Return a string representation of the datasets that are set up.
 

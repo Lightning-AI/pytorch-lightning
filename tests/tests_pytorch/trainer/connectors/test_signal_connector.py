@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import concurrent.futures
 import os
 import signal
@@ -60,6 +61,7 @@ def test_sigterm_handler_can_be_added(tmp_path):
     signal.signal(signal.SIGTERM, handler)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             os.kill(os.getpid(), signal.SIGTERM)
 

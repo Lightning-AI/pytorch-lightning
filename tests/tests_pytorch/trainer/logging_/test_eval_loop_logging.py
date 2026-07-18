@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test logging in the evaluation loop."""
 
+from typing_extensions import override
 import collections
 import itertools
 import os
@@ -43,12 +44,14 @@ def test__validation_step__log(tmp_path):
     """Tests that validation_step can log."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             self.log("a", out["loss"], on_step=True, on_epoch=True)
             self.log("a2", 2)
             return out
 
+        @override
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
             self.log("b", out["x"], on_step=True, on_epoch=True)
@@ -79,18 +82,21 @@ def test__validation_step__epoch_end__log(tmp_path):
     """Tests that on_validation_epoch_end can log."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             self.log("a", out["loss"])
             self.log("b", out["loss"], on_step=True, on_epoch=True)
             return out
 
+        @override
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
             self.log("c", out["x"])
             self.log("d", out["x"], on_step=True, on_epoch=True)
             return out
 
+        @override
         def on_validation_epoch_end(self):
             self.log("g", torch.tensor(2, device=self.device), on_epoch=True)
 
@@ -121,6 +127,7 @@ def test__validation_step__epoch_end__log(tmp_path):
 @pytest.mark.parametrize(("batches", "log_interval", "max_epochs"), [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmp_path, batches, log_interval, max_epochs):
     class TestModel(BoringModel):
+        @override
         def on_validation_epoch_end(self):
             self.log("c", torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
             self.log("d/e/f", 2)
@@ -154,6 +161,7 @@ def test_eval_epoch_logging(tmp_path, batches, log_interval, max_epochs):
 
 def test_eval_float_logging(tmp_path):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("a", 12.0)
@@ -179,12 +187,14 @@ def test_eval_logging_auto_reduce(tmp_path):
         val_losses = []
         manual_epoch_end_mean = None
 
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
             return {"x": loss}
 
+        @override
         def on_validation_epoch_end(self) -> None:
             self.manual_epoch_end_mean = torch.stack(self.val_losses).mean()
 
@@ -215,6 +225,7 @@ def test_eval_epoch_only_logging(tmp_path, batches, log_interval, max_epochs):
     """Tests that on_test_epoch_end can be used to log, and we return them in the results."""
 
     class TestModel(BoringModel):
+        @override
         def on_test_epoch_end(self):
             self.log("c", torch.tensor(2))
             self.log("d/e/f", 2)
@@ -236,11 +247,13 @@ def test_eval_epoch_only_logging(tmp_path, batches, log_interval, max_epochs):
 @pytest.mark.parametrize("suffix", [False, True])
 def test_multi_dataloaders_add_suffix_properly(suffix, tmp_path):
     class TestModel(BoringModel):
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0):  # noqa: PT028
             out = super().test_step(batch, batch_idx)
             self.log("test_loss", out["y"], on_step=True, on_epoch=True)
             return out
 
+        @override
         def test_dataloader(self):
             if suffix:
                 return [
@@ -295,16 +308,19 @@ def test_log_works_in_val_callback(tmp_path):
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
                 self.count += 1
 
+        @override
         def on_validation_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_validation_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
+        @override
         def on_validation_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_validation_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
+        @override
         def on_validation_batch_end(self, _, pl_module, *__):
             self.make_logging(
                 pl_module,
@@ -314,12 +330,14 @@ def test_log_works_in_val_callback(tmp_path):
                 prob_bars=self.choices,
             )
 
+        @override
         def on_validation_epoch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_validation_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             loss = super().validation_step(batch, batch_idx)["x"]
             self.log("val_loss", loss)
@@ -418,19 +436,23 @@ def test_log_works_in_test_callback(tmp_path):
                         "func_name": func_name,
                     }
 
+        @override
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        @override
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
+        @override
         def on_test_batch_end(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_test_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
+        @override
         def on_test_epoch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -441,11 +463,13 @@ def test_log_works_in_test_callback(tmp_path):
     class TestModel(BoringModel):
         seen_losses = {i: [] for i in range(num_dataloaders)}
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0):  # noqa: PT028
             loss = super().test_step(batch, batch_idx)["y"]
             self.log("test_loss", loss)
             self.seen_losses[dataloader_idx].append(loss)
 
+        @override
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
 
@@ -503,11 +527,13 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
             super().__init__()
             self.save_hyperparameters()
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.val_losses.append(loss)
@@ -516,6 +542,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
             self.log("valid_loss_2", loss, on_step=True, on_epoch=False)
             return {"val_loss": loss}  # not added to callback_metrics
 
+        @override
         def test_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("test_loss", loss)
@@ -575,6 +602,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmp_path):
     class TestModel(BoringModel):
         val_outputs = [[], []]
 
+        @override
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             value = 1 + batch_idx
@@ -583,11 +611,13 @@ def test_multiple_dataloaders_reset(val_check_interval, tmp_path):
             self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
             return out
 
+        @override
         def on_train_epoch_end(self):
             metrics = self.trainer.progress_bar_metrics
             v = 15 if self.current_epoch == 0 else 150
             assert metrics["batch_idx_epoch"] == (v / 5.0)
 
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             value = (1 + batch_idx) * (1 + dataloader_idx)
             if self.current_epoch != 0:
@@ -595,6 +625,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmp_path):
             self.val_outputs[dataloader_idx].append(value)
             self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
+        @override
         def on_validation_epoch_end(self):
             outputs = self.val_outputs
             self.val_outputs = [[], []]
@@ -614,6 +645,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmp_path):
             assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
             assert self.trainer._results["validation_step.val_loss.1"].cumulated_batch_size == 5
 
+        @override
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
@@ -642,10 +674,12 @@ def test_metrics_and_outputs_device(tmp_path, accelerator):
     class TestModel(BoringModel):
         outputs = []
 
+        @override
         def on_before_backward(self, loss: Tensor) -> None:
             # the loss should be on the correct device before backward
             assert loss.device.type == accelerator
 
+        @override
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
             y = x * 2
@@ -655,6 +689,7 @@ def test_metrics_and_outputs_device(tmp_path, accelerator):
             self.outputs.append(y)
             return y
 
+        @override
         def on_validation_epoch_end(self):
             # the step outputs were not moved after returning them
             assert all(o.device == self.device for o in self.outputs)
@@ -676,6 +711,7 @@ def test_logging_results_with_no_dataloader_idx(tmp_path):
     log_key_dl1 = {"test_log_b_class": 456}
 
     class CustomBoringModel(BoringModel):
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log_dict(log_common_same_val)
             self.log(log_common_diff_val, dataloader_idx + 1)
@@ -686,6 +722,7 @@ def test_logging_results_with_no_dataloader_idx(tmp_path):
             )
             self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
 
+        @override
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
 
@@ -713,15 +750,18 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmp_path):
     class CustomBoringModel(BoringModel):
         outputs = [[], []]
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx):
             value = dataloader_idx + 1
             self.log("foo", value)
             self.outputs[dataloader_idx].append(value)
             return value
 
+        @override
         def on_test_epoch_end(self):
             self.log("foobar", sum(sum(o) for o in self.outputs))
 
+        @override
         def test_dataloader(self):
             return [super().test_dataloader(), super().test_dataloader()]
 
@@ -934,15 +974,19 @@ def test_eval_step_logging(mock_log_metrics, tmp_path, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""
 
     class CustomBoringModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=None):
             self.log(f"val_log_{self.trainer.state.fn.value}", batch_idx, on_step=True, on_epoch=False)
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=None):
             self.log("test_log", batch_idx, on_step=True, on_epoch=False)
 
+        @override
         def val_dataloader(self):
             return [super().val_dataloader()] * num_dataloaders
 
+        @override
         def test_dataloader(self):
             return [super().test_dataloader()] * num_dataloaders
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -75,11 +76,13 @@ class BasicTrainer:
 
 
 class _Trainer(BasicTrainer):
+    @override
     def get_model(self):
         model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.num_wrapped = 4
         return model
 
+    @override
     def step(self, model, batch):
         wrapped_layers = [m for m in model.modules() if isinstance(m, FullyShardedDataParallel)]
         assert len(wrapped_layers) == self.num_wrapped
@@ -104,6 +107,7 @@ class _Trainer(BasicTrainer):
 
 
 class _TrainerManualWrapping(_Trainer):
+    @override
     def get_model(self):
         model = super().get_model()
         for i, layer in enumerate(model):

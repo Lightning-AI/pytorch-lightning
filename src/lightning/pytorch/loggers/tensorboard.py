@@ -110,8 +110,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
         self.hparams: Union[dict[str, Any], Namespace] = {}
 
-    @property
     @override
+    @property
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
@@ -121,8 +121,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         return os.path.join(super().root_dir, self.name)
 
-    @property
     @override
+    @property
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -139,8 +139,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         log_dir = os.path.expanduser(log_dir)
         return log_dir
 
-    @property
     @override
+    @property
     def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 

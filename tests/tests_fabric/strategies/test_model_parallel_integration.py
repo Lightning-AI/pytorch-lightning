@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -43,6 +44,7 @@ class FeedForward(nn.Module):
         self.w2 = nn.Linear(32, 64)
         self.w3 = nn.Linear(64, 32)
 
+    @override
     def forward(self, x):
         return self.w3(F.silu(self.w1(x)) * self.w2(x))
 

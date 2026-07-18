@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import inspect
 import os
 import pickle
@@ -72,14 +73,17 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
     monkeypatch.chdir(tmp_path)
 
     class CustomModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("train_some_val", loss)
             return {"loss": loss}
 
+        @override
         def on_validation_epoch_end(self):
             self.log_dict({"early_stop_on": torch.tensor(1), "val_loss": torch.tensor(0.5)})
 
+        @override
         def on_test_epoch_end(self):
             self.log("test_loss", torch.tensor(2))
 
@@ -205,6 +209,7 @@ def test_logger_reset_correctly(tmp_path, tuner_method):
 
 
 class LazyInitExperimentCheck(Callback):
+    @override
     def setup(self, trainer, pl_module, stage=None):
         if trainer.global_rank > 0:
             return
@@ -215,6 +220,7 @@ class LazyInitExperimentCheck(Callback):
 
 
 class RankZeroLoggerCheck(Callback):
+    @override
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
@@ -225,17 +231,21 @@ class RankZeroLoggerCheck(Callback):
 
 
 class CustomLoggerWithoutExperiment(Logger):
+    @override
     @property
     def name(self):
         return ""
 
+    @override
     @property
     def version(self):
         return None
 
+    @override
     def log_metrics(self, metrics, step=None) -> None:
         pass
 
+    @override
     def log_hyperparams(self, params, *args, **kwargs) -> None:
         pass
 

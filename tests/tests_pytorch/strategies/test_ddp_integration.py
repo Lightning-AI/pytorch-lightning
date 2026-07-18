@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import os
 from unittest import mock
 from unittest.mock import Mock
@@ -74,6 +75,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
+        @override
         def setup(self, stage: str) -> None:
             assert _distributed_is_initialized()
             raise SystemExit()
@@ -96,6 +98,7 @@ def test_ddp_wrapper(tmp_path, precision):
     """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):
+        @override
         def _save_to_state_dict(self, destination, prefix, keep_vars):
             return {"something": "something"}
 
@@ -108,6 +111,7 @@ def test_ddp_wrapper(tmp_path, precision):
             self._ddp_params_and_buffers_to_ignore = ["something"]
 
     class CustomCallback(Callback):
+        @override
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
             expected = ["something"]
@@ -192,6 +196,7 @@ class UnusedParametersModel(BoringModel):
         super().__init__()
         self.intermediate_layer = torch.nn.Linear(32, 32)
 
+    @override
     def training_step(self, batch, batch_idx):
         with torch.no_grad():
             batch = self.intermediate_layer(batch)
@@ -222,23 +227,27 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.name = name
         self.val = val
 
+    @override
     def validation_step(self, batch, batch_idx):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
 
 class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
+    @override
     def get_extra_results(self, trainer):
         extra = super().get_extra_results(trainer)
         extra["test_val"] = "test_val"
         return extra
 
+    @override
     def update_main_process_results(self, trainer, extra) -> None:
         trainer.strategy.test_val = extra.pop("test_val")
         return super().update_main_process_results(trainer, extra)
 
 
 class TestDDPSpawnStrategy(DDPStrategy):
+    @override
     def _configure_launcher(self):
         self._launcher = CustomMultiProcessingLauncher(self)
 
@@ -261,6 +270,7 @@ def test_ddp_spawn_add_get_queue(tmp_path):
 
 
 class BoringModelDDPCPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # make sure that the model is on CPU when training
         assert self.device == torch.device("cpu")
@@ -278,6 +288,7 @@ def test_ddp_cpu():
 
 
 class BoringZeroRedundancyOptimizerModel(BoringModel):
+    @override
     def configure_optimizers(self):
         return ZeroRedundancyOptimizer(self.layer.parameters(), optimizer_class=torch.optim.Adam, lr=0.1)
 
@@ -306,37 +317,47 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(strategy, tmp_path):
 
 def test_configure_launcher_create_processes_externally():
     class MyClusterEnvironment(ClusterEnvironment):
+        @override
         @property
         def creates_processes_externally(self):
             return True
 
+        @override
         @property
         def main_address(self):
             return ""
 
+        @override
         @property
         def main_port(self):
             return 8080
 
         @staticmethod
+        @override
         def detect():
             return True
 
+        @override
         def world_size(self):
             return 1
 
+        @override
         def set_world_size(self):
             pass
 
+        @override
         def global_rank(self):
             return 0
 
+        @override
         def set_global_rank(self):
             pass
 
+        @override
         def local_rank(self):
             return 0
 
+        @override
         def node_rank(self):
             return 0
 
@@ -353,6 +374,7 @@ def test_configure_launcher_create_processes_externally():
 
 
 class CheckOptimizerDeviceModel(BoringModel):
+    @override
     def configure_optimizers(self):
         assert all(param.device.type == "cuda" for param in self.parameters())
         super().configure_optimizers()
@@ -374,6 +396,7 @@ def test_model_parameters_on_device_for_optimizer(strategy):
 
 
 class BoringModelGPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
@@ -430,6 +453,7 @@ def test_incorrect_ddp_script_spawning(tmp_path):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
+        @override
         @property
         def creates_processes_externally(self):
             # returning false no matter what means Lightning would spawn also on ranks > 0 new processes
@@ -461,6 +485,7 @@ def test_ddp_gradients_synced(tmp_path, automatic_optimization, static_graph):
             super().__init__()
             self.automatic_optimization = automatic_optimization
 
+        @override
         def training_step(self, batch, batch_idx):
             if self.automatic_optimization:
                 return super().training_step(batch, batch_idx)
@@ -474,6 +499,7 @@ def test_ddp_gradients_synced(tmp_path, automatic_optimization, static_graph):
             opt.step()
             return out
 
+        @override
         def on_train_batch_end(self, *args, **kwargs):
             # record grad sum for sync check
             grad_sum = self.layer.bias.grad.detach().sum()

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing_extensions import override
 import pytest
 import torch
 
@@ -86,11 +87,13 @@ def test_convert_module(precision, expected_dtype):
 )
 def test_configure_model(precision, expected_dtype):
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
             # this is under the `module_init_context`
             assert self.l.weight.dtype == expected_dtype
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

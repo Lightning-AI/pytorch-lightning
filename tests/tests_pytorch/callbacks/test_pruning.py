@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 import re
 from collections import OrderedDict
 from logging import INFO
@@ -40,6 +41,7 @@ class TestModel(BoringModel):
             ])
         )
 
+    @override
     def training_step(self, batch, batch_idx):
         self.log("test", -batch_idx)
         return super().training_step(batch, batch_idx)
@@ -48,6 +50,7 @@ class TestModel(BoringModel):
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
     PRUNING_TYPE = "unstructured"
 
+    @override
     def compute_mask(self, _, default_mask):
         mask = default_mask.clone()
         # Prune every other entry in a tensor
@@ -55,6 +58,7 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
         return mask
 
     @classmethod
+    @override
     def apply(cls, module, name, amount):
         return super().apply(module, name, amount=amount)
 
@@ -196,6 +200,7 @@ def test_pruning_lth_callable(tmp_path, resample_parameters):
     class ModelPruningTestCallback(ModelPruning):
         lth_calls = 0
 
+        @override
         def apply_lottery_ticket_hypothesis(self):
             super().apply_lottery_ticket_hypothesis()
             self.lth_calls += 1
@@ -297,6 +302,7 @@ def test_permanent_when_model_is_saved_multiple_times(
         )
 
     class TestPruning(ModelPruning):
+        @override
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             had_buffers = hasattr(pl_module.layer.mlp_3, "weight_orig")
             super().on_save_checkpoint(trainer, pl_module, checkpoint)
@@ -487,6 +493,7 @@ def test_sparsity_calculation(tmp_path, caplog, pruning_amount: float, model_typ
             # Total: 2112 + 130 = 2242 params (but only layer1 will be pruned)
             # layer1 params: 2112
 
+        @override
         def forward(self, x):
             x = torch.relu(self.layer1(x))
             return self.layer2(x)

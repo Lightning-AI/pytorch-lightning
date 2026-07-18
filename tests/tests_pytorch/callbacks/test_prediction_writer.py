@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 from unittest.mock import ANY, Mock, call
 
 import pytest
@@ -23,9 +24,11 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class DummyPredictionWriter(BasePredictionWriter):
+    @override
     def write_on_batch_end(self, *_, **__):
         pass
 
+    @override
     def write_on_epoch_end(self, *_, **__):
         pass
 
@@ -107,6 +110,7 @@ def test_batch_level_batch_indices(tmp_path):
     DummyPredictionWriter.write_on_batch_end = Mock()
 
     class CustomBoringModel(BoringModel):
+        @override
         def on_predict_epoch_end(self, *args, **kwargs):
             assert self.trainer.predict_loop.epoch_batch_indices == [[]]
 
