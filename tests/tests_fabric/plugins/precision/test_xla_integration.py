@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from unittest import mock
 
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import XLAPrecision

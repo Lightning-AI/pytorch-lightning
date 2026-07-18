@@ -1,9 +1,9 @@
-from typing_extensions import override
 import sys
 from unittest.mock import Mock
 
 import pytest
 import torch.nn
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.pytorch import Trainer

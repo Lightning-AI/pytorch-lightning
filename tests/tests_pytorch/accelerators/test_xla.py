@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-from typing_extensions import override
 import collections
 import os
 from copy import deepcopy
@@ -22,6 +21,7 @@ import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.utilities.imports import _IS_WINDOWS

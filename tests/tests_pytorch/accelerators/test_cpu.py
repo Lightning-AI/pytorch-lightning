@@ -1,4 +1,3 @@
-from typing_extensions import override
 import os
 from pathlib import Path
 from typing import Any, Union
@@ -6,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from copy import deepcopy
 from datetime import timedelta
@@ -21,6 +20,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
+from typing_extensions import override
 
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment

@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 
-from typing_extensions import override
 import pytest
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.demos.boring_classes import BoringModel

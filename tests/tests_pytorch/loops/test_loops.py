@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from collections.abc import Iterator
 from copy import deepcopy
@@ -22,6 +21,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint

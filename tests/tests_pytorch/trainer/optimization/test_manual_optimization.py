@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import collections
 import contextlib
 from copy import deepcopy
@@ -22,6 +21,7 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
+from typing_extensions import override
 
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.pytorch import Trainer, seed_everything

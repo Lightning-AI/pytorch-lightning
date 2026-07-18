@@ -1,4 +1,3 @@
-from typing_extensions import override
 import os
 from contextlib import nullcontext
 from copy import deepcopy
@@ -16,6 +15,7 @@ import torch.nn as nn
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy, always_wrap_policy, size_based_auto_wrap_policy, wrap
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint

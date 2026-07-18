@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch.core.datamodule import LightningDataModule
 from tests_pytorch.helpers.datasets import MNIST, SklearnDataset, TrialMNIST

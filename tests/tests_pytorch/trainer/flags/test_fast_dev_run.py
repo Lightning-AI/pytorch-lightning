@@ -1,9 +1,9 @@
-from typing_extensions import override
 import os
 from unittest.mock import Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint

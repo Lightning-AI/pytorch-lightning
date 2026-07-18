@@ -1,4 +1,3 @@
-from typing_extensions import override
 import shutil
 import tempfile
 import warnings
@@ -8,6 +7,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint

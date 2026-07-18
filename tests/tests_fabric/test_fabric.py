@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import inspect
 import os
 import warnings
@@ -26,6 +25,7 @@ import torch.nn.functional
 from lightning_utilities.test.warning import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.fabric import Fabric

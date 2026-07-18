@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 from functools import partial, update_wrapper
 from inspect import getmembers, isfunction
 from unittest import mock
@@ -21,6 +20,7 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset

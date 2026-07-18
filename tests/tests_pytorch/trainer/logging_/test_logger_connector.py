@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import operator
 from functools import partial
 from unittest import mock
@@ -23,6 +22,7 @@ from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
 from torchmetrics import AveragePrecision as AvgPre
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback

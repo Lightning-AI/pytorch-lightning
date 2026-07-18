@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import contextlib
 import logging
 from unittest import mock
@@ -19,6 +18,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer

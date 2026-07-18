@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 from unittest import mock
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer

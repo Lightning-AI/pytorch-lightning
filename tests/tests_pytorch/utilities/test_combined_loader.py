@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import math
 import pickle
 from collections.abc import Sequence
@@ -26,6 +25,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
+from typing_extensions import override
 
 from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch import Trainer

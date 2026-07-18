@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import math
 import os
 import pickle
@@ -32,6 +31,7 @@ import yaml
 from jsonargparse import ArgumentParser
 from torch import optim
 from torch.utils.data.dataloader import DataLoader
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load

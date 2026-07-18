@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, DistributedSampler
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from parity_pytorch import RunIf

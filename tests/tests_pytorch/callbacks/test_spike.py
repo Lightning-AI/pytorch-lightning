@@ -1,8 +1,8 @@
-from typing_extensions import override
 import contextlib
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.fabric.utilities.spike import TrainingSpikeException

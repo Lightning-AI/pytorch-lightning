@@ -1,8 +1,8 @@
-from typing_extensions import override
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint

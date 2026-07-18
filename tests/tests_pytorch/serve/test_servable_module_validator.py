@@ -1,7 +1,7 @@
-from typing_extensions import override
 import pytest
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel

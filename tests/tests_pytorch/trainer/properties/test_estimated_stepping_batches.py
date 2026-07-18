@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import logging
 import os
 from unittest import mock
@@ -20,6 +19,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset

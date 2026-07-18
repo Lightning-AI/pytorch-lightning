@@ -1,4 +1,3 @@
-from typing_extensions import override
 import os
 import signal
 import time
@@ -6,6 +5,7 @@ import time
 import pytest
 import torch
 import torch.multiprocessing as mp
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringDataModule

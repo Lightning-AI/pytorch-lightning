@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch.core.module import LightningModule
 from tests_pytorch import _PATH_DATASETS

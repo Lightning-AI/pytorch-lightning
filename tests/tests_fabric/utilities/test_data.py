@@ -1,4 +1,3 @@
-from typing_extensions import override
 import contextlib
 import os
 import random
@@ -11,6 +10,7 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.utilities.data import (

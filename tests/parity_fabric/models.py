@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -20,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, TensorDataset
+from typing_extensions import override
 
 
 class ParityModel(ABC, nn.Module):

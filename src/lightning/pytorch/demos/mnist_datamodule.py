@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import logging
 import os
 import random
@@ -25,6 +24,7 @@ from warnings import warn
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import LightningDataModule

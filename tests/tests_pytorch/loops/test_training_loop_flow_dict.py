@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests to ensure that the training loop works with a dict (1.0)"""
 
-from typing_extensions import override
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule

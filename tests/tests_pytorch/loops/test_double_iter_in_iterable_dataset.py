@@ -15,7 +15,6 @@
 # This test tests the resuming of training from a checkpoint file using an IterableDataset.
 # And contains code mentioned in the issue: #19427.
 # Ref: https://github.com/Lightning-AI/pytorch-lightning/issues/19427
-from typing_extensions import override
 import multiprocessing as mp
 import os
 import sys
@@ -26,6 +25,7 @@ from queue import Queue
 import numpy as np
 import pytest
 from torch.utils.data import DataLoader, IterableDataset
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import re
 from collections import OrderedDict
 from logging import INFO
@@ -22,6 +21,7 @@ import torch
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn import Sequential
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning

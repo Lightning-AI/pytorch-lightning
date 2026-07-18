@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import math
 import os
 import pickle
@@ -25,6 +24,7 @@ import pytest
 import torch
 from tests_pytorch.helpers.runif import RunIf
 from torch.utils.data.dataloader import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar

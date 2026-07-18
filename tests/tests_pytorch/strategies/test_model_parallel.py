@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -21,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric.strategies.model_parallel import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3

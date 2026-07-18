@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import itertools
 import logging
 import warnings
@@ -20,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer, seed_everything

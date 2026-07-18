@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import functools
 import inspect
 import os
@@ -24,7 +23,7 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
-from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard, override
 
 from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.exceptions import MisconfigurationException

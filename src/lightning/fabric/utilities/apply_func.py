@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities used for collections."""
 
-from typing_extensions import override
 from abc import ABC
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Union
@@ -21,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Callable, Union
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.types import _DEVICE

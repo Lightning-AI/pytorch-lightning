@@ -1,4 +1,3 @@
-from typing_extensions import override
 import logging
 import os
 import re
@@ -10,6 +9,7 @@ from typing import Any, Callable, Union
 
 import torch
 import torch.distributed as dist
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment

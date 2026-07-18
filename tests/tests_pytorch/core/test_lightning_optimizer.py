@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
 import torch
 from torch.optim import SGD, Adam, Optimizer
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.core.optimizer import LightningOptimizer

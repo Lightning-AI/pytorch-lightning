@@ -13,9 +13,9 @@
 # limitations under the License.
 """Integration tests for double-precision training."""
 
-from typing_extensions import override
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf

@@ -1,9 +1,9 @@
-from typing_extensions import override
 from collections.abc import Iterator
 
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, IterableDataset
+from typing_extensions import override
 
 
 class RandomDataset(Dataset):

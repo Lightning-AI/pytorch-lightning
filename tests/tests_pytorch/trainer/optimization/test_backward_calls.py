@@ -1,8 +1,8 @@
-from typing_extensions import override
 from unittest.mock import patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel

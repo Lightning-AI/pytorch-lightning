@@ -1,9 +1,9 @@
-from typing_extensions import override
 import time
 from typing import Any, Optional
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO

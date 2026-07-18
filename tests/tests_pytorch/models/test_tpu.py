@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from functools import partial
 from unittest import mock
@@ -19,6 +18,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer

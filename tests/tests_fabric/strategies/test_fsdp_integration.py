@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -26,6 +25,7 @@ from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, Opti
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision

@@ -5,7 +5,6 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 
 """
 
-from typing_extensions import override
 import math
 import os
 from pathlib import Path
@@ -18,6 +17,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 

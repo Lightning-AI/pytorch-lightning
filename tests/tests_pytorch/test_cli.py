@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import glob
 import inspect
 import json
@@ -33,6 +32,7 @@ from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything

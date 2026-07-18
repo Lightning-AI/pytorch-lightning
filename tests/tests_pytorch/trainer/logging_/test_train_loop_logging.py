@@ -13,7 +13,6 @@
 # limitations under the License.
 """Test logging in the training loop."""
 
-from typing_extensions import override
 import collections
 import itertools
 from re import escape
@@ -27,6 +26,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar

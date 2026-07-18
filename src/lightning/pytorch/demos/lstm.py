@@ -5,7 +5,6 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 
 """
 
-from typing_extensions import override
 from collections.abc import Iterator, Sized
 from typing import Optional
 
@@ -15,6 +14,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
+from typing_extensions import override
 
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.transformer import WikiText2

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Test logging in the evaluation loop."""
 
-from typing_extensions import override
 import collections
 import itertools
 import os
@@ -26,6 +25,7 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset

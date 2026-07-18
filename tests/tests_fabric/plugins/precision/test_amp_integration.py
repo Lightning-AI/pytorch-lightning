@@ -13,10 +13,10 @@
 # limitations under the License.
 """Integration tests for Automatic Mixed Precision (AMP) training."""
 
-from typing_extensions import override
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric, seed_everything
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4

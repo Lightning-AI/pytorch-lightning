@@ -13,7 +13,6 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 
-from typing_extensions import override
 import inspect
 import os
 from collections.abc import Iterable, Sized
@@ -21,7 +20,7 @@ from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH

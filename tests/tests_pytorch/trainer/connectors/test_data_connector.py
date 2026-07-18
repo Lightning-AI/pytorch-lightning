@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 from collections.abc import Sized
 from re import escape
 from unittest import mock
@@ -21,6 +20,7 @@ import pytest
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper

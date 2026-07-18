@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 from copy import deepcopy
 from unittest.mock import Mock
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel

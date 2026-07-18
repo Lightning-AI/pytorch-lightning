@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import os
 from unittest import mock
 from unittest.mock import Mock
@@ -21,6 +20,7 @@ import torch
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
+from typing_extensions import override
 
 import lightning.pytorch as pl
 import tests_pytorch.helpers.pipelines as tpipes

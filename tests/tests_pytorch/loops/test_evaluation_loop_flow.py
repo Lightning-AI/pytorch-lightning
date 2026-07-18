@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests the evaluation loop."""
 
-from typing_extensions import override
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule

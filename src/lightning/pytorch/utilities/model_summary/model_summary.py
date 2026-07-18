@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities related to model weights summary."""
 
-from typing_extensions import override
 import contextlib
 import logging
 import math
@@ -25,6 +24,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.flop_counter import FlopCounterMode
 from torch.utils.hooks import RemovableHandle
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities import rank_zero_warn

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing_extensions import override
 import sys
 from typing import Any
+
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.strategies import _StrategyRegistry

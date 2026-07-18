@@ -1,6 +1,6 @@
-from typing_extensions import override
 import pytest
 from lightning_utilities.test.warning import no_warning_call
+from typing_extensions import override
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer

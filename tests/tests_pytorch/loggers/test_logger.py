@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import pickle
 from argparse import Namespace
 from copy import deepcopy
@@ -21,6 +20,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer

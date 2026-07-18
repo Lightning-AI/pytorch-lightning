@@ -1,4 +1,3 @@
-from typing_extensions import override
 import functools
 import os
 from functools import partial
@@ -9,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator

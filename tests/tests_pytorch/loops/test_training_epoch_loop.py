@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
 import logging
 from unittest.mock import Mock, patch
 
 import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
+from typing_extensions import override
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
