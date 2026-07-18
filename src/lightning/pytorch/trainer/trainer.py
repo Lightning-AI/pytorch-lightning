@@ -116,6 +116,7 @@ class Trainer:
         enable_checkpointing: Optional[bool] = None,
         enable_progress_bar: Optional[bool] = None,
         enable_model_summary: Optional[bool] = None,
+        enable_device_summary: bool = True,
         accumulate_grad_batches: int = 1,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
@@ -237,6 +238,9 @@ class Trainer:
                 Default: ``True``.
 
             enable_model_summary: Whether to enable model summarization by default.
+                Default: ``True``.
+
+            enable_device_summary: Whether to print device summary.
                 Default: ``True``.
 
             accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
@@ -491,7 +495,9 @@ class Trainer:
             )
         self._detect_anomaly: bool = detect_anomaly
 
-        setup._log_device_info(self)
+        self.enable_device_summary = enable_device_summary
+        if self.enable_device_summary:
+            setup._log_device_info(self)
 
         self.should_stop = False
         self.state = TrainerState()
