@@ -78,6 +78,10 @@ def test_gpu_device_name():
     with torch.device("cuda:0"):
         assert torch.cuda.get_device_name(0) == CUDAAccelerator.device_name()
 
+    if torch.cuda.device_count() > 1:
+        with torch.device("cuda:1"):
+            assert torch.cuda.get_device_name(1) == CUDAAccelerator.device_name(1)
+
 
 def test_gpu_device_name_no_gpu(cuda_count_0):
     assert CUDAAccelerator.device_name() == ""
