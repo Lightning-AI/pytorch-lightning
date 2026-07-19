@@ -175,7 +175,7 @@ class _CallbackConnector:
         This is called after loggers are set up, so we can reliably check for LitLogger.
 
         """
-        if not self._pending_litmodels_tip:
+        if not self._pending_litmodels_tip or not self.trainer.suggest_integrations:
             return
         self._pending_litmodels_tip = False  # Only show once
 

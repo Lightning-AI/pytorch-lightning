@@ -383,6 +383,7 @@ class LightningModule(
             else:
                 print(*args, **kwargs)
 
+    @torch.compiler.disable
     def log(
         self,
         name: str,
@@ -407,6 +408,12 @@ class LightningModule(
             self.log('train_loss', loss)
 
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Logging is bookkeeping
+            that does not belong in the compiled graph, and tracing the signature introspection it performs
+            fails under Dynamo on newer PyTorch versions. Disabling the compiler leaves eager behavior unchanged.
 
         Args:
             name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.
@@ -1136,11 +1143,23 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
+    @torch.compiler.disable
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
         prevent dangling gradients in multiple-optimizer setup.
 
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Mutating
+            ``requires_grad`` on parameters is not supported by Dynamo/AOTAutograd (it can change a
+            tensor's leaf-ness mid-graph), so tracing this bookkeeping helper would either fail with
+            ``Unsupported: setattr() on Tensor.requires_grad`` or produce a ``KeyError`` on the
+            internal ``param_requires_grad_state`` mapping when the traced parameter references diverge
+            from those held by ``trainer.optimizers``. Disabling the compiler on this method keeps the
+            behavior identical for eager users while making it safe to call from a compiled
+            ``training_step``.
 
         Args:
             optimizer: The optimizer to toggle.
@@ -1165,8 +1184,12 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
+    @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        See :meth:`toggle_optimizer` for details on why this method is decorated with
+        :func:`torch.compiler.disable`.
 
         Args:
             optimizer: The optimizer to untoggle.
@@ -1498,11 +1521,10 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, dict[str, ScriptModule]]:
-        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
-        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
-        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
-        scripted you should override this method. In case you want to return multiple modules, we recommend using a
-        dictionary.
+        """By default compiles the whole model to a ``torch.jit.ScriptModule``. If you want to use tracing, please
+        provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is provided,
+        or the model has :attr:`example_input_array` set. If you would like to customize the modules that are scripted
+        you should override this method. In case you want to return multiple modules, we recommend using a dictionary.
 
         .. deprecated::
             ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
@@ -1514,15 +1536,15 @@ class LightningModule(
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
-              :func:`torch.jit.trace` function.
+            **kwargs: Additional arguments that will be passed to the ``torch.jit.script`` or
+              ``torch.jit.trace`` function.
 
         Note:
             - Requires the implementation of the
               :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
-              to use this feature without limitations. See also the :mod:`torch.jit`
+              to use this feature without limitations. See also the ``torch.jit``
               documentation for supported features.
 
         Example::

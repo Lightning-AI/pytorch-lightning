@@ -194,6 +194,29 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+def test_simple_profiler_uses_math_fsum(monkeypatch):
+    profiler = SimpleProfiler()
+    profiler.recorded_durations["action"] = [1.0, 2.0, 3.0]
+    profiler.start_time = 0.0
+
+    fsum_calls: list[list[float]] = []
+
+    def _fake_fsum(values):
+        fsum_calls.append(list(values))
+        return sum(values)
+
+    monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
+
+    # Test non-extended report
+    profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+
 @pytest.mark.parametrize("extended", [True, False])
 @patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
@@ -708,3 +731,13 @@ def test_profiler_invalid_table_kwargs(tmp_path):
         with pytest.raises(KeyError) as exc_info:
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmp_path, filename="profile")
         assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
+
+
+def test_setup_train_dataloader_profiled_actions(tmp_path):
+    """Ensure that the 'setup_train_dataloader' action is successfully recorded in the profiler."""
+    profiler = SimpleProfiler(dirpath=tmp_path, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
+    trainer.fit(model)
+
+    assert "setup_train_dataloader" in profiler.recorded_durations
