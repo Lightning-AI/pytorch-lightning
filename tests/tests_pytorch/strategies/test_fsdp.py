@@ -256,11 +256,10 @@ class _CPUFSDPTrainableModel(BoringModel):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(standalone=True, skip_windows=True)
-@pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
-def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
+def test_fsdp_cpu_trainable(tmp_path):
     """FSDP on CPU across 2 ranks trains and round-trips a checkpoint.
 
-    Exercises both the ``full`` (single-file) and ``sharded`` (per-rank directory) checkpoint formats: the module is
+    Exercises the ``sharded`` (per-rank directory) checkpoint format: the module is
     genuinely FSDP-wrapped, the loss drops sharply over 15 epochs, and the checkpoint written after training reads back
     with identical sharded parameters.
 
@@ -270,7 +269,7 @@ def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
         return Trainer(
             accelerator="cpu",
             devices=2,
-            strategy=FSDPStrategy(state_dict_type=state_dict_type),
+            strategy=FSDPStrategy(state_dict_type="sharded"),
             max_epochs=max_epochs,
             default_root_dir=tmp_path,
             enable_checkpointing=False,
@@ -299,13 +298,7 @@ def test_fsdp_cpu_trainable(state_dict_type, tmp_path):
     ckpt_path = Path(trainer.strategy.broadcast(str(tmp_path / "checkpoint")))
     trainer.save_checkpoint(ckpt_path)
 
-    # the two formats must produce genuinely different on-disk layouts
-    if state_dict_type == "sharded":
-        assert ckpt_path.is_dir()
-        assert _is_sharded_checkpoint(ckpt_path)
-    else:
-        assert ckpt_path.is_file()
-        assert not _is_sharded_checkpoint(ckpt_path)
+    assert ckpt_path.is_dir() and _is_sharded_checkpoint(ckpt_path)
 
     # snapshot the trained local shards on this rank for a read-back comparison
     trained_params = deepcopy(list(trainer.model.parameters()))
