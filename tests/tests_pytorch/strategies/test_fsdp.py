@@ -298,7 +298,8 @@ def test_fsdp_cpu_trainable(tmp_path):
     ckpt_path = Path(trainer.strategy.broadcast(str(tmp_path / "checkpoint")))
     trainer.save_checkpoint(ckpt_path)
 
-    assert ckpt_path.is_dir() and _is_sharded_checkpoint(ckpt_path)
+    assert ckpt_path.is_dir()
+    assert _is_sharded_checkpoint(ckpt_path)
 
     # snapshot the trained local shards on this rank for a read-back comparison
     trained_params = deepcopy(list(trainer.model.parameters()))
