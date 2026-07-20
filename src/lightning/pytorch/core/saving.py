@@ -63,6 +63,7 @@ def _load_from_checkpoint(
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     weights_only: Optional[bool] = None,
+    dtype: Optional["torch.dtype"] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     map_location = map_location or _default_map_location
@@ -104,6 +105,10 @@ def _load_from_checkpoint(
 
         device = next((t for t in state_dict.values() if isinstance(t, torch.Tensor)), torch.tensor(0)).device
         assert isinstance(model, pl.LightningModule)
+        if dtype is not None:
+            # cast floating-point parameters/buffers to the requested dtype;
+            # `torch.nn.Module.to` leaves non-floating-point tensors untouched
+            return model.to(device=device, dtype=dtype)
         return model.to(device)
 
     raise NotImplementedError(f"Unsupported {cls}")

@@ -1729,6 +1729,7 @@ class LightningModule(
         hparams_file: Optional[_PATH] = None,
         strict: Optional[bool] = None,
         weights_only: Optional[bool] = None,
+        dtype: Optional[torch.dtype] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1767,6 +1768,11 @@ class LightningModule(
                 ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
                 ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+            dtype: If provided, cast the loaded model's floating-point parameters and buffers to this
+                :class:`torch.dtype` (e.g. ``torch.float16``), equivalent to calling ``.to(dtype)`` on the
+                returned model. Non-floating-point tensors (such as integer buffers) are left unchanged.
+                Defaults to ``None``, which keeps the dtype stored in the checkpoint. Note that downcasting
+                (e.g. from ``float32`` to ``float16``) reduces numerical precision.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -1823,6 +1829,7 @@ class LightningModule(
             hparams_file,
             strict,
             weights_only,
+            dtype=dtype,
             **kwargs,
         )
         return cast(Self, loaded)
