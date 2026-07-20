@@ -43,8 +43,8 @@ class CUDAAccelerator(Accelerator):
         """
         if device.type != "cuda":
             raise MisconfigurationException(f"Device should be GPU, got {device} instead")
-        _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
+        _check_cuda_matmul_precision(device)
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
