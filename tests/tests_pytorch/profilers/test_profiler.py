@@ -375,11 +375,31 @@ def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
-    with pytest.raises(ValueError, match="Attempting to stop recording*"):
-        advanced_profiler.stop(action)
-
+    # Starting an action already started does not raise an error since defaultdict handles it silently
     advanced_profiler.start(action)
     advanced_profiler.stop(action)
+
+
+def test_advanced_profiler_stop_on_never_started_action(advanced_profiler):
+    """Ensure AdvancedProfiler.stop() does not crash when stopping an action that was never started.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
+    """
+    # Should not raise ValueError
+    advanced_profiler.stop("never_started_action")
+
+
+def test_advanced_profiler_teardown_with_active_action(advanced_profiler):
+    """Ensure AdvancedProfiler.stop() does not crash after teardown clears profiled_actions.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
+    """
+    with advanced_profiler.profile("action"):
+        # teardown clears the recorded actions, mimicking describe()
+        advanced_profiler.teardown(stage=None)
+    # Exiting the 'with' block will call stop("action") which should not raise an error
 
 
 def test_advanced_profiler_deepcopy(advanced_profiler):
