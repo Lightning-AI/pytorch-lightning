@@ -1085,6 +1085,19 @@ def test_device_mesh_type_annotation():
     assert args.device_mesh == (1, 4)
 
 
+@RunIf(min_torch="2.2")
+@mock.patch("torch.distributed.device_mesh.init_device_mesh")
+@mock.patch("torch.distributed.init_process_group")
+def test_device_mesh_initialization_cpu(init_process_group_mock, init_device_mesh_mock):
+    """Test that device mesh is initialized with the correct device type on CPU."""
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], device_mesh=(2, 2))
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+
+    init_device_mesh_mock.assert_called_with("cpu", (2, 2))
+
+
 def test_pl_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
     """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
     import torch
