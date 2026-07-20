@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
 
+- Fixed progress bar total showing optimizer steps instead of batches when training an iterable dataset with `max_steps` and `accumulate_grad_batches > 1` ([#21802](https://github.com/Lightning-AI/pytorch-lightning/pull/21802))
+
 ---
 
 ## [2.6.4] - 2026-05-20

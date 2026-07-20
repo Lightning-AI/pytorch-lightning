@@ -215,7 +215,8 @@ def test_should_stop_early_stopping_conditions_met(
 
 
 @pytest.mark.parametrize("max_steps", [7, 20])
-def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 4])
+def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps, accumulate_grad_batches):
     """Test trainer with infinite iterator (no __len__)"""
 
     batch_size = 4
@@ -230,6 +231,7 @@ def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
         max_steps=max_steps,
         max_epochs=-1,
         limit_val_batches=0,
+        accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=True,
         enable_model_summary=False,
         accelerator="cpu",
@@ -240,8 +242,14 @@ def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
     pbar = trainer.progress_bar_callback
     trainer.fit(model)
 
-    # assert progress bar callback uses correct total steps
-    assert pbar.train_progress_bar.total == max_steps
+    # The bar total and the per-batch counter must share units: with gradient accumulation,
+    # each of the max_steps optimizer steps consumes accumulate_grad_batches batches.
+    assert pbar.train_progress_bar.total == max_steps * accumulate_grad_batches
+    # tqdm exposes the counter as `.n`, rich as `.completed`
+    completed = getattr(pbar.train_progress_bar, "n", None)
+    if completed is None:
+        completed = pbar.train_progress_bar.completed
+    assert completed == max_steps * accumulate_grad_batches
 
 
 @pytest.mark.parametrize("max_steps", [10, 15])
