@@ -5,19 +5,26 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @lantiga @tchaton @justusschock @ethanwharris
+* @ethanwharris @justusschock @rusenask @tchaton
 
 # Docs
-/.github/*.md                               @williamfalcon @lantiga
-/docs/source-fabric/index.rst               @williamfalcon @lantiga
-/docs/source-pytorch/index.rst              @williamfalcon @lantiga
-/docs/source-pytorch/levels                 @williamfalcon @lantiga
+/.github/*.md                               @ethanwharris @justusschock @tchaton
+/docs/source-fabric/index.rst               @ethanwharris @justusschock @tchaton
+/docs/source-pytorch/index.rst              @ethanwharris @justusschock @tchaton
+/docs/source-pytorch/levels                 @ethanwharris @justusschock @tchaton
 
 /.github/CODEOWNERS                  @williamfalcon
-/SECURITY.md                         @williamfalcon @lantiga
-/README.md                           @williamfalcon @lantiga
-/src/pytorch_lightning/__about__.py  @williamfalcon @lantiga
-/src/lightning_fabric/__about__.py   @williamfalcon @lantiga
+/SECURITY.md                         @williamfalcon @ethanwharris
+/README.md                           @williamfalcon @ethanwharris
+/src/pytorch_lightning/__about__.py  @williamfalcon @ethanwharris
+/src/lightning_fabric/__about__.py   @williamfalcon @ethanwharris
 
-/src/lightning/fabric/loggers        @williamfalcon
-/src/lightning/pytorch/loggers       @williamfalcon
+# Loggers: third-party/branded integrations stay with @williamfalcon,
+# first-party loggers (CSV, LitLogger) are owned by the core maintainers.
+/src/lightning/fabric/loggers                    @williamfalcon
+/src/lightning/pytorch/loggers                   @williamfalcon
+/src/lightning/fabric/loggers/csv_logs.py        @ethanwharris @justusschock @tchaton
+/src/lightning/pytorch/loggers/csv_logs.py       @ethanwharris @justusschock @tchaton
+/src/lightning/pytorch/loggers/litlogger.py      @ethanwharris @justusschock @tchaton
+/src/lightning/fabric/loggers/logger.py          @ethanwharris @justusschock @tchaton
+/src/lightning/pytorch/loggers/logger.py         @ethanwharris @justusschock @tchaton
