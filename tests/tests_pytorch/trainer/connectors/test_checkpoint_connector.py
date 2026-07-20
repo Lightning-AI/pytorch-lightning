@@ -21,6 +21,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
@@ -274,14 +275,17 @@ def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
         def __init__(self):
             self.restored = False
 
+        @override
         def on_load_checkpoint(self, trainer, pl_module, checkpoint):
             if "callbacks" in checkpoint:
                 callback_state = checkpoint["callbacks"][self.__class__.__name__]
                 self.restored = callback_state["restored"]
 
+        @override
         def state_dict(self):
             return {"restored": self.restored}
 
+        @override
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             checkpoint["callbacks"] = checkpoint.get("callbacks", {})
             checkpoint["callbacks"][self.__class__.__name__] = self.state_dict()

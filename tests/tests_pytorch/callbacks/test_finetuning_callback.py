@@ -18,6 +18,7 @@ import torch
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
@@ -27,6 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
+    @override
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         epoch = trainer.current_epoch
@@ -51,16 +53,19 @@ def test_finetuning_callback(tmp_path):
             self.layer = torch.nn.Linear(32, 2)
             self.backbone.has_been_used = False
 
+        @override
         def forward(self, x):
             self.backbone.has_been_used = True
             x = self.backbone(x)
             return self.layer(x)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.7)
             return [optimizer], [lr_scheduler]
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
@@ -74,6 +79,7 @@ def test_finetuning_callback(tmp_path):
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
+    @override
     def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
         if epoch == 0:
@@ -93,13 +99,16 @@ def test_finetuning_callback_warning(tmp_path):
             self.layer = None
             self.backbone.has_been_used = False
 
+        @override
         def forward(self, x):
             self.backbone.has_been_used = True
             return self.backbone(x)
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
@@ -201,9 +210,11 @@ def test_unfreeze_and_add_param_group_function(tmp_path):
 
 
 class OnEpochLayerFinetuning(BaseFinetuning):
+    @override
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.layer)
 
+    @override
     def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
@@ -225,9 +236,11 @@ def test_base_finetuning_internal_optimizer_metadata(tmp_path):
                 nn.Linear(32, 2, bias=True),
             )
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer[0].parameters(), lr=0.1)
 
@@ -258,6 +271,7 @@ class ConvBlock(nn.Module):
         self.act = nn.ReLU()
         self.bn = nn.BatchNorm2d(out_channels)
 
+    @override
     def forward(self, x):
         x = self.conv(x)
         x = self.act(x)
@@ -272,6 +286,7 @@ class ConvBlockParam(nn.Module):
         self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
         self.bn = nn.BatchNorm2d(out_channels)
 
+    @override
     def forward(self, x):
         x = self.module_dict["conv"](x)
         x = self.module_dict["act"](x)
@@ -306,9 +321,11 @@ def test_complex_nested_model():
 
 
 class TestCallbacksRestoreCallback(BaseFinetuning):
+    @override
     def freeze_before_training(self, pl_module):
         self.freeze(pl_module.layer[:3])
 
+    @override
     def finetune_function(self, pl_module, epoch, optimizer):
         if epoch >= 1:
             self.unfreeze_and_add_param_group(pl_module.layer[epoch - 1], optimizer)
@@ -319,6 +336,7 @@ class FinetuningBoringModel(BoringModel):
         super().__init__()
         self.layer = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 2))
 
+    @override
     def configure_optimizers(self):
         parameters = filter(lambda x: x.requires_grad, self.parameters())
         return torch.optim.SGD(parameters, lr=0.1)
@@ -394,6 +412,7 @@ class BackboneBoringModel(BoringModel):
         self.layer = nn.Linear(32, 2)
         self.backbone = nn.Linear(32, 32)
 
+    @override
     def forward(self, x):
         return self.layer(self.backbone(x))
 

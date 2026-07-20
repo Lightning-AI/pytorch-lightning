@@ -22,6 +22,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
@@ -601,6 +602,7 @@ def test_profiler_teardown(tmp_path, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
     class TestCallback(Callback):
+        @override
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
             # describe sets it to None
             assert trainer.profiler._output_file is None

@@ -23,6 +23,7 @@ from typing import Any, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
@@ -223,6 +224,7 @@ class _EvaluationLoop(_Loop):
         else:
             self._restart_stage = RestartStage.NONE
 
+    @override
     def reset_restart_stage(self) -> None:
         self._restart_stage = RestartStage.NONE
 

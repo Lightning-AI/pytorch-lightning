@@ -14,6 +14,7 @@
 from unittest import mock
 
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
@@ -129,12 +130,15 @@ def test_ddp_find_unused_parameters_strategy_registry(
 
 def test_custom_registered_strategy_to_strategy_flag():
     class CustomCheckpointIO(CheckpointIO):
+        @override
         def save_checkpoint(self, checkpoint, path):
             pass
 
+        @override
         def load_checkpoint(self, path):
             pass
 
+        @override
         def remove_checkpoint(self, path):
             pass
 

@@ -33,6 +33,7 @@ from lightning.pytorch.utilities import find_shared_parameters, set_shared_param
 class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     """Strategy for training on a single XLA device."""
 
+    @override
     def __init__(
         self,
         device: _DEVICE,
@@ -56,8 +57,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
         self.debug = debug
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -65,15 +66,15 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             return plugin
         return XLACheckpointIO()
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property
     @override
+    @property
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -81,8 +82,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             return plugin
         return XLAPrecision()
 
-    @precision_plugin.setter
     @override
+    @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")

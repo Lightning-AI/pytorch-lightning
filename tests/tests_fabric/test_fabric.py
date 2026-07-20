@@ -25,6 +25,7 @@ import torch.nn.functional
 from lightning_utilities.test.warning import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.fabric import Fabric
@@ -50,6 +51,7 @@ class BoringModel(nn.Module):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2, bias=False)
 
+    @override
     def forward(self, x):
         x = self.layer(x)
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
@@ -62,6 +64,7 @@ def test_run_input_output():
         run_args = ()
         run_kwargs = {}
 
+        @override
         def run(self, *args, **kwargs):
             self.run_args = args
             self.run_kwargs = kwargs
@@ -682,6 +685,7 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # Model that returns a datastructure of tensors
     class DictReturnModel(nn.Linear):
+        @override
         def forward(self, x):
             return {
                 "loss": super().forward(x).sum(),
@@ -849,6 +853,7 @@ def test_launch_and_strategies_unsupported_combinations(strategy, xla_available)
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_overridden_run_and_cli_not_allowed():
     class FabricWithRun(Fabric):
+        @override
         def run(self):
             pass
 

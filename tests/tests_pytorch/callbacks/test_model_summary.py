@@ -13,6 +13,8 @@
 # limitations under the License.
 from typing import Any
 
+from typing_extensions import override
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -44,6 +46,7 @@ def test_model_summary_callback_with_enable_model_summary_true():
 def test_custom_model_summary_callback_summarize(tmp_path):
     class CustomModelSummary(ModelSummary):
         @staticmethod
+        @override
         def summarize(
             summary_data: list[tuple[str, list[str]]],
             total_parameters: int,

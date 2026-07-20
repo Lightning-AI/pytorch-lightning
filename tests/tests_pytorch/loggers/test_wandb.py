@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 import yaml
 from lightning_utilities.test.warning import no_warning_call
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -650,6 +651,7 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
     monkeypatch.chdir(tmp_path)
 
     class InspectParsedCLI(LightningCLI):
+        @override
         def before_instantiate_classes(self):
             assert self.config.trainer.logger.init_args.log_model == expected
 

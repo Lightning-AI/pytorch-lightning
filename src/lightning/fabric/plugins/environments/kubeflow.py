@@ -33,18 +33,18 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     """
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         return os.environ["MASTER_ADDR"]
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
 

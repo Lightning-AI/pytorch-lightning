@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -44,6 +45,7 @@ def test_backward_count_with_closure(torch_backward, tmp_path):
     """Using a closure (e.g. with LBFGS) should lead to no extra backward calls."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return torch.optim.LBFGS(self.parameters(), lr=0.1)
 

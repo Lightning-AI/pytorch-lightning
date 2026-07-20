@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric.strategies.model_parallel import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
@@ -76,6 +77,7 @@ def test_fsdp_v1_modules_unsupported():
     from torch.distributed.fsdp import FullyShardedDataParallel
 
     class Model(LightningModule):
+        @override
         def configure_model(self):
             pass
 
@@ -96,6 +98,7 @@ def test_configure_model_required():
         pass
 
     class Model2(LightningModule):
+        @override
         def configure_model(self):
             pass
 
@@ -231,6 +234,7 @@ def test_meta_device_materialization():
         def reset_parameters(self):
             self.buffer.fill_(1.0)
 
+        @override
         def configure_model(self) -> None:
             pass
 
@@ -263,6 +267,7 @@ def test_align_compiled_param_names_with_module():
             super().__init__()
             self.model = nn.Sequential(nn.Linear(32, 64), nn.ReLU(), nn.Linear(64, 32))
 
+        @override
         def forward(self, x):
             return self.model(x)
 
@@ -310,6 +315,7 @@ def test_align_compiled_param_names_no_compile():
             super().__init__()
             self.model = nn.Sequential(nn.Linear(32, 64), nn.Linear(64, 32))
 
+        @override
         def forward(self, x):
             return self.model(x)
 

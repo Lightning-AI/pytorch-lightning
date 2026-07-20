@@ -5,6 +5,7 @@ import time
 import pytest
 import torch
 import torch.multiprocessing as mp
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringDataModule
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.skipif(
 
 
 class DummyModel(LightningModule):
+    @override
     def training_step(self, batch, batch_idx):
         # Simulate SIGTERM in rank 0 at batch 2
         if self.trainer.global_rank == 0 and batch_idx == 2:

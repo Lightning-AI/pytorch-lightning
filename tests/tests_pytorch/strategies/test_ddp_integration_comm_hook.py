@@ -15,6 +15,7 @@ from unittest import mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -32,6 +33,7 @@ class TestDDPStrategy(DDPStrategy):
         self.expected_ddp_comm_hook_name = expected_ddp_comm_hook_name
         super().__init__(*args, **kwargs)
 
+    @override
     def teardown(self):
         # check here before unwrapping DistributedDataParallel in self.teardown
         attached_ddp_comm_hook_name = self.model._get_ddp_logging_data()["comm_hook"]
@@ -212,6 +214,7 @@ def test_post_local_sgd_model_averaging_raises(average_parameters_mock, tmp_path
     from torch.distributed.optim import ZeroRedundancyOptimizer
 
     class OptimizerModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return ZeroRedundancyOptimizer(params=self.parameters(), optimizer_class=torch.optim.Adam, lr=0.01)
 

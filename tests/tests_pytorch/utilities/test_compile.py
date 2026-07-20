@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
@@ -162,6 +163,7 @@ def test_compile_uncompile():
 @mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("loss", loss)

@@ -17,6 +17,7 @@ from typing import Generic, TypeVar
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -54,12 +55,15 @@ class OutputMapping(Generic[T], Mapping[str, T]):
     def __init__(self, d: dict[str, T]) -> None:
         self.d: dict[str, T] = d
 
+    @override
     def __iter__(self) -> Iterator[str]:
         return iter(self.d)
 
+    @override
     def __len__(self) -> int:
         return len(self.d)
 
+    @override
     def __getitem__(self, key: str) -> T:
         return self.d[key]
 
@@ -76,6 +80,7 @@ def test_warning_invalid_trainstep_output(tmp_path, case):
     output, match = case
 
     class InvalidTrainStepModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             return output
 
@@ -91,6 +96,7 @@ def test_skip_training_step_not_allowed(world_size, tmp_path):
     """Test that skipping the training_step in distributed training is not allowed."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             return None
 

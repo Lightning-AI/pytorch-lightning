@@ -176,6 +176,7 @@ class _NotYetLoadedTensor:
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
+    @override
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self.metatensor)})"
 

@@ -147,6 +147,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     """
 
+    @override
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
@@ -193,18 +194,18 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> CheckpointIO:
         raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -221,8 +222,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
@@ -230,6 +231,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
+    @override
     @property
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
@@ -239,8 +241,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return plugin.mixed_precision_config
         return None
 
-    @property
     @override
+    @property
     def precision(self) -> FSDPPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -248,8 +250,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return plugin
         return FSDPPrecision("32-true")
 
-    @precision.setter
     @override
+    @precision.setter
     def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, FSDPPrecision):
             raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")

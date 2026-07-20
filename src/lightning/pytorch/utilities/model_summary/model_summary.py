@@ -24,6 +24,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.flop_counter import FlopCounterMode
 from torch.utils.hooks import RemovableHandle
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities import rank_zero_warn
@@ -409,6 +410,7 @@ class ModelSummary:
         if "Out sizes" in layer_summaries:
             layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
+    @override
     def __str__(self) -> str:
         arrays = self._get_summary_data()
 
@@ -427,6 +429,7 @@ class ModelSummary:
             *arrays,
         )
 
+    @override
     def __repr__(self) -> str:
         return str(self)
 

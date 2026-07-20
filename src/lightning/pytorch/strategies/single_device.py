@@ -68,8 +68,8 @@ class SingleDeviceStrategy(Strategy):
         """Perform a all_gather on all processes."""
         return tensor
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         return self._root_device
 
@@ -78,8 +78,8 @@ class SingleDeviceStrategy(Strategy):
         assert self.model is not None, "self.model must be set before self.model.to()"
         self.model.to(self.root_device)
 
-    @property
     @override
+    @property
     def is_global_zero(self) -> bool:
         return True
 

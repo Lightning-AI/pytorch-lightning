@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -191,6 +192,7 @@ def test_mlflow_logger_dirs_creation(tmp_path):
         assert set(os.listdir(tmp_path / exp_id)) == {run_id, "meta.yaml"}
 
     class CustomModel(BoringModel):
+        @override
         def on_train_epoch_end(self, *args, **kwargs):
             self.log("epoch", self.current_epoch)
 

@@ -21,6 +21,7 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
+from typing_extensions import override
 
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.pytorch import Trainer, seed_everything
@@ -38,6 +39,7 @@ class ManualOptModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
+    @override
     def training_step(self, batch, batch_idx):
         opt_a, opt_b = self.optimizers()
 
@@ -62,6 +64,7 @@ class ManualOptModel(BoringModel):
 
         return loss_2
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -104,6 +107,7 @@ def test_multiple_optimizers_manual_call_counts(tmp_path, kwargs):
 
 def test_multiple_optimizers_manual_log(tmp_path):
     class TestModel(ManualOptModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss_2 = super().training_step(batch, batch_idx)
             self.log("a", loss_2, on_epoch=True)
@@ -162,10 +166,12 @@ class ManualOptimizationExtendedModel(BoringModel):
     def should_update(self):
         return self.count % 2 == 0
 
+    @override
     def on_train_batch_start(self, batch, batch_idx):
         self.called["on_train_batch_start"] += 1
         self.weight_before = self.layer.weight.clone()
 
+    @override
     def training_step(self, batch, batch_idx):
         self.called["training_step"] += 1
         opt = self.optimizers()
@@ -180,6 +186,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
+    @override
     def on_train_batch_end(self, *_):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
@@ -198,6 +205,7 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert_emtpy_grad(self.layer.weight.grad)
         self.count += 1
 
+    @override
     def on_train_end(self):
         assert self.called["training_step"] == 10
         assert self.called["on_train_batch_start"] == 10
@@ -251,10 +259,12 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
         def has_gradient(self):
             return self.layer.weight.grad is not None
 
+        @override
         def on_train_batch_start(self, batch, batch_idx):
             self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
+        @override
         def training_step(self, batch, batch_idx):
             self.called["training_step"] += 1
             opt = self.optimizers()
@@ -270,6 +280,7 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
 
             return loss.detach() if self.detach else loss
 
+        @override
         def on_train_batch_end(self, *_):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
@@ -285,6 +296,7 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
 
+        @override
         def on_train_epoch_end(self, *_, **__):
             assert self.called["training_step"] == 20
             assert self.called["on_train_batch_start"] == 20
@@ -310,15 +322,19 @@ class CustomMapping(collections.abc.Mapping):
     def __init__(self, *args, **kwargs):
         self._store = dict(*args, **kwargs)
 
+    @override
     def __getitem__(self, key):
         return self._store[key]
 
+    @override
     def __iter__(self):
         return iter(self._store)
 
+    @override
     def __len__(self):
         return len(self._store)
 
+    @override
     def __repr__(self):
         return f"{self.__class__.__name__}({self._store})"
 
@@ -336,6 +352,7 @@ def test_multiple_optimizers_step(tmp_path, dicttype):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
+        @override
         def training_step(self, batch, batch_idx):
             opt_a, opt_b = self.optimizers()
             x = batch[0]
@@ -365,6 +382,7 @@ def test_multiple_optimizers_step(tmp_path, dicttype):
             return dicttype(loss1=loss_1.detach(), loss2=loss_2.detach())
 
         # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
+        @override
         def on_after_backward(self) -> None:
             # check grads are scaled
             scale = self.trainer.precision_plugin.scaler.get_scale()
@@ -384,6 +402,7 @@ def test_multiple_optimizers_step(tmp_path, dicttype):
             for actual, expected in zip(grads, self.original_grads):
                 torch.testing.assert_close(actual, expected)
 
+        @override
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)
 
@@ -419,6 +438,7 @@ def test_step_with_optimizer_closure(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             # make sure there are no grads
             assert_emtpy_grad(self.layer.weight.grad)
@@ -479,6 +499,7 @@ def test_step_with_optimizer_closure_2(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt = self.optimizers()
             x = batch[0]
@@ -520,10 +541,12 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def on_train_start(self) -> None:
             mock_sgd_step.reset_mock()
             mock_adam_step.reset_mock()
 
+        @override
         def training_step(self, batch, batch_idx):
             # emulate gans training
             opt_gen, opt_dis = self.optimizers()
@@ -561,6 +584,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 opt_dis.step(closure=dis_closure)
                 opt_dis.zero_grad()
 
+        @override
         def configure_optimizers(self):
             optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
@@ -601,6 +625,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
         return True
 
+    @override
     def training_step(self, batch, batch_idx):
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
@@ -651,11 +676,13 @@ class TesManualOptimizationDDPModel(BoringModel):
         if make_dis_optimizer_step:
             opt_dis.step(closure=dis_closure)
 
+    @override
     def configure_optimizers(self):
         optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
         return [optimizer_gen, optimizer_dis]
 
+    @override
     def on_train_start(self):
         # this is done here instead of in the calling function due to `spawn`
         sgd, adam = self.optimizers()
@@ -664,6 +691,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         self.adam_step_patch = patch.object(adam, "step", wraps=adam.step)
         self.adam_step_mock = self.adam_step_patch.start()
 
+    @override
     def on_train_end(self):
         self.sgd_step_patch.stop()
         assert self.sgd_step_mock.call_count == 4
@@ -710,6 +738,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmp_pa
 
 
 class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
+    @override
     def training_step(self, batch, batch_idx):
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
@@ -777,11 +806,13 @@ def test_lr_schedulers(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             scheduler_1, scheduler_2 = self.lr_schedulers()
             assert scheduler_1 is self.scheduler_1
             assert scheduler_2 is self.scheduler_2
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.parameters(), lr=0.1)
@@ -806,10 +837,12 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmp_path, scheduler_as_dict):
             self.scheduler_as_dict = scheduler_as_dict
             self.automatic_optimization = False
 
+        @override
         def on_train_epoch_end(self):
             scheduler = self.lr_schedulers()
             scheduler.step(torch.tensor(0.0))
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
 
@@ -862,6 +895,7 @@ def test_multiple_optimizers_logging(precision, tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             optimizer1, optimizer2 = self.optimizers()
             # Discriminator.
@@ -886,6 +920,7 @@ def test_multiple_optimizers_logging(precision, tmp_path):
             optimizer2.step()
             self.untoggle_optimizer(optimizer2)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -931,6 +966,7 @@ def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
             super().__init__()
             self.automatic_optimization = automatic_optimization
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             scheduler = IncompatibleScheduler(optimizer)

@@ -15,6 +15,7 @@ import torch.nn as nn
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy, always_wrap_policy, size_based_auto_wrap_policy, wrap
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
@@ -39,6 +40,7 @@ class TestFSDPModel(BoringModel):
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
+    @override
     def configure_model(self) -> None:
         if self.layer is None:
             self._init_model()
@@ -50,25 +52,31 @@ class TestFSDPModel(BoringModel):
                 self.layer[i] = wrap(layer)
         self.layer = wrap(self.layer)
 
+    @override
     def configure_optimizers(self):
         # There is some issue with SGD optimizer state in FSDP
         return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
+    @override
     def on_train_batch_start(self, batch, batch_idx):
         assert batch.dtype == torch.float32
 
+    @override
     def on_train_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_test_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_validation_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_predict_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
@@ -105,27 +113,33 @@ class TestBoringModel(BoringModel):
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.should_be_wrapped = [wrap_min_params < (32 * 32 + 32), None, wrap_min_params < (32 * 2 + 2)]
 
+    @override
     def configure_optimizers(self):
         # SGD's FSDP optimizer, state is fixed in https://github.com/pytorch/pytorch/pull/99214
         return torch.optim.AdamW(self.parameters(), lr=0.1)
 
 
 class TestFSDPModelAutoWrapped(TestBoringModel):
+    @override
     def on_train_batch_start(self, batch, batch_idx):
         assert batch.dtype == torch.float32
 
+    @override
     def on_train_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_test_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_validation_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
+    @override
     def on_predict_batch_end(self, _, batch, batch_idx):
         assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
@@ -237,9 +251,11 @@ def test_modules_without_parameters(tmp_path):
             self.metric = Accuracy("multiclass", num_classes=10)
             assert self.metric.device == self.metric.tp.device == torch.device("cpu")
 
+        @override
         def setup(self, stage) -> None:
             assert self.metric.device == self.metric.tp.device == torch.device("cpu")
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             assert self.metric.device == self.metric.tp.device == torch.device("cuda", 0)
@@ -377,6 +393,7 @@ def test_invalid_parameters_in_optimizer(use_orig_params):
     )
 
     class EmptyParametersModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
@@ -384,6 +401,7 @@ def test_invalid_parameters_in_optimizer(use_orig_params):
     trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
+        @override
         def configure_optimizers(self):
             layer = torch.nn.Linear(4, 5)
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
@@ -738,6 +756,7 @@ def test_configure_model(precision, expected_dtype, tmp_path):
     )
 
     class MyModel(BoringModel):
+        @override
         def configure_model(self):
             self.layer = torch.nn.Linear(32, 2)
             # The model is on the CPU until after `.setup()``
@@ -746,10 +765,12 @@ def test_configure_model(precision, expected_dtype, tmp_path):
             assert self.layer.weight.device == expected_device
             assert self.layer.weight.dtype == expected_dtype
 
+        @override
         def configure_optimizers(self):
             # There is some issue with SGD optimizer state in FSDP
             return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
+        @override
         def on_fit_start(self):
             # Parameters get sharded in `.setup()` and moved to the target device
             assert self.layer.weight.device == torch.device("cuda", self.local_rank)
@@ -845,10 +866,12 @@ class TestFSDPCheckpointModel(BoringModel):
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.params_to_compare = params_to_compare
 
+    @override
     def configure_optimizers(self):
         # SGD's FSDP optimizer, state is fixed in https://github.com/pytorch/pytorch/pull/99214
         return torch.optim.AdamW(self.parameters(), lr=0.1)
 
+    @override
     def on_train_start(self):
         if self.params_to_compare is None:
             return
@@ -991,9 +1014,11 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
     """Test that the module under the init-context gets moved to the right device and dtype."""
 
     class Model(BoringModel):
+        @override
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
+        @override
         def on_train_start(self):
             # Parameters get sharded in `FSDPStrategy.setup()` and moved to the target device
             assert self.layer.weight.device == torch.device("cuda", self.local_rank)
@@ -1034,6 +1059,7 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 
     class CustomModel(BoringModel):
+        @override
         def configure_optimizers(self):
             # Use Adam instead of SGD for this test because it has state
             # In PyTorch >= 2.4, saving an optimizer with empty state would result in a `KeyError: 'state'`

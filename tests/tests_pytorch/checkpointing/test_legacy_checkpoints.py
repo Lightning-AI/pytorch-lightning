@@ -19,6 +19,7 @@ from unittest.mock import patch
 import pytest
 import torch
 from packaging.version import Version
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
@@ -65,6 +66,7 @@ class LimitNbEpochs(Callback):
         self.limit = nb
         self._count = 0
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._count += 1
         if self._count >= self.limit:

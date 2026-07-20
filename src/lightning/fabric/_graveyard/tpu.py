@@ -14,6 +14,8 @@
 import sys
 from typing import Any
 
+from typing_extensions import override
+
 import lightning.fabric as fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.plugins.precision import XLAPrecision
@@ -43,6 +45,7 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
         super().__init__(*args, **kwargs)
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if "single_tpu" not in strategy_registry:
             strategy_registry.register("single_tpu", cls, description="Legacy class. Use `single_xla` instead.")

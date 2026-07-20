@@ -115,6 +115,7 @@ class TQDMProgressBar(ProgressBar):
         self._predict_progress_bar: Optional[_tqdm] = None
         self._leave = leave
 
+    @override
     def __getstate__(self) -> dict:
         # can't pickle the tqdm objects
         return {k: v if not isinstance(v, _tqdm) else None for k, v in vars(self).items()}

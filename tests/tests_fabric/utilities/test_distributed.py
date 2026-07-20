@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
@@ -280,6 +281,7 @@ class _CustomSampler(torch.utils.data.Sampler):
     def __len__(self):
         return len(self.data_source)
 
+    @override
     def __iter__(self):
         return iter(range(len(self.data_source)))
 
@@ -292,6 +294,7 @@ class _CustomSamplerWithSetEpoch(_CustomSampler):
         self.epoch = 0
         self.set_epoch_call_count = 0
 
+    @override
     def set_epoch(self, epoch):
         self.epoch = epoch
         self.set_epoch_call_count += 1

@@ -149,8 +149,8 @@ class EarlyStopping(Callback):
         torch_inf = torch.tensor(torch.inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    @property
     @override
+    @property
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 

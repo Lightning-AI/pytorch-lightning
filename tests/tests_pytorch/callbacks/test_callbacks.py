@@ -17,6 +17,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Callback, Trainer
@@ -30,6 +31,7 @@ def test_callbacks_configured_in_model(tmp_path):
     trainer_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
+        @override
         def configure_callbacks(self):
             return [model_callback_mock]
 
@@ -80,6 +82,7 @@ def test_configure_callbacks_hook_multiple_calls(tmp_path):
     model_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
+        @override
         def configure_callbacks(self):
             return model_callback_mock
 
@@ -109,13 +112,16 @@ class OldStatefulCallback(Callback):
     def __init__(self, state):
         self.state = state
 
+    @override
     @property
     def state_key(self):
         return type(self)
 
+    @override
     def state_dict(self):
         return {"state": self.state}
 
+    @override
     def load_state_dict(self, state_dict) -> None:
         self.state = state_dict["state"]
 

@@ -23,6 +23,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
+from typing_extensions import override
 
 import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
@@ -45,17 +46,21 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class MultiValDataLoaderBoringModel(BoringModel):
+    @override
     def val_dataloader(self):
         return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64), batch_size=8)]
 
+    @override
     def validation_step(self, batch, batch_idx, dataloader_idx):
         return super().validation_step(batch, batch_idx)
 
 
 class MultiTestDataLoaderBoringModel(BoringModel):
+    @override
     def test_dataloader(self):
         return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64), batch_size=8)]
 
+    @override
     def test_step(self, batch, batch_idx, dataloader_idx):
         return super().test_step(batch, batch_idx)
 
@@ -198,10 +203,12 @@ def test_dataloaders_passed_to_fn(tmp_path, ckpt_path, n):
 
 
 class DummyModel(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         self.log("loss", self.global_step)
         return super().training_step(batch, batch_idx)
 
+    @override
     def on_validation_epoch_end(self):
         self.log("val_log", self.current_epoch)
 
@@ -216,21 +223,27 @@ class Counter(Callback):
         self.val_batches_seen = 0
         self.test_batches_seen = 0
 
+    @override
     def on_train_batch_start(self, *_):
         self.train_batches_seen += 1
 
+    @override
     def on_train_epoch_start(self, *_):
         self.train_epoch_count += 1
 
+    @override
     def on_validation_batch_start(self, *_):
         self.val_batches_seen += 1
 
+    @override
     def on_test_batch_start(self, *_):
         self.test_batches_seen += 1
 
+    @override
     def on_validation_epoch_start(self, *_):
         self.val_epoch_count += 1
 
+    @override
     def on_test_epoch_start(self, *_):
         self.test_epoch_count += 1
 
@@ -564,6 +577,7 @@ def test_warning_with_few_workers_multi_loader(_, tmp_path, ckpt_path, stage):
     """Test that a warning is emitted if the dataloader only has a few workers."""
 
     class CustomModel(MultiEvalDataLoaderModel):
+        @override
         def training_step(self, batch, batch_idx):
             return super().training_step(batch["a_b"][0], batch_idx)
 
@@ -596,6 +610,7 @@ class NumpyRandomDataset(Dataset):
     # this dataset uses numpy instead of torch to produce random numbers
     size = 16
 
+    @override
     def __getitem__(self, index):
         return numpy.random.randint(0, 100, 3)
 
@@ -639,11 +654,13 @@ class MultiProcessModel(BoringModel):
         super().__init__()
         self.batches_seen = []
 
+    @override
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
         # the actual training step is not needed for the assertions below
         return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
+    @override
     def on_train_epoch_end(self):
         world_size = 2
         num_samples = NumpyRandomDataset.size
@@ -707,6 +724,7 @@ def test_warning_with_iterable_dataset_and_len(tmp_path):
     original_dataset = model.train_dataloader().dataset
 
     class IterableWithoutLen(IterableDataset):
+        @override
         def __iter__(self):
             return iter(original_dataset)
 
@@ -747,6 +765,7 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all, tmp_pa
         def __init__(self, gen):
             self.gen = gen
 
+        @override
         def __iter__(self):
             return iter(self.gen())
 
@@ -777,18 +796,21 @@ class DistribSamplerCallback(Callback):
     def __init__(self, expected_seeds=(0, 0, 0)):
         self.expected_seed = expected_seeds
 
+    @override
     def on_train_start(self, trainer, pl_module):
         train_sampler = trainer.train_dataloader.sampler
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
         assert train_sampler.seed == self.expected_seed[0]
 
+    @override
     def on_validation_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders.sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
         assert val_sampler.seed == self.expected_seed[1]
 
+    @override
     def on_test_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders.sampler
         assert isinstance(test_sampler, DistributedSampler)
@@ -819,11 +841,13 @@ class TestModelUniqueDDPSampling(BoringModel):
         super().__init__()
         self.seen_samples = []
 
+    @override
     def training_step(self, batch, batch_idx):
         self.seen_samples.extend(batch.tolist())
         # the actual training step is not needed for the test
         return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
+    @override
     def on_train_end(self):
         seen_samples = self.all_gather(self.seen_samples)
         # The samples should be unique across all processes
@@ -851,6 +875,7 @@ def test_distributed_sampler_without_global_seed(tmp_path):
 
 
 class ModelWithDataLoaderDistributedSampler(BoringModel):
+    @override
     def train_dataloader(self):
         dataloader = super().train_dataloader()
         dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True, seed=11)
@@ -884,6 +909,7 @@ def test_fit_multiple_train_loaders(tmp_path, mode, num_training_batches):
     """Integration test for multiple train iterables."""
 
     class CustomBoringModel(BoringModel):
+        @override
         def train_dataloader(self):
             loaders_a_b = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 16))]
             loaders_c_d_e = [
@@ -895,6 +921,7 @@ def test_fit_multiple_train_loaders(tmp_path, mode, num_training_batches):
             loaders = {"a_b": loaders_a_b, "c_d_e": loaders_c_d_e}
             return CombinedLoader(loaders, mode)
 
+        @override
         def training_step(self, batch, batch_idx):
             assert len(batch) == 2
             assert len(batch["a_b"]) == 2
@@ -920,9 +947,11 @@ def test_train_dataloader_not_implemented_error(tmp_path, check_interval, datalo
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
 
     class CustomBoringModel(BoringModel):
+        @override
         def train_dataloader(self):
             return dataloader_wrapper(DataLoader(RandomDataset(32, 64)))
 
+        @override
         def val_dataloader(self):
             return dataloader_wrapper(DataLoader(RandomDataset(32, 64)))
 
@@ -1043,10 +1072,12 @@ def test_dataloaders_load_every_n_epochs_infrequent_val(
     sanity_val_step_epochs, val_step_epochs = [], []
 
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             train_reload_epochs.append(self.current_epoch)
             return super().train_dataloader()
 
+        @override
         def val_dataloader(self):
             if self.trainer.sanity_checking:
                 sanity_val_check_epochs.append(self.current_epoch)
@@ -1054,6 +1085,7 @@ def test_dataloaders_load_every_n_epochs_infrequent_val(
                 val_reload_epochs.append(self.current_epoch)
             return super().val_dataloader()
 
+        @override
         def validation_step(self, *args, **kwargs):
             if self.trainer.sanity_checking:
                 sanity_val_step_epochs.append(self.current_epoch)
@@ -1088,14 +1120,17 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmp_path):
     train_reload_epochs, val_reload_epochs, val_check_epochs = [], [], []
 
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             train_reload_epochs.append(self.current_epoch)
             return super().train_dataloader()
 
+        @override
         def val_dataloader(self):
             val_reload_epochs.append(self.current_epoch)
             return super().val_dataloader()
 
+        @override
         def on_validation_epoch_end(self):
             val_check_epochs.append(self.current_epoch)
 
@@ -1132,6 +1167,7 @@ def test_dataloaders_load_every_n_epochs_exception(tmp_path, n):
 
 def test_dataloaders_load_every_epoch_no_sanity_check(tmp_path):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             self.log("dummy_val", 5.0)
             return super().validation_step(batch, batch_idx)
@@ -1285,10 +1321,12 @@ def test_correct_dataloader_idx_in_hooks(tmp_path, mode):
             elif self.trainer.testing:
                 assert dataloader_idx == (0 if self.test_call_count <= 5 else 1)
 
+        @override
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
 
+        @override
         def on_before_batch_transfer(self, batch, dataloader_idx):
             # incrementing here since this is the first hook called at each step
             if self.trainer.validating:
@@ -1299,13 +1337,16 @@ def test_correct_dataloader_idx_in_hooks(tmp_path, mode):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().on_before_batch_transfer(batch, dataloader_idx)
 
+        @override
         def on_after_batch_transfer(self, batch, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().on_after_batch_transfer(batch, dataloader_idx)
 
+        @override
         def training_step(self, batch, batch_idx):
             return super().training_step(batch["a"], batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             out = super().validation_step(batch, batch_idx)
@@ -1313,6 +1354,7 @@ def test_correct_dataloader_idx_in_hooks(tmp_path, mode):
             out[f"val_loss_{dataloader_idx}"] = loss
             return out
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             out = super().test_step(batch, batch_idx)
@@ -1324,17 +1366,21 @@ def test_correct_dataloader_idx_in_hooks(tmp_path, mode):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().predict(batch, batch_idx, dataloader_idx)
 
+        @override
         def train_dataloader(self):
             return CombinedLoader(
                 {"a": DataLoader(RandomDataset(32, 64)), "b": DataLoader(RandomDataset(32, 64))}, mode=mode
             )
 
+        @override
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
+        @override
         def test_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
+        @override
         def predict_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
@@ -1370,18 +1416,22 @@ def test_request_dataloader(tmp_path):
             self.on_train_batch_start_called = False
             self.on_val_batch_start_called = False
 
+        @override
         def train_dataloader(self):
             loader = super().train_dataloader()
             return DataLoaderWrapper(loader)
 
+        @override
         def on_train_batch_start(self, batch, batch_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
+        @override
         def val_dataloader(self):
             loader = super().val_dataloader()
             return DataLoaderWrapper(loader)
 
+        @override
         def on_validation_batch_start(self, *_):
             assert isinstance(self.trainer.val_dataloaders, DataLoaderWrapper)
             self.on_val_batch_start_called = True
@@ -1399,6 +1449,7 @@ def test_request_dataloader(tmp_path):
 @pytest.mark.parametrize("num_loaders", [1, 2])
 def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             assert all(isinstance(dl.sampler, SequentialSampler) for dl in self.trainer.train_dataloader)
             return super().training_step(batch[0], batch_idx)
@@ -1407,6 +1458,7 @@ def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, t
             ds = RandomDataset(32, 64)
             return DataLoader(ds, sampler=RandomSampler(ds))
 
+        @override
         def train_dataloader(self):
             return [self._create_dataloader() for _ in range(num_loaders)]
 

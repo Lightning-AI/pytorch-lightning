@@ -203,8 +203,8 @@ class FSDPStrategy(ParallelStrategy):
         )
         self._state_dict_type = state_dict_type
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -217,6 +217,7 @@ class FSDPStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
+    @override
     @property
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
@@ -226,8 +227,8 @@ class FSDPStrategy(ParallelStrategy):
             return plugin.mixed_precision_config
         return None
 
-    @property
     @override
+    @property
     def precision_plugin(self) -> FSDPPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -235,8 +236,8 @@ class FSDPStrategy(ParallelStrategy):
             return plugin
         return FSDPPrecision("32-true")
 
-    @precision_plugin.setter
     @override
+    @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecision):
             raise TypeError(
@@ -244,18 +245,18 @@ class FSDPStrategy(ParallelStrategy):
             )
         self._precision_plugin = precision_plugin
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
-    @property
     @override
+    @property
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def lightning_restore_optimizer(self) -> bool:
         return False
 

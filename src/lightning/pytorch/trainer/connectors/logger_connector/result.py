@@ -518,11 +518,13 @@ class _ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
+    @override
     def __str__(self) -> str:
         # remove empty values
         self_str = str({k: v for k, v in self.items() if v})
         return f"{self.__class__.__name__}({self_str})"
 
+    @override
     def __repr__(self) -> str:
         return f"{{{self.training}, {super().__repr__()}}}"
 

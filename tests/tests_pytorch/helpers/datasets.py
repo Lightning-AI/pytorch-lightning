@@ -22,6 +22,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+from typing_extensions import override
 
 
 class MNIST(Dataset):
@@ -64,6 +65,7 @@ class MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
+    @override
     def __getitem__(self, idx: int) -> tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
@@ -162,6 +164,7 @@ class TrialMNIST(MNIST):
         targets = full_targets[indexes]
         return data, targets
 
+    @override
     def _download(self, data_folder: str) -> None:
         super()._download(data_folder)
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
@@ -183,6 +186,7 @@ class AverageDataset(Dataset):
     def __len__(self):
         return self.dataset_len
 
+    @override
     def __getitem__(self, item):
         return self.input_seq[item], self.output_seq[item]
 
@@ -194,6 +198,7 @@ class SklearnDataset(Dataset):
         self._x_type = x_type
         self._y_type = y_type
 
+    @override
     def __getitem__(self, idx):
         return torch.tensor(self.x[idx], dtype=self._x_type), torch.tensor(self.y[idx], dtype=self._y_type)
 

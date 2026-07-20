@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
+from typing_extensions import override
 
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
@@ -46,6 +47,7 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
             self._root_device = root_device
             super().__init__(process_group_backend=process_group_backend)
 
+        @override
         @property
         def root_device(self):
             return self._root_device
