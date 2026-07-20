@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
 
+- Fixed `ModelCheckpoint` saving the live, post-optimization weights instead of the pre-optimization snapshot when manual optimization defers the save to `on_validation_end` (validation-only monitored metric) ([#21843](https://github.com/Lightning-AI/pytorch-lightning/pull/21843))
+
 ---
 
 ## [2.6.4] - 2026-05-20
