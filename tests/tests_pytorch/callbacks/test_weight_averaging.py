@@ -166,13 +166,16 @@ class SWATestCallback(WeightAveraging):
             assert self._average_model.n_averaged == 2
         else:
             assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.current_epoch + 1 - self.first_epoch) * 2
+        # The model is only swapped during validation once the average model has been updated. The first update happens
+        # at the end of epoch 3, so the validation epochs that swap are those from epoch 4 onwards (two swaps each).
+        assert self.swap_calls == max(0, trainer.current_epoch - 3) * 2
         assert self.copy_calls == 0
 
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
+        # Validation epochs 4 to ``max_epochs - 1`` each swap twice (see ``on_train_epoch_end``).
+        assert self.swap_calls == max(0, trainer.max_epochs - 1 - 3) * 2
         assert self.copy_calls == 1
 
 
@@ -207,7 +210,8 @@ def test_ema(tmp_path, batch_norm: bool, iterable_dataset: bool):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+    "accelerator",
+    [pytest.param("gpu", marks=RunIf(standalone=True, min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))],
 )
 def test_ema_accelerator(tmp_path, accelerator):
     model = TestModel()
@@ -215,21 +219,21 @@ def test_ema_accelerator(tmp_path, accelerator):
     _train(model, dataset, tmp_path, EMATestCallback(), accelerator=accelerator, devices=1)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(standalone=True, min_cuda_gpus=2)
 def test_ema_ddp(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp", accelerator="gpu", devices=2)
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(standalone=True, min_cuda_gpus=2)
 def test_ema_ddp_spawn(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, standalone=True)
 def test_ema_ddp_spawn_cpu(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
@@ -237,6 +241,7 @@ def test_ema_ddp_spawn_cpu(tmp_path):
 
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3, 5])
+@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
 def test_ema_resume(tmp_path, crash_on_epoch):
     dataset = RandomDataset(32, 32)
     model1 = TestModel()
@@ -251,7 +256,7 @@ def test_ema_resume(tmp_path, crash_on_epoch):
         assert torch.allclose(param1, param2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
 def test_ema_resume_ddp(tmp_path):
     model = TestModel()
     model.crash_on_epoch = 3
@@ -269,8 +274,8 @@ def test_swa(tmp_path):
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("fsdp", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
+        pytest.param("fsdp", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
     ],
 )
 def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
@@ -335,7 +340,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
     ],
 )
 def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
@@ -386,6 +391,63 @@ def test_ema_weight_averaging_starting_epoch(tmp_path):
     _train(model, dataset, tmp_path, callback)
 
     assert callback._average_model is not None
+
+
+def test_weight_averaging_no_swap_before_first_update(tmp_path):
+    """Validation must use the current (trained) weights while the average model has not been updated yet.
+
+    Before the first update, the ``AveragedModel`` only holds the copy of the initial weights made in ``setup()``.
+    Swapping it in for validation during a delayed-start warmup would discard the trained weights and evaluate the
+    untrained snapshot instead. See https://github.com/Lightning-AI/pytorch-lightning/issues/21724.
+
+    """
+
+    class SwapProbeModel(BoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.layer = nn.Linear(32, 2)
+            self.initial_weight: Optional[Tensor] = None
+            self.validation_weight: Optional[Tensor] = None
+
+        def on_train_start(self) -> None:
+            # Snapshot of the weights the average model copies in ``setup()``.
+            self.initial_weight = self.layer.weight.detach().clone()
+
+        def on_validation_epoch_start(self) -> None:
+            self.validation_weight = self.layer.weight.detach().clone()
+
+        def configure_optimizers(self):
+            # A large learning rate guarantees the weights move noticeably away from their initial values.
+            return torch.optim.SGD(self.parameters(), lr=1.0)
+
+    model = SwapProbeModel()
+    dataset = RandomDataset(32, 32)
+    # The update threshold is never reached during this run, so the average model is never updated.
+    callback = EMAWeightAveraging(update_every_n_steps=1, update_starting_at_step=1000)
+    trainer = Trainer(
+        accelerator="cpu",
+        devices=1,
+        logger=False,
+        callbacks=callback,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        deterministic=True,
+        default_root_dir=tmp_path,
+    )
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=False)
+    trainer.fit(model, train_dataloaders=dataloader, val_dataloaders=dataloader)
+
+    assert callback._average_model is not None
+    assert callback._average_model.n_averaged == 0
+    assert model.initial_weight is not None
+    assert model.validation_weight is not None
+    # Validation must not have swapped in the un-updated (frozen) average model.
+    assert not torch.allclose(model.validation_weight, model.initial_weight)
 
 
 def test_ema_weight_averaging_should_update(tmp_path):
