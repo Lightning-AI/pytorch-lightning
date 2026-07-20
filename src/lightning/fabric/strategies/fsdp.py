@@ -295,6 +295,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module."""
         from torch.distributed.fsdp import FullyShardedDataParallel
 
+        if isinstance(self.precision, FSDPPrecision):
+            self.precision.device_type = self.root_device.type
+
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             # The user has wrapped their submodules manually, don't apply the auto wrap policy.
             if _has_meta_device_parameters_or_buffers(module):

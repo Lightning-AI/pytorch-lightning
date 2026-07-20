@@ -304,6 +304,9 @@ class FSDPStrategy(ParallelStrategy):
         module."""
         from torch.distributed.fsdp import FullyShardedDataParallel
 
+        if isinstance(self.precision_plugin, FSDPPrecision):
+            self.precision_plugin.device_type = self.root_device.type
+
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
             if _has_meta_device_parameters_or_buffers(model):
                 rank_zero_warn(

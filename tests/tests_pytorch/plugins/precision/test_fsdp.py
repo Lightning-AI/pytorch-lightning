@@ -184,3 +184,15 @@ def test_invalid_precision_with_fsdp_precision():
 
     with pytest.raises(ValueError, match="is not supported in FSDP. `precision` must be one of"):
         FSDPPrecision(precision="64-true")
+
+
+def test_fsdp_precision_forward_context_cpu():
+    """Test to ensure that the context manager correctly is set to CPU autocast."""
+    precision = FSDPPrecision(precision="bf16-mixed")
+    precision.device_type = "cpu"
+    assert torch.get_default_dtype() == torch.float32
+    with precision.forward_context():
+        assert torch.is_autocast_enabled("cpu")
+        assert torch.get_autocast_dtype("cpu") == torch.bfloat16
+    assert isinstance(precision.forward_context(), torch.autocast)
+    assert precision.forward_context().fast_dtype == torch.bfloat16
