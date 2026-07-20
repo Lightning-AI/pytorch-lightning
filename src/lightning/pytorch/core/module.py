@@ -1459,6 +1459,7 @@ class LightningModule(
         self,
         file_path: Union[str, Path, BytesIO, None] = None,
         input_sample: Optional[Any] = None,
+        input_check: bool = False,
         **kwargs: Any,
     ) -> Optional["ONNXProgram"]:
         """Saves the model in ONNX format.
@@ -1466,6 +1467,9 @@ class LightningModule(
         Args:
             file_path: The path of the file the onnx model should be saved to. Default: None (no file saved).
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+            input_check: If ``True``, run :func:`onnx.checker.check_model` on the exported model to
+                validate its protobuf structure. Requires ``file_path`` to be a path or ``BytesIO``;
+                cannot be used when ``dynamo=True`` is passed via ``kwargs``. Default: ``False``.
 
             **kwargs: Will be passed to torch.onnx.export function.
 
@@ -1493,6 +1497,14 @@ class LightningModule(
                 "requires `onnxscript` and `torch>=2.5.0` to be installed."
             )
 
+        if input_check and kwargs.get("dynamo", False):
+            # dynamo path returns an ONNXProgram and may not produce a standalone protobuf file
+            # that `onnx.checker.check_model` can load.
+            raise ValueError("`input_check=True` is not supported together with `dynamo=True`.")
+
+        if input_check and file_path is None:
+            raise ValueError("`input_check=True` requires `file_path` to be a path or BytesIO, got None.")
+
         mode = self.training
 
         if input_sample is None:
@@ -1511,6 +1523,19 @@ class LightningModule(
         #               BytesIO does work, too.
         ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
+
+        if input_check:
+            import onnx
+
+            if isinstance(file_path, BytesIO):
+                pos = file_path.tell()
+                file_path.seek(0)
+                onnx_model = onnx.load_model_from_string(file_path.read())
+                file_path.seek(pos)
+            else:
+                onnx_model = onnx.load(file_path)
+            onnx.checker.check_model(onnx_model)
+
         return ret
 
     @torch.no_grad()

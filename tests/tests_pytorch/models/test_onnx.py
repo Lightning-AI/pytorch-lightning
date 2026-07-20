@@ -142,6 +142,63 @@ def test_error_if_no_input(tmp_path):
         model.to_onnx(file_path)
 
 
+@RunIf(onnx=True)
+def test_input_check_runs_onnx_checker(tmp_path):
+    """`input_check=True` should load the exported model and run `onnx.checker.check_model`."""
+    import onnx
+
+    model = BoringModel()
+    input_sample = torch.randn((1, 32))
+
+    file_path = os.path.join(tmp_path, "model.onnx")
+    model.to_onnx(file_path, input_sample, input_check=True)
+    assert os.path.isfile(file_path)
+    # Sanity-check: same file should also pass onnx.checker when loaded independently.
+    onnx.checker.check_model(onnx.load(file_path))
+
+    # BytesIO path: the cursor position should be unchanged after the check reads the buffer.
+    buf = BytesIO()
+    model.to_onnx(file_path=buf, input_sample=input_sample, input_check=True)
+    end_pos = buf.tell()
+    assert end_pos > 4e2
+    assert len(buf.getvalue()) == end_pos
+
+
+@RunIf(onnx=True)
+def test_input_check_raises_without_file_path():
+    """`input_check=True` needs a path or BytesIO to load the exported model from."""
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    with pytest.raises(ValueError, match=r"`input_check=True` requires `file_path`"):
+        model.to_onnx(file_path=None, input_check=True)
+
+
+@RunIf(onnx=True)
+def test_input_check_detects_invalid_model(tmp_path, monkeypatch):
+    """If the saved file isn't a valid ONNX model, `input_check=True` should raise."""
+    import onnx
+
+    model = BoringModel()
+    input_sample = torch.randn((1, 32))
+    file_path = os.path.join(tmp_path, "model.onnx")
+
+    def _raise(_):
+        raise onnx.checker.ValidationError("forced failure")
+
+    monkeypatch.setattr(onnx.checker, "check_model", _raise)
+    with pytest.raises(onnx.checker.ValidationError, match="forced failure"):
+        model.to_onnx(file_path, input_sample, input_check=True)
+
+
+@RunIf(onnx=True, min_torch="2.5.0", dynamo=True, onnxscript=True)
+def test_input_check_rejects_dynamo():
+    """`input_check=True` is not compatible with the dynamo exporter."""
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    with pytest.raises(ValueError, match=r"`input_check=True` is not supported together with `dynamo=True`"):
+        model.to_onnx(input_check=True, dynamo=True)
+
+
 @pytest.mark.parametrize(
     "dynamo",
     [
