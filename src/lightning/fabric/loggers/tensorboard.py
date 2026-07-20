@@ -202,8 +202,14 @@ class TensorBoardLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
+        # Local import to avoid making numpy a top-level dependency of the package.
+        import numpy as np
+
         for k, v in metrics.items():
             if isinstance(v, Tensor):
+                v = v.item()
+            elif isinstance(v, np.ndarray) and v.ndim == 0:
+                # Convert 0-dim numpy arrays to scalars (required for numpy >= 2.4.0)
                 v = v.item()
 
             if isinstance(v, dict):
