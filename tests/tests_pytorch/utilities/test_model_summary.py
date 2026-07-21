@@ -413,7 +413,8 @@ def test_model_size_warning_on_unsupported_precision(tmp_path):
 
     # supported precision by lightning but not by the model summary
     trainer = Trainer(max_epochs=1, precision="16-mixed", default_root_dir=tmp_path)
-    trainer.fit(model)
+    # avoid `fit`: "16-mixed" autocasts to bfloat16 on CPU, which not every CI machine supports
+    model.trainer = trainer
 
     with pytest.warns(UserWarning, match="Precision .* is not supported by the model summary.*"):
         summary = summarize(model)
