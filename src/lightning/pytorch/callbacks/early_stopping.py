@@ -236,6 +236,20 @@ class EarlyStopping(Callback):
 
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.strategy.reduce_boolean_decision(should_stop, all=False)
+
+        if should_stop and not trainer.fit_loop._met_min_epochs:
+            # `min_epochs` has not been met yet, so the trainer would ignore the request anyway. Do not latch it
+            # onto `trainer.should_stop`: the metric may still recover within the grace window, and a stale
+            # decision must not fire the instant `min_epochs` is reached. See issue #19966.
+            # NOTE: `min_steps` is deliberately not covered here, as the training epoch loop honors it at batch
+            # granularity, which this callback (evaluated once per epoch/validation) cannot reproduce.
+            should_stop = False
+            self.stopping_reason = EarlyStoppingReason.NOT_STOPPED
+            reason = (
+                f"{reason} However, `min_epochs={trainer.fit_loop.min_epochs}` has not been reached yet,"
+                " so the decision is deferred and will be re-evaluated on the next check."
+            )
+
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch
