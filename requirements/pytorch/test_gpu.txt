@@ -1,1 +1,3 @@
-torch-tensorrt; platform_system != "Darwin" and python_version >= "3.12"
+# torch-tensorrt hard-pins to a single torch minor and lags new torch releases, so listing it here
+# would make the whole GPU install unresolvable. It is installed best-effort in the CI workflow
+# instead; when no matching build exists, `RunIf(tensorrt=True)` tests skip.
