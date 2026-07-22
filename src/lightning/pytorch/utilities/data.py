@@ -332,6 +332,17 @@ def _dataloader_init_kwargs_resolve_sampler(
             "batch_size": 1,
             "drop_last": False,
         }
+    if batch_sampler is not None and batch_sampler_cls is BatchSampler:
+        # This is a PyTorch `BatchSampler` but maybe created by user, so batch_size and drop_last should be preserved
+        batch_size = batch_sampler.batch_size
+        drop_last = batch_sampler.drop_last if not is_predicting else False
+        return {
+            "sampler": sampler,
+            "shuffle": False,
+            "batch_sampler": None,
+            "batch_size": batch_size,
+            "drop_last": drop_last,
+        }
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
