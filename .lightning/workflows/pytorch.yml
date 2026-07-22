@@ -14,11 +14,14 @@ parametrize:
     - image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.10"
-    - PACKAGE_NAME: "pytorch"
+    # cu130 is the only lane shipping torch-tensorrt for the latest supported torch
+    - image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
+      PACKAGE_NAME: "pytorch"
       python_version: "3.12"
     #- image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
     #  PACKAGE_NAME: "pytorch"
-    - PACKAGE_NAME: "lightning"
+    - image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
+      PACKAGE_NAME: "lightning"
       python_version: "3.12"
   exclude: []
 
