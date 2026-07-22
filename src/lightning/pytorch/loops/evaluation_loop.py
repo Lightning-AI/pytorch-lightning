@@ -468,7 +468,7 @@ class _EvaluationLoop(_Loop):
             self._seen_batches_per_dataloader[dataloader_idx] += 1
 
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
-            raise SIGTERMException
+            raise SIGTERMException()
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Helper method to build the arguments for the current step.
