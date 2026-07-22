@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Mapping
 from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
@@ -230,7 +231,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
-        log.debug(f"{self.__class__.__name__}: registering ddp hooks")
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if self.root_device.type == "cuda":
@@ -454,6 +455,147 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class MultiModelDDPStrategy(DDPStrategy):
+    """Strategy for training multiple sub-models with manual optimization (e.g. GAN training).
+
+    Wraps each direct child module individually in
+    :class:`~torch.nn.parallel.distributed.DistributedDataParallel` instead of wrapping the entire
+    LightningModule. Combined with :meth:`~lightning.pytorch.core.LightningModule.toggle_optimizer`,
+    this ensures only the active sub-model's gradients are synchronized, removing the need for
+    ``find_unused_parameters=True``.
+
+    A forward pre-hook on each DDP child inspects ``requires_grad`` on its parameters (set by
+    ``toggle_optimizer``) to decide whether gradient sync should happen for that child's backward pass.
+
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._ddp_children: dict[str, DistributedDataParallel] = {}
+
+    @override
+    def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
+        """Wraps each child module in DDP individually, replacing the original attributes."""
+        device_ids = self.determine_ddp_device_ids()
+        ctx: Union[torch.cuda.StreamContext, nullcontext] = nullcontext()
+
+        log.debug(f"setting up MultiModel DDP with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        if device_ids is not None:
+            capturing = torch.cuda.is_current_stream_capturing()
+            if capturing:
+                ctx = torch.cuda.stream(torch.cuda.Stream())
+                torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
+            else:
+                ctx = torch.cuda.stream(torch.cuda.default_stream())
+        with ctx:
+            for name, child in list(model.named_children()):
+                ddp_module = DistributedDataParallel(module=child, device_ids=device_ids, **self._ddp_kwargs)
+                ddp_module.register_forward_pre_hook(MultiModelDDPStrategy._disable_sync_hook)
+                setattr(model, name, ddp_module)
+                self._ddp_children[name] = ddp_module
+        return model
+
+    @staticmethod
+    def _disable_sync_hook(ddp_module: DistributedDataParallel, _input: Any) -> None:
+        """Prevent DDP's forward from arming the reducer.
+
+        Arming is done explicitly in :meth:`pre_backward` instead, so that only the sub-models
+        whose parameters are active (``requires_grad=True``, set by ``toggle_optimizer``) have
+        their reducers armed right before backward.
+
+        """
+        ddp_module.require_backward_grad_sync = False
+
+    @override
+    def _register_ddp_hooks(self) -> None:
+        log.debug(f"{self.__class__.__name__}: registering DDP hooks")
+        if self.root_device.type != "cuda":
+            return
+        for ddp_module in self._ddp_children.values():
+            _register_ddp_comm_hook(
+                model=ddp_module,
+                ddp_comm_state=self._ddp_comm_state,
+                ddp_comm_hook=self._ddp_comm_hook,
+                ddp_comm_wrapper=self._ddp_comm_wrapper,
+            )
+
+    @override
+    def pre_backward(self, closure_loss: Tensor) -> None:
+        """Arm the DDP reducer on each sub-model whose parameters are trainable."""
+        if self.lightning_module is None or self.lightning_module.automatic_optimization:
+            return
+        for ddp_module in self._ddp_children.values():
+            if any(p.requires_grad for p in ddp_module.module.parameters()):
+                ddp_module.require_backward_grad_sync = True
+                prepare_for_backward(ddp_module, closure_loss)
+
+    @override
+    def post_backward(self, closure_loss: Tensor) -> None:
+        """Let DDP verify that all reducers finalized — catches unused parameters."""
+        if self.lightning_module is None or self.lightning_module.automatic_optimization:
+            return
+        for ddp_module in self._ddp_children.values():
+            if ddp_module.require_backward_grad_sync:
+                ddp_module._check_reducer_finalized()
+
+    @override
+    def lightning_module_state_dict(self) -> dict[str, Any]:
+        """Returns the state dict without DDP ``module.`` key prefixes."""
+        assert self.lightning_module is not None
+        if not self._ddp_children:
+            return super().lightning_module_state_dict()
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module.module)
+        state_dict = self.lightning_module.state_dict()
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module)
+        return state_dict
+
+    @override
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
+        assert self.lightning_module is not None
+        if not self._ddp_children:
+            return super().load_model_state_dict(checkpoint, strict=strict)
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module.module)
+        self.lightning_module.load_state_dict(checkpoint["state_dict"], strict=strict)
+        for name, ddp_module in self._ddp_children.items():
+            setattr(self.lightning_module, name, ddp_module)
+
+    @override
+    def teardown(self) -> None:
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
+        pl_module = self.lightning_module
+        if pl_module is not None and self._ddp_children:
+            for name, ddp_module in self._ddp_children.items():
+                setattr(pl_module, name, ddp_module.module)
+            self._ddp_children.clear()
+
+        if (
+            pl_module is not None
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            assert self.model is not None
+            self.model = self._layer_sync.revert(self.model)
+
+        super(DDPStrategy, self).teardown()
+
+    @classmethod
+    @override
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
+        entries = (("multi_model_ddp", "popen"),)
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"MultiModelDDP strategy with `start_method` '{start_method}'",
+                start_method=start_method,
+            )
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
