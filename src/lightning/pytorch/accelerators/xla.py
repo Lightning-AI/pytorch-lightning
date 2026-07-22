@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Optional
 
 from typing_extensions import override
 
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -62,3 +63,25 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
             cls,
             description=cls.__name__,
         )
+
+    @classmethod
+    @override
+    def device_name(cls, device: Optional[_DEVICE] = None) -> str:
+        is_available = cls.is_available()
+        if not is_available:
+            return ""
+
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla._internal import tpu
+        else:
+            from torch_xla.experimental import tpu
+        import torch_xla.core.xla_env_vars as xenv
+        from requests.exceptions import HTTPError
+
+        try:
+            ret = tpu.get_tpu_env()[xenv.ACCELERATOR_TYPE]
+        except HTTPError:
+            # Fallback to "True" if HTTPError is raised during retrieving device information
+            ret = str(is_available)
+
+        return ret

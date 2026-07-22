@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21797](https://github.com/Lightning-AI/pytorch-lightning/issues/21797))
 
+- Added classmethod `Accelerator.device_name` so that users could see device information during setup. ([#21112](https://github.com/Lightning-AI/pytorch-lightning/pull/21112))
+
 ### Changed
 
 -
