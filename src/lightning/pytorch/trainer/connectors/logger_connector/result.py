@@ -467,7 +467,7 @@ class _ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool) -> _METRICS:
+    def metrics(self, on_step: bool, include_pbar_metrics: bool = True) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
         for _, result_metric in self.valid_items():
@@ -488,7 +488,7 @@ class _ResultCollection(dict):
                 metrics["callback"][forked_name] = value
 
             # populate progress_bar metrics. convert tensors to numbers
-            if result_metric.meta.prog_bar:
+            if result_metric.meta.prog_bar and include_pbar_metrics:
                 metrics["pbar"][forked_name] = convert_tensors_to_scalars(value)
 
         return metrics
