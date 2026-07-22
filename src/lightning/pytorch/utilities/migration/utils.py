@@ -194,7 +194,7 @@ class _RedirectingUnpickler(pickle._Unpickler):
         new_module = _patch_pl_to_mirror_if_necessary(module)
         # this warning won't trigger for standalone as these imports are identical
         if module != new_module:
-            warnings.warn(f"Redirecting import of {module}.{name} to {new_module}.{name}")
+            warnings.warn(f"Redirecting import of {module}.{name} to {new_module}.{name}", stacklevel=2)
         return super().find_class(new_module, name)
 
 
