@@ -118,20 +118,27 @@ def test_local_cross_device_checkpoint(tmpdir):
     )
     trainer.fit(model)
     # Simulate the behavior of fsspec when writing to a local file system but other device.
-    with (
-        mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
-        mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
-    ):
-        if compare_version("fsspec", operator.lt, "2025.5.0"):
-            with pytest.raises(
+    if compare_version("fsspec", operator.lt, "2025.5.0"):
+        with (
+            mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
+            mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
+            pytest.raises(
                 RuntimeError,
                 match=re.escape(
                     'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"'
                 ),
-            ):
-                trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
-        else:
+            ),
+        ):
             trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+    else:
+        # Mock only `os.rename`: fsspec >= 2025.5.0 falls back to a copy internally, and its
+        # transaction commit then calls `os.chmod` on the destination. On Windows with
+        # Python >= 3.12, `shutil.move` copies via `_winapi.CopyFile2` without ever calling
+        # `os.chmod`, so a mocked `os.chmod` would escape fsspec's PermissionError handling
+        # and make the save fail.
+        with mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")):
+            trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+        assert os.path.isfile(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
 
 
 def test_ckpt_for_fsspec():
