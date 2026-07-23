@@ -35,6 +35,7 @@ class _FxValidator:
         "on_after_backward": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
+        "on_before_optimizer_setup": None,
         "on_before_optimizer_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
