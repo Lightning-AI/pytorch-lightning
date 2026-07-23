@@ -6,7 +6,7 @@ trigger:
 
 timeout: "60" # minutes
 machine: "L4_X_2"
-image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
@@ -14,14 +14,11 @@ parametrize:
     - image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.10"
-    # cu130 is the only lane shipping torch-tensorrt for the latest supported torch
-    - image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
-      PACKAGE_NAME: "pytorch"
+
+    - PACKAGE_NAME: "pytorch"
       python_version: "3.12"
-    #- image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
-    #  PACKAGE_NAME: "pytorch"
-    - image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
-      PACKAGE_NAME: "lightning"
+
+    - PACKAGE_NAME: "lightning"
       python_version: "3.12"
   exclude: []
 
