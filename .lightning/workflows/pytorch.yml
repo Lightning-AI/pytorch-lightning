@@ -124,16 +124,8 @@ run: |
 
   # Use find-links to prefer CUDA-specific packages from PyTorch index
   uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
-
-  # torch-tensorrt is pinned to a single torch minor and lags new torch releases, so it is installed
-  # separately and matched to the resolved torch; without a build the `RunIf(tensorrt=True)` tests skip
-  if [ "${python_version}" != "3.10" ]; then
-    uv pip install "torch-tensorrt==${PYTORCH_VERSION%.*}.*" \
-      --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
-      --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt" \
-      || echo "no torch-tensorrt for torch ${PYTORCH_VERSION} on ${UV_TORCH_BACKEND}, skipping those tests"
-  fi
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
   uv pip list
 
   echo "Ensure only a single package is installed"
