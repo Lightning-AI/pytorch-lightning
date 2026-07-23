@@ -175,11 +175,10 @@ def _convert_layers(module: torch.nn.Module) -> None:
             # See: https://github.com/NVIDIA/TransformerEngine/blob/720ec27ec8483ce401dd2eaa1c76d192d54bfc84/transformer_engine/pytorch/ops/basic/layer_norm.py#L98-L107
             # And: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.LayerNorm
             if child.weight is None or child.bias is None:
-                rank_zero_warn(
+                raise RuntimeError(
                     f"Skipping replacement of layer {name!r} with Transformer Engine equivalent LayerNorm"
                     " because Transformer Engine's LayerNorm requires both weight and bias parameters."
                 )
-                continue
             replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
             replacement.weight.data = child.weight.data.clone()
             replacement.bias.data = child.bias.data.clone()
