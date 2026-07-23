@@ -108,17 +108,12 @@ def test_configure_model(monkeypatch):
     assert isinstance(layernorm_model.l, LayerNormMock)
     assert layernorm_model.l.weight.dtype == torch.float16
 
-    # LayerNorm should not be replaced when it has no weight and bias
+    # LayerNorm replacement should raise when it has no weight and bias
     layernorm_no_affine_model = LayerNormNoAffineModel()
-    trainer.test(layernorm_no_affine_model, [0])
-    te_mock.pytorch.fp8_autocast.assert_called_with(enabled=True, fp8_recipe=ANY)
-    assert not isinstance(layernorm_no_affine_model.l, LayerNormMock)
-    assert layernorm_no_affine_model.l.weight is None
+    with pytest.raises(RuntimeError, match="cannot be replaced with Transformer Engine LayerNorm"):
+        trainer.test(layernorm_no_affine_model, [0])
 
-    # LayerNorm should not be replaced when it has no bias, even if it has weight
+    # LayerNorm replacement should raise when it has no bias, even if it has weight
     layernorm_no_bias_model = LayerNormNoBiasModel()
-    trainer.test(layernorm_no_bias_model, [0])
-    te_mock.pytorch.fp8_autocast.assert_called_with(enabled=True, fp8_recipe=ANY)
-    assert not isinstance(layernorm_no_bias_model.l, LayerNormMock)
-    assert layernorm_no_bias_model.l.weight.dtype == torch.float16
-    assert layernorm_no_bias_model.l.bias is None
+    with pytest.raises(RuntimeError, match="cannot be replaced with Transformer Engine LayerNorm"):
+        trainer.test(layernorm_no_bias_model, [0])

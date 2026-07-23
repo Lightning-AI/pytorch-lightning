@@ -171,7 +171,7 @@ def _convert_layers(module: torch.nn.Module) -> None:
         elif isinstance(child, torch.nn.LayerNorm):
             # Check weight and bias exists before attempting to clone its data
             # Note that TransformerEngine doesn't actually have a version of LayerNorm without weight and bias
-            # So if they don't exist, skip the replacement
+            # So if they don't exist, raise an error since the replacement can't be performed
             # See: https://github.com/NVIDIA/TransformerEngine/blob/720ec27ec8483ce401dd2eaa1c76d192d54bfc84/transformer_engine/pytorch/ops/basic/layer_norm.py#L98-L107
             # And: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.LayerNorm
             if child.weight is None or child.bias is None:
