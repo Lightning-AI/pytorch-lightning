@@ -176,8 +176,9 @@ def _convert_layers(module: torch.nn.Module) -> None:
             # And: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.LayerNorm
             if child.weight is None or child.bias is None:
                 raise RuntimeError(
-                    f"Skipping replacement of layer {name!r} with Transformer Engine equivalent LayerNorm"
-                    " because Transformer Engine's LayerNorm requires both weight and bias parameters."
+                    f"Layer {name!r} cannot be replaced with Transformer Engine LayerNorm: "
+                    "the Transformer Engine implementation requires both `weight` and `bias`, "
+                    "but this LayerNorm is missing at least one of them."
                 )
             replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
             replacement.weight.data = child.weight.data.clone()
