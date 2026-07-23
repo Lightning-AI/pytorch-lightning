@@ -14,9 +14,7 @@
 import glob
 import inspect
 import json
-import operator
 import os
-import sys
 from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -27,7 +25,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
@@ -259,7 +256,6 @@ def test_lightning_cli_args(cleandir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
@@ -426,12 +422,6 @@ def any_model_any_data_cli():
     LightningCLI(LightningModule, LightningDataModule, subclass_mode_model=True, subclass_mode_data=True)
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
-@pytest.mark.skipif(
-    (sys.version_info.major, sys.version_info.minor) == (3, 9)
-    and compare_version("jsonargparse", operator.lt, "4.24.0"),
-    reason="--trainer.precision is not parsed",
-)
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
@@ -1211,7 +1201,6 @@ def test_lightning_cli_subcommands():
             assert e in parameters
 
 
-@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_cli_custom_subcommand():
     class TestTrainer(Trainer):
         def foo(self, model: LightningModule, x: int, y: float = 1.0):
