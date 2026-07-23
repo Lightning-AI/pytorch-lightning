@@ -19,5 +19,5 @@ from lightning_utilities.test.warning import no_warning_call
 
 @contextmanager
 def no_deprecated_call(match: Optional[str] = None):
-    with no_warning_call(expected_warning=DeprecationWarning, match=match):
+    with no_warning_call(expected_warning=FutureWarning, match=match):
         yield

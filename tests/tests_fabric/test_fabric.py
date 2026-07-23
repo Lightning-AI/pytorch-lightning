@@ -861,12 +861,12 @@ def test_module_sharding_context():
     fabric = Fabric()
     fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    with pytest.warns(FutureWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    with pytest.warns(FutureWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_called_once()
 
