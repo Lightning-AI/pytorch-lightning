@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed mean-reduced `self.log(..., sync_dist=True, on_epoch=True)` metrics being uniformly inflated when ranks accumulate unequal cumulative batch sizes (e.g. uneven batch counts across an `IterableDataset`), caused by the integer batch-size accumulator being floored during the cross-rank mean-sync ([#21839](https://github.com/Lightning-AI/pytorch-lightning/issues/21839))
+- Fixed mean-reduced `self.log(..., sync_dist=True, on_epoch=True)` metrics being uniformly inflated when ranks accumulate unequal cumulative batch sizes (e.g. uneven batch counts across an `IterableDataset`), caused by the integer batch-size accumulator being floored during the cross-rank mean-sync ([#21839](https://github.com/Lightning-AI/pytorch-lightning/pull/21839))
 
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))
 
