@@ -821,8 +821,8 @@ def test_lightning_cli_optimizer_and_lr_scheduler():
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.lr_scheduler_configs) == 1
-    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.ExponentialLR)
-    assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
+    assert isinstance(cli.trainer.lr_scheduler_configs[0]["scheduler"], torch.optim.lr_scheduler.ExponentialLR)
+    assert cli.trainer.lr_scheduler_configs[0]["scheduler"].gamma == 0.8
 
 
 def test_cli_no_need_configure_optimizers(cleandir):
@@ -873,8 +873,8 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.lr_scheduler_configs) == 1
-    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
-    assert cli.trainer.lr_scheduler_configs[0].scheduler.step_size == 50
+    assert isinstance(cli.trainer.lr_scheduler_configs[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
+    assert cli.trainer.lr_scheduler_configs[0]["scheduler"].step_size == 50
 
 
 @RunIf(min_torch="2.2")

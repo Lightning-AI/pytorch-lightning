@@ -246,9 +246,9 @@ def test_deepspeed_run_configure_optimizers(tmp_path):
         def on_train_start(self, trainer, pl_module) -> None:
             assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
+            assert isinstance(trainer.lr_scheduler_configs[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
             # check that the lr_scheduler config was preserved
-            assert trainer.lr_scheduler_configs[0].name == "Sean"
+            assert trainer.lr_scheduler_configs[0]["name"] == "Sean"
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -288,8 +288,8 @@ def test_deepspeed_config(tmp_path, deepspeed_zero_config):
 
             assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
-            assert trainer.lr_scheduler_configs[0].interval == "step"
+            assert isinstance(trainer.lr_scheduler_configs[0]["scheduler"], WarmupLR)
+            assert trainer.lr_scheduler_configs[0]["interval"] == "step"
 
     model = BoringModel()
     lr_monitor = LearningRateMonitor()
@@ -848,8 +848,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmp_path):
             assert trainer.current_epoch == 1
 
             # assert lr-scheduler states are loaded correctly
-            original_lr_scheduler = initial_trainer.lr_scheduler_configs[0].scheduler
-            current_lr_scheduler = trainer.lr_scheduler_configs[0].scheduler
+            original_lr_scheduler = initial_trainer.lr_scheduler_configs[0]["scheduler"]
+            current_lr_scheduler = trainer.lr_scheduler_configs[0]["scheduler"]
             assert original_lr_scheduler.state_dict() == current_lr_scheduler.state_dict()
 
     model = ModelParallelClassificationModel()

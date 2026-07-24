@@ -31,7 +31,6 @@ from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]
 
@@ -185,6 +184,8 @@ class StochasticWeightAveraging(Callback):
 
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        from lightning.pytorch.core.optimizer import _create_lr_scheduler_config
+
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
             self._initialized = True
 
@@ -222,16 +223,16 @@ class StochasticWeightAveraging(Callback):
                 )
 
             # We assert that there is only one optimizer on fit start
-            default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
-            assert default_scheduler_cfg.interval == "epoch"
-            assert default_scheduler_cfg.frequency == 1
+            default_scheduler_cfg = _create_lr_scheduler_config(self._swa_scheduler)
+            assert default_scheduler_cfg["interval"] == "epoch"
+            assert default_scheduler_cfg["frequency"] == 1
 
             if trainer.lr_scheduler_configs:
                 scheduler_cfg = trainer.lr_scheduler_configs[0]
-                if scheduler_cfg.interval != "epoch" or scheduler_cfg.frequency != 1:
+                if scheduler_cfg["interval"] != "epoch" or scheduler_cfg["frequency"] != 1:
                     rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
                 rank_zero_info(
-                    f"Swapping scheduler `{scheduler_cfg.scheduler.__class__.__name__}`"
+                    f"Swapping scheduler `{scheduler_cfg['scheduler'].__class__.__name__}`"
                     f" for `{self._swa_scheduler.__class__.__name__}`"
                 )
                 trainer.lr_scheduler_configs[0] = default_scheduler_cfg

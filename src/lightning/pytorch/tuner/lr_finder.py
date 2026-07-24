@@ -28,7 +28,7 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -92,7 +92,7 @@ class _LRFinder:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
-        from lightning.pytorch.core.optimizer import _validate_optimizers_attached
+        from lightning.pytorch.core.optimizer import _create_lr_scheduler_config, _validate_optimizers_attached
 
         optimizers = trainer.strategy.optimizers
 
@@ -113,7 +113,7 @@ class _LRFinder:
         scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
         trainer.strategy.optimizers = [optimizer]
-        trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
+        trainer.strategy.lr_scheduler_configs = [_create_lr_scheduler_config(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
     def plot(
@@ -398,7 +398,7 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc="Finding best initial lr", total=self.num_training)
 
-        self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore[union-attr]
+        self.lrs.append(trainer.lr_scheduler_configs[0]["scheduler"].lr[0])
 
     @override
     def on_train_batch_end(

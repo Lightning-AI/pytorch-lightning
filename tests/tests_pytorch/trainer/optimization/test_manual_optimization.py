@@ -833,7 +833,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmp_path, scheduler_as_dict):
     if scheduler_as_dict:
         with pytest.warns(RuntimeWarning, match=r"\['monitor'\], but the keys will be ignored"):
             trainer.fit(model)
-        assert trainer.lr_scheduler_configs[0].interval == "step"
+        assert trainer.lr_scheduler_configs[0]["interval"] == "step"
     else:
         trainer.fit(model)
 
