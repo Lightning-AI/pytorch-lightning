@@ -434,6 +434,8 @@ def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, t
     mp._load_checkpoint(path=ckpt_dir, state=state, strict=False)
     assert isinstance(state["user_meta"], _NonTensorMeta)
     assert state["user_meta"].value == 42
+
+
 def test_model_parallel_barrier_validates_name_before_entering_the_collective():
     from unittest.mock import ANY, Mock, patch
 

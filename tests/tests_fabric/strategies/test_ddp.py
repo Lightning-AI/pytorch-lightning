@@ -220,9 +220,12 @@ def test_device_id_passed_for_cuda_devices(init_process_group_mock):
         timeout=cuda_strategy._timeout,
         **kwargs,
     )
+
+
 def test_ddp_barrier_validates_name_before_entering_the_collective():
-    import torch
     from unittest.mock import ANY, Mock, patch
+
+    import torch
 
     from lightning.fabric.strategies.ddp import DDPStrategy
 

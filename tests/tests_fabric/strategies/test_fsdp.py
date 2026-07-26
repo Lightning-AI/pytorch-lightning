@@ -699,6 +699,8 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_reader("memory:///w/ckpt")
+
+
 def test_fsdp_barrier_validates_name_before_entering_the_collective():
     from unittest.mock import ANY, Mock, patch
 

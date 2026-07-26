@@ -130,6 +130,8 @@ def test_clip_gradients(clip_type, accelerator, precision):
     fabric = Fabric(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.launch()
     _run_test_clip_gradients(fabric=fabric, clip_type=clip_type)
+
+
 def _barrier_name_mismatch_worker(rank, world_size, init_file):
     from datetime import timedelta
 

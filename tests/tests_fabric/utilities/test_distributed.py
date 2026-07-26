@@ -337,6 +337,8 @@ def test_distributed_sampler_wrapper_set_epoch():
     wrapper.set_epoch(5)  # Should not raise
     assert wrapper.epoch == 5
     assert sampler_non_callable.set_epoch == "not a method"  # Should remain unchanged
+
+
 def _copy_barrier_name_collective(gathered, value):
     for output in gathered:
         output.copy_(value)
@@ -380,8 +382,9 @@ def test_validate_same_barrier_name_uses_gloo_cpu_and_round_trips_utf8():
 
 
 def test_validate_same_barrier_name_uses_the_strategy_root_device():
-    import torch
     from unittest.mock import patch
+
+    import torch
 
     from lightning.fabric.utilities.distributed import _validate_same_barrier_name
 
@@ -405,8 +408,9 @@ def test_validate_same_barrier_name_uses_the_strategy_root_device():
 
 
 def _assert_barrier_name_mismatch(local_name, names):
-    import torch
     from unittest.mock import patch
+
+    import torch
 
     from lightning.fabric.utilities.distributed import _validate_same_barrier_name
 

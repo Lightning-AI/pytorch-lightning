@@ -437,9 +437,7 @@ def _validate_same_barrier_name(name: Optional[str], device: Optional[torch.devi
                 status = _BARRIER_NAME_STRING
             except UnicodeEncodeError:
                 status = _BARRIER_NAME_INVALID_ENCODING
-    metadata = torch.tensor(
-        [status, len(encoded_name)], dtype=torch.long, device=device
-    )
+    metadata = torch.tensor([status, len(encoded_name)], dtype=torch.long, device=device)
     gathered_metadata = [torch.empty_like(metadata) for _ in range(world_size)]
     try:
         torch.distributed.all_gather(gathered_metadata, metadata)
@@ -457,7 +455,9 @@ def _validate_same_barrier_name(name: Optional[str], device: Optional[torch.devi
         raise RuntimeError(f"Invalid barrier names on rank {rank}: invalid names by rank are {{{reasons}}}.")
     if any(size < 0 or size > _BARRIER_NAME_MAX_BYTES for _, size in metadata_by_rank):
         sizes = ", ".join(f"{gathered_rank}: {size}" for gathered_rank, (_, size) in enumerate(metadata_by_rank))
-        raise RuntimeError(f"Barrier names exceed {_BARRIER_NAME_MAX_BYTES} bytes on rank {rank}: sizes by rank are {{{sizes}}}.")
+        raise RuntimeError(
+            f"Barrier names exceed {_BARRIER_NAME_MAX_BYTES} bytes on rank {rank}: sizes by rank are {{{sizes}}}."
+        )
 
     max_size = max(size for _, size in metadata_by_rank)
     names: list[Optional[str]] = []
