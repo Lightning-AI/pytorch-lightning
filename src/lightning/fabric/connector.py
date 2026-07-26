@@ -469,7 +469,7 @@ class _Connector:
                 f" Choose a different precision among: {', '.join(mp_precision_supported)}."
             )
         if self._precision_input in ("16-true", "bf16-true"):
-            return HalfPrecision(self._precision_input)  # type: ignore
+            return HalfPrecision(self._precision_input)
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
@@ -493,7 +493,7 @@ class _Connector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
-            return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
+            return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 

@@ -208,3 +208,6 @@ _notebooks/.notebooks/
 
 # local markdown files
 *.local.md
+
+# standalone test artifacts
+standalone_artifacts/

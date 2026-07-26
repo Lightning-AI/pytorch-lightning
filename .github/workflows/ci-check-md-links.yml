@@ -14,7 +14,7 @@ on:
 
 jobs:
   check-md-links:
-    uses: Lightning-AI/utilities/.github/workflows/check-md-links.yml@main # can be pin with >=0.14.4
+    uses: Lightning-AI/utilities/.github/workflows/check-md-links.yml@86fe1b20b4609835ba9e8c8739cd39707ba76868 # v0.15.3
     with:
       config-file: ".github/markdown-links-config.json"
       base-branch: "master"
