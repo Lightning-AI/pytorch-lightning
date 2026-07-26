@@ -1388,3 +1388,11 @@ def test_fabric_load_raw_forwards_weights_only_to_strategy(weights_only):
     fabric.strategy.load_checkpoint.assert_called_with(
         path="path.pt", state=model, strict=True, weights_only=weights_only
     )
+def test_save_uses_a_stable_barrier_name(tmp_path):
+    fabric = Fabric()
+    fabric._strategy.save_checkpoint = Mock()
+    fabric.barrier = Mock()
+
+    fabric.save(tmp_path / "checkpoint.ckpt", {})
+
+    fabric.barrier.assert_called_once_with("lightning.fabric.save")

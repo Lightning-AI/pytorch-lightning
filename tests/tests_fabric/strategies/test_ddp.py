@@ -220,3 +220,19 @@ def test_device_id_passed_for_cuda_devices(init_process_group_mock):
         timeout=cuda_strategy._timeout,
         **kwargs,
     )
+def test_ddp_barrier_validates_name_before_entering_the_collective():
+    import torch
+    from unittest.mock import ANY, Mock, patch
+
+    from lightning.fabric.strategies.ddp import DDPStrategy
+
+    validator = Mock()
+    with (
+        patch("lightning.fabric.strategies.ddp._distributed_is_initialized", return_value=True),
+        patch("lightning.fabric.strategies.ddp._validate_same_barrier_name", validator),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.barrier"),
+    ):
+        DDPStrategy(parallel_devices=[torch.device("cpu")]).barrier(name="test.ddp")
+
+    validator.assert_called_once_with("test.ddp", device=ANY)
