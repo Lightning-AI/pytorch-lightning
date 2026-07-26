@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 import os
 import subprocess
 import sys
@@ -22,6 +23,7 @@ from unittest.mock import Mock
 import pytest
 
 from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
+from lightning.fabric.utilities.load import _METADATA_FILENAME
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -179,18 +181,23 @@ def test_run_through_fabric_entry_point():
     assert message in result.stdout or message in result.stderr
 
 
-@mock.patch("lightning.fabric.cli._process_cli_args")
 @mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
-@mock.patch("lightning.fabric.cli.torch.save")
-def test_consolidate(save_mock, _, __, tmp_path):
-    ioerr = StringIO()
-    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+@mock.patch("lightning.fabric.cli._atomic_save")
+def test_consolidate(save_mock, _, tmp_path, caplog, monkeypatch):
+    # The checkpoint folder is validated by `_process_cli_args`, not click, so that remote (fsspec) paths
+    # that don't exist as local files are not rejected before the real (fsspec-aware) check runs.
+    monkeypatch.setattr("lightning.fabric.utilities.consolidate_checkpoint._TORCH_GREATER_EQUAL_2_3", True)
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit) as e,
+    ):
         _consolidate.main(["not exist"])
-    assert e.value.code == 2
-    assert "Path 'not exist' does not exist" in ioerr.getvalue()
+    assert e.value.code == 1
+    assert "checkpoint folder does not exist" in caplog.text
 
     checkpoint_folder = tmp_path / "checkpoint"
     checkpoint_folder.mkdir()
+    (checkpoint_folder / _METADATA_FILENAME).touch()
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
         _consolidate.main([str(checkpoint_folder)])

@@ -383,6 +383,7 @@ class LightningModule(
             else:
                 print(*args, **kwargs)
 
+    @torch.compiler.disable
     def log(
         self,
         name: str,
@@ -407,6 +408,12 @@ class LightningModule(
             self.log('train_loss', loss)
 
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Logging is bookkeeping
+            that does not belong in the compiled graph, and tracing the signature introspection it performs
+            fails under Dynamo on newer PyTorch versions. Disabling the compiler leaves eager behavior unchanged.
 
         Args:
             name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.

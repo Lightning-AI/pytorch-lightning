@@ -272,7 +272,8 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
-        iter(self._data_fetcher)  # creates the iterator inside the fetcher
+        with trainer.profiler.profile("setup_train_dataloader"):
+            iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
         self.max_batches = max_batches if max_batches is not None else float("inf")
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
