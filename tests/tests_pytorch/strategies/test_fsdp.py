@@ -1088,7 +1088,7 @@ def test_device_mesh_type_annotation():
 @RunIf(min_torch="2.2")
 @mock.patch("torch.distributed.device_mesh.init_device_mesh")
 @mock.patch("torch.distributed.init_process_group")
-def test_device_mesh_initialization_cpu(init_process_group_mock, init_device_mesh_mock):
+def test_device_mesh_initialization_cpu(_, init_device_mesh_mock):
     """Test that device mesh is initialized with the correct device type on CPU."""
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], device_mesh=(2, 2))
     strategy.cluster_environment = LightningEnvironment()
