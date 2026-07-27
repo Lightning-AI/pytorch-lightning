@@ -60,7 +60,7 @@ class FSDPPrecision(Precision):
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-        if scaler is not None and self.precision != "16-mixed":
+        if scaler is not None and precision != "16-mixed":
             raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
 
         self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None

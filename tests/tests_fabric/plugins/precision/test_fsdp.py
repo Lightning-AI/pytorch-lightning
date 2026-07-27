@@ -187,7 +187,7 @@ def test_fsdp_precision_forward_context_cpu():
     precision.device_type = "cpu"
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
-        assert torch.is_autocast_enabled("cpu")
-        assert torch.get_autocast_dtype("cpu") == torch.bfloat16
+        assert torch.is_autocast_cpu_enabled()
+        assert torch.get_autocast_cpu_dtype() == torch.bfloat16
     assert isinstance(precision.forward_context(), torch.autocast)
     assert precision.forward_context().fast_dtype == torch.bfloat16
