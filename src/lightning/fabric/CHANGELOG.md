@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
-- Fixed a re-instantiated custom `DataLoader` silently falling back to default arguments when an `__init__` argument is stored under a different attribute name; a warning is now raised naming the arguments ([#21850](https://github.com/Lightning-AI/pytorch-lightning/pull/21850))
+- Fixed a re-instantiated custom `DataLoader` silently falling back to default arguments when an `__init__` argument is stored under a different attribute name; a warning is now raised naming the arguments ([#21864](https://github.com/Lightning-AI/pytorch-lightning/pull/21864))
 
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
