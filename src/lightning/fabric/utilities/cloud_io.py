@@ -68,6 +68,7 @@ def _download_chunk_mmap(args):
                         break
                     mm[start + bytes_read: start + bytes_read + len(data)] = data
                     bytes_read += len(data)
+                mm.flush()
     return True
 
 log = logging.getLogger(__name__)
@@ -175,12 +176,17 @@ def _load(
                 end = min((i + 1) * chunk_size, file_size)
                 chunks.append((start, end, path_str, local_path))
                 
-            ctx = multiprocessing.get_context("spawn")
-            with concurrent.futures.ProcessPoolExecutor(
-                max_workers=min(16, os.cpu_count() or 1), 
-                mp_context=ctx
-            ) as executor:
-                list(executor.map(_download_chunk_mmap, chunks))
+            try:
+                ctx = multiprocessing.get_context("spawn")
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=min(16, os.cpu_count() or 1), 
+                    mp_context=ctx
+                ) as executor:
+                    list(executor.map(_download_chunk_mmap, chunks))
+            except Exception:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                raise
 
     # Fast load from local cache natively
     return torch.load(
