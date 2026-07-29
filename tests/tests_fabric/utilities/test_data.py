@@ -707,8 +707,8 @@ def test_state():
 
 
 def test_update_dataloader_warns_when_init_arg_is_not_readable_back():
-    """An argument stored under a different attribute name cannot be recovered, so warn instead of
-    silently falling back to its default (see #20265)."""
+    """An argument stored under a different attribute name cannot be recovered, so warn instead of silently falling
+    back to its default (see #20265)."""
 
     class RenamedAttribute(DataLoader):
         def __init__(self, *args, x=None, **kwargs):
@@ -738,8 +738,8 @@ def test_update_dataloader_does_not_warn_when_init_arg_is_readable_back():
 
 
 def test_update_dataloader_does_not_warn_for_plain_dataloader():
-    """`DataLoader`'s own defaulted parameters are not all exposed as same-named attributes, so the
-    check must only consider arguments a subclass adds."""
+    """`DataLoader`'s own defaulted parameters are not all exposed as same-named attributes, so the check must only
+    consider arguments a subclass adds."""
     dataloader = DataLoader([1, 2, 3], batch_size=2)
     with no_warning_call(UserWarning, match="not available as instance attributes"):
         _update_dataloader(dataloader, dataloader.sampler)
