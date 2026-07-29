@@ -102,6 +102,9 @@ def _get_dataloader_init_args_and_kwargs(
 
     # get the dataloader instance `__init__` parameters
     params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore[misc]
+    # the parameters the subclass declares itself, captured before `DataLoader`'s own are
+    # merged in below, so the check further down only reports the user's own arguments
+    subclass_params = dict(params)
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
@@ -125,6 +128,34 @@ def _get_dataloader_init_args_and_kwargs(
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
         dl_args = ()
+
+        # A subclass argument that is stored under a different attribute name (a common
+        # case being `self._x = x`) cannot be read back here, so the re-instantiated
+        # dataloader silently falls back to the default. The `required_args` check below
+        # already reports this for arguments without a default; without this warning the
+        # same situation passes unnoticed whenever the argument has one.
+        # only the arguments the subclass adds on top of `DataLoader`: the base class has
+        # defaulted parameters that it deliberately does not expose under the same name
+        base_params = set(inspect.signature(DataLoader.__init__).parameters)
+        unresolved = sorted(
+            name
+            for name, p in subclass_params.items()
+            if name != "self"
+            and name not in base_params
+            and p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)
+            and p.default is not p.empty
+            and name not in attrs
+        )
+        if unresolved:
+            dataloader_cls_name = dataloader.__class__.__name__
+            missing = ", ".join(f"`self.{name}`" for name in unresolved)
+            rank_zero_warn(
+                f"Trying to re-instantiate the `{dataloader_cls_name}` instance, but the arguments"
+                f" {unresolved} are not available as instance attributes of the same name, so they"
+                " will fall back to their defaults and any value you passed will be lost."
+                f" HINT: If you wrote the `{dataloader_cls_name}` class, store them as {missing}"
+                " inside your `__init__`."
+            )
 
     dataset = dl_kwargs.get("dataset", original_dataset)
     if isinstance(dataset, IterableDataset):
