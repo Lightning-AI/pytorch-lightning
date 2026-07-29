@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
 
-- Fixed a re-instantiated custom `DataLoader` silently falling back to default arguments when an `__init__` argument is stored under a different attribute name; a warning is now raised naming the arguments ([#21850](https://github.com/Lightning-AI/pytorch-lightning/pull/21850))
+- Fixed a re-instantiated custom `DataLoader` silently falling back to default arguments when an `__init__` argument is stored under a different attribute name; a warning is now raised naming the arguments ([#21864](https://github.com/Lightning-AI/pytorch-lightning/pull/21864))
 
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
