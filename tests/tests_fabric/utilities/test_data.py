@@ -704,3 +704,42 @@ def test_state():
     assert "key1" not in state
     with pytest.raises(KeyError):
         del state.key3
+
+
+def test_update_dataloader_warns_when_init_arg_is_not_readable_back():
+    """An argument stored under a different attribute name cannot be recovered, so warn instead of
+    silently falling back to its default (see #20265)."""
+
+    class RenamedAttribute(DataLoader):
+        def __init__(self, *args, x=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            # stored as `_x`, so `_update_dataloader` cannot read `x` back
+            self._x = x
+
+    dataloader = RenamedAttribute([1, 2, 3], batch_size=2, x=2)
+    with pytest.warns(UserWarning, match=r"arguments \['x'\] are not available as instance attributes"):
+        new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    # the value is still lost, but no longer silently
+    assert new_dataloader._x is None
+
+
+def test_update_dataloader_does_not_warn_when_init_arg_is_readable_back():
+    """The documented convention (`self.x = x`) round-trips, so it must stay silent."""
+
+    class ConventionalAttribute(DataLoader):
+        def __init__(self, *args, x=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.x = x
+
+    dataloader = ConventionalAttribute([1, 2, 3], batch_size=2, x=2)
+    with no_warning_call(UserWarning, match="not available as instance attributes"):
+        new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert new_dataloader.x == 2
+
+
+def test_update_dataloader_does_not_warn_for_plain_dataloader():
+    """`DataLoader`'s own defaulted parameters are not all exposed as same-named attributes, so the
+    check must only consider arguments a subclass adds."""
+    dataloader = DataLoader([1, 2, 3], batch_size=2)
+    with no_warning_call(UserWarning, match="not available as instance attributes"):
+        _update_dataloader(dataloader, dataloader.sampler)
