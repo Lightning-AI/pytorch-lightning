@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `ModelCheckpoint` deleting checkpoints outside its own `dirpath`, including the one the `Trainer` resumed from, when the checkpoints live on a remote filesystem ([#21813](https://github.com/Lightning-AI/pytorch-lightning/issues/21813))
+- Fixed `ModelCheckpoint` deleting checkpoints outside its own `dirpath`, including the one the `Trainer` resumed from, when the checkpoints live on a remote filesystem ([#21867](https://github.com/Lightning-AI/pytorch-lightning/issues/21867))
 
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))
 
