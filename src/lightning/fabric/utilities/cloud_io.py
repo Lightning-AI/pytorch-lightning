@@ -35,24 +35,27 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 try:
     from filelock import FileLock
 except ImportError:
 
-    class FileLock:
-        def __init__(self, *args, **kwargs):
+    class _DummyFileLock:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def __enter__(self):
+        def __enter__(self) -> "_DummyFileLock":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
             pass
 
-        def __exit__(self, *args):
-            pass
+    FileLock = _DummyFileLock  # type: ignore[misc,assignment]
 
 
-def _download_chunk_mmap(args):
+def _download_chunk_mmap(args: tuple[int, int, str, str]) -> bool:
     start, end, path_or_url, local_path = args
     fs = get_filesystem(path_or_url)
     chunk_size = 128 * 1024 * 1024
@@ -121,11 +124,17 @@ def _load(
 
     # 1. Local path optimization (mmap=True)
     if _is_local_file_protocol(path_str):
+        if _TORCH_GREATER_EQUAL_2_3:
+            return torch.load(
+                path_str,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+                mmap=True,
+            )
         return torch.load(
             path_str,
-            map_location=map_location,
+            map_location=map_location,  # type: ignore[arg-type]
             weights_only=weights_only,
-            mmap=True,
         )
 
     # 2. Remote parallel downloading integration
@@ -140,7 +149,7 @@ def _load(
         with fs.open(path_str, "rb") as f:
             return torch.load(
                 f,
-                map_location=map_location,
+                map_location=map_location,  # type: ignore[arg-type]
                 weights_only=weights_only,
             )
 
@@ -152,7 +161,7 @@ def _load(
         if free < file_size * 1.5:
             has_shm = False
 
-    hash_id = hashlib.md5(path_str.encode("utf-8")).hexdigest()
+    hash_id = hashlib.sha256(path_str.encode("utf-8")).hexdigest()[:32]
 
     if has_shm:
         cache_dir = os.path.join(shm_dir, f"lightning_cache_{hash_id}")
@@ -165,9 +174,8 @@ def _load(
 
     with FileLock(lock_path):
         if not os.path.exists(local_path) or os.path.getsize(local_path) != file_size:
-            log.info(
-                f"Downloading {path_str} ({file_size / (1024**3):.2f} GB) to {local_path} with maximum processes..."
-            )
+            size_gb = file_size / (1024**3)
+            log.info(f"Downloading {path_str} ({size_gb:.2f} GB) to {local_path} with maximum processes...")
 
             with open(local_path, "wb") as f:
                 f.truncate(file_size)
@@ -193,7 +201,18 @@ def _load(
                 raise
 
     # Fast load from local cache natively
-    return torch.load(local_path, map_location=map_location, weights_only=weights_only, mmap=True)
+    if _TORCH_GREATER_EQUAL_2_3:
+        return torch.load(
+            local_path,
+            map_location=map_location,  # type: ignore[arg-type]
+            weights_only=weights_only,
+            mmap=True,
+        )
+    return torch.load(
+        local_path,
+        map_location=map_location,  # type: ignore[arg-type]
+        weights_only=weights_only,
+    )
 
 
 def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
