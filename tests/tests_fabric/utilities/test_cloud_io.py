@@ -332,7 +332,7 @@ def test_load_remote_large_file_mmap_multiprocessing(tmp_path, monkeypatch):
     checkpoint = {"weights": torch.tensor([10.0, 20.0, 30.0])}
     ckpt_path = tmp_path / "large.ckpt"
     torch.save(checkpoint, ckpt_path)
-    file_size = os.path.getsize(ckpt_path)
+    os.path.getsize(ckpt_path)
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
@@ -411,4 +411,3 @@ def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
     cache_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_cache_")]
     for d in cache_dirs:
         assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt"))
-
