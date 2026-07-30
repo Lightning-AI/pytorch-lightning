@@ -411,3 +411,59 @@ def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
     cache_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_cache_")]
     for d in cache_dirs:
         assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt"))
+
+
+def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([5.0])}
+    ckpt_path = tmp_path / "fallback.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+
+    class ErrorFS:
+        def info(self, path):
+            raise FileNotFoundError("info not supported")
+
+        def open(self, path, mode):
+            return open(path, mode)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: ErrorFS())
+    loaded = _load(str(ckpt_path), map_location="cpu")
+    torch.testing.assert_close(loaded["weights"], checkpoint["weights"])
+
+
+def test_load_remote_large_file_shm_cache(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([1.0, 2.0])}
+    ckpt_path = tmp_path / "shm.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    orig_exists = os.path.exists
+    monkeypatch.setattr(os.path, "exists", lambda p: True if p == "/dev/shm" else orig_exists(p))
+    monkeypatch.setattr(os, "access", lambda *args, **kwargs: True)
+    monkeypatch.setattr(shutil, "disk_usage", lambda _: (1_000_000_000, 100_000_000, 900_000_000))
+
+    class DummyFS:
+        def info(self, path):
+            return {"size": 200 * 1024 * 1024}
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
+
+    class DummyExecutor:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def map(self, fn, chunks):
+            shutil.copyfile(ckpt_path, chunks[0][3])
+            return [True]
+
+    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", DummyExecutor)
+
+    res = _load(str(ckpt_path), map_location="cpu")
+    torch.testing.assert_close(res["weights"], checkpoint["weights"])

@@ -40,7 +40,7 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 try:
     from filelock import FileLock
-except ImportError:
+except ImportError:  # pragma: no cover
 
     class _DummyFileLock:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
