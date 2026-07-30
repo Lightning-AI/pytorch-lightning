@@ -442,6 +442,14 @@ def test_load_remote_large_file_shm_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(os.path, "exists", lambda p: True if p == "/dev/shm" else orig_exists(p))
     monkeypatch.setattr(os, "access", lambda *args, **kwargs: True)
     monkeypatch.setattr(shutil, "disk_usage", lambda _: (1_000_000_000, 100_000_000, 900_000_000))
+    orig_join = os.path.join
+
+    def fake_join(*args):
+        if args and args[0] == "/dev/shm":
+            return orig_join(str(tmp_path), *args[1:])
+        return orig_join(*args)
+
+    monkeypatch.setattr(os.path, "join", fake_join)
 
     class DummyFS:
         def info(self, path):
