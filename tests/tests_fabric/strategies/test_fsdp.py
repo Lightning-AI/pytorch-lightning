@@ -334,7 +334,6 @@ def test_load_checkpoint_no_state(tmp_path):
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-@mock.patch("lightning.fabric.strategies.model_parallel._lazy_load", Mock())
 @mock.patch("lightning.fabric.strategies.model_parallel.torch.load", Mock())
 def test_load_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
@@ -535,7 +534,7 @@ def test_is_sharded_checkpoint_remote_memory():
 def test_distributed_checkpoint_reader_writer_selection(tmp_path):
     from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
 
-    from lightning.fabric.strategies.fsdp import (
+    from lightning.fabric.utilities.cloud_io import (
         _get_distributed_checkpoint_reader,
         _get_distributed_checkpoint_writer,
     )
@@ -574,7 +573,7 @@ def test_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
 
 
 def test_load_raw_module_state_from_path_remote(monkeypatch):
-    """Regression: remote full-checkpoints must be read via `_load`, not mmap/_lazy_load."""
+    """Regression: remote full-checkpoints must be read via `_load`, not a local mmap `torch.load`."""
     from lightning.fabric.strategies.model_parallel import _load_raw_module_state_from_path
 
     called = {}
@@ -588,12 +587,12 @@ def test_load_raw_module_state_from_path_remote(monkeypatch):
         lambda path, map_location=None: called.update(via_load=str(path)),
     )
     monkeypatch.setattr(
-        "lightning.fabric.strategies.model_parallel._lazy_load",
-        lambda path: called.update(via_lazy=str(path)),
+        "lightning.fabric.strategies.model_parallel.torch.load",
+        lambda path, **kwargs: called.update(via_mmap=str(path)),
     )
     _load_raw_module_state_from_path("memory:///x/full.ckpt", module=nn.Linear(2, 2), world_size=1)
     assert called.get("via_load") == "memory:///x/full.ckpt"
-    assert "via_lazy" not in called
+    assert "via_mmap" not in called
 
 
 def test_load_full_checkpoint_remote_allows_non_tensor_objects(monkeypatch):
@@ -670,7 +669,7 @@ def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
     """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
     import sys
 
-    from lightning.fabric.strategies.fsdp import _get_distributed_checkpoint_writer
+    from lightning.fabric.utilities.cloud_io import _get_distributed_checkpoint_writer
 
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
@@ -681,7 +680,7 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
     import sys
 
-    from lightning.fabric.strategies.fsdp import _get_distributed_checkpoint_reader
+    from lightning.fabric.utilities.cloud_io import _get_distributed_checkpoint_reader
 
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
