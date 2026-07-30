@@ -32,7 +32,6 @@ from lightning.fabric.utilities.cloud_io import (
     _load,
     get_filesystem,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _PATH, _Stateful
 
 _METADATA_FILENAME = "meta.pt"
@@ -249,9 +248,6 @@ def _load_distributed_checkpoint(checkpoint_folder: _PATH) -> dict[str, Any]:
     remote filesystems through fsspec.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_3:
-        raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.3.")
-
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 

@@ -59,9 +59,8 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
-from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _move_state_into
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
@@ -104,8 +103,6 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._parallelize_fn = parallelize_fn
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
@@ -311,9 +308,10 @@ class ModelParallelStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        kwargs: dict[str, Any] = {
+            "timeout": self._timeout,
+            "device_id": self.root_device if self.root_device.type != "cpu" else None,
+        }
         _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
@@ -551,7 +549,7 @@ def _load_raw_module_state_from_path(path: _PATH, module: Module, world_size: in
         )
     if _is_local_file_protocol(str(path)):
         # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
-        state_dict = torch.load(path, mmap=True, map_location="cpu") if _TORCH_GREATER_EQUAL_2_3 else _lazy_load(path)
+        state_dict = torch.load(path, mmap=True, map_location="cpu")
     else:
         state_dict = _load(path, map_location="cpu")
     _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)

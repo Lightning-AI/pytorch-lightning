@@ -15,7 +15,6 @@ import warnings
 from collections.abc import Generator
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from datetime import timedelta
-from functools import partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -52,7 +51,6 @@ from lightning.fabric.utilities.cloud_io import (
     _atomic_save,
     _checkpoint_join,
     _get_distributed_checkpoint_reader,
-    _get_distributed_checkpoint_writer,
     _is_checkpoint_dir,
     _is_local_file_protocol,
     _load,
@@ -69,10 +67,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_2,
-    _TORCH_GREATER_EQUAL_2_3,
-)
 from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
@@ -181,8 +175,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._fsdp_kwargs.setdefault("use_orig_params", True)
 
         if device_mesh is not None:
-            if not _TORCH_GREATER_EQUAL_2_2:
-                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
             self._fsdp_kwargs["device_mesh"] = device_mesh
 
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
@@ -687,9 +679,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
+        kwargs: dict[str, Any] = {
+            "timeout": self._timeout,
+            "device_id": self.root_device if self.root_device.type != "cpu" else None,
+        }
         _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
 
     def _get_process_group_backend(self) -> str:
@@ -825,13 +818,10 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         return
 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-        CheckpointImpl,
         apply_activation_checkpointing,
         checkpoint_wrapper,
     )
 
-    if not _TORCH_GREATER_EQUAL_2_2:
-        checkpoint_wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
     apply_activation_checkpointing(module, checkpoint_wrapper_fn=checkpoint_wrapper, **activation_checkpointing_kwargs)
 
 
@@ -962,28 +952,12 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
 
 
 def _distributed_checkpoint_save(converted_state: dict[str, Any], path: _PATH) -> None:
-    if _TORCH_GREATER_EQUAL_2_3:
-        from torch.distributed.checkpoint import save
+    from torch.distributed.checkpoint import save
 
-        save(converted_state, checkpoint_id=path)
-    else:  # deprecated
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import save
-        else:
-            from torch.distributed.checkpoint import save_state_dict as save
-        writer = _get_distributed_checkpoint_writer(path)
-        save(converted_state, writer)
+    save(converted_state, checkpoint_id=path)
 
 
 def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH) -> None:
-    if _TORCH_GREATER_EQUAL_2_3:
-        from torch.distributed.checkpoint import load
+    from torch.distributed.checkpoint import load
 
-        load(module_state, checkpoint_id=path)
-    else:  # deprecated
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import load
-        else:
-            from torch.distributed.checkpoint import load_state_dict as load
-        reader = _get_distributed_checkpoint_reader(path)
-        load(module_state, reader)
+    load(module_state, checkpoint_id=path)
