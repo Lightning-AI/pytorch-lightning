@@ -15,6 +15,7 @@ import concurrent.futures
 import io
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -37,6 +38,7 @@ from lightning.fabric.utilities.cloud_io import (
     _resolve_path,
     get_filesystem,
 )
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 
 
 def test_get_filesystem_custom_filesystem():
@@ -372,7 +374,10 @@ def test_load_remote_large_file_mmap_multiprocessing(tmp_path, monkeypatch):
 
     res = _load(str(ckpt_path), map_location="cpu")
     assert res["weights"].tolist() == [10.0, 20.0, 30.0]
-    assert load_kwargs.get("mmap") is True
+    if _TORCH_GREATER_EQUAL_2_3 and sys.platform != "win32":
+        assert load_kwargs.get("mmap") is True
+    else:
+        assert "mmap" not in load_kwargs
 
 
 def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):

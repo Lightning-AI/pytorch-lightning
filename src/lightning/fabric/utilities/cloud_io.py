@@ -24,6 +24,7 @@ import mmap
 import multiprocessing
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import IO, Any, Optional, Union
@@ -122,9 +123,9 @@ def _load(
 
     fs = get_filesystem(path_or_url)
 
-    # 1. Local path optimization (mmap=True)
+    # 1. Local path optimization (mmap=True on POSIX systems)
     if _is_local_file_protocol(path_str):
-        if _TORCH_GREATER_EQUAL_2_3:
+        if _TORCH_GREATER_EQUAL_2_3 and sys.platform != "win32":
             return torch.load(
                 path_str,
                 map_location=map_location,  # type: ignore[arg-type]
@@ -200,8 +201,8 @@ def _load(
                     os.remove(local_path)
                 raise
 
-    # Fast load from local cache natively
-    if _TORCH_GREATER_EQUAL_2_3:
+    # Fast load from local cache natively (mmap=True on POSIX systems)
+    if _TORCH_GREATER_EQUAL_2_3 and sys.platform != "win32":
         return torch.load(
             local_path,
             map_location=map_location,  # type: ignore[arg-type]
