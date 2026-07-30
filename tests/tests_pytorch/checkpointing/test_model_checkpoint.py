@@ -25,6 +25,7 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
+import fsspec
 import pytest
 import torch
 import yaml
@@ -1996,6 +1997,70 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     else:
         assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}  # no files deleted
         assert set(os.listdir(second)) == {"epoch=0-step=6.ckpt", "epoch=0-step=8.ckpt"}
+
+
+@pytest.mark.parametrize(
+    ("previous", "resume_path", "expected"),
+    [
+        # a checkpoint from another run's folder is never deleted, whether or not we resumed from it
+        ("memory://ckpts/run1/step=10.ckpt", "memory://ckpts/run1/step=10.ckpt", False),
+        ("memory://ckpts/run1/step=5.ckpt", "memory://ckpts/run1/step=10.ckpt", False),
+        # a sibling folder that merely shares our prefix is not inside `dirpath`
+        ("memory://ckpts/run20/step=5.ckpt", None, False),
+        # the checkpoint we resumed from is kept even when it lives in our own folder
+        ("memory://ckpts/run2/step=5.ckpt", "memory://ckpts/run2/step=5.ckpt", False),
+        # checkpoints this callback owns still get cleaned up
+        ("memory://ckpts/run2/step=5.ckpt", None, True),
+        ("memory://ckpts/run2/nested/step=5.ckpt", None, True),
+    ],
+)
+def test_should_remove_checkpoint_remote_filesystem(previous, resume_path, expected):
+    """Test that only checkpoints under the callback's own remote `dirpath` are eligible for deletion."""
+    callback = ModelCheckpoint(dirpath="memory://ckpts/run2")
+    trainer = Mock(ckpt_path=resume_path)
+    assert callback._should_remove_checkpoint(trainer, previous, "memory://ckpts/run2/step=10.ckpt") is expected
+
+
+def test_resume_and_old_checkpoint_files_remain_remote_filesystem(tmp_path):
+    """Test that resuming from a checkpoint on a remote filesystem does not delete the previous run's checkpoints."""
+    fs = fsspec.filesystem("memory")
+    root = "memory://test_resume_and_old_checkpoint_files_remain_remote_filesystem"
+    if fs.exists(root):
+        fs.rm(root, recursive=True)
+    first = f"{root}/run1"
+    second = f"{root}/run2"
+    # the callback assembles filepaths with `os.path.join`, so build the expected ones the same way
+    first_ckpts = {step: os.path.join(first, f"epoch=0-step={step}.ckpt") for step in (2, 4)}
+    second_ckpts = {step: os.path.join(second, f"epoch=0-step={step}.ckpt") for step in (6, 8)}
+
+    model = BoringModel()
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "limit_train_batches": 10,
+        "limit_val_batches": 0,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    mc_kwargs = {"monitor": None, "save_top_k": 1, "every_n_train_steps": 2}
+
+    # Generate checkpoints in the first folder
+    callback = ModelCheckpoint(dirpath=first, **mc_kwargs)
+    trainer = Trainer(callbacks=callback, max_steps=4, **trainer_kwargs)
+    trainer.fit(model)
+    # `save_top_k=1` with `monitor=None` still evicts the older checkpoint within the run's own folder
+    assert not fs.exists(first_ckpts[2])
+    assert fs.exists(first_ckpts[4])
+
+    # Continue training from that checkpoint, into a different folder
+    callback = ModelCheckpoint(dirpath=second, **mc_kwargs)
+    trainer = Trainer(callbacks=callback, max_steps=8, **trainer_kwargs)
+    trainer.fit(model, ckpt_path=first_ckpts[4])
+    assert fs.exists(first_ckpts[4])  # the checkpoint we resumed from was not deleted
+    assert not fs.exists(second_ckpts[6])
+    assert fs.exists(second_ckpts[8])
+
+    fs.rm(root, recursive=True)
 
 
 @pytest.mark.parametrize(
