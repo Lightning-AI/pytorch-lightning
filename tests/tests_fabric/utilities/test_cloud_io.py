@@ -416,6 +416,54 @@ def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
     cache_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_cache_")]
     for d in cache_dirs:
         assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt"))
+        assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt.tmp"))
+
+
+def test_load_remote_mmap_atomic_staging_recovery(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([10.0, 20.0, 30.0])}
+    ckpt_path = tmp_path / "staged.ckpt"
+    torch.save(checkpoint, ckpt_path)
+    file_size = os.path.getsize(ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+    orig_exists = os.path.exists
+    monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
+
+    class DummyFS:
+        def info(self, path):
+            return {"size": 200 * 1024 * 1024}
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
+
+    class DummyExecutor:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def map(self, fn, chunks):
+            shutil.copyfile(ckpt_path, chunks[0][3])
+            return [True]
+
+    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", DummyExecutor)
+
+    import hashlib
+
+    hash_id = hashlib.sha256(str(ckpt_path).encode("utf-8")).hexdigest()[:32]
+    cache_dir = tmp_path / f"lightning_cache_{hash_id}"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    orphan_tmp = cache_dir / "checkpoint.ckpt.tmp"
+    orphan_tmp.write_bytes(b"0" * file_size)
+
+    res = _load(str(ckpt_path), map_location="cpu")
+    assert res["weights"].tolist() == [10.0, 20.0, 30.0]
+    assert not orphan_tmp.exists()
+    assert (cache_dir / "checkpoint.ckpt").exists()
 
 
 def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):

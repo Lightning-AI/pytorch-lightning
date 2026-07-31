@@ -172,13 +172,14 @@ def _load(
     os.makedirs(cache_dir, exist_ok=True)
     local_path = os.path.join(cache_dir, "checkpoint.ckpt")
     lock_path = os.path.join(cache_dir, "checkpoint.lock")
+    staging_path = os.path.join(cache_dir, "checkpoint.ckpt.tmp")
 
     with FileLock(lock_path):
         if not os.path.exists(local_path) or os.path.getsize(local_path) != file_size:
             size_gb = file_size / (1024**3)
             log.info(f"Downloading {path_str} ({size_gb:.2f} GB) to {local_path} with maximum processes...")
 
-            with open(local_path, "wb") as f:
+            with open(staging_path, "wb") as f:
                 f.truncate(file_size)
 
             chunk_size = 1024 * 1024 * 1024
@@ -188,7 +189,7 @@ def _load(
             for i in range(num_chunks):
                 start = i * chunk_size
                 end = min((i + 1) * chunk_size, file_size)
-                chunks.append((start, end, path_str, local_path))
+                chunks.append((start, end, path_str, staging_path))
 
             try:
                 ctx = multiprocessing.get_context("spawn")
@@ -196,7 +197,10 @@ def _load(
                     max_workers=min(16, os.cpu_count() or 1), mp_context=ctx
                 ) as executor:
                     list(executor.map(_download_chunk_mmap, chunks))
+                os.replace(staging_path, local_path)
             except Exception:
+                if os.path.exists(staging_path):
+                    os.remove(staging_path)
                 if os.path.exists(local_path):
                     os.remove(local_path)
                 raise
