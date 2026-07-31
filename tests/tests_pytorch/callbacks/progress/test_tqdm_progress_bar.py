@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import itertools
 import math
 import os
 import pickle
@@ -894,10 +895,20 @@ def test_update_n_redraws_every_position():
 
 def test_update_n_feeds_tqdm_rate_bookkeeping():
     """The point of the change: `bar.n = value` leaves the EMA state untouched,
-    so a custom `smoothing` never takes effect and `rate` stays `None`."""
+    so a custom `smoothing` never takes effect and `rate` stays `None`.
+
+    tqdm only folds a step into the EMA when the elapsed time since the last
+    print is non-zero, so the clock is stubbed with a fixed tick rather than
+    left to the platform's timer resolution.
+    """
     bar = Tqdm(total=10, file=io.StringIO(), smoothing=0.3, mininterval=0)
+    clock = itertools.count(0.0, 0.5)
+    bar._time = lambda: next(clock)
+    bar.start_t = bar.last_print_t = bar._time()
+
     for value in range(1, 11):
         _update_n(bar, value)
+
     assert bar._ema_dn() > 0
     assert bar.format_dict["rate"] is not None
     bar.close()
