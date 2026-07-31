@@ -463,4 +463,14 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
 
 def _update_n(bar: _tqdm, value: int) -> None:
     if not bar.disable:
+        # `update` rather than assigning `bar.n` directly, so tqdm's own
+        # bookkeeping runs: EMA rate estimation and dynamic `miniters`. A
+        # custom `smoothing` is inert without it (#21320). The delta is taken
+        # against the bar's current position, so `bar.n` lands on exactly
+        # `value` either way.
         bar.update(value - bar.n)
+        # `update` only redraws once `mininterval`/`miniters` allow it. The
+        # train bar is the only one whose caller follows with a refreshing
+        # `set_postfix`; without this the val/test/predict bars skip frames and
+        # get closed before reaching their total.
+        bar.refresh()

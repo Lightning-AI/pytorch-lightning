@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import io
 import math
 import os
 import pickle
+import re
 import sys
 from collections import defaultdict
 from typing import Union
@@ -27,7 +29,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar
-from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
+from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm, _update_n
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger
@@ -856,3 +858,45 @@ def test_tqdm_progress_bar_reset_behavior(tmp_path):
     assert 2 in val_bar.total_values, (
         f"validation total should be set to 2 after reset(), got total_values: {val_bar.total_values}"
     )
+
+
+def test_update_n_lands_on_the_exact_value():
+    """`update(delta)` must leave the bar where `bar.n = value` would have."""
+    bar = Tqdm(total=100, file=io.StringIO())
+    for value in (1, 7, 8, 42, 100):
+        _update_n(bar, value)
+        assert bar.n == value
+    bar.close()
+
+
+def test_update_n_redraws_every_position():
+    """Every position must be drawn even when tqdm would defer the redraw.
+
+    `update` only writes once `mininterval`/`miniters` allow it. Only the train
+    bar's caller follows `_update_n` with a refreshing `set_postfix`; the val,
+    test and predict bars do not. Without the explicit refresh a bar driven
+    faster than `mininterval` skips frames and is closed short of its total.
+    `mininterval` is pinned high here so the assertion does not depend on how
+    fast the test machine runs.
+    """
+    stream = io.StringIO()
+    bar = Tqdm(total=100, file=stream, mininterval=1000.0)
+    for value in range(1, 101):
+        _update_n(bar, value)
+    bar.close()
+
+    drawn = [int(n) for n in re.findall(r"(\d+)/100", stream.getvalue())]
+    assert drawn[-1] == 100, "the bar was closed before reaching its total"
+    # 0 is the frame tqdm draws on construction.
+    assert set(drawn) == set(range(101)), "frames were skipped"
+
+
+def test_update_n_feeds_tqdm_rate_bookkeeping():
+    """The point of the change: `bar.n = value` leaves the EMA state untouched,
+    so a custom `smoothing` never takes effect and `rate` stays `None`."""
+    bar = Tqdm(total=10, file=io.StringIO(), smoothing=0.3, mininterval=0)
+    for value in range(1, 11):
+        _update_n(bar, value)
+    assert bar._ema_dn() > 0
+    assert bar.format_dict["rate"] is not None
+    bar.close()
