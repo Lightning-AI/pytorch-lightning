@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -30,6 +31,7 @@ from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
     _get_full_state_dict_context,
     _is_sharded_checkpoint,
+    _warn_if_shared_params_across_fsdp_units,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 
@@ -186,6 +188,46 @@ def test_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
+def test_setup_module_device_id_cpu():
+    """``setup_module`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
+
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
+    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+
+    """
+    captured = {}
+
+    class FakeFSDP(nn.Module):
+        def __init__(self, module, **kwargs):
+            super().__init__()
+            captured.update(kwargs)
+            self.module = module
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", FakeFSDP):
+        strategy.setup_module(nn.Linear(2, 2))
+    assert captured["device_id"] == torch.device("cpu")
+
+
+def test_module_sharded_context_device_id_cpu():
+    """``module_sharded_context`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU."""
+    from contextlib import contextmanager
+
+    captured = {}
+
+    @contextmanager
+    def fake_enable_wrap(*args, **kwargs):
+        captured.update(kwargs)
+        yield
+
+    strategy = FSDPStrategy()
+    strategy._parallel_devices = [torch.device("cpu")]
+    with mock.patch("torch.distributed.fsdp.wrap.enable_wrap", fake_enable_wrap), strategy.module_sharded_context():
+        pass
+    assert captured["device_id"] == torch.device("cpu")
+
+
 def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
@@ -214,9 +256,9 @@ def test_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context")
 @mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
-@mock.patch("lightning.fabric.strategies.fsdp.torch.save")
-@mock.patch("lightning.fabric.strategies.fsdp.shutil")
-def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
+@mock.patch("lightning.fabric.strategies.fsdp._atomic_save")
+@mock.patch("lightning.fabric.strategies.fsdp._remove_checkpoint")
+def test_save_checkpoint_path_exists(remove_checkpoint_mock, atomic_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -235,16 +277,16 @@ def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=path, state={"model": model})
-    shutil_mock.rmtree.assert_called_once_with(path)
+    remove_checkpoint_mock.assert_called_once_with(path)
 
     # state_dict_type='full', path exists, path is a file: no error (overwrite)
     path = tmp_path / "file.pt"
     path.touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
-    torch_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
     strategy.save_checkpoint(path=path, state={"model": model})
-    torch_save_mock.assert_called_once()
+    atomic_save_mock.assert_called_once()
 
     strategy = FSDPStrategy(state_dict_type="sharded")
     save_mock = mock.patch(
@@ -391,14 +433,269 @@ def test_set_timeout(init_process_group_mock):
 
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
 def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
-    """Test that the state dict context manager handles CPU offloading."""
-
-    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
+    """Test that the state dict context manager only offloads to CPU when the shards live on an accelerator."""
+    # Shards on accelerator: offload to CPU.
+    accelerator_param = Mock()
+    accelerator_param.device = torch.device("cuda", 0)
+    module = Mock(spec=FullyShardedDataParallel)
+    module.parameters = Mock(return_value=iter([accelerator_param]))
+    with _get_full_state_dict_context(module=module, world_size=4):
         assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
         assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
     set_type_mock.reset_mock()
 
-    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=4):
-        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
-        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
+    # Shards on CPU: do not offload (prevents PyTorch use-after-free).
+    module = Mock(spec=FullyShardedDataParallel)
+    module.parameters = Mock(return_value=iter([torch.nn.Parameter(torch.zeros(1))]))
+    with _get_full_state_dict_context(module=module, world_size=4):
+        assert not set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
+        assert not set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
+
+
+def test_device_mesh_type_annotation():
+    """Test that ``device_mesh`` type hint accepts a 2-element tuple via jsonargparse (#21580)."""
+    jsonargparse = pytest.importorskip("jsonargparse")
+    from inspect import signature
+
+    annot = signature(FSDPStrategy).parameters["device_mesh"].annotation
+    parser = jsonargparse.ArgumentParser()
+    parser.add_argument("--device_mesh", type=annot)
+    args = parser.parse_args(["--device_mesh=[1, 4]"])
+    assert args.device_mesh == (1, 4)
+
+
+class _ModelWithTiedWeights(nn.Module):
+    """A model that ties embedding and output head weights, similar to Llama/GPT-2."""
+
+    def __init__(self):
+        super().__init__()
+        self.embed = nn.Embedding(100, 32)
+        self.layers = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
+        self.head = nn.Linear(32, 100, bias=False)
+        self.head.weight = self.embed.weight  # tie weights
+
+
+def test_warn_shared_params_across_fsdp_units():
+    """Test that a warning is emitted when tied weights would be split across FSDP units."""
+    model = _ModelWithTiedWeights()
+    policy = ModuleWrapPolicy({nn.Embedding})
+
+    with pytest.warns(UserWarning, match="shared parameters"):
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_shared_params_same_fsdp_unit():
+    """Test that no warning is emitted when tied weights stay in the same FSDP unit."""
+    model = _ModelWithTiedWeights()
+    # Only wrap Sequential — both embed and head remain in root unit
+    policy = ModuleWrapPolicy({nn.Sequential})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_no_shared_params():
+    """Test that no warning is emitted when the model has no shared parameters."""
+    model = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+    policy = ModuleWrapPolicy({nn.Linear})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, policy)
+
+
+def test_no_warn_no_policy():
+    """Test that no warning is emitted when no auto-wrap policy is set."""
+    model = _ModelWithTiedWeights()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_if_shared_params_across_fsdp_units(model, None)
+
+
+def test_is_full_checkpoint_remote_memory():
+    import fsspec
+
+    from lightning.fabric.strategies.fsdp import _is_full_checkpoint
+
+    fs = fsspec.filesystem("memory")
+    with fs.open("/c/full.ckpt", "wb") as f:
+        f.write(b"x")
+    assert _is_full_checkpoint("memory:///c/full.ckpt") is True
+    assert _is_full_checkpoint("memory:///c/missing.ckpt") is False
+
+
+def test_is_sharded_checkpoint_remote_memory():
+    import fsspec
+
+    from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
+
+    fs = fsspec.filesystem("memory")
+    with fs.open("/c2/sharded/meta.pt", "wb") as f:
+        f.write(b"x")
+    assert _is_sharded_checkpoint("memory:///c2/sharded") is True
+    with fs.open("/c2/full.ckpt", "wb") as f:
+        f.write(b"x")
+    assert _is_sharded_checkpoint("memory:///c2/full.ckpt") is False
+
+
+def test_distributed_checkpoint_reader_writer_selection(tmp_path):
+    from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
+
+    from lightning.fabric.strategies.fsdp import (
+        _get_distributed_checkpoint_reader,
+        _get_distributed_checkpoint_writer,
+    )
+
+    assert isinstance(_get_distributed_checkpoint_writer(str(tmp_path)), FileSystemWriter)
+    assert isinstance(_get_distributed_checkpoint_reader(str(tmp_path)), FileSystemReader)
+
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint._fsspec_filesystem import FsspecReader, FsspecWriter
+    else:
+        fsspec_fs = pytest.importorskip("torch.distributed.checkpoint._fsspec_filesystem")
+        FsspecReader, FsspecWriter = fsspec_fs.FsspecReader, fsspec_fs.FsspecWriter
+
+    assert isinstance(_get_distributed_checkpoint_writer("memory:///w/ckpt"), FsspecWriter)
+    assert isinstance(_get_distributed_checkpoint_reader("memory:///w/ckpt"), FsspecReader)
+
+
+def test_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
+    """Regression: a gs:// URL must reach the DCP layer uncorrupted (not gs:/)."""
+    strategy = FSDPStrategy()
+    strategy._state_dict_type = "sharded"
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+
+    captured = {}
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._distributed_checkpoint_save",
+        lambda state, path: captured.update(path=path),
+    )
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._prepare_directory_checkpoint", lambda p: None)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_checkpoint_dir", lambda p: False)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._atomic_save", lambda obj, path: None)
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context",
+        lambda module: mock.MagicMock(),
+    )
+    model = nn.Linear(2, 2)
+    strategy.save_checkpoint("gs://bucket/run/ckpt", state={"model": model})
+    assert captured["path"] == "gs://bucket/run/ckpt"
+
+
+def test_load_raw_module_state_from_path_remote(monkeypatch):
+    """Regression: remote full-checkpoints must be read via `_load`, not mmap/_lazy_load."""
+    from lightning.fabric.strategies.model_parallel import _load_raw_module_state_from_path
+
+    called = {}
+    monkeypatch.setattr("lightning.fabric.strategies.model_parallel._is_full_checkpoint", lambda p: True)
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.model_parallel._load_raw_module_state",
+        lambda **kwargs: called.update(loaded=True),
+    )
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.model_parallel._load",
+        lambda path, map_location=None: called.update(via_load=str(path)),
+    )
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.model_parallel._lazy_load",
+        lambda path: called.update(via_lazy=str(path)),
+    )
+    _load_raw_module_state_from_path("memory:///x/full.ckpt", module=nn.Linear(2, 2), world_size=1)
+    assert called.get("via_load") == "memory:///x/full.ckpt"
+    assert "via_lazy" not in called
+
+
+def test_load_full_checkpoint_remote_allows_non_tensor_objects(monkeypatch):
+    """Regression: remote full-checkpoints are read with `weights_only=False` so non-tensor metadata
+    (which `torch.load` rejects by default since torch 2.6) loads just like the local `_lazy_load` path."""
+    strategy = FSDPStrategy()
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_full_checkpoint", lambda p: True)
+    monkeypatch.setattr("lightning.fabric.strategies.model_parallel._load_raw_module_state", lambda *a, **k: None)
+
+    captured = {}
+
+    def fake_load(path, weights_only=None):
+        captured["weights_only"] = weights_only
+        return {"model": {"weight": torch.zeros(2)}}
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._load", fake_load)
+
+    strategy.load_checkpoint("memory:///x/full.ckpt", state={"model": nn.Linear(2, 2)})
+    assert captured["weights_only"] is False
+
+
+def test_load_full_checkpoint_remote_honors_explicit_weights_only(monkeypatch):
+    """An explicit `weights_only=True` from the user must be honored for remote full-checkpoints, not silently
+    overridden to `False`."""
+    strategy = FSDPStrategy()
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_full_checkpoint", lambda p: True)
+    monkeypatch.setattr("lightning.fabric.strategies.model_parallel._load_raw_module_state", lambda *a, **k: None)
+
+    captured = {}
+
+    def fake_load(path, weights_only=None):
+        captured["weights_only"] = weights_only
+        return {"model": {"weight": torch.zeros(2)}}
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._load", fake_load)
+
+    strategy.load_checkpoint("memory:///x/full.ckpt", state={"model": nn.Linear(2, 2)}, weights_only=True)
+    assert captured["weights_only"] is True
+
+
+def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
+    """The sharded-checkpoint metadata load must default to `weights_only=False` (like the full-checkpoint path) so
+    non-tensor metadata loads on torch>=2.6, while still honoring an explicit user value."""
+    strategy = FSDPStrategy()
+    monkeypatch.setattr(strategy, "broadcast", lambda x: x)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._is_sharded_checkpoint", lambda p: True)
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
+    )
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path: None)
+
+    captured = {}
+
+    def fake_load(path, weights_only=None):
+        captured["weights_only"] = weights_only
+        return {}
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._load", fake_load)
+
+    model = nn.Linear(2, 2)
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model})
+    assert captured["weights_only"] is False
+
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True)
+    assert captured["weights_only"] is True
+
+
+def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
+    """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
+    import sys
+
+    from lightning.fabric.strategies.fsdp import _get_distributed_checkpoint_writer
+
+    monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
+    with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
+        _get_distributed_checkpoint_writer("memory:///w/ckpt")
+
+
+def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
+    """A torch build without the private fsspec DCP module yields an actionable error, not a bare ImportError."""
+    import sys
+
+    from lightning.fabric.strategies.fsdp import _get_distributed_checkpoint_reader
+
+    monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
+    with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
+        _get_distributed_checkpoint_reader("memory:///w/ckpt")

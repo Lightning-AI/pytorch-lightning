@@ -382,9 +382,13 @@ def _replace_dunder_methods(base_cls: type, store_explicit_arg: Optional[str] = 
         for patched_name in ("__setattr__", "__delattr__", "__init__"):
             # Check that __old__{init,setattr,delattr} belongs to the class
             # https://stackoverflow.com/a/5253424
-            if f"__old{patched_name}" in cls.__dict__:
-                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
-                delattr(cls, f"__old{patched_name}")
+            old_name = f"__old{patched_name}"
+            if old_name in cls.__dict__:
+                try:
+                    setattr(cls, patched_name, getattr(cls, old_name))
+                    delattr(cls, old_name)
+                except AttributeError:
+                    pass
 
 
 def _replace_value_in_saved_args(

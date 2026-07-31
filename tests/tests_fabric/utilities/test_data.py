@@ -80,6 +80,35 @@ def test_replace_dunder_methods_multiple_loaders_without_init():
         assert before[cls] == cls.__init__
 
 
+def test_replace_dunder_methods_cleanup_tolerates_concurrent_restore():
+    class ConcurrentCleanupMeta(type):
+        def __getattribute__(cls, name):
+            if (
+                name == "__old__delattr__"
+                and type.__getattribute__(cls, "_cleanup_started")
+                and not type.__getattribute__(cls, "_restore_complete")
+            ):
+                original_method = type.__getattribute__(cls, name)
+                type.__setattr__(cls, "__delattr__", original_method)
+                type.__delattr__(cls, name)
+                type.__setattr__(cls, "_restore_complete", True)
+                raise AttributeError
+            return type.__getattribute__(cls, name)
+
+    class ConcurrentBatchSampler(BatchSampler, metaclass=ConcurrentCleanupMeta):
+        _cleanup_started = False
+        _restore_complete = False
+
+        pass
+
+    original_delattr = ConcurrentBatchSampler.__delattr__
+    with _replace_dunder_methods(ConcurrentBatchSampler):
+        ConcurrentBatchSampler._cleanup_started = True
+
+    assert ConcurrentBatchSampler.__delattr__ is original_delattr
+    assert "__old__delattr__" not in ConcurrentBatchSampler.__dict__
+
+
 class MyBaseDataLoader(DataLoader):
     pass
 

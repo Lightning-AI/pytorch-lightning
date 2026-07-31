@@ -87,7 +87,10 @@ class _LoggerConnector:
         else:
             self.trainer.loggers = [logger]
 
-        if not any(isinstance(logger, LitLogger) for logger in self.trainer.loggers):
+        if (
+            not any(isinstance(logger, LitLogger) for logger in self.trainer.loggers)
+            and self.trainer.suggest_integrations
+        ):
             rank_zero_info(
                 "💡 Tip: For seamless cloud logging and experiment tracking,"
                 " try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger,"

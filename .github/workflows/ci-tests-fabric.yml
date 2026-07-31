@@ -40,36 +40,43 @@ jobs:
       matrix:
         os: [macOS-14, ubuntu-22.04, windows-2022]
         config:
-          # Test unified "lightning" package with PyTorch 2.1-2.5
-          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+          # Test unified "lightning" package at the oldest supported and the latest PyTorch
+          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
+          - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.13" }
 
-          # Test "fabric" package with PyTorch 2.6-2.9
+          # Test "fabric" package with PyTorch 2.6-2.13
           - { pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.8" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.10" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.11" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.12" }
+          - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.13" }
           - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.8" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.9" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.10" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.11" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.12" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
 
           # Test minimum supported versions (oldest)
-          - { pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
+          - { pkg-name: "fabric", pytorch-version: "2.6", requires: "oldest" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
-      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
+      # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+      UV_EXCLUDE_NEWER: "2 days"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: ${{ matrix.config.python-version || '3.10' }}
           # TODO: Avoid activating environment like this
@@ -101,7 +108,7 @@ jobs:
           python -m lightning_utilities.cli requirements set-oldest \
             --req_files "['requirements/fabric/base.txt', 'requirements/fabric/strategies.txt', 'requirements/fabric/test.txt']"
           uv pip install "cython<3.0" wheel
-          uv pip install "pyyaml==5.4" --no-build-isolation
+          uv pip install "pyyaml==6.0.0" --no-build-isolation
           # This script removes any line containing "error::FutureWarning" from pyproject.toml
           uv pip install -r requirements/ci.txt
           python .actions/assistant.py prune_pytest_as_errors
@@ -117,8 +124,7 @@ jobs:
 
       - name: Expand Env. variables
         run: |
-          # Switch PyTorch URL between stable and test/future
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.config.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          echo "TORCH_URL=${TORCH_URL_STABLE}" >> $GITHUB_ENV
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.config.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
@@ -162,7 +168,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:

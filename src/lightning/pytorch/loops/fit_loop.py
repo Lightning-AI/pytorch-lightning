@@ -176,7 +176,6 @@ class _FitLoop(_Loop):
             rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
-        # TODO: Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
         if stop_steps:
             rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
@@ -273,7 +272,8 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
-        iter(self._data_fetcher)  # creates the iterator inside the fetcher
+        with trainer.profiler.profile("setup_train_dataloader"):
+            iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
         self.max_batches = max_batches if max_batches is not None else float("inf")
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
@@ -292,7 +292,11 @@ class _FitLoop(_Loop):
             trainer._last_val_time = trainer._train_start_time
         elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
-            if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
+            if (
+                trainer.val_check_batch > self.max_batches
+                and trainer.check_val_every_n_epoch is not None
+                and trainer.limit_val_batches > 0
+            ):
                 raise ValueError(
                     f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
                     f" to the number of the training batches ({self.max_batches})."
