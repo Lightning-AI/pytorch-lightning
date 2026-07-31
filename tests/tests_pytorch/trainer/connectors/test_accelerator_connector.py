@@ -562,7 +562,7 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     assert trainer.strategy.local_rank == 0
 
 
-def test_check_fsdp_strategy_and_fallback():
+def test_check_fsdp_strategy_instantiation_on_cpu():
     # FSDP on CPU is now allowed (enables CPU-based FSDP checkpoint testing & benchmarking).
     trainer = Trainer(accelerator="cpu", strategy="fsdp")
     assert isinstance(trainer.strategy, FSDPStrategy)
