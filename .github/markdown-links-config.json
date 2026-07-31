@@ -8,6 +8,10 @@
     },
     {
       "pattern": "^https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg"
+    },
+    {
+      "comment": "Medium aggressively rate-limits CI traffic and answers 403 for valid articles",
+      "pattern": "^https://medium.com/"
     }
   ],
   "httpHeaders": [
