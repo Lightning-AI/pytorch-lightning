@@ -878,6 +878,7 @@ def test_update_n_redraws_every_position():
     faster than `mininterval` skips frames and is closed short of its total.
     `mininterval` is pinned high here so the assertion does not depend on how
     fast the test machine runs.
+
     """
     stream = io.StringIO()
     bar = Tqdm(total=100, file=stream, mininterval=1000.0)
