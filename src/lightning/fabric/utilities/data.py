@@ -167,7 +167,10 @@ def _get_dataloader_init_args_and_kwargs(
     required_args = {
         p.name
         for p in params.values()
-        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        # `KEYWORD_ONLY` is included so that a required keyword-only argument (`def __init__(self, *args, x,
+        # **kwargs)`) reports the message below rather than falling through to a raw `TypeError` from the
+        # re-instantiation: it has no default, so the warning above does not cover it either.
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)
         and p.default is p.empty
         and p.name not in dl_kwargs
         and p.name not in arg_names

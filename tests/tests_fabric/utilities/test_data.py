@@ -737,6 +737,25 @@ def test_update_dataloader_does_not_warn_when_init_arg_is_readable_back():
     assert new_dataloader.x == 2
 
 
+def test_update_dataloader_reports_required_keyword_only_init_arg():
+    """A required keyword-only argument reports the missing-attribute message, not a raw TypeError.
+
+    It has no default, so the unresolved-argument warning does not apply; before ``KEYWORD_ONLY`` was added to
+    ``required_args`` it fell through both branches and surfaced as ``TypeError: missing 1 required keyword-only
+    argument``.
+    """
+
+    class RequiredKeywordOnly(DataLoader):
+        def __init__(self, *args, x, **kwargs):
+            super().__init__(*args, **kwargs)
+            # stored as `_x`, so `x` cannot be read back
+            self._x = x
+
+    dataloader = RequiredKeywordOnly([1, 2, 3], batch_size=2, x=2)
+    with pytest.raises(MisconfigurationException, match="`self.x`"):
+        _update_dataloader(dataloader, dataloader.sampler)
+
+
 def test_update_dataloader_does_not_warn_for_plain_dataloader():
     """`DataLoader`'s own defaulted parameters are not all exposed as same-named attributes, so the check must only
     consider arguments a subclass adds."""
