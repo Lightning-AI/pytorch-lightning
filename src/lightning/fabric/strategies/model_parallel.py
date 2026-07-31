@@ -308,11 +308,12 @@ class ModelParallelStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {
-            "timeout": self._timeout,
-            "device_id": self.root_device if self.root_device.type != "cpu" else None,
-        }
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -548,7 +549,7 @@ def _load_raw_module_state_from_path(path: _PATH, module: Module, world_size: in
             f" full state dict: {path}"
         )
     if _is_local_file_protocol(str(path)):
-        # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
+        # Use `mmap` to avoid storing a copy of the full checkpoint per rank
         state_dict = torch.load(path, mmap=True, map_location="cpu")
     else:
         state_dict = _load(path, map_location="cpu")
