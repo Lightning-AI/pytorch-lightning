@@ -743,6 +743,7 @@ def test_update_dataloader_reports_required_keyword_only_init_arg():
     It has no default, so the unresolved-argument warning does not apply; before ``KEYWORD_ONLY`` was added to
     ``required_args`` it fell through both branches and surfaced as ``TypeError: missing 1 required keyword-only
     argument``.
+
     """
 
     class RequiredKeywordOnly(DataLoader):
