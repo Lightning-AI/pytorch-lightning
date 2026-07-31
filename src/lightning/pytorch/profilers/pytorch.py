@@ -18,7 +18,6 @@ import logging
 import os
 from contextlib import AbstractContextManager
 from functools import lru_cache, partial
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
@@ -232,7 +231,7 @@ class PyTorchProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
