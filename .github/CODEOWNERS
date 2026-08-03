@@ -8,10 +8,10 @@
 * @ethanwharris @justusschock @rusenask @tchaton
 
 # Docs
-/.github/*.md                               @ethanwharris @justusschock @tchaton
-/docs/source-fabric/index.rst               @ethanwharris @justusschock @tchaton
-/docs/source-pytorch/index.rst              @ethanwharris @justusschock @tchaton
-/docs/source-pytorch/levels                 @ethanwharris @justusschock @tchaton
+/.github/*.md                               @williamfalcon @ethanwharris @justusschock @tchaton
+/docs/source-fabric/index.rst               @williamfalcon @ethanwharris @justusschock @tchaton
+/docs/source-pytorch/index.rst              @williamfalcon @ethanwharris @justusschock @tchaton
+/docs/source-pytorch/levels                 @williamfalcon @ethanwharris @justusschock @tchaton
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon @ethanwharris
