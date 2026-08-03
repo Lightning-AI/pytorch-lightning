@@ -20,7 +20,7 @@
 /src/lightning_fabric/__about__.py   @williamfalcon @ethanwharris
 
 # Loggers: third-party/branded integrations stay with @williamfalcon,
-# first-party loggers (CSV, LitLogger) are owned by the core maintainers.
+# first-party loggers (CSV, LitLogger, TensorBoard) are owned by the core maintainers.
 /src/lightning/fabric/loggers                    @williamfalcon
 /src/lightning/pytorch/loggers                   @williamfalcon
 /src/lightning/fabric/loggers/csv_logs.py        @ethanwharris @justusschock @tchaton
@@ -28,3 +28,5 @@
 /src/lightning/pytorch/loggers/litlogger.py      @ethanwharris @justusschock @tchaton
 /src/lightning/fabric/loggers/logger.py          @ethanwharris @justusschock @tchaton
 /src/lightning/pytorch/loggers/logger.py         @ethanwharris @justusschock @tchaton
+/src/lightning/fabric/loggers/tensorboard.py     @ethanwharris @justusschock @tchaton
+/src/lightning/pytorch/loggers/tensorboard.py    @ethanwharris @justusschock @tchaton
