@@ -70,6 +70,14 @@ def test_flatten_dict():
 
     assert params == {"dl/0/a": 1, "dl/0/c": 3, "dl/1/b": 2, "dl/1/d": 5, "l": [1, 2, 3, 4]}
 
+    # Test that values holding no leaves are preserved instead of being silently dropped
+    assert _flatten_dict({"a": [], "b": 5}) == {"a": [], "b": 5}
+    assert _flatten_dict({"a": [{}], "b": 5}) == {"a": [{}], "b": 5}
+    assert _flatten_dict({"a": [{}, {}], "b": 5}) == {"a": [{}, {}], "b": 5}
+    assert _flatten_dict({"a": {}, "b": 5}) == {"a": {}, "b": 5}
+    assert _flatten_dict({"a": {"b": {}}}) == {"a/b": {}}
+    assert _flatten_dict({"a": Namespace()}) == {"a": {}}
+
     # Test flattening of argparse Namespace
     params = Namespace(a=1, b=2)
     wrapping_dict = {"params": params}
