@@ -148,12 +148,14 @@ def _collect_rng_states(include_cuda: bool = True) -> dict[str, Any]:
 
 
 def _set_rng_states(rng_state_dict: dict[str, Any]) -> None:
-    r"""Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
-    process.
+    r"""Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current process.
+
     Example::
         >>> from lightning.fabric.utilities.seed import seed_everything
         >>> seed_everything(42)
-        42"""
+        42
+
+    """
     torch.set_rng_state(rng_state_dict["torch"])
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
