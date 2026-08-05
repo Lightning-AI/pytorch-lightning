@@ -59,7 +59,11 @@ class SimpleProfiler(Profiler):
             ValueError:
                 If you attempt to start an action which has already started, or
                 if you attempt to stop recording an action which was never started.
-        """
+        
+    Example::
+        >>> from lightning.pytorch.profilers import SimpleProfiler
+        >>> profiler = SimpleProfiler()
+        >>> trainer = Trainer(profiler=profiler)"""
         super().__init__(dirpath=dirpath, filename=filename)
         self.current_actions: dict[str, float] = {}
         self.recorded_durations: dict = defaultdict(list)
