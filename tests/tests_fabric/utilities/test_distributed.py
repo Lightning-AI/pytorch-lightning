@@ -245,22 +245,14 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     atexit_mock.register.assert_not_called()
 
 
-def test_get_default_process_group_backend_for_device():
+def test_get_default_process_group_backend_for_device(monkeypatch):
     """Test that each device type maps to its correct default process group backend."""
-    # register a custom backend for test
-    torch.utils.rename_privateuse1_backend("pcu")
-
-    def mock_backend(store, group_rank, group_size, timeout):
-        pass
-
-    torch.distributed.Backend.register_backend(
-        "pccl",
-        lambda store, group_rank, group_size, timeout: mock_backend(store, group_rank, group_size, timeout),
-        devices=["pcu"],
-    )
+    # patch the map instead of registering a real backend: `rename_privateuse1_backend` is irreversible
+    # and would leak a dangling "pcu" device into subsequent tests
+    monkeypatch.setitem(torch.distributed.Backend.default_device_backend_map, "pcu", "pccl")
 
     # test that the default backend is correctly set for each device
-    devices = [torch.device("cpu"), torch.device("cuda:0"), torch.device("pcu:0")]
+    devices = [torch.device("cpu"), torch.device("cuda:0"), Mock(type="pcu")]
     backends = ["gloo", "nccl", "pccl"]
     for device, backend in zip(devices, backends):
         assert _get_default_process_group_backend_for_device(device) == backend
