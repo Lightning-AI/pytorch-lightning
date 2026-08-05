@@ -208,12 +208,15 @@ def _check_data_type(device_ids: object) -> None:
 
 def _select_auto_accelerator() -> str:
     """Choose the accelerator type (str) based on availability.
+
     Example::
         >>> from lightning.fabric.utilities.device_parser import parse_devices
         >>> parse_devices(2)
         [0, 1]
         >>> parse_devices("0,1")
-        [0, 1]"""
+        [0, 1]
+
+    """
     from lightning.fabric.accelerators.cuda import CUDAAccelerator
     from lightning.fabric.accelerators.mps import MPSAccelerator
     from lightning.fabric.accelerators.xla import XLAAccelerator
