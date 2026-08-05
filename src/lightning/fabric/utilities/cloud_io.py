@@ -275,11 +275,13 @@ def _import_fsspec_dcp_filesystem(name: str) -> Any:
     These live in a private module that not every PyTorch build ships, so raise an actionable error
     instead of letting a bare ``ImportError`` surface from deep in the call stack.
 
-    
+
     Example::
         >>> from lightning.fabric.utilities.cloud_io import get_filesystem
         >>> fs = get_filesystem("/path/to/data")
-        >>> fs.ls("/path/to/data")"""
+        >>> fs.ls("/path/to/data")
+
+    """
     try:
         module = importlib.import_module("torch.distributed.checkpoint._fsspec_filesystem")
     except ImportError as e:
