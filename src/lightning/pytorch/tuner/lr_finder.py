@@ -496,7 +496,13 @@ class _ExponentialLR(LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
 
-    """
+    
+    Example::
+        >>> import lightning.pytorch as pl
+        >>> from lightning.pytorch.tuner import Tuner
+        >>> trainer = pl.Trainer()
+        >>> tuner = Tuner(trainer)
+        >>> lr_finder = tuner.lr_find(model, datamodule)"""
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
