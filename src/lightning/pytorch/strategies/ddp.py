@@ -365,20 +365,22 @@ class DDPStrategy(ParallelStrategy):
     ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
+            Args:
+                tensor: the tensor to sync and reduce
+                group: the process group to gather results from. Defaults to all processes (world)
+                reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                    Can also be a string 'sum' to calculate the sum during reduction.
 
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
+            Return:
+                reduced value, except when the input was not a tensor the output remains is unchanged
 
-        
-    Example::
-        >>> from lightning.pytorch.strategies import DDPStrategy
-        >>> strategy = DDPStrategy(find_unused_parameters=True)
-        >>> trainer = Trainer(strategy=strategy)"""
+
+        Example::
+            >>> from lightning.pytorch.strategies import DDPStrategy
+            >>> strategy = DDPStrategy(find_unused_parameters=True)
+            >>> trainer = Trainer(strategy=strategy)
+
+        """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
