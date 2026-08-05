@@ -72,7 +72,10 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 
     Note: this method will in-place modify the ``LightningModule`` that is passed in.
 
-    """
+    
+    Example::
+        >>> import lightning.pytorch as pl
+        >>> compiled_model = pl.utilities.compile(model)"""
     if isinstance(model, OptimizedModule):
         original = model._orig_mod
         if not isinstance(original, pl.LightningModule):
