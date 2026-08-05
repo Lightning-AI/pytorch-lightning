@@ -44,26 +44,26 @@ class SimpleProfiler(Profiler):
         extended: bool = True,
     ) -> None:
         """
-        Args:
-            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
-                ``trainer.log_dir`` (from :class:`~lightning.pytorch.loggers.tensorboard.TensorBoardLogger`)
-                will be used.
+            Args:
+                dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                    ``trainer.log_dir`` (from :class:`~lightning.pytorch.loggers.tensorboard.TensorBoardLogger`)
+                    will be used.
 
-            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
-                The ``.txt`` extension will be used automatically.
+                filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                    The ``.txt`` extension will be used automatically.
 
-            extended: If ``True``, adds extra columns representing number of calls and percentage of total time spent on
-                respective action.
+                extended: If ``True``, adds extra columns representing number of calls and percentage of total time spent on
+                    respective action.
 
-        Raises:
-            ValueError:
-                If you attempt to start an action which has already started, or
-                if you attempt to stop recording an action which was never started.
-        
-    Example::
-        >>> from lightning.pytorch.profilers import SimpleProfiler
-        >>> profiler = SimpleProfiler()
-        >>> trainer = Trainer(profiler=profiler)"""
+            Raises:
+                ValueError:
+                    If you attempt to start an action which has already started, or
+                    if you attempt to stop recording an action which was never started.
+
+        Example::
+            >>> from lightning.pytorch.profilers import SimpleProfiler
+            >>> profiler = SimpleProfiler()
+            >>> trainer = Trainer(profiler=profiler)"""
         super().__init__(dirpath=dirpath, filename=filename)
         self.current_actions: dict[str, float] = {}
         self.recorded_durations: dict = defaultdict(list)
