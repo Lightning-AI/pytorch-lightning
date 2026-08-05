@@ -350,11 +350,13 @@ def _adjust_batch_size(
         The new batch size for the next trial and a bool that signals whether the
         new value is different than the previous batch size.
 
-    
+
     Example::
         >>> from lightning.pytorch.tuner import Tuner
         >>> tuner = Tuner(trainer)
-        >>> tuner.scale_batch_size(model, datamodule)"""
+        >>> tuner.scale_batch_size(model, datamodule)
+
+    """
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     assert batch_size is not None
