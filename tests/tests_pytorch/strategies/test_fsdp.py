@@ -18,7 +18,6 @@ from torchmetrics import Accuracy
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -521,7 +520,7 @@ def test_sharding_strategy():
 
 
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_hybrid_shard_configuration(sharding_strategy, monkeypatch):
+def test_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
     with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
@@ -534,11 +533,6 @@ def test_hybrid_shard_configuration(sharding_strategy, monkeypatch):
     assert strategy.sharding_strategy.name == sharding_strategy
     assert strategy.kwargs["process_group"] is process_group
 
-    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", False)
-    with pytest.raises(ValueError, match="`device_mesh` argument is only supported in torch >= 2.2."):
-        FSDPStrategy(device_mesh=Mock())
-
-    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", True)
     device_mesh = Mock()
     strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
     assert strategy.sharding_strategy.name == sharding_strategy
@@ -567,11 +561,12 @@ def test_set_timeout(init_process_group_mock):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
-    kwargs = {}
-    if _TORCH_GREATER_EQUAL_2_3:
-        kwargs["device_id"] = strategy.root_device if strategy.root_device.type != "cpu" else None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=test_timedelta,
+        device_id=None,
     )
 
 
@@ -799,11 +794,7 @@ def test_save_checkpoint_path_exists(remove_checkpoint_mock, torch_save_mock, __
 
     strategy = FSDPStrategy(state_dict_type="sharded")
 
-    save_mock = mock.patch(
-        "torch.distributed.checkpoint.save"
-        if _TORCH_GREATER_EQUAL_2_2
-        else "torch.distributed.checkpoint.save_state_dict"
-    )
+    save_mock = mock.patch("torch.distributed.checkpoint.save")
 
     # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
     path = tmp_path / "not-empty-2"
