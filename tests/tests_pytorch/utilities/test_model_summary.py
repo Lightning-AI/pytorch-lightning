@@ -19,6 +19,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning_utilities.test.warning import no_warning_call
+from torch.utils.flop_counter import FlopCounterMode
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -95,6 +96,40 @@ class MixedDtypeModel(LightningModule):
 
     def forward(self, x):
         return self.reduce(self.embed(x))
+
+
+class SimpleLinearModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 3)
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class JaggedNestedTensorBlock(nn.Module):
+    def __init__(self, fail_after_forward: bool = False):
+        super().__init__()
+        self.proj = nn.Linear(3, 2)
+        self.fail_after_forward = fail_after_forward
+
+    def forward(self, x):
+        nested = torch.nested.nested_tensor([x[0, :2], x[1, :3]], layout=torch.jagged)
+        output = self.proj(nested)
+        if self.fail_after_forward:
+            raise RuntimeError("plain forward failed")
+        return {"nested": output}
+
+
+class JaggedNestedTensorModel(LightningModule):
+    def __init__(self, fail_after_forward: bool = False):
+        super().__init__()
+        self.block = JaggedNestedTensorBlock(fail_after_forward=fail_after_forward)
+        self.example_input_array = torch.rand(2, 3, 3)
+
+    def forward(self, x):
+        return self.block(x)
 
 
 class PartialScriptModel(LightningModule):
@@ -203,6 +238,37 @@ def test_mixed_dtype_model_summary():
     summary = summarize(model)
     assert summary.in_sizes == [[2, 3], [2, 3, 20]]  # embed  # reduce
     assert summary.out_sizes == [[2, 3, 20], [2, 3, 1]]  # embed  # reduce
+
+
+def test_model_summary_flops_for_normal_tensor_example_input():
+    """Test that regular tensor inputs still collect shapes and FLOPs."""
+    summary = summarize(SimpleLinearModel())
+    assert summary.in_sizes == [[2, 3]]
+    assert summary.out_sizes == [[2, 2]]
+    assert summary.total_flops > 0
+
+
+def test_model_summary_with_jagged_nested_tensor_falls_back_to_unknown_output_size():
+    """Test that jagged NestedTensor operations unsupported by the FLOP counter don't crash the summary."""
+    _require_jagged_nested_tensor_flop_counter_error()
+
+    model = JaggedNestedTensorModel()
+    output = model(model.example_input_array)
+    assert output["nested"].layout is torch.jagged
+
+    summary = summarize(model)
+
+    assert summary.in_sizes == [[2, 3, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE]
+    assert summary.total_flops == 0
+
+
+def test_model_summary_with_jagged_nested_tensor_reraises_plain_forward_error():
+    """Test that the NestedTensor FLOP fallback does not hide a model error from the plain forward."""
+    _require_jagged_nested_tensor_flop_counter_error()
+
+    with pytest.raises(RuntimeError, match="plain forward failed"):
+        summarize(JaggedNestedTensorModel(fail_after_forward=True))
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0])
@@ -454,6 +520,28 @@ def test_summary_restores_module_mode():
     assert model.training
     assert model.layer1.training
     assert not model.layer2.training
+
+
+def _require_jagged_nested_tensor_flop_counter_error():
+    if not hasattr(torch, "jagged"):
+        pytest.skip("Requires torch.jagged layout support.")
+    if not hasattr(torch, "nested") or not hasattr(torch.nested, "nested_tensor"):
+        pytest.skip("Requires torch.nested.nested_tensor.")
+
+    layer = nn.Linear(3, 2)
+    nested = torch.nested.nested_tensor([torch.rand(2, 3), torch.rand(3, 3)], layout=torch.jagged)
+    try:
+        layer(nested)
+    except Exception as ex:
+        pytest.skip(f"Requires Linear support for jagged NestedTensor: {ex}")
+
+    try:
+        with FlopCounterMode(display=False):
+            layer(nested)
+    except (NotImplementedError, RuntimeError, TypeError):
+        return
+
+    pytest.skip("Requires FlopCounterMode to not support jagged NestedTensor.")
 
 
 def test_total_training_modes():
