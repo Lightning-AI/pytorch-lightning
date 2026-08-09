@@ -13,6 +13,15 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCH_EQUAL_2_9
 from tests_pytorch.helpers.runif import RunIf
 
+if _TORCH_TRT_AVAILABLE:
+    from torch_tensorrt import ENABLED_FEATURES
+
+    # some prebuilt wheels (e.g. torch-tensorrt>=2.13) drop the legacy TorchScript
+    # frontend entirely, so `ir="ts"` raises a ValueError rather than compiling.
+    _TORCH_TRT_TS_AVAILABLE = ENABLED_FEATURES.torchscript_frontend
+else:
+    _TORCH_TRT_TS_AVAILABLE = False
+
 
 @pytest.mark.skipif(_TORCH_TRT_AVAILABLE, reason="Run this test only if tensorrt is not available.")
 def test_missing_tensorrt_package():
@@ -104,8 +113,9 @@ def test_tensorrt_saves_on_multi_gpu(tmp_path):
             "ts",
             torch.jit.ScriptModule,
             marks=pytest.mark.skipif(
-                _TORCH_EQUAL_2_9,
-                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9",
+                _TORCH_EQUAL_2_9 or not _TORCH_TRT_TS_AVAILABLE,
+                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9, and is unavailable in "
+                "some torch-tensorrt builds (e.g. >=2.13)",
             ),
         ),
     ],
@@ -131,8 +141,9 @@ def test_tensorrt_save_ir_type(ir, export_type):
         pytest.param(
             "ts",
             marks=pytest.mark.skipif(
-                _TORCH_EQUAL_2_9,
-                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9",
+                _TORCH_EQUAL_2_9 or not _TORCH_TRT_TS_AVAILABLE,
+                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9, and is unavailable in "
+                "some torch-tensorrt builds (e.g. >=2.13)",
             ),
         ),
     ],
