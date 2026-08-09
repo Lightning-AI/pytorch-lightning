@@ -177,6 +177,8 @@ filterwarnings = [
     # deprecated in torch 2.12; the suggested replacement is a private API
     # TODO: migrate to torch.distributed._functional_collectives.all_gather_single for torch>=2.12
     "ignore:torch.distributed.nn.functional.all_gather is deprecated.*:FutureWarning",
+    # deprecated in torch 2.13; raised from inside DeepSpeed
+    "ignore:`torch.distributed.all_gather_into_tensor` is deprecated.*:FutureWarning",
     # PyTorch pytree LeafSpec deprecation triggered during doctest
     "ignore:`isinstance\\(treespec, LeafSpec\\)` is deprecated.*:FutureWarning",
 ]
