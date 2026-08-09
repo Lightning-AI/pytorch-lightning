@@ -110,6 +110,19 @@ class BaseFinetuning(Callback):
             self._internal_optimizer_metadata = state_dict  # type: ignore[assignment]
 
     @override
+    def on_before_optimizer_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # freeze the required modules before optimizers are created & after `configure_model` is run
+        self.freeze_before_training(pl_module)
+
+        from lightning.pytorch.strategies import DeepSpeedStrategy
+
+        if isinstance(trainer.strategy, DeepSpeedStrategy):
+            raise NotImplementedError(
+                "The Finetuning callback does not support running with the DeepSpeed strategy."
+                " Choose a different strategy or disable the callback."
+            )
+
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
@@ -279,18 +292,6 @@ class BaseFinetuning(Callback):
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
-
-    @override
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        self.freeze_before_training(pl_module)
-
-        from lightning.pytorch.strategies import DeepSpeedStrategy
-
-        if isinstance(trainer.strategy, DeepSpeedStrategy):
-            raise NotImplementedError(
-                "The Finetuning callback does not support running with the DeepSpeed strategy."
-                " Choose a different strategy or disable the callback."
-            )
 
     @staticmethod
     def _apply_mapping_to_param_groups(param_groups: list[dict[str, Any]], mapping: dict) -> list[dict[str, Any]]:
