@@ -16,11 +16,19 @@ from tests_pytorch.helpers.runif import RunIf
 if _TORCH_TRT_AVAILABLE:
     from torch_tensorrt import ENABLED_FEATURES
 
-    # some prebuilt wheels (e.g. torch-tensorrt>=2.13) drop the legacy TorchScript
-    # frontend entirely, so `ir="ts"` raises a ValueError rather than compiling.
-    _TORCH_TRT_TS_AVAILABLE = ENABLED_FEATURES.torchscript_frontend
+    # the TS frontend ships in `libtorchtrt.so`, which the `+cuXXX` wheels omit since 2.13.0
+    _TORCH_TRT_TS_AVAILABLE = bool(ENABLED_FEATURES.torchscript_frontend)
 else:
     _TORCH_TRT_TS_AVAILABLE = False
+
+# keep both `ir="ts"` skips separate so the report names the one that applies
+_skip_ts_ir = [
+    pytest.mark.skipif(bool(_TORCH_EQUAL_2_9), reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9"),
+    pytest.mark.skipif(
+        not _TORCH_TRT_TS_AVAILABLE,
+        reason="torch_tensorrt build does not include the TorchScript frontend (libtorchtrt.so)",
+    ),
+]
 
 
 @pytest.mark.skipif(_TORCH_TRT_AVAILABLE, reason="Run this test only if tensorrt is not available.")
@@ -109,15 +117,7 @@ def test_tensorrt_saves_on_multi_gpu(tmp_path):
     [
         ("default", torch.fx.GraphModule),
         ("dynamo", torch.fx.GraphModule),
-        pytest.param(
-            "ts",
-            torch.jit.ScriptModule,
-            marks=pytest.mark.skipif(
-                _TORCH_EQUAL_2_9 or not _TORCH_TRT_TS_AVAILABLE,
-                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9, and is unavailable in "
-                "some torch-tensorrt builds (e.g. >=2.13)",
-            ),
-        ),
+        pytest.param("ts", torch.jit.ScriptModule, marks=_skip_ts_ir),
     ],
 )
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
@@ -138,14 +138,7 @@ def test_tensorrt_save_ir_type(ir, export_type):
     [
         "default",
         "dynamo",
-        pytest.param(
-            "ts",
-            marks=pytest.mark.skipif(
-                _TORCH_EQUAL_2_9 or not _TORCH_TRT_TS_AVAILABLE,
-                reason="TorchScript IR crashes with torch_tensorrt on PyTorch 2.9, and is unavailable in "
-                "some torch-tensorrt builds (e.g. >=2.13)",
-            ),
-        ),
+        pytest.param("ts", marks=_skip_ts_ir),
     ],
 )
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
