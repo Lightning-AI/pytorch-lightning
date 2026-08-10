@@ -118,6 +118,13 @@ class CUDAAccelerator(Accelerator):
             description=cls.__name__,
         )
 
+    @classmethod
+    @override
+    def device_name(cls, device: Optional[_DEVICE] = None) -> str:
+        if not cls.is_available():
+            return ""
+        return torch.cuda.get_device_name(device)
+
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
