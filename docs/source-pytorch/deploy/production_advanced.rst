@@ -59,6 +59,13 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
     ort_inputs = {input_name: np.random.randn(1, 64)}
     ort_outs = ort_session.run(None, ort_inputs)
 
+If you want to catch a malformed export early, pass ``input_check=True`` to run
+``onnx.checker.check_model`` on the saved file before you ever hand it off to a runtime:
+
+.. code-block:: python
+
+    model.to_onnx(filepath, input_sample, input_check=True)
+
 ----
 
 ****************************
