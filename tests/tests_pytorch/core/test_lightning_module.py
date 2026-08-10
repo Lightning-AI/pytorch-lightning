@@ -101,6 +101,11 @@ def test_property_loggers(tmp_path):
     model.trainer = trainer
     assert model.loggers == [logger0, logger1]
 
+    logger = TensorBoardLogger(tmp_path)
+    trainer = Trainer(logger={"tb": logger})
+    model.trainer = trainer
+    assert model.loggers["tb"] == logger
+
 
 def test_1_optimizer_toggle_model():
     """Test toggle_model runs when only one optimizer is used."""
