@@ -15,11 +15,9 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from typing import Any, Optional, Union
 
-import torch
 from lightning_utilities import WarningCache
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
@@ -247,31 +245,28 @@ class _PredictionLoop(_Loop):
         self.batch_progress.increment_started()
 
         # configure step_kwargs
-        step_args = (
-            self._build_step_args_from_hook_kwargs(hook_kwargs, "predict_step")
-            if not using_dataloader_iter
-            else (dataloader_iter,)
-        )
-        predictions = call._call_strategy_hook(trainer, "predict_step", *step_args)
-        if predictions is None:
-            self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
+        step_args = self._build_step_args_from_hook_kwargs(hook_kwargs, "predict_step")
+        step_output = call._call_lightning_module_hook(trainer, "predict_step", *step_args)
 
         self.batch_progress.increment_processed()
 
-        if using_dataloader_iter:
-            # update the hook kwargs now that the step method might have consumed the iterator
-            batch = data_fetcher._batch
-            batch_idx = data_fetcher._batch_idx
-            dataloader_idx = data_fetcher._dataloader_idx
-            hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+        # track batch indices for prediction writer
+        if not using_dataloader_iter and any_on_epoch:
+            self.current_batch_indices = self._get_batch_indices(data_fetcher.current_dataloader)
 
-        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
-        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
+        # track predictions if needed
+        if self.return_predictions:
+            self._predictions[dataloader_idx].append(step_output)
+        else:
+            # Clear memory if not returning predictions
+            import gc
+
+            gc.collect()
+
+        call._call_callback_hooks(trainer, "on_predict_batch_end", step_output, *hook_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_end", step_output, *hook_kwargs.values())
 
         self.batch_progress.increment_completed()
-
-        if self._return_predictions or any_on_epoch:
-            self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Assembles the keyword arguments for the ``predict_step``
