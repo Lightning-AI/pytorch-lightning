@@ -29,7 +29,6 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
@@ -406,16 +405,9 @@ class PyTorchProfiler(Profiler):
         activities: list[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
-        if _TORCH_GREATER_EQUAL_2_4:
-            activities.append(ProfilerActivity.CPU)
-            if is_cuda_available():
-                activities.append(ProfilerActivity.CUDA)
-        else:
-            # `use_cpu` and `use_cuda` are deprecated in PyTorch >= 2.4
-            if self._profiler_kwargs.get("use_cpu", True):
-                activities.append(ProfilerActivity.CPU)
-            if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
-                activities.append(ProfilerActivity.CUDA)
+        activities.append(ProfilerActivity.CPU)
+        if is_cuda_available():
+            activities.append(ProfilerActivity.CUDA)
         return activities
 
     @override

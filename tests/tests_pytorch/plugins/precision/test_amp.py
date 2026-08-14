@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_11
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -45,15 +46,31 @@ def test_clip_gradients():
     precision.clip_grad_by_norm.assert_called_once()
 
 
-def test_optimizer_amp_scaling_support_in_step_method():
-    """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
-    gradient clipping (example: fused Adam)."""
+@pytest.mark.parametrize(
+    ("precision", "scaler", "should_error"),
+    [
+        ("16-mixed", Mock(), True),  # fp16 with scaler: fused optimizer + clip = error
+        ("bf16-mixed", None, False),  # bf16 no scaler: fused optimizer + clip = ok
+    ],
+)
+def test_optimizer_amp_scaling_support_in_step_method(precision, scaler, should_error):
+    """Test that gradient clipping with fused optimizers is only blocked when a scaler is present.
 
+    The `_step_supports_amp_scaling` flag indicates the optimizer handles unscaling internally (e.g., fused Adam).
+    This is incompatible with gradient clipping only when using a GradScaler (16-mixed), since we can't unscale
+    before clipping. With bf16-mixed there's no scaler, so gradient clipping works normally.
+
+    """
     optimizer = Mock(_step_supports_amp_scaling=True)
-    precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
+    plugin = MixedPrecision(precision=precision, device="cuda:0", scaler=scaler)
+    plugin.clip_grad_by_norm = Mock()
 
-    with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
-        precision.clip_gradients(optimizer, clip_val=1.0)
+    if should_error:
+        with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
+            plugin.clip_gradients(optimizer, clip_val=1.0)
+    else:
+        plugin.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM)
+        plugin.clip_grad_by_norm.assert_called_once()
 
 
 def test_amp_with_no_grad():
@@ -103,6 +120,10 @@ def test_amp_forward_context_restores_grad_mode_context_managers():
 @pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
 def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
     """Document the underlying PyTorch autocast behavior that this plugin needs to handle."""
+    # PyTorch 2.11 fixed the bug where the autocast cache retained the `no_grad` state correctly.
+    # See: https://github.com/pytorch/pytorch/pull/165068
+    if cache_enabled and _TORCH_GREATER_EQUAL_2_11:
+        expect_grad = True
     layer = nn.Linear(2, 1)
     x = torch.randn(1, 2)
 
@@ -124,6 +145,10 @@ def test_torch_autocast_cache_behavior_with_no_grad(cache_enabled, expect_grad):
 @pytest.mark.parametrize(("cache_enabled", "expect_grad"), [(True, False), (False, True)])
 def test_torch_autocast_cache_behavior_with_no_grad_cuda(cache_enabled, expect_grad):
     """Document the same autocast cache behavior on CUDA, where the reported regression happens."""
+    # PyTorch 2.11 fixed the bug where the autocast cache retained the `no_grad` state correctly.
+    # See: https://github.com/pytorch/pytorch/pull/165068
+    if cache_enabled and _TORCH_GREATER_EQUAL_2_11:
+        expect_grad = True
     layer = nn.Linear(2, 1, device="cuda")
     x = torch.randn(1, 2, device="cuda")
 
