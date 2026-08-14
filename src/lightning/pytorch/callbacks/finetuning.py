@@ -117,10 +117,17 @@ class BaseFinetuning(Callback):
                 named_parameters = dict(pl_module.named_parameters())
                 for opt_idx, optimizer in enumerate(trainer.optimizers):
                     if opt_idx in self._internal_optimizer_metadata:
+                        # the groups the optimizer currently holds are the ones `configure_optimizers` just
+                        # created, so anything past them was added by unfreezing in the previous run
+                        num_initial_groups = len(optimizer.param_groups)
                         param_groups = self._apply_mapping_to_param_groups(
                             self._internal_optimizer_metadata[opt_idx], named_parameters
                         )
                         optimizer.param_groups = param_groups
+                        # `setup()` has re-applied `freeze_before_training()`, which froze those modules again
+                        for group in param_groups[num_initial_groups:]:
+                            for param in group["params"]:
+                                param.requires_grad = True
             self._restarting = False
 
     @staticmethod

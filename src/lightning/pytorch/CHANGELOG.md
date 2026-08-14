@@ -51,6 +51,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
 
+- Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
+
 ---
 
 ## [2.6.4] - 2026-05-20
