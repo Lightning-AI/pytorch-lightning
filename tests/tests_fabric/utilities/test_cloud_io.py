@@ -171,6 +171,7 @@ def test_atomic_save_reraises_non_cross_device_permission_error(tmp_path):
     catch `PermissionError` to special-case cross-device (`EXDEV`) renames, but any other `PermissionError` (e.g.
     writing into a read-only directory) was silently discarded, making `_atomic_save` return normally without
     ever having written a checkpoint.
+
     """
     checkpoint = {"key": torch.tensor([1, 2, 3])}
     filepath = tmp_path / "checkpoint.ckpt"
