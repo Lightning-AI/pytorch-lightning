@@ -164,6 +164,24 @@ def test_atomic_save_uses_write_for_local(tmp_path):
     torch.testing.assert_close(loaded["key"], checkpoint["key"])
 
 
+def test_atomic_save_reraises_non_cross_device_permission_error(tmp_path):
+    """A PermissionError that isn't caused by a cross-device rename must propagate instead of being swallowed.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21800: `_atomic_save` used to
+    catch `PermissionError` to special-case cross-device (`EXDEV`) renames, but any other `PermissionError` (e.g.
+    writing into a read-only directory) was silently discarded, making `_atomic_save` return normally without
+    ever having written a checkpoint.
+    """
+    checkpoint = {"key": torch.tensor([1, 2, 3])}
+    filepath = tmp_path / "checkpoint.ckpt"
+
+    with (
+        mock.patch("lightning.fabric.utilities.cloud_io.torch.save", side_effect=PermissionError("denied")),
+        pytest.raises(PermissionError, match="denied"),
+    ):
+        _atomic_save(checkpoint, filepath)
+
+
 def test_resolve_path_local_vs_remote(tmp_path):
     resolved = _resolve_path(str(tmp_path / "ckpt"))
     assert isinstance(resolved, Path)
