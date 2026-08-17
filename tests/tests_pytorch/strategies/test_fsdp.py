@@ -754,11 +754,23 @@ def test_configure_model(precision, expected_dtype, tmp_path):
     trainer.fit(model)
 
 
-def test_save_checkpoint_storage_options(tmp_path):
-    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
-    strategy = FSDPStrategy()
-    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
-        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.pytorch.strategies.fsdp._atomic_save")
+@mock.patch("lightning.pytorch.strategies.fsdp._distributed_checkpoint_save")
+def test_save_checkpoint_storage_options(dcp_save_mock, atomic_save_mock, tmp_path):
+    """Test that the FSDP strategy forwards storage options for saving checkpoints."""
+    strategy = FSDPStrategy(state_dict_type="sharded", storage_options={"thread_count": 4})
+    checkpoint = {"state_dict": {}, "optimizer_states": []}
+    strategy.save_checkpoint(filepath=tmp_path, checkpoint=checkpoint)
+    dcp_save_mock.assert_called_once_with({"model": {}}, tmp_path, storage_options={"thread_count": 4})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 4})
+
+    dcp_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
+    checkpoint = {"state_dict": {}, "optimizer_states": []}
+    strategy.save_checkpoint(filepath=tmp_path, checkpoint=checkpoint, storage_options={"thread_count": 8})
+    dcp_save_mock.assert_called_once_with({"model": {}}, tmp_path, storage_options={"thread_count": 8})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 8})
 
 
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)

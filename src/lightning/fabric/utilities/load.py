@@ -241,7 +241,9 @@ def _move_state_into(
             destination[key] = state
 
 
-def _load_distributed_checkpoint(checkpoint_folder: _PATH) -> dict[str, Any]:
+def _load_distributed_checkpoint(
+    checkpoint_folder: _PATH, storage_options: Optional[dict[str, Any]] = None
+) -> dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory. Supports checkpoints stored on
@@ -254,15 +256,17 @@ def _load_distributed_checkpoint(checkpoint_folder: _PATH) -> dict[str, Any]:
     checkpoint: dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
-        storage_reader=_get_distributed_checkpoint_reader(checkpoint_folder),
+        storage_reader=_get_distributed_checkpoint_reader(checkpoint_folder, **(storage_options or {})),
         planner=_EmptyStateDictLoadPlanner(),
         no_dist=True,
     )
 
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
     extra_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
-    fs = get_filesystem(checkpoint_folder)
-    extra = _load(extra_file, map_location="cpu") if fs.isfile(str(extra_file)) else {}
+    fs = get_filesystem(checkpoint_folder, **(storage_options or {}))
+    extra = (
+        _load(extra_file, map_location="cpu", storage_options=storage_options) if fs.isfile(str(extra_file)) else {}
+    )
     checkpoint.update(extra)
 
     return checkpoint

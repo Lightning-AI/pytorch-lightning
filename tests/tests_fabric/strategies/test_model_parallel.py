@@ -133,13 +133,24 @@ def test_no_backward_sync():
 
 
 @RunIf(min_torch="2.4")
-def test_save_checkpoint_storage_options(tmp_path):
-    """Test that the strategy does not accept storage options for saving checkpoints."""
-    strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m))
-    with pytest.raises(
-        TypeError, match=escape("ModelParallelStrategy.save_checkpoint(..., storage_options=...)` is not")
-    ):
-        strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
+@mock.patch("lightning.fabric.strategies.model_parallel.ModelParallelStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True)
+@mock.patch("torch.distributed.checkpoint.state_dict.get_model_state_dict", return_value={})
+@mock.patch("lightning.fabric.strategies.model_parallel._atomic_save")
+@mock.patch("lightning.fabric.strategies.model_parallel._distributed_checkpoint_save")
+def test_save_checkpoint_storage_options(dcp_save_mock, atomic_save_mock, _, __, tmp_path):
+    """Test that the ModelParallel strategy forwards storage options for saving checkpoints."""
+    model = Mock(spec=torch.nn.Module)
+    strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m), storage_options={"thread_count": 4})
+    strategy.save_checkpoint(path=tmp_path, state={"model": model})
+    dcp_save_mock.assert_called_once_with({"model": {}}, tmp_path, storage_options={"thread_count": 4})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 4})
+
+    dcp_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
+    strategy.save_checkpoint(path=tmp_path, state={"model": model}, storage_options={"thread_count": 8})
+    dcp_save_mock.assert_called_once_with({"model": {}}, tmp_path, storage_options={"thread_count": 8})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 8})
 
 
 @RunIf(min_torch="2.4")

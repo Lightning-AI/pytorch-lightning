@@ -240,11 +240,25 @@ def test_grad_clipping_norm_error():
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
 
 
-def test_save_checkpoint_storage_options(tmp_path):
-    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
-    strategy = FSDPStrategy()
-    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
-        strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp._atomic_save")
+@mock.patch("lightning.fabric.strategies.fsdp._distributed_checkpoint_save")
+def test_save_checkpoint_storage_options(dcp_save_mock, atomic_save_mock, _, tmp_path):
+    """Test that the FSDP strategy forwards storage options for saving checkpoints."""
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+
+    strategy = FSDPStrategy(state_dict_type="sharded", storage_options={"thread_count": 4})
+    strategy.save_checkpoint(path=tmp_path, state={"model": model})
+    dcp_save_mock.assert_called_once_with({"model": model.state_dict()}, tmp_path, storage_options={"thread_count": 4})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 4})
+
+    dcp_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
+    strategy.save_checkpoint(path=tmp_path, state={"model": model}, storage_options={"thread_count": 8})
+    dcp_save_mock.assert_called_once_with({"model": model.state_dict()}, tmp_path, storage_options={"thread_count": 8})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 8})
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
@@ -539,12 +553,16 @@ def test_distributed_checkpoint_reader_writer_selection(tmp_path):
         _get_distributed_checkpoint_writer,
     )
 
-    assert isinstance(_get_distributed_checkpoint_writer(str(tmp_path)), FileSystemWriter)
+    writer = _get_distributed_checkpoint_writer(str(tmp_path), thread_count=4)
+    assert isinstance(writer, FileSystemWriter)
+    assert writer.thread_count == 4
     assert isinstance(_get_distributed_checkpoint_reader(str(tmp_path)), FileSystemReader)
 
     from torch.distributed.checkpoint._fsspec_filesystem import FsspecReader, FsspecWriter
 
-    assert isinstance(_get_distributed_checkpoint_writer("memory:///w/ckpt"), FsspecWriter)
+    writer_remote = _get_distributed_checkpoint_writer("memory:///w/ckpt", thread_count=6)
+    assert isinstance(writer_remote, FsspecWriter)
+    assert writer_remote.thread_count == 6
     assert isinstance(_get_distributed_checkpoint_reader("memory:///w/ckpt"), FsspecReader)
 
 

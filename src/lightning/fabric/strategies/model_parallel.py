@@ -101,6 +101,7 @@ class ModelParallelStrategy(ParallelStrategy):
         save_distributed_checkpoint: bool = True,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__()
         self._parallelize_fn = parallelize_fn
@@ -111,6 +112,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _ParallelBackwardSyncControl()
+        self._storage_options = storage_options
 
         self._device_mesh: Optional[DeviceMesh] = None
 
@@ -253,17 +255,13 @@ class ModelParallelStrategy(ParallelStrategy):
         written to a single file containing the weights, optimizer state and other metadata.
 
         """
-        if storage_options is not None:
-            raise TypeError(
-                f"`{type(self).__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
-                f" `{type(self).__name__}` does not use the `CheckpointIO`."
-            )
         if filter is not None and self._save_distributed_checkpoint:
             # https://github.com/pytorch/pytorch/issues/105379
             raise NotImplementedError(
                 f"{type(self).__name__} doesn't support loading distributed filtered checkpoints,"
                 " so saving them is disabled."
             )
+        opts = storage_options if storage_options is not None else self._storage_options
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = _resolve_path(self.broadcast(path))
         _save_checkpoint(
@@ -272,6 +270,7 @@ class ModelParallelStrategy(ParallelStrategy):
             full_state_dict=(not self._save_distributed_checkpoint),
             rank=self.global_rank,
             filter=filter,
+            storage_options=opts,
         )
 
     @override
@@ -281,6 +280,7 @@ class ModelParallelStrategy(ParallelStrategy):
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -289,6 +289,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 " a model instance to reload is required. Pass it in like so:"
                 f" {type(self).__name__}.load_checkpoint(..., state={{'model': model, ...}})"
             )
+        opts = storage_options if storage_options is not None else self._storage_options
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = _resolve_path(self.broadcast(path))
 
@@ -359,6 +360,7 @@ def _save_checkpoint(
     full_state_dict: bool,
     rank: int,
     filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
 ) -> None:
     if _is_checkpoint_dir(path) and full_state_dict and not _is_sharded_checkpoint(path):
         raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
@@ -399,17 +401,19 @@ def _save_checkpoint(
             target_dict = metadata
         _apply_filter(key, filter or {}, converted, target_dict)
 
+    save_kwargs = {"storage_options": storage_options} if storage_options is not None else {}
+
     if full_state_dict:
         if _is_sharded_checkpoint(path):
             _remove_checkpoint(path)
         converted_state.update(metadata)
         if rank == 0:
-            _atomic_save(converted_state, path)
+            _atomic_save(converted_state, path, **save_kwargs)
     else:
         _prepare_directory_checkpoint(path)
-        _distributed_checkpoint_save(converted_state, path)
+        _distributed_checkpoint_save(converted_state, path, **save_kwargs)
         if rank == 0:
-            _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME))
+            _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME), **save_kwargs)
 
 
 def _load_checkpoint(
@@ -418,6 +422,7 @@ def _load_checkpoint(
     strict: bool = True,
     optimizer_states_from_list: bool = False,
     weights_only: Optional[bool] = None,
+    storage_options: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,
@@ -442,23 +447,26 @@ def _load_checkpoint(
         )
     module_key, module = list(modules.items())[0]
 
+    load_kwargs = {"storage_options": storage_options} if storage_options is not None else {}
+
     if _is_sharded_checkpoint(path):
         state_dict_options = StateDictOptions(cpu_offload=True)
 
         module_state = {module_key: get_model_state_dict(module)}
-        _distributed_checkpoint_load(module_state, path)
+        _distributed_checkpoint_load(module_state, path, **load_kwargs)
         module.load_state_dict(module_state[module_key], strict=strict)
 
         # the optimizer states must be loaded separately
         for optim_key, optim in optimizers.items():
             optim_state = {optim_key: get_optimizer_state_dict(module, optim)}
-            _distributed_checkpoint_load(optim_state, path)
+            _distributed_checkpoint_load(optim_state, path, **load_kwargs)
             set_optimizer_state_dict(module, optim, optim_state_dict=optim_state[optim_key], options=state_dict_options)
 
         # Load metadata (anything not a module or optimizer)
         metadata = _load(
             _checkpoint_join(path, _METADATA_FILENAME),
             weights_only=False if weights_only is None else weights_only,
+            **load_kwargs,
         )
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
@@ -475,7 +483,7 @@ def _load_checkpoint(
         if _is_local_file_protocol(str(path)):
             checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
         else:
-            checkpoint = _load(path, map_location="cpu", weights_only=weights_only)
+            checkpoint = _load(path, map_location="cpu", weights_only=weights_only, **load_kwargs)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(
