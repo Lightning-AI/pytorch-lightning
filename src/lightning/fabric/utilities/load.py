@@ -264,9 +264,7 @@ def _load_distributed_checkpoint(
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
     extra_file = _checkpoint_join(checkpoint_folder, _METADATA_FILENAME)
     fs = get_filesystem(checkpoint_folder, **(storage_options or {}))
-    extra = (
-        _load(extra_file, map_location="cpu", storage_options=storage_options) if fs.isfile(str(extra_file)) else {}
-    )
+    extra = _load(extra_file, map_location="cpu", storage_options=storage_options) if fs.isfile(str(extra_file)) else {}
     checkpoint.update(extra)
 
     return checkpoint

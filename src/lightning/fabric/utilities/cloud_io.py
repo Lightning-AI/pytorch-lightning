@@ -86,9 +86,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(
-    checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[dict[str, Any]] = None
-) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[dict[str, Any]] = None) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:

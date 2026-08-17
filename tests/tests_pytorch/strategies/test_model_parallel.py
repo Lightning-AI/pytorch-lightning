@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from datetime import timedelta
-from re import escape
 from unittest import mock
 from unittest.mock import Mock
 

@@ -289,7 +289,6 @@ class ModelParallelStrategy(ParallelStrategy):
                 " a model instance to reload is required. Pass it in like so:"
                 f" {type(self).__name__}.load_checkpoint(..., state={{'model': model, ...}})"
             )
-        opts = storage_options if storage_options is not None else self._storage_options
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = _resolve_path(self.broadcast(path))
 
