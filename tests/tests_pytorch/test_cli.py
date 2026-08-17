@@ -15,6 +15,7 @@ import glob
 import inspect
 import json
 import os
+import warnings
 from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -31,10 +32,12 @@ from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
+import lightning.pytorch.cli as cli_module
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.cli import (
+    _JSONARGPARSE_GREATER_EQUAL_4_50,
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     LightningArgumentParser,
     LightningCLI,
@@ -136,7 +139,7 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
         save_callback[0].on_train_start(trainer, model)
 
     def on_train_start(callback, trainer, _):
-        config_dump = callback.parser.dump(callback.config, skip_none=False)
+        config_dump = callback.parser.dump(callback.config, **cli_module._KEEP_NONE_KWARGS)
         for k, v in expected_model.items():
             assert f"  {k}: {v}" in config_dump
         for k, v in expected_trainer.items():
@@ -1976,3 +1979,23 @@ def test_lightning_cli_callback_trainer_default(cleandir):
             run=False,
         )
     assert any(isinstance(c, ModelCheckpoint) for c in cli.trainer.callbacks)
+
+
+@pytest.mark.skipif(not _JSONARGPARSE_GREATER_EQUAL_4_50, reason="deprecated APIs still current before 4.50")
+def test_cli_no_jsonargparse_deprecation_warnings(cleandir):
+    """The CLI must not use jsonargparse APIs that are deprecated and slated for removal in its v5.0."""
+    cli_args = ["--trainer.logger=false", "--trainer.max_epochs=1"]
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with mock.patch("sys.argv", ["any.py"] + cli_args):
+            cli = LightningCLI(BoringModel, run=False)
+        cli.trainer.fit(cli.model)
+
+    # the warnings are reported against the caller, so they point back at `lightning/pytorch/cli.py`
+    deprecations = [
+        f"{w.filename}:{w.lineno}: {w.message}"
+        for w in caught
+        if issubclass(w.category, DeprecationWarning) and w.filename == cli_module.__file__
+    ]
+    assert not deprecations

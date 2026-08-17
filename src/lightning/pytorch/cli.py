@@ -14,6 +14,7 @@
 import inspect
 import os
 import sys
+import warnings
 from collections.abc import Iterable
 from functools import partial, update_wrapper
 from pathlib import Path
@@ -37,6 +38,11 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[jsonnet,signatures]>=4.39")
+# 4.49 deprecated `ArgumentParser.instantiate_classes` in favor of `ArgumentParser.instantiate`, and 4.50 the
+# `skip_none` argument of `dump`/`save` in favor of `skip_unset`. Only the later one is gated on: `instantiate` does
+# exist in 4.49, but `skip_unset` does not, and since `dump`/`save` accept `**kwargs` passing it to 4.49 would be
+# silently ignored, dropping `None` entries from the saved config.
+_JSONARGPARSE_GREATER_EQUAL_4_50 = RequirementCache("jsonargparse>=4.50.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -63,6 +69,19 @@ else:
     locals()["Namespace"] = object
 
 ModuleType = TypeVar("ModuleType")
+
+# `skip_none` and `skip_unset` both mean "drop entries whose value is the unset sentinel", which defaults to `None`
+if _JSONARGPARSE_GREATER_EQUAL_4_50:
+    _KEEP_NONE_KWARGS: dict[str, bool] = {"skip_unset": False}
+else:
+    _KEEP_NONE_KWARGS = {"skip_none": False}
+
+
+def _instantiate(parser: "ArgumentParser", cfg: "Namespace") -> "Namespace":
+    """Instantiate the classes of a parsed config, using the API available in the installed jsonargparse."""
+    if _JSONARGPARSE_GREATER_EQUAL_4_50:
+        return parser.instantiate(cfg)
+    return parser.instantiate_classes(cfg)
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -288,7 +307,11 @@ class SaveConfigCallback(Callback):
                 # but it hasn't logged anything at this point
                 fs.makedirs(log_dir, exist_ok=True)
                 self.parser.save(
-                    self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
+                    self.config,
+                    config_path,
+                    overwrite=self.overwrite,
+                    multifile=self.multifile,
+                    **_KEEP_NONE_KWARGS,
                 )
 
         if trainer.is_global_zero:
@@ -587,29 +610,39 @@ class LightningCLI:
         if hasattr(self, "config_dump"):
             return
         self.config_dump = yaml.safe_load(
-            self.parser.dump(self.config, skip_link_targets=False, skip_none=False, format="yaml")
+            self.parser.dump(self.config, skip_link_targets=False, format="yaml", **_KEEP_NONE_KWARGS)
         )
         if "subcommand" in self.config:
             self.config_dump = self.config_dump[self.config.subcommand]
 
     def _add_instantiators(self) -> None:
-        self.parser.add_instantiator(
-            _InstantiatorFn(cli=self, key="model"),
-            _get_module_type(self._model_class),
-            subclasses=self.subclass_mode_model,
-        )
-        self.parser.add_instantiator(
-            _InstantiatorFn(cli=self, key="data"),
-            _get_module_type(self._datamodule_class),
-            subclasses=self.subclass_mode_data,
-        )
+        # jsonargparse 4.49 deprecated `ArgumentParser.add_instantiator` in favor of the global
+        # `jsonargparse.add_instantiator`, which is deliberately not used here: it registers the instantiator
+        # process-wide instead of on `self.parser`, so it would leak into every other parser in the process, including
+        # the ones of separate `LightningCLI` instances. Since there is no non-deprecated way to keep the per-parser
+        # scoping, the warning is silenced instead.
+        # TODO: revisit for jsonargparse v5.0, which removes the parser-scoped method
+        # the filter is by category rather than by message because jsonargparse emits a separate one-time banner
+        # warning alongside the deprecation itself
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self.parser.add_instantiator(
+                _InstantiatorFn(cli=self, key="model"),
+                _get_module_type(self._model_class),
+                subclasses=self.subclass_mode_model,
+            )
+            self.parser.add_instantiator(
+                _InstantiatorFn(cli=self, key="data"),
+                _get_module_type(self._datamodule_class),
+                subclasses=self.subclass_mode_data,
+            )
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
-        self.config_init = self.parser.instantiate_classes(self.config)
+        self.config_init = _instantiate(self.parser, self.config)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
         self._add_configure_optimizers_method_to_model(self.subcommand)
@@ -901,5 +934,5 @@ def instantiate_module(class_type: type[ModuleType], config: dict[str, Any]) -> 
     else:
         parser.add_class_arguments(class_type, "module", fail_untyped=False)
     cfg = parser.parse_object({"module": config})
-    init = parser.instantiate_classes(cfg)
+    init = _instantiate(parser, cfg)
     return init.module
