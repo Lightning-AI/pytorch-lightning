@@ -38,10 +38,9 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[jsonnet,signatures]>=4.39")
-# 4.49 deprecated `ArgumentParser.instantiate_classes` in favor of `ArgumentParser.instantiate`, and 4.50 the
-# `skip_none` argument of `dump`/`save` in favor of `skip_unset`. Only the later one is gated on: `instantiate` does
-# exist in 4.49, but `skip_unset` does not, and since `dump`/`save` accept `**kwargs` passing it to 4.49 would be
-# silently ignored, dropping `None` entries from the saved config.
+# 4.50 deprecated `ArgumentParser.instantiate_classes` in favor of `instantiate`, and the `skip_none` argument of
+# `dump`/`save` in favor of `skip_unset`. A single gate covers both: `instantiate` already exists in 4.49, while
+# `skip_unset` does not and would be silently swallowed by `**kwargs` there.
 _JSONARGPARSE_GREATER_EQUAL_4_50 = RequirementCache("jsonargparse>=4.50.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
@@ -70,15 +69,11 @@ else:
 
 ModuleType = TypeVar("ModuleType")
 
-# `skip_none` and `skip_unset` both mean "drop entries whose value is the unset sentinel", which defaults to `None`
-if _JSONARGPARSE_GREATER_EQUAL_4_50:
-    _KEEP_NONE_KWARGS: dict[str, bool] = {"skip_unset": False}
-else:
-    _KEEP_NONE_KWARGS = {"skip_none": False}
+# both flags mean "drop entries whose value is unset", which for these parsers is `None`
+_KEEP_NONE_KWARGS: dict[str, bool] = {"skip_unset": False} if _JSONARGPARSE_GREATER_EQUAL_4_50 else {"skip_none": False}
 
 
 def _instantiate(parser: "ArgumentParser", cfg: "Namespace") -> "Namespace":
-    """Instantiate the classes of a parsed config, using the API available in the installed jsonargparse."""
     if _JSONARGPARSE_GREATER_EQUAL_4_50:
         return parser.instantiate(cfg)
     return parser.instantiate_classes(cfg)
@@ -616,15 +611,11 @@ class LightningCLI:
             self.config_dump = self.config_dump[self.config.subcommand]
 
     def _add_instantiators(self) -> None:
-        # jsonargparse 4.49 deprecated `ArgumentParser.add_instantiator` in favor of the global
-        # `jsonargparse.add_instantiator`, which is deliberately not used here: it registers the instantiator
-        # process-wide instead of on `self.parser`, so it would leak into every other parser in the process, including
-        # the ones of separate `LightningCLI` instances. Since there is no non-deprecated way to keep the per-parser
-        # scoping, the warning is silenced instead.
-        # TODO: revisit for jsonargparse v5.0, which removes the parser-scoped method
-        # the filter is by category rather than by message because jsonargparse emits a separate one-time banner
-        # warning alongside the deprecation itself
+        # the global `jsonargparse.add_instantiator` replacing this deprecated method registers process-wide, leaking
+        # into the parsers of every other `LightningCLI`, so the per-parser method is kept and its warning silenced
+        # TODO: revisit for jsonargparse v5.0, which removes the per-parser method
         with warnings.catch_warnings():
+            # by category, since jsonargparse pairs the deprecation with a separate one-time banner warning
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             self.parser.add_instantiator(
                 _InstantiatorFn(cli=self, key="model"),
