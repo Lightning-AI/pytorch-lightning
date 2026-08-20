@@ -317,7 +317,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> di
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        hparams = yaml.full_load(fp)
+        hparams: Any = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE and use_omegaconf:
         from omegaconf import OmegaConf
