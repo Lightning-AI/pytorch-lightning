@@ -18,6 +18,7 @@ import csv
 import inspect
 import logging
 import os
+import sys
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
@@ -162,11 +163,18 @@ def _load_state(
     instantiator = None
     instantiator_path = _cls_kwargs.pop("_instantiator", None)
     if instantiator_path is not None:
-        if instantiator_path not in _ALLOWED_INSTANTIATORS:
+        if not isinstance(instantiator_path, str) or instantiator_path not in _ALLOWED_INSTANTIATORS:
             raise ValueError(
                 f"The instantiator {instantiator_path!r} from the checkpoint is not in the allowlist of trusted"
                 " instantiators and was blocked to prevent arbitrary code execution. If you trust this checkpoint,"
                 " add the path to `lightning.pytorch.core.saving._ALLOWED_INSTANTIATORS` before loading."
+            )
+        class_path = _cls_kwargs.get("_class_path")
+        if class_path is not None and not _is_imported_subclass(class_path, cls):
+            raise ValueError(
+                f"The class {class_path!r} requested by the checkpoint does not resolve to an already imported"
+                f" subclass of {cls.__name__} and was blocked to prevent arbitrary code execution. If you trust this"
+                " checkpoint, import the module that defines the class before loading."
             )
         module_path, name = instantiator_path.rsplit(".", 1)
         instantiator = getattr(__import__(module_path, fromlist=[name]), name)
@@ -210,6 +218,15 @@ def _load_state(
             )
 
     return obj
+
+
+def _is_imported_subclass(class_path: Any, cls: type) -> bool:
+    """Resolve a class path from a checkpoint without importing anything, so that loading cannot execute new code."""
+    if not isinstance(class_path, str):
+        return False
+    module_path, _, name = class_path.rpartition(".")
+    target = getattr(sys.modules.get(module_path), name, None)
+    return isinstance(target, type) and issubclass(target, cls)
 
 
 def _convert_loaded_hparams(
