@@ -678,6 +678,7 @@ def test_scale_batch_size_after_training_has_begun_runs_batches(tmp_path):
     state carries the batch position of the epoch in flight, so every trial used to be
     a no-op: nothing raised an OOM, the search kept doubling, and it returned a batch
     size the model cannot run.
+
     """
     model = BatchCountingModel(batch_size=2)
     finder = MidRunBatchSizeFinder(milestones=(1,), max_trials=2, batch_arg_name="batch_size", steps_per_trial=3)
