@@ -634,3 +634,69 @@ def test_scale_batch_size_max_trials_modes(tmp_path, max_trials, mode, init_val,
         init_val=init_val,
     )
     assert result == expected
+
+
+class BatchCountingModel(BoringModel):
+    """Records how many training batches actually ran, per epoch."""
+
+    def __init__(self, batch_size=2):
+        super().__init__()
+        self.batch_size = batch_size
+        self.steps_in_epoch = {}
+
+    def training_step(self, batch, batch_idx):
+        epoch = self.trainer.current_epoch
+        self.steps_in_epoch[epoch] = self.steps_in_epoch.get(epoch, 0) + 1
+        return super().training_step(batch, batch_idx)
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+
+class MidRunBatchSizeFinder(BatchSizeFinder):
+    """The milestone pattern the `BatchSizeFinder` docstring documents."""
+
+    def __init__(self, milestones, **kwargs):
+        super().__init__(**kwargs)
+        self.milestones = milestones
+        self.batches_run_during_search = []
+
+    def on_fit_start(self, *args, **kwargs):
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch in self.milestones:
+            before = sum(pl_module.steps_in_epoch.values())
+            self.scale_batch_size(trainer, pl_module)
+            self.batches_run_during_search.append(sum(pl_module.steps_in_epoch.values()) - before)
+
+
+def test_scale_batch_size_after_training_has_begun_runs_batches(tmp_path):
+    """A search started mid-run must still run batches in each trial.
+
+    `max_steps` is compared against the absolute `global_step`, and the restored loop
+    state carries the batch position of the epoch in flight, so every trial used to be
+    a no-op: nothing raised an OOM, the search kept doubling, and it returned a batch
+    size the model cannot run.
+    """
+    model = BatchCountingModel(batch_size=2)
+    finder = MidRunBatchSizeFinder(milestones=(1,), max_trials=2, batch_arg_name="batch_size", steps_per_trial=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        callbacks=[finder],
+        accelerator="cpu",
+        devices=1,
+    )
+    trainer.fit(model)
+
+    assert finder.batches_run_during_search, "the milestone search never ran"
+    assert finder.batches_run_during_search[0] > 0, (
+        "scale_batch_size ran no training batches across its trials, so the search "
+        "cannot observe an OOM and will return an unusable batch size"
+    )
