@@ -221,7 +221,11 @@ def _load_state(
 
 
 def _is_imported_subclass(class_path: Any, cls: type) -> bool:
-    """Resolve a class path from a checkpoint without importing anything, so that loading cannot execute new code."""
+    """Check whether ``class_path`` names an already imported subclass of ``cls``.
+
+    Resolution reads ``sys.modules`` only, so validating a checkpoint never imports new code.
+
+    """
     if not isinstance(class_path, str):
         return False
     module_path, _, name = class_path.rpartition(".")

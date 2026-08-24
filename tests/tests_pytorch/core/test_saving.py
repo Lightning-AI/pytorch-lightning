@@ -186,7 +186,6 @@ def test_load_from_checkpoint_allows_lightning_instantiator(tmp_path, monkeypatc
     ckpt_path = tmp_path / "checkpoint.ckpt"
     torch.save(checkpoint, ckpt_path)
 
-    # the allowlisted path resolves without raising and the instantiator is used to build the model
     model = BoringModel.load_from_checkpoint(ckpt_path, strict=False)
     assert isinstance(model, BoringModel)
     instantiator.assert_called_once()
