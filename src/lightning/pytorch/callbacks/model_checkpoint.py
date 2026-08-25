@@ -1009,19 +1009,24 @@ class ModelCheckpoint(Checkpoint):
 
         A checkpoint won't be deleted if any of the cases apply:
         - The previous checkpoint is the same as the current checkpoint (means the old was already overwritten by new)
-        - The previous checkpoint is not in the current checkpoint directory and the filesystem is local
-        - The previous checkpoint is the checkpoint the Trainer resumed from and the filesystem is local
+        - The previous checkpoint is not in the current checkpoint directory
+        - The previous checkpoint is the checkpoint the Trainer resumed from
 
         """
         if previous == current:
             return False
+        assert self.dirpath is not None
         if not _is_local_file_protocol(previous):
-            return True
+            previous_uri = previous.replace("\\", "/")
+            if trainer.ckpt_path is not None and previous_uri == str(trainer.ckpt_path).replace("\\", "/"):
+                return False
+            # the trailing separator keeps a sibling directory sharing our prefix (`.../run1` vs `.../run10`)
+            # from being mistaken for a directory inside `dirpath`
+            return previous_uri.startswith(str(self.dirpath).replace("\\", "/").rstrip("/") + "/")
         previous = Path(previous).absolute()
         resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
         if resume_path is not None and previous == resume_path:
             return False
-        assert self.dirpath is not None
         dirpath = Path(self.dirpath).absolute()
         return dirpath in previous.parents
 
