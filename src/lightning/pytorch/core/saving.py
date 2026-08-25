@@ -23,7 +23,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union, cast
 from warnings import warn
 
 import torch
@@ -345,7 +345,8 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> di
         from omegaconf.errors import UnsupportedValueType, ValidationError
 
         with contextlib.suppress(UnsupportedValueType, ValidationError):
-            return OmegaConf.create(hparams)
+            # OmegaConf containers are mapping-like but not `dict` subclasses
+            return cast("dict[str, Any]", OmegaConf.create(hparams))
     return hparams
 
 
