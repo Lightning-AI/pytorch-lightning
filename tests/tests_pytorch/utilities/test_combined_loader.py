@@ -85,6 +85,12 @@ def test_combined_loader_length_must_call_iter_first():
         len(loader)
 
 
+def test_combined_loader_max_size_cycle_with_empty_iterable():
+    loader = CombinedLoader([[], [1, 2, 3]], mode="max_size_cycle")
+
+    assert list(loader) == [([None, 1], 0, 0), ([None, 2], 1, 0), ([None, 3], 2, 0)]
+
+
 def test_combined_loader_modes_for_dict():
     """Test `CombinedLoaderIterator` given mapping iterables."""
     iterables = {
