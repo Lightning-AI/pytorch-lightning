@@ -42,7 +42,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from wandb import Artifact
-    from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
@@ -302,7 +301,7 @@ class WandbLogger(Logger):
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
         log_model: Union[Literal["all"], bool] = False,
-        experiment: Union["Run", "RunDisabled", None] = None,
+        experiment: Optional["Run"] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
         add_file_policy: Literal["mutable", "immutable"] = "mutable",
@@ -375,7 +374,7 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union["Run", "RunDisabled"]:
+    def experiment(self) -> "Run":
         r"""Actual wandb object. To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the
         following.
 
@@ -387,7 +386,6 @@ class WandbLogger(Logger):
 
         """
         import wandb
-        from wandb.sdk.lib import RunDisabled
         from wandb.wandb_run import Run
 
         if self._experiment is None:
@@ -410,7 +408,7 @@ class WandbLogger(Logger):
                 self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
-                if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
+                if isinstance(self._experiment, Run) and getattr(
                     self._experiment, "define_metric", None
                 ):
                     if self._wandb_init.get("sync_tensorboard"):
