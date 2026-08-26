@@ -6,8 +6,9 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
   contents: read
-  checks: write
+  checks: read
   statuses: write
 
 concurrency:
@@ -16,12 +17,11 @@ concurrency:
 
 jobs:
   required-jobs:
-    permissions: write-all
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     timeout-minutes: 71 # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@v5.5
+      - uses: Lightning-AI/probot@538b14402b2c6607e01e6e289be782797d34fdbf # v5.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
