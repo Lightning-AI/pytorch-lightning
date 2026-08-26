@@ -408,9 +408,7 @@ class WandbLogger(Logger):
                 self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
-                if isinstance(self._experiment, Run) and getattr(
-                    self._experiment, "define_metric", None
-                ):
+                if isinstance(self._experiment, Run) and getattr(self._experiment, "define_metric", None):
                     if self._wandb_init.get("sync_tensorboard"):
                         self._experiment.define_metric("*", step_metric="global_step")
                     else:
