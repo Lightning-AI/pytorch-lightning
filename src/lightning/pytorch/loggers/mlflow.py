@@ -109,6 +109,12 @@ class MLFlowLogger(Logger):
         ModuleNotFoundError:
             If required MLFlow package is not installed on the device.
 
+    Note:
+        MLFlowLogger will skip logging any metric (same name and step)
+        more than once per run, to prevent database unique constraint violations on
+        some MLflow backends (such as PostgreSQL). Only the first value for each (metric, step)
+        pair will be logged per run.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -151,6 +157,7 @@ class MLFlowLogger(Logger):
         from mlflow.tracking import MlflowClient
 
         self._mlflow_client = MlflowClient(tracking_uri)
+        self._logged_metrics: Set[Tuple[str, float]] = set()  # Track (key, step)
 
     @property
     @rank_zero_experiment
@@ -201,6 +208,7 @@ class MLFlowLogger(Logger):
             resolve_tags = _get_resolve_tags()
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
+            self._logged_metrics.clear()
         self._initialized = True
         return self._mlflow_client
 
@@ -266,6 +274,13 @@ class MLFlowLogger(Logger):
                     category=RuntimeWarning,
                 )
                 k = new_k
+
+            # Prevent trying to log duplicate metric value
+            metric_id = (k, step or 0)
+            if metric_id in self._logged_metrics:
+                continue
+            self._logged_metrics.add(metric_id)
+
             metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
         self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list, **self._log_batch_kwargs)
