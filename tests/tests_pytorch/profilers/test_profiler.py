@@ -23,7 +23,6 @@ import numpy as np
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -510,8 +509,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmp_path):
 
 def test_pytorch_profiler_nested(tmp_path):
     """Ensure that the profiler handles nested context."""
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": False}
-    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None, **kwargs)
+    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -556,14 +554,12 @@ def test_pytorch_profiler_multiple_loggers(tmp_path):
 
 def test_register_record_function(tmp_path):
     use_cuda = torch.cuda.is_available()
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": torch.cuda.is_available()}
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
         dirpath=tmp_path,
         filename="profiler",
         schedule=None,
         on_trace_ready=None,
-        **kwargs,
     )
 
     class TestModel(BoringModel):
@@ -731,3 +727,13 @@ def test_profiler_invalid_table_kwargs(tmp_path):
         with pytest.raises(KeyError) as exc_info:
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmp_path, filename="profile")
         assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
+
+
+def test_setup_train_dataloader_profiled_actions(tmp_path):
+    """Ensure that the 'setup_train_dataloader' action is successfully recorded in the profiler."""
+    profiler = SimpleProfiler(dirpath=tmp_path, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
+    trainer.fit(model)
+
+    assert "setup_train_dataloader" in profiler.recorded_durations
