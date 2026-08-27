@@ -55,6 +55,7 @@ def test_submodules_device_and_dtype(dst_device_str, dst_type):
     "dst_device_str",
     [
         "cpu",
+        "meta",
         pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps:0", marks=RunIf(mps=True)),
     ],
