@@ -29,11 +29,10 @@ Brief description of all our automation tools used for boosting development perf
 
 ## Documentation
 
-| workflow file                                                                   | action                                                                   |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| .github/workflows/docs-build.yml                                                | Run doctest, linkcheck and full HTML build.                              |
-| .github/workflows/ci-rtfd.yml                                                   | Append link to the PR description with temporaty ReadTheDocs build docs. |
-| .github/workflows/ci-check-md-links.yml <br> .github/markdown.links.config.json | Validate links in markdown files.                                        |
+| workflow file                    | action                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| .github/workflows/docs-build.yml | Run doctest, linkcheck and full HTML build.                              |
+| .github/workflows/ci-rtfd.yml    | Append link to the PR description with temporaty ReadTheDocs build docs. |
 
 ## Code Quality
 

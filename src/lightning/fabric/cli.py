@@ -17,13 +17,13 @@ import re
 from argparse import Namespace
 from typing import Any, Optional
 
-import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.utilities.cloud_io import _atomic_save
 from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids, _select_auto_accelerator
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
@@ -144,11 +144,11 @@ if _CLICK_AVAILABLE:
     )
     @click.argument(
         "checkpoint_folder",
-        type=click.Path(exists=True),
+        type=str,
     )
     @click.option(
         "--output_file",
-        type=click.Path(exists=True),
+        type=str,
         default=None,
         help=(
             "Path to the file where the converted checkpoint should be saved. The file should not already exist."
@@ -159,13 +159,14 @@ if _CLICK_AVAILABLE:
     def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
         """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
 
-        Only supports FSDP sharded checkpoints at the moment.
+        Only supports FSDP sharded checkpoints at the moment. Supports checkpoints stored on remote filesystems (e.g.
+        S3, GCS) through fsspec URLs.
 
         """
         args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
         config = _process_cli_args(args)
         checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-        torch.save(checkpoint, config.output_file)
+        _atomic_save(checkpoint, config.output_file)
 
 
 def _set_env_variables(args: Namespace) -> None:
