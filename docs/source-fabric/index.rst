@@ -223,6 +223,7 @@ Get Started
     Glossary <glossary/index>
     How-tos <guide/index>
     Style Guide <fundamentals/code_structure>
+    Versioning Policy <versioning>
 
 
 .. raw:: html

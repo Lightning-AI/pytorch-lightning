@@ -342,14 +342,15 @@ epub_exclude_files = ["search.html"]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
-    "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
-    # needed for referencing Fabric from lightning scope
-    "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
+    # NOTE: the Lightning docs (incl. TorchMetrics and Fabric) are no longer built with Sphinx,
+    #  so they do not publish an `objects.inv` for intersphinx to resolve against
+    # "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
+    # "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # "comet_ml": ("https://www.comet.com/docs/v2/", None),
     # "wandb": ("https://docs.wandb.ai//", None),
 }
@@ -385,6 +386,15 @@ nitpick_ignore = [
     ("py:class", "jsonargparse.core.ArgumentParser"),
     ("py:class", "jsonargparse.namespace.Namespace"),
     ("py:class", "transformer_engine.common.recipe.DelayedScaling"),
+    # these were resolved through the intersphinx inventories dropped above
+    ("py:class", "torchmetrics.Metric"),
+    ("py:class", "torchmetrics.metric.Metric"),
+    ("py:class", "torchmetrics.collections.MetricCollection"),
+    ("py:class", "lightning.fabric.accelerators.accelerator.Accelerator"),
+    ("py:class", "lightning.fabric.loggers.logger.Logger"),
+    ("py:class", "lightning.fabric.loggers.csv_logs.CSVLogger"),
+    ("py:class", "lightning.fabric.loggers.tensorboard.TensorBoardLogger"),
+    ("py:class", "lightning.fabric.plugins.precision.precision.Precision"),
     ("py:class", "lightning.fabric.accelerators.xla.XLAAccelerator"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),

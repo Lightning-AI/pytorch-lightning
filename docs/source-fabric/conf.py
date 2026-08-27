@@ -262,11 +262,13 @@ epub_exclude_files = ["search.html"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
-    "torch": ("https://pytorch.org/docs/stable/", None),
-    "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     "deepspeed": ("https://deepspeed.readthedocs.io/en/stable/", None),
-    "torch_xla": ("https://pytorch.org/xla/release/2.0/", None),
+    "torch_xla": ("https://docs.pytorch.org/xla/release/2.0/", None),
+    # NOTE: the Lightning docs are no longer built with Sphinx, so they do not publish an
+    #  `objects.inv` for intersphinx to resolve against
+    # "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
 }
 nitpicky = True
 
