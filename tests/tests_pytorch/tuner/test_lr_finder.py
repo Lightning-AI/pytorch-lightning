@@ -397,6 +397,20 @@ def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expec
             assert lr is not None
 
 
+def test_suggestion_with_skip_end_zero():
+    """`skip_end=0` asks for nothing to be skipped, so the last sample has to stay in the window."""
+    lr_finder = _LRFinder(mode="exponential", lr_min=1e-8, lr_max=1, num_training=100)
+    # the steepest drop is between the last two points, so it is only reachable when nothing is skipped
+    lr_finder.results = {"lr": [0.1, 0.2, 0.3, 0.4], "loss": [10.0, 9.0, 8.0, 1.0]}
+
+    assert lr_finder.suggestion(skip_begin=0, skip_end=0) == 0.4
+    assert lr_finder._optimal_idx == 3
+
+    # the default still drops the last sample
+    assert lr_finder.suggestion(skip_begin=0, skip_end=1) == 0.1
+    assert lr_finder._optimal_idx == 0
+
+
 def test_lr_attribute_when_suggestion_invalid(tmp_path):
     """Tests learning rate finder ends before `num_training` steps."""
 
