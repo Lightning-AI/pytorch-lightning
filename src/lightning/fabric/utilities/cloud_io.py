@@ -130,6 +130,9 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
             raise RuntimeError(
                 'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"',
             ) from e
+        # Any other PermissionError (e.g. writing to a read-only directory) must not be swallowed,
+        # otherwise training silently continues without ever having saved a checkpoint.
+        raise
 
 
 def _is_object_storage(fs: AbstractFileSystem) -> bool:
