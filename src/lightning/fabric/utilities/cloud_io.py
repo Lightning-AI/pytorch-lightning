@@ -13,11 +13,19 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 
+import concurrent.futures
 import errno
+import hashlib
 import importlib
 import io
 import logging
+import math
+import mmap
+import multiprocessing
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 from typing import IO, Any, Optional, Union
 
@@ -29,6 +37,45 @@ from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+
+try:
+    from filelock import FileLock
+except ImportError:  # pragma: no cover
+
+    class _DummyFileLock:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def __enter__(self) -> "_DummyFileLock":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+    FileLock = _DummyFileLock  # type: ignore[misc,assignment]
+
+
+def _download_chunk_mmap(args: tuple[int, int, str, str]) -> bool:
+    start, end, path_or_url, local_path = args
+    fs = get_filesystem(path_or_url)
+    chunk_size = 128 * 1024 * 1024
+
+    with fs.open(path_or_url, "rb") as rf:
+        rf.seek(start)
+        with open(local_path, "r+b") as lf, mmap.mmap(lf.fileno(), 0) as mm:
+            bytes_read = 0
+            total_to_read = end - start
+
+            while bytes_read < total_to_read:
+                to_read = min(chunk_size, total_to_read - bytes_read)
+                data = rf.read(to_read)
+                if not data:
+                    break
+                mm[start + bytes_read : start + bytes_read + len(data)] = data
+                bytes_read += len(data)
+            mm.flush()
+    return True
+
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +104,9 @@ def _load(
             map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
             weights_only=weights_only,
         )
-    if str(path_or_url).startswith("http"):
+
+    path_str = str(path_or_url)
+    if path_str.startswith("http"):
         if weights_only is None:
             weights_only = False
             log.debug(
@@ -66,17 +115,108 @@ def _load(
             )
 
         return torch.hub.load_state_dict_from_url(
-            str(path_or_url),
+            path_str,
             map_location=map_location,  # type: ignore[arg-type]
             weights_only=weights_only,
         )
+
     fs = get_filesystem(path_or_url)
-    with fs.open(path_or_url, "rb") as f:
+
+    # 1. Local path optimization (mmap=True on POSIX systems)
+    if _is_local_file_protocol(path_str):
+        if sys.platform != "win32":
+            return torch.load(
+                path_str,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+                mmap=True,
+            )
         return torch.load(
-            f,
-            map_location=map_location,  # type: ignore[arg-type]
+            path_str,
+            map_location=map_location,
             weights_only=weights_only,
         )
+
+    # 2. Remote parallel downloading integration
+    try:
+        file_info = fs.info(path_str)
+        file_size = file_info.get("size", 0)
+    except Exception:
+        file_size = 0
+
+    # Fallback to standard streaming for small files or unknown size
+    if file_size < 128 * 1024 * 1024:
+        with fs.open(path_str, "rb") as f:
+            return torch.load(
+                f,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+            )
+
+    shm_dir = "/dev/shm"
+    has_shm = os.path.exists(shm_dir) and os.access(shm_dir, os.W_OK)
+
+    if has_shm:
+        total, used, free = shutil.disk_usage(shm_dir)
+        if free < file_size * 1.5:
+            has_shm = False
+
+    hash_id = hashlib.sha256(path_str.encode("utf-8")).hexdigest()[:32]
+
+    if has_shm:
+        cache_dir = os.path.join(shm_dir, f"lightning_cache_{hash_id}")
+    else:
+        cache_dir = os.path.join(tempfile.gettempdir(), f"lightning_cache_{hash_id}")
+
+    os.makedirs(cache_dir, exist_ok=True)
+    local_path = os.path.join(cache_dir, "checkpoint.ckpt")
+    lock_path = os.path.join(cache_dir, "checkpoint.lock")
+    staging_path = os.path.join(cache_dir, "checkpoint.ckpt.tmp")
+
+    with FileLock(lock_path):
+        if not os.path.exists(local_path) or os.path.getsize(local_path) != file_size:
+            size_gb = file_size / (1024**3)
+            log.info(f"Downloading {path_str} ({size_gb:.2f} GB) to {local_path} with maximum processes...")
+
+            with open(staging_path, "wb") as f:
+                f.truncate(file_size)
+
+            chunk_size = 256 * 1024 * 1024
+            num_chunks = math.ceil(file_size / chunk_size)
+            chunks = []
+
+            for i in range(num_chunks):
+                start = i * chunk_size
+                end = min((i + 1) * chunk_size, file_size)
+                chunks.append((start, end, path_str, staging_path))
+
+            try:
+                ctx = multiprocessing.get_context("spawn")
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=min(32, os.cpu_count() or 1), mp_context=ctx
+                ) as executor:
+                    list(executor.map(_download_chunk_mmap, chunks))
+                os.replace(staging_path, local_path)
+            except Exception:
+                if os.path.exists(staging_path):
+                    os.remove(staging_path)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                raise
+
+    # Fast load from local cache natively (mmap=True on POSIX systems)
+    if sys.platform != "win32":
+        return torch.load(
+            local_path,
+            map_location=map_location,  # type: ignore[arg-type]
+            weights_only=weights_only,
+            mmap=True,
+        )
+    return torch.load(
+        local_path,
+        map_location=map_location,
+        weights_only=weights_only,
+    )
 
 
 def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
