@@ -181,7 +181,7 @@ def _load(
             with open(staging_path, "wb") as f:
                 f.truncate(file_size)
 
-            chunk_size = 1024 * 1024 * 1024
+            chunk_size = 256 * 1024 * 1024
             num_chunks = math.ceil(file_size / chunk_size)
             chunks = []
 
@@ -193,7 +193,7 @@ def _load(
             try:
                 ctx = multiprocessing.get_context("spawn")
                 with concurrent.futures.ProcessPoolExecutor(
-                    max_workers=min(16, os.cpu_count() or 1), mp_context=ctx
+                    max_workers=min(32, os.cpu_count() or 1), mp_context=ctx
                 ) as executor:
                     list(executor.map(_download_chunk_mmap, chunks))
                 os.replace(staging_path, local_path)
