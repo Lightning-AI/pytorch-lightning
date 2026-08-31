@@ -36,7 +36,6 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 try:
@@ -125,7 +124,7 @@ def _load(
 
     # 1. Local path optimization (mmap=True on POSIX systems)
     if _is_local_file_protocol(path_str):
-        if _TORCH_GREATER_EQUAL_2_3 and sys.platform != "win32":
+        if sys.platform != "win32":
             return torch.load(
                 path_str,
                 map_location=map_location,  # type: ignore[arg-type]
@@ -206,7 +205,7 @@ def _load(
                 raise
 
     # Fast load from local cache natively (mmap=True on POSIX systems)
-    if _TORCH_GREATER_EQUAL_2_3 and sys.platform != "win32":
+    if sys.platform != "win32":
         return torch.load(
             local_path,
             map_location=map_location,  # type: ignore[arg-type]
