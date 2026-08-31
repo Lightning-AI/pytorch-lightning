@@ -93,6 +93,8 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'5/a': 123}
         >>> _flatten_dict({"dl": [{"a": 1, "c": 3}, {"b": 2, "d": 5}], "l": [1, 2, 3, 4]})
         {'dl/0/a': 1, 'dl/0/c': 3, 'dl/1/b': 2, 'dl/1/d': 5, 'l': [1, 2, 3, 4]}
+        >>> _flatten_dict({"dl": [{"a": 1}]}, delimiter=".")
+        {'dl.0.a': 1}
         >>> _flatten_dict({"a": [], "b": 5})
         {'a': [], 'b': 5}
         >>> _flatten_dict({"a": {}, "b": [{}]})
@@ -113,7 +115,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         elif isinstance(v, list) and all(isinstance(item, MutableMapping) for item in v):
             flat = {}
             for i, item in enumerate(v):
-                flat.update(_flatten_dict(item, parent_key=f"{new_key}/{i}", delimiter=delimiter))
+                flat.update(_flatten_dict(item, parent_key=f"{new_key}{delimiter}{i}", delimiter=delimiter))
         else:
             result[new_key] = v
             continue
