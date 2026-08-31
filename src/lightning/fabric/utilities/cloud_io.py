@@ -133,7 +133,7 @@ def _load(
             )
         return torch.load(
             path_str,
-            map_location=map_location,  # type: ignore[arg-type]
+            map_location=map_location,
             weights_only=weights_only,
         )
 
@@ -214,7 +214,7 @@ def _load(
         )
     return torch.load(
         local_path,
-        map_location=map_location,  # type: ignore[arg-type]
+        map_location=map_location,
         weights_only=weights_only,
     )
 
