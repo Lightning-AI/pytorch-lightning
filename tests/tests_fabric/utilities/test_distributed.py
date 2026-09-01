@@ -9,7 +9,6 @@ import pytest
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
@@ -259,14 +258,11 @@ def test_get_default_process_group_backend_for_device(monkeypatch):
 
 
 @RunIf(min_torch="2.4")
-def test_is_dtensor(monkeypatch):
+def test_is_dtensor():
     from torch.distributed._tensor import DTensor
 
     assert _is_dtensor(Mock(spec=DTensor))
     assert not _is_dtensor(torch.zeros(2, 2))
-
-    monkeypatch.setattr(lightning.fabric.utilities.distributed, "_TORCH_GREATER_EQUAL_2_4", False)
-    assert not _is_dtensor(Mock(spec=DTensor))
 
 
 class _CustomSampler(torch.utils.data.Sampler):
