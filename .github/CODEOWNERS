@@ -8,12 +8,12 @@
 * @ethanwharris @justusschock @rusenask @tchaton
 
 # Docs
-/.github/*.md                               @williamfalcon @ethanwharris @justusschock @tchaton
-/docs/source-fabric/index.rst               @williamfalcon @ethanwharris @justusschock @tchaton
-/docs/source-pytorch/index.rst              @williamfalcon @ethanwharris @justusschock @tchaton
-/docs/source-pytorch/levels                 @williamfalcon @ethanwharris @justusschock @tchaton
+/.github/*.md                               @williamfalcon @ethanwharris @justusschock
+/docs/source-fabric/index.rst               @williamfalcon @ethanwharris @justusschock
+/docs/source-pytorch/index.rst              @williamfalcon @ethanwharris @justusschock
+/docs/source-pytorch/levels                 @williamfalcon @ethanwharris @justusschock
 
-/.github/CODEOWNERS                  @williamfalcon
+/.github/CODEOWNERS                  @williamfalcon @ethanwharris
 /SECURITY.md                         @williamfalcon @ethanwharris
 /README.md                           @williamfalcon @ethanwharris
 /src/pytorch_lightning/__about__.py  @williamfalcon @ethanwharris
@@ -23,10 +23,10 @@
 # first-party loggers (CSV, LitLogger, TensorBoard) are owned by the core maintainers.
 /src/lightning/fabric/loggers                    @williamfalcon
 /src/lightning/pytorch/loggers                   @williamfalcon
-/src/lightning/fabric/loggers/csv_logs.py        @ethanwharris @justusschock @tchaton
-/src/lightning/pytorch/loggers/csv_logs.py       @ethanwharris @justusschock @tchaton
-/src/lightning/pytorch/loggers/litlogger.py      @ethanwharris @justusschock @tchaton
-/src/lightning/fabric/loggers/logger.py          @ethanwharris @justusschock @tchaton
-/src/lightning/pytorch/loggers/logger.py         @ethanwharris @justusschock @tchaton
-/src/lightning/fabric/loggers/tensorboard.py     @ethanwharris @justusschock @tchaton
-/src/lightning/pytorch/loggers/tensorboard.py    @ethanwharris @justusschock @tchaton
+/src/lightning/fabric/loggers/csv_logs.py        @ethanwharris @justusschock
+/src/lightning/pytorch/loggers/csv_logs.py       @ethanwharris @justusschock
+/src/lightning/pytorch/loggers/litlogger.py      @ethanwharris @justusschock
+/src/lightning/fabric/loggers/logger.py          @ethanwharris @justusschock
+/src/lightning/pytorch/loggers/logger.py         @ethanwharris @justusschock
+/src/lightning/fabric/loggers/tensorboard.py     @ethanwharris @justusschock
+/src/lightning/pytorch/loggers/tensorboard.py    @ethanwharris @justusschock
