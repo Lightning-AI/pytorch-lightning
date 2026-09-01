@@ -122,6 +122,20 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     assert model.device.type == "cpu"
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.float64])
+def test_load_from_checkpoint_dtype(dtype, tmp_path):
+    """Test that `load_from_checkpoint` casts floating-point parameters to the requested dtype."""
+    create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
+
+    # default: dtype is preserved as stored in the checkpoint (float32)
+    model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt")
+    assert all(p.dtype == torch.float32 for p in model.parameters())
+
+    # explicit dtype casts floating-point parameters
+    model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", dtype=dtype)
+    assert all(p.dtype == dtype for p in model.parameters())
+
+
 @pytest.mark.parametrize(
     ("strict", "strict_loading", "expected"),
     [
