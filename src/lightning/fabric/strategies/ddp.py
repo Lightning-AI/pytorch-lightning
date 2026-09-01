@@ -39,6 +39,7 @@ from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
+    _validate_same_barrier_name,
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.rank_zero import rank_zero_only
@@ -168,6 +169,7 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
+        _validate_same_barrier_name(kwargs.get("name", args[0] if args else None), device=self.root_device)
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:

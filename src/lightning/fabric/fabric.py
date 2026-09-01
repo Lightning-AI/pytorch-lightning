@@ -633,6 +633,8 @@ class Fabric:
         will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
         cause your program to stall forever.
 
+        The optional ``name`` must agree on every process. Different names fail before entering the barrier.
+
         """
         self._validate_launched()
         self._strategy.barrier(name=name)
@@ -864,7 +866,7 @@ class Fabric:
                 if not callable(v):
                     raise TypeError(f"Expected `fabric.save(filter=...)` for key {k!r} to be a callable, given {v!r}")
         self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state), filter=filter)
-        self.barrier()
+        self.barrier("lightning.fabric.save")
 
     def load(
         self,
