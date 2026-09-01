@@ -170,6 +170,7 @@ class FSDPStrategy(ParallelStrategy):
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
         device_mesh: Optional[Union[tuple[int, int], "DeviceMesh"]] = None,
+        storage_options: Optional[dict[str, Any]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -185,6 +186,7 @@ class FSDPStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        self._storage_options = storage_options
 
         if device_mesh is not None:
             self.kwargs["device_mesh"] = device_mesh
@@ -566,15 +568,12 @@ class FSDPStrategy(ParallelStrategy):
     def save_checkpoint(
         self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
-        if storage_options is not None:
-            raise TypeError(
-                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
-                " `FSDPStrategy` does not use the `CheckpointIO`."
-            )
-
+        opts = storage_options if storage_options is not None else self._storage_options
         path = _resolve_path(self.broadcast(filepath))
         if self._state_dict_type == "full" and _is_checkpoint_dir(path) and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
+
+        save_kwargs = {"storage_options": opts} if opts is not None else {}
 
         if self._state_dict_type == "sharded":
             _prepare_directory_checkpoint(path)
@@ -585,19 +584,24 @@ class FSDPStrategy(ParallelStrategy):
                 for idx, optim_state in enumerate(checkpoint.pop("optimizer_states", []))
             })
 
-            _distributed_checkpoint_save(converted_state, path)
+            _distributed_checkpoint_save(converted_state, path, **save_kwargs)
 
             if self.global_rank == 0:
-                _atomic_save(checkpoint, _checkpoint_join(path, _METADATA_FILENAME))
+                _atomic_save(checkpoint, _checkpoint_join(path, _METADATA_FILENAME), **save_kwargs)
         elif self._state_dict_type == "full":
             if _is_sharded_checkpoint(path):
                 _remove_checkpoint(path)
-            return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
+            return super().save_checkpoint(checkpoint=checkpoint, filepath=path, storage_options=opts)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(
+        self,
+        checkpoint_path: _PATH,
+        weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = _resolve_path(self.broadcast(checkpoint_path))
 
@@ -606,6 +610,9 @@ class FSDPStrategy(ParallelStrategy):
         assert self.model is not None
         assert self.lightning_module is not None
 
+        opts = storage_options if storage_options is not None else self._storage_options
+        load_kwargs = {"storage_options": opts} if opts is not None else {}
+
         if _is_sharded_checkpoint(path):
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
 
@@ -613,13 +620,13 @@ class FSDPStrategy(ParallelStrategy):
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, **load_kwargs)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                    reader = _get_distributed_checkpoint_reader(path)
+                    reader = _get_distributed_checkpoint_reader(path, **(opts or {}))
                     # the optimizer states must be loaded separately
                     for idx, optim in enumerate(self.optimizers):
                         optim_key = f"optimizer_{idx}"
@@ -640,6 +647,7 @@ class FSDPStrategy(ParallelStrategy):
             metadata = _load(
                 _checkpoint_join(path, _METADATA_FILENAME),
                 weights_only=False if weights_only is None else weights_only,
+                **load_kwargs,
             )
             return metadata
 
@@ -647,7 +655,7 @@ class FSDPStrategy(ParallelStrategy):
             checkpoint = (
                 _lazy_load(path)
                 if _is_local_file_protocol(str(path))
-                else _load(path, weights_only=False if weights_only is None else weights_only)
+                else _load(path, weights_only=False if weights_only is None else weights_only, **load_kwargs)
             )
             _load_raw_module_state(
                 checkpoint.pop("state_dict"),

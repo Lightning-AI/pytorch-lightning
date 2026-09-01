@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from datetime import timedelta
-from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
@@ -109,13 +108,23 @@ def test_configure_model_required():
 
 
 @RunIf(min_torch="2.4")
-def test_save_checkpoint_storage_options(tmp_path):
-    """Test that the strategy does not accept storage options for saving checkpoints."""
-    strategy = ModelParallelStrategy()
-    with pytest.raises(
-        TypeError, match=escape("ModelParallelStrategy.save_checkpoint(..., storage_options=...)` is not")
-    ):
-        strategy.save_checkpoint(checkpoint=Mock(), filepath=tmp_path, storage_options=Mock())
+@mock.patch("lightning.pytorch.strategies.model_parallel.ModelParallelStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.pytorch.strategies.model_parallel._atomic_save")
+@mock.patch("lightning.pytorch.strategies.model_parallel._distributed_checkpoint_save")
+def test_save_checkpoint_storage_options(dcp_save_mock, atomic_save_mock, tmp_path):
+    """Test that the ModelParallel strategy forwards storage options for saving checkpoints."""
+    strategy = ModelParallelStrategy(storage_options={"thread_count": 4})
+    checkpoint = {"state_dict": {}, "optimizer_states": []}
+    strategy.save_checkpoint(checkpoint=checkpoint, filepath=tmp_path)
+    dcp_save_mock.assert_called_once_with({"state_dict": {}}, tmp_path, storage_options={"thread_count": 4})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 4})
+
+    dcp_save_mock.reset_mock()
+    atomic_save_mock.reset_mock()
+    checkpoint = {"state_dict": {}, "optimizer_states": []}
+    strategy.save_checkpoint(checkpoint=checkpoint, filepath=tmp_path, storage_options={"thread_count": 8})
+    dcp_save_mock.assert_called_once_with({"state_dict": {}}, tmp_path, storage_options={"thread_count": 8})
+    atomic_save_mock.assert_called_once_with({}, tmp_path / "meta.pt", storage_options={"thread_count": 8})
 
 
 @RunIf(min_torch="2.4")
