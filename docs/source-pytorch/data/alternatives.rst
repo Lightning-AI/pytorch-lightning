@@ -175,3 +175,14 @@ Lightning needs to know a lot on the internals of these iterables.
   arbitrary ways with custom iterables, Lightning might not be able to do this for you. If this is the case, you can use
   the :paramref:`~lightning.pytorch.trainer.trainer.Trainer.use_distributed_sampler` argument to disable this logic and
   set the distributed sampler yourself.
+
+Custom batch samplers
+^^^^^^^^^^^^^^^^^^^^^
+
+When using a custom :class:`torch.utils.data.BatchSampler` with multiple GPUs, Lightning needs to replace its sampler
+to distribute the data between processes. Follow the API of PyTorch's ``BatchSampler`` and instantiate the custom
+batch sampler inside a ``*_dataloader`` hook so Lightning can recreate it with the distributed sampler. In particular,
+the custom sampler should expose a ``sampler`` argument in its constructor.
+
+If Lightning cannot recreate the batch sampler, set
+``Trainer(use_distributed_sampler=False)`` and handle distributed sampling inside your custom batch sampler.
