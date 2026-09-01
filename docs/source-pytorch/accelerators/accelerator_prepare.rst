@@ -154,6 +154,21 @@ needed; the metric synchronizes itself when it is logged.
 
 This is the recommended option for any classification, retrieval, or ranking metric.
 
+.. note::
+    Lightning only recognizes a value as "already synced by TorchMetrics" when the
+    :class:`~torchmetrics.Metric` object itself is passed to ``self.log``, as in the example
+    above. If you instead call ``.compute()`` yourself — for example to pick one entry out of a
+    ``MetricCollection`` dict, or to call ``.item()`` on the result — you pass a plain tensor or
+    float, which Lightning cannot tell apart from any other logged value. You will still see the
+    ``It is recommended to use self.log(..., sync_dist=True)`` warning in that case, even though
+    ``.compute()`` already performed TorchMetrics' own distributed reduction and the value is
+    already identical, and correct, on every rank. The warning is a known false positive here:
+    it is safe to ignore. Adding ``sync_dist=True`` is **not** required to fix it — since the
+    value is already the same on every rank, Lightning's own mean-reduce across ranks just
+    reproduces that value at the cost of extra communication. Prefer logging the metric object
+    directly whenever possible so Lightning can detect this automatically; if you must log a
+    derived value, ignoring the warning is the correct response, not adding ``sync_dist=True``.
+
 .. _manual-all-gather:
 
 Manual ``all_gather``
@@ -228,6 +243,11 @@ Common pitfalls
   rank. Put the guard around ``self.log``, not around the gather.
 - **Passing** ``rank_zero_only=True`` **to** ``self.log`` **without synchronizing first.** Rank 0
   logs its local value only, which is the ``1 / world_size`` problem this section opens with.
+- **Reacting to the** ``sync_dist=True`` **warning by adding it, when logging a value derived
+  from TorchMetrics** (e.g. ``metric.compute().item()``, or one entry out of a
+  ``MetricCollection`` dict) **instead of the metric object.** The warning fires because
+  Lightning can't tell the value came from TorchMetrics, but the value is already correctly
+  synced. Ignore the warning, or log the metric object directly instead.
 
 See also: the `TorchMetrics distributed evaluation guide
 <https://lightning.ai/docs/torchmetrics/stable/pages/overview.html#metrics-and-distributed-training-ddp>`_
