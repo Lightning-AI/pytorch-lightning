@@ -34,6 +34,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
@@ -1996,6 +1997,38 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     else:
         assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}  # no files deleted
         assert set(os.listdir(second)) == {"epoch=0-step=6.ckpt", "epoch=0-step=8.ckpt"}
+
+
+@pytest.mark.parametrize("same_resume_folder", [True, False])
+def test_resume_training_preserves_old_remote_checkpoint(same_resume_folder, tmp_path):
+    root = f"memory:///{tmp_path.as_posix().lstrip('/')}"
+    first = f"{root}/first"
+    second = first if same_resume_folder else f"{root}/second"
+    filesystem = get_filesystem(root)
+    trainer_kwargs = {
+        "accelerator": "cpu",
+        "limit_val_batches": 0,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    checkpoint_kwargs = {
+        "every_n_train_steps": 1,
+        "save_top_k": 1,
+        "monitor": None,
+        "save_on_train_epoch_end": False,
+    }
+
+    callback = ModelCheckpoint(dirpath=first, **checkpoint_kwargs)
+    Trainer(max_steps=2, callbacks=callback, **trainer_kwargs).fit(BoringModel())
+    resume_path = callback.best_model_path
+    assert filesystem.exists(resume_path)
+    assert not filesystem.exists(f"{first}/epoch=0-step=1.ckpt")
+
+    callback = ModelCheckpoint(dirpath=second, **checkpoint_kwargs)
+    Trainer(max_steps=3, callbacks=callback, **trainer_kwargs).fit(BoringModel(), ckpt_path=resume_path)
+
+    assert filesystem.exists(resume_path)
 
 
 @pytest.mark.parametrize(
