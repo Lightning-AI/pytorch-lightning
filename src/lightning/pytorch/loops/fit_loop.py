@@ -224,6 +224,13 @@ class _FitLoop(_Loop):
 
     def setup_data(self) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
+            # the dataloaders may have been set up before the checkpoint was loaded, e.g., if the user accessed
+            # `trainer.estimated_stepping_batches` in `configure_optimizers`. in that case, restore the dataloader
+            # states now and recreate the iterator so the restored states take effect
+            if self.restarting and self._combined_loader_states_to_load:
+                self._load_combined_loader_states()
+                assert self._data_fetcher is not None
+                iter(self._data_fetcher)  # creates the iterator inside the fetcher
             return
 
         trainer = self.trainer
