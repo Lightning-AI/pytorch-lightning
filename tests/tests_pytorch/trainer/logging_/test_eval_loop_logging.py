@@ -543,16 +543,18 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         "valid_loss_0",
         "valid_loss_1",
     }
+    # the validation-end flush shares a step with the earlier train flush, so it no longer
+    # re-emits a duplicate `epoch` (which the train flush already stamped) — see #20902.
     assert mock_log_metrics.mock_calls == [
         call({"hp_metric": -1}, None),
         call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=0),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=0),
         call(metrics={"train_loss": ANY, "epoch": 1}, step=1),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=1),
     ]
 
     def get_metrics_at_idx(idx):

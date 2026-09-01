@@ -125,14 +125,18 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ["epoch", "train_some_val"]),
-            (0, ["early_stop_on", "epoch", "val_loss"]),
+            # the convenience `epoch` metric is only stamped on the first flush at a
+            # given step, so the validation-end flush at step 0 no longer repeats it (#20902)
+            (0, ["early_stop_on", "val_loss"]),
             (1, ["epoch", "test_loss"]),
         ]
         assert log_metric_names == expected
     else:
         expected = [
             (0, ["epoch", "train_some_val"]),
-            (0, ["early_stop_on", "epoch", "val_loss"]),
+            # the convenience `epoch` metric is only stamped on the first flush at a
+            # given step, so the validation-end flush at step 0 no longer repeats it (#20902)
+            (0, ["early_stop_on", "val_loss"]),
             (1, ["epoch", "test_loss"]),
         ]
         assert log_metric_names == expected
