@@ -44,6 +44,7 @@ class MPIEnvironment(ClusterEnvironment):
         self._comm_world = MPI.COMM_WORLD
         self._comm_local: Optional[MPI.Comm] = None
         self._node_rank: Optional[int] = None
+        self._num_nodes: Optional[int] = None
         self._main_address: Optional[str] = None
         self._main_port: Optional[int] = None
 
@@ -114,6 +115,13 @@ class MPIEnvironment(ClusterEnvironment):
         assert self._node_rank is not None
         return self._node_rank
 
+    @override
+    def num_nodes(self) -> int:
+        if self._num_nodes is None:
+            self._init_comm_local()
+        assert self._num_nodes is not None
+        return self._num_nodes
+
     def _get_main_address(self) -> str:
         return self._comm_world.bcast(socket.gethostname(), root=0)
 
@@ -128,4 +136,5 @@ class MPIEnvironment(ClusterEnvironment):
         unique_hosts = self._comm_world.bcast(unique_hosts, root=0)
         # find the index for this host in the list of hosts:
         self._node_rank = unique_hosts.index(hostname)
+        self._num_nodes = len(unique_hosts)
         self._comm_local = self._comm_world.Split(color=self._node_rank)

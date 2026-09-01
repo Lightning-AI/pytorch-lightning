@@ -98,6 +98,7 @@ def test_node_rank(tmp_path):
     with mock.patch.dict(os.environ, environ), mock.patch("socket.gethostname", return_value="10.10.10.2"):
         env = LSFEnvironment()
         assert env.node_rank() == 2
+        assert env.num_nodes() == 4
 
 
 def test_detect():
