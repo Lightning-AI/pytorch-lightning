@@ -62,21 +62,21 @@ class LSFEnvironment(ClusterEnvironment):
         os.environ["MASTER_PORT"] = str(self._main_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         """LSF creates subprocesses, i.e., PyTorch Lightning does not need to spawn them."""
         return True
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         """The main address is read from an OpenMPI host rank file in the environment variable
         ``LSB_DJOB_RANKFILE``."""
         return self._main_address
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         """The main port is calculated from the LSF job ID."""
         return self._main_port

@@ -9,6 +9,7 @@ from typing import Any, Callable, Union
 
 import torch
 import torch.distributed as dist
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment
@@ -152,6 +153,7 @@ class _SignalConnector:
         if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)  # type: ignore[arg-type]
 
+    @override
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["_original_handlers"] = {}

@@ -261,6 +261,7 @@ class _IndexBatchSamplerWrapper:
     def __len__(self) -> int:
         return len(self._batch_sampler)
 
+    @override
     def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         state["_iterator"] = None  # cannot pickle 'generator' object

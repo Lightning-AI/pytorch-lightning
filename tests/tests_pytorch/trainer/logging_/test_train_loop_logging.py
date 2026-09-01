@@ -26,6 +26,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
@@ -42,6 +43,7 @@ def test__training_step__log(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             loss = out["loss"]
@@ -105,6 +107,7 @@ def test__training_step__log(tmp_path):
 
 def test__training_step__epoch_end__log(tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
             loss = out["loss"]
@@ -112,6 +115,7 @@ def test__training_step__epoch_end__log(tmp_path):
             self.log_dict({"a1": loss, "a2": loss})
             return out
 
+        @override
         def on_train_epoch_end(self):
             self.log("b1", torch.tensor(1.0))
             self.log("b", torch.tensor(2.0), on_epoch=True, prog_bar=True, logger=True)
@@ -148,11 +152,13 @@ def test__training_step__log_max_reduce_fx(tmp_path, batches, fx, result):
     """Tests that log works correctly with different tensor types."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log("foo", torch.tensor(batch_idx, dtype=torch.long), on_step=False, on_epoch=True, reduce_fx=fx)
             return acc
 
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("bar", torch.tensor(batch_idx).float(), on_step=False, on_epoch=True, reduce_fx=fx)
@@ -175,6 +181,7 @@ def test__training_step__log_max_reduce_fx(tmp_path, batches, fx, result):
 
 def test_different_batch_types_for_sizing(tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
             a = batch["a"]
@@ -182,15 +189,18 @@ def test_different_batch_types_for_sizing(tmp_path):
             self.log("a", 2, on_step=True, on_epoch=True)
             return acc
 
+        @override
         def validation_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
             loss = self.step(batch["a"])
             self.log("n", 3, on_step=True, on_epoch=True)
             return {"x": loss}
 
+        @override
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDictDataset(32, 64), batch_size=32)
 
+        @override
         def val_dataloader(self):
             return torch.utils.data.DataLoader(RandomDictDataset(32, 64), batch_size=32)
 
@@ -234,24 +244,29 @@ def test_log_works_in_train_callback(tmp_path):
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
                 self.count += 1
 
+        @override
         def on_train_start(self, _, pl_module):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        @override
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
+        @override
         def on_train_batch_start(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
+        @override
         def on_train_batch_end(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_train_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
+        @override
         def on_train_epoch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_train_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -260,6 +275,7 @@ def test_log_works_in_train_callback(tmp_path):
     class TestModel(BoringModel):
         seen_losses = []
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)["loss"]
             self.seen_losses.append(loss)
@@ -319,6 +335,7 @@ class LoggingSyncDistModel(BoringModel):
     def rank(self) -> int:
         return self.trainer.global_rank
 
+    @override
     def training_step(self, batch, batch_idx):
         value = self.fake_result + self.rank
         self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
@@ -335,6 +352,7 @@ class LoggingSyncDistModel(BoringModel):
         self.log("foo_11", batch_idx + self.rank, on_step=True, on_epoch=True, sync_dist=True, reduce_fx="mean")
         return super().training_step(batch, batch_idx)
 
+    @override
     def validation_step(self, batch, batch_idx):
         self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
@@ -392,12 +410,14 @@ def test_logging_sync_dist_true_ddp(tmp_path):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
     class TestLoggingSyncDistModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log("foo", 1, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="SUM")
             self.log("cho", acc, on_step=False, on_epoch=True)
             return acc
 
+        @override
         def validation_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.log("bar", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="AVG")
@@ -424,10 +444,12 @@ def test_logging_sync_dist_true_ddp(tmp_path):
 
 def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmp_path: str):
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
             return super().training_step(*args)
 
+        @override
         def on_train_epoch_end(self, *_):
             self.log(
                 "foo_2", torch.tensor(self.current_epoch), prog_bar=True, on_epoch=True, sync_dist=True, reduce_fx="sum"
@@ -435,11 +457,13 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmp_path: str):
             self.on_train_epoch_end_called = True
 
     class TestProgressBar(TQDMProgressBar):
+        @override
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
             return items
 
+        @override
         def on_train_end(self, trainer: Trainer, model: LightningModule):
             metrics = self.get_metrics(trainer, model)
             assert metrics["foo"] == self.trainer.current_epoch - 1
@@ -467,15 +491,19 @@ def test_logging_in_callbacks_with_log_function(tmp_path):
     """Tests ensure self.log can be used directly in callbacks."""
 
     class LoggingCallback(callbacks.Callback):
+        @override
         def on_train_start(self, trainer, pl_module):
             self.log("on_train_start", 1)
 
+        @override
         def on_train_epoch_start(self, trainer, pl_module):
             self.log("on_train_epoch_start", 2)
 
+        @override
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
+        @override
         def on_train_epoch_end(self, trainer, pl_module):
             self.log("on_train_epoch_end", 5)
 
@@ -513,11 +541,13 @@ def test_metric_are_properly_reduced(tmp_path, accelerator):
             super().__init__()
             self.val_acc = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
+        @override
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
             self.log("train_loss", output["loss"])
             return output
 
+        @override
         def validation_step(self, batch, batch_idx):
             preds = torch.tensor([[0.9, 0.1]], device=self.device)
             targets = torch.tensor([1], device=self.device)
@@ -552,6 +582,7 @@ def test_metric_are_properly_reduced(tmp_path, accelerator):
 )
 def test_log_invalid_raises(tmp_path, value):
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", value)
 
@@ -566,6 +597,7 @@ def test_log_tensor_and_clone_no_torch_warning(tmp_path):
     """Regression test for issue https://github.com/Lightning-AI/pytorch-lightning/issues/14594."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", torch.tensor(1))
             return super().training_step(*args)
@@ -579,6 +611,7 @@ def test_log_tensor_and_clone_no_torch_warning(tmp_path):
 
 def test_logging_raises(tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
 
@@ -597,6 +630,7 @@ def test_logging_raises(tmp_path):
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
@@ -609,6 +643,7 @@ def test_logging_raises(tmp_path):
             super().__init__()
             self.bar = Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy()
 
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy(task="multiclass", num_classes=2) if _TM_GE_0_11 else Accuracy())
 
@@ -620,6 +655,7 @@ def test_logging_raises(tmp_path):
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", -1, prog_bar=False)
             self.log("foo", -1, prog_bar=True)
@@ -630,6 +666,7 @@ def test_logging_raises(tmp_path):
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, *args):
             self.log("foo", -1, reduce_fx=torch.argmax)
             return super().training_step(*args)
@@ -639,6 +676,7 @@ def test_logging_raises(tmp_path):
         trainer.fit(model)
 
     class TestModel(BoringModel):
+        @override
         def on_train_start(self):
             self.log("foo", torch.tensor([1.0, 2.0]))
 
@@ -649,12 +687,14 @@ def test_logging_raises(tmp_path):
 
 def test_sanity_metrics_are_reset(tmp_path):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             output = super().validation_step(batch, batch_idx)
             if self.trainer.sanity_checking:
                 self.log("val_loss", output["x"], prog_bar=True, logger=True)
             return output
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)["loss"]
             if batch_idx == 0:
@@ -674,25 +714,31 @@ def test_sanity_metrics_are_reset(tmp_path):
 
 def test_on_epoch_logging_with_sum_and_on_batch_start(tmp_path):
     class TestModel(BoringModel):
+        @override
         def on_train_epoch_end(self):
             self.log("on_train_epoch_end", 3.0, reduce_fx="mean")
             assert self.trainer._results["on_train_epoch_end.on_train_epoch_end"].value == 3.0
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
+        @override
         def on_validation_epoch_end(self):
             self.log("on_validation_epoch_end", 3.0, reduce_fx="mean")
             assert self.trainer._results["on_validation_epoch_end.on_validation_epoch_end"].value == 3.0
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
+        @override
         def on_train_batch_start(self, *_):
             self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
+        @override
         def on_train_batch_end(self, *_):
             self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
+        @override
         def on_validation_batch_start(self, *_):
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
 
+        @override
         def on_validation_batch_end(self, *_):
             self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
 
@@ -715,6 +761,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     """Tests the default epoch and step values logged."""
 
     class MyModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", 0.0, on_step=True, on_epoch=True)
             return super().training_step(batch, batch_idx)
@@ -748,6 +795,7 @@ def test_log_on_train_start(mock_log_metrics, tmp_path):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 
     class MyModel(BoringModel):
+        @override
         def on_train_start(self):
             self.log("foo", 123)
 

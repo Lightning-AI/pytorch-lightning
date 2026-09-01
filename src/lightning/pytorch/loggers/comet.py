@@ -363,8 +363,8 @@ class CometLogger(Logger):
         # just save the data
         self.experiment.flush()
 
-    @property
     @override
+    @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
 
@@ -374,8 +374,8 @@ class CometLogger(Logger):
         """
         return self._comet_config.offline_directory
 
-    @property
     @override
+    @property
     def name(self) -> Optional[str]:
         """Gets the project name.
 
@@ -385,8 +385,8 @@ class CometLogger(Logger):
         """
         return self._project_name
 
-    @property
     @override
+    @property
     def version(self) -> Optional[str]:
         """Gets the version.
 
@@ -398,6 +398,7 @@ class CometLogger(Logger):
         if self._experiment is not None:
             return self._experiment.get_key()
 
+    @override
     def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
 

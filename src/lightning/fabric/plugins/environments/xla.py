@@ -36,19 +36,19 @@ class XLAEnvironment(ClusterEnvironment):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(*args, **kwargs)
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         return False
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         # unused by lightning
         raise NotImplementedError
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         # unused by lightning
         raise NotImplementedError

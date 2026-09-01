@@ -118,6 +118,7 @@ class AdvancedProfiler(Profiler):
         super().teardown(stage=stage)
         self.profiled_actions.clear()
 
+    @override
     def __reduce__(self) -> tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (

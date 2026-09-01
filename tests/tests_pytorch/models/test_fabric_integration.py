@@ -16,6 +16,7 @@ from copy import deepcopy
 from unittest.mock import Mock
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -65,6 +66,7 @@ def test_fabric_call_lightning_module_hooks():
     """Test that `Fabric.call` can call hooks on the LightningModule."""
 
     class HookedModel(BoringModel):
+        @override
         def on_train_start(self):
             pass
 

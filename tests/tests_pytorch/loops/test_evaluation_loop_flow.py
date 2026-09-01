@@ -15,6 +15,7 @@
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
@@ -26,12 +27,14 @@ def test__eval_step__flow(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.training_step_called = True
             return acc
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
             if batch_idx == 0:
@@ -40,6 +43,7 @@ def test__eval_step__flow(tmp_path):
                 out = {"something": "random"}
             return out
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -75,12 +79,14 @@ def test__eval_step__epoch_end__flow(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.training_step_called = True
             return acc
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
             if batch_idx == 0:
@@ -91,6 +97,7 @@ def test__eval_step__epoch_end__flow(tmp_path):
                 self.out_b = out
             return out
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 

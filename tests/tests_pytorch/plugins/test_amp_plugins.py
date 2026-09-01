@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -71,6 +72,7 @@ def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):
 
 
 class TestClippingOptimizer(torch.optim.SGD):
+    @override
     def step(self, *args, pl_module=None):
         pl_module.check_grads_clipped()
         return super().step(*args)
@@ -78,6 +80,7 @@ class TestClippingOptimizer(torch.optim.SGD):
 
 class TestPrecisionModel(BoringModel):
     # sister test: tests/trainer/optimization/test_manual_optimization.py::test_multiple_optimizers_step
+    @override
     def on_after_backward(self) -> None:
         # check grads are scaled
         scale = self.trainer.precision_plugin.scaler.get_scale()
@@ -103,6 +106,7 @@ class TestPrecisionModel(BoringModel):
         for actual, expected in zip(parameters, self.clipped_parameters):
             torch.testing.assert_close(actual.grad, expected.grad, equal_nan=True)
 
+    @override
     def on_before_optimizer_step(self, optimizer, *_):
         self.check_grads_unscaled(optimizer)
         # manually clip
@@ -114,16 +118,19 @@ class TestPrecisionModel(BoringModel):
         clip_val = self.trainer.gradient_clip_val
         torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
 
+    @override
     def configure_gradient_clipping(self, *args, **kwargs):
         # let lightning clip
         super().configure_gradient_clipping(*args, **kwargs)
         # check clipping worked as expected
         self.check_grads_clipped()
 
+    @override
     def optimizer_step(self, epoch, batch_idx, optimizer, closure, **_):
         # pass self as a kwarg
         optimizer.step(closure, pl_module=self)
 
+    @override
     def configure_optimizers(self):
         return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
@@ -163,10 +170,12 @@ def test_amp_skip_optimizer(tmp_path):
             self.layer1 = torch.nn.Linear(32, 32)
             self.layer2 = torch.nn.Linear(32, 2)
 
+        @override
         def forward(self, x: Tensor):
             x = self.layer1(x)
             return self.layer2(x)
 
+        @override
         def training_step(self, batch, batch_idx):
             _, opt2 = self.optimizers()
             output = self(batch)
@@ -176,6 +185,7 @@ def test_amp_skip_optimizer(tmp_path):
             # only optimizer 2 steps
             opt2.step()
 
+        @override
         def configure_optimizers(self):
             return [
                 torch.optim.SGD(self.layer1.parameters(), lr=0.1),

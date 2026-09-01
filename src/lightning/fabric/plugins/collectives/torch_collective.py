@@ -32,21 +32,21 @@ class TorchCollective(Collective):
             raise RuntimeError("Torch distributed is not available.")
         super().__init__()
 
-    @property
     @override
+    @property
     def group(self) -> CollectibleGroup:
         if self._group is None:
             self._group = dist.GroupMember.WORLD
         return super().group
 
-    @property
     @override
+    @property
     def rank(self) -> int:
         # local rank
         return dist.get_rank(self.group)  # type: ignore[arg-type]
 
-    @property
     @override
+    @property
     def world_size(self) -> int:
         return dist.get_world_size(self.group)  # type: ignore[arg-type]
 

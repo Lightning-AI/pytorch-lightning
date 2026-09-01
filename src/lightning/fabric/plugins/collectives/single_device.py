@@ -14,13 +14,13 @@ class SingleDeviceCollective(Collective):
 
     """
 
-    @property
     @override
+    @property
     def rank(self) -> int:
         return 0
 
-    @property
     @override
+    @property
     def world_size(self) -> int:
         return 1
 

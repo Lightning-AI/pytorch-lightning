@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins import HalfPrecision
@@ -86,11 +87,13 @@ def test_convert_module(precision, expected_dtype):
 )
 def test_configure_model(precision, expected_dtype):
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
             # this is under the `module_init_context`
             assert self.l.weight.dtype == expected_dtype
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

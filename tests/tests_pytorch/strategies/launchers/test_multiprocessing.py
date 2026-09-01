@@ -18,6 +18,7 @@ from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
@@ -184,6 +185,7 @@ class SimpleModel(BoringModel):
         self.tied_layer.weight = self.layer.weight
         self.register_buffer("buffer", torch.ones(3))
 
+    @override
     def on_fit_start(self) -> None:
         assert not self.layer.weight.is_shared()
         assert not self.tied_layer.weight.is_shared()

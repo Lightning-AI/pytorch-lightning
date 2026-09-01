@@ -13,11 +13,14 @@
 # limitations under the License.
 import warnings
 
+from typing_extensions import override
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class TestModel(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         return self.step(batch[0])
 

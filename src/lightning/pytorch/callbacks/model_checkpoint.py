@@ -308,8 +308,8 @@ class ModelCheckpoint(Checkpoint):
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
-    @property
     @override
+    @property
     def state_key(self) -> str:
         return self._generate_state_key(
             monitor=self.monitor,
@@ -532,6 +532,7 @@ class ModelCheckpoint(Checkpoint):
             {str(exception)}, saved checkpoint to {filepath}"
         )
 
+    @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Ensure save_last=True is applied when training ends."""
         if self.save_last and not self._last_checkpoint_saved:

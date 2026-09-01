@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -36,6 +37,7 @@ def test_trainer_fn_while_running(tmp_path, extra_params):
             self.expected_stage = expected_stage
             self.lr = 0.1
 
+        @override
         def on_train_batch_start(self, *_):
             assert self.trainer.state.status == TrainerStatus.RUNNING
             assert self.trainer.state.fn == self.expected_fn
@@ -46,11 +48,13 @@ def test_trainer_fn_while_running(tmp_path, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.sanity_checking
 
+        @override
         def on_validation_batch_start(self, *_):
             assert self.trainer.state.status == TrainerStatus.RUNNING
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.validating or self.trainer.sanity_checking
 
+        @override
         def on_test_batch_start(self, *_):
             assert self.trainer.state.status == TrainerStatus.RUNNING
             assert self.trainer.state.fn == self.expected_fn
@@ -80,6 +84,7 @@ def test_interrupt_state_on_keyboard_interrupt(tmp_path, extra_params):
     model = BoringModel()
 
     class InterruptCallback(Callback):
+        @override
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 

@@ -50,8 +50,8 @@ class _XLALauncher(_Launcher):
         self._strategy = strategy
         self._start_method = "fork"
 
-    @property
     @override
+    @property
     def is_interactive_compatible(self) -> bool:
         return True
 

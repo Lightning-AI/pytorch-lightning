@@ -15,6 +15,8 @@ import os
 from typing import Any, Optional, Union
 from unittest.mock import Mock
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -37,15 +39,19 @@ class AllRankLogger(Logger):
     def experiment(self) -> Any:
         return self.exp
 
+    @override
     def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None):
         self.logs.update(metrics)
 
+    @override
     def version(self) -> Union[int, str]:
         return 1
 
+    @override
     def name(self) -> str:
         return "AllRank"
 
+    @override
     def log_hyperparams(self, *args, **kwargs) -> None:
         pass
 
@@ -53,9 +59,11 @@ class AllRankLogger(Logger):
 class TestModel(BoringModel):
     log_name = "rank-{rank}"
 
+    @override
     def on_train_start(self):
         self.log(self.log_name.format(rank=self.local_rank), 0)
 
+    @override
     def on_train_end(self):
         assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
 
@@ -107,12 +115,14 @@ def test_first_logger_call_in_subprocess(tmp_path):
     """
 
     class LoggerCallsObserver(Callback):
+        @override
         def setup(self, trainer, pl_module, stage):
             # this hook is executed after Strategy has setup the environment
             # logger should not write any logs until this point
             assert not trainer.logger.method_calls
             assert not os.listdir(trainer.logger.save_dir)
 
+        @override
         def on_train_start(self, trainer, pl_module):
             assert trainer.logger.method_call
             trainer.logger.log_graph.assert_called_once()
@@ -143,9 +153,11 @@ def test_logger_after_fit_predict_test_calls(tmp_path):
             self.buffer = {}
             self.logs = {}
 
+        @override
         def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             self.buffer.update(metrics)
 
+        @override
         def finalize(self, status: str) -> None:
             self.logs.update(self.buffer)
             self.buffer = {}
@@ -154,27 +166,34 @@ def test_logger_after_fit_predict_test_calls(tmp_path):
         def experiment(self) -> Any:
             return None
 
+        @override
         @property
         def version(self) -> Union[int, str]:
             return 1
 
+        @override
         @property
         def name(self) -> str:
             return "BufferLogger"
 
+        @override
         def log_hyperparams(self, *args, **kwargs) -> None:
             return None
 
     class LoggerCallsObserver(Callback):
+        @override
         def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             trainer.logger.log_metrics({"fit": 1})
 
+        @override
         def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             trainer.logger.log_metrics({"validate": 1})
 
+        @override
         def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             trainer.logger.log_metrics({"predict": 1})
 
+        @override
         def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             trainer.logger.log_metrics({"test": 1})
 

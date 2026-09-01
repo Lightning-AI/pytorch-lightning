@@ -20,7 +20,7 @@ from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
@@ -253,6 +253,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         )
         return cast(Self, loaded)
 
+    @override
     def __str__(self) -> str:
         """Return a string representation of the datasets that are set up.
 

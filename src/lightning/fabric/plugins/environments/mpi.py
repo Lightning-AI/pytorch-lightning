@@ -47,20 +47,20 @@ class MPIEnvironment(ClusterEnvironment):
         self._main_address: Optional[str] = None
         self._main_port: Optional[int] = None
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         if self._main_address is None:
             self._main_address = self._get_main_address()
         return self._main_address
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         if self._main_port is None:
             self._main_port = self._get_main_port()

@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
@@ -34,6 +35,7 @@ def test_single_cpu():
 
 
 class BoringModelGPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device("cuda:0")
@@ -82,15 +84,19 @@ def test_strategy_pickle():
 
 
 class BoringModelNoDataloaders(BoringModel):
+    @override
     def train_dataloader(self):
         raise NotImplementedError
 
+    @override
     def val_dataloader(self):
         raise NotImplementedError
 
+    @override
     def test_dataloader(self):
         raise NotImplementedError
 
+    @override
     def predict_dataloader(self):
         raise NotImplementedError
 

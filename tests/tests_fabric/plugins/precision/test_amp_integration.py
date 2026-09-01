@@ -16,6 +16,7 @@
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric, seed_everything
 from tests_fabric.helpers.runif import RunIf
@@ -27,6 +28,7 @@ class MixedPrecisionModule(nn.Module):
         self.expected_dtype = expected_dtype
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x):
         assert x.dtype == self.expected_dtype
         if x.device.type == "cpu":
