@@ -30,6 +30,18 @@ def _patch_comet_atexit(monkeypatch):
 
 
 @mock.patch.dict(os.environ, {})
+def test_comet_logger_deprecated_offline_flag(comet_mock):
+    """The deprecated `offline` flag is the inverse of `online`."""
+    comet_start = comet_mock.start
+
+    CometLogger(api_key="key", offline=True)
+    assert comet_start.call_args.kwargs["online"] is False
+
+    CometLogger(api_key="key", offline=False)
+    assert comet_start.call_args.kwargs["online"] is True
+
+
+@mock.patch.dict(os.environ, {})
 def test_comet_logger_online(comet_mock):
     """Test comet online with mocks."""
 
