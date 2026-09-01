@@ -61,10 +61,6 @@ class AdvancedProfiler(Profiler):
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
 
             dump_stats: Whether to save raw profiler results. When ``True`` then ``dirpath`` must be provided.
-
-        Raises:
-            ValueError:
-                If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
         self.profiled_actions: dict[str, cProfile.Profile] = defaultdict(cProfile.Profile)
@@ -82,7 +78,7 @@ class AdvancedProfiler(Profiler):
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
+            return
         pr.disable()
 
     def _dump_stats(self, action_name: str, profile: cProfile.Profile) -> None:
@@ -116,6 +112,8 @@ class AdvancedProfiler(Profiler):
     @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
+        for pr in self.profiled_actions.values():
+            pr.disable()
         self.profiled_actions.clear()
 
     def __reduce__(self) -> tuple:
