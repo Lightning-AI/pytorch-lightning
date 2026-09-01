@@ -655,7 +655,7 @@ class RichProgressBar(ProgressBar):
 
     def _get_train_description(self, current_epoch: int) -> str:
         train_description = f"Epoch {current_epoch}"
-        if self.trainer.max_epochs is not None:
+        if self.trainer.max_epochs is not None and self.trainer.max_epochs >= 0:
             train_description += f"/{self.trainer.max_epochs - 1}"
         if len(self.validation_description) > len(train_description):
             # Padding is required to avoid flickering due of uneven lengths of "Epoch X"
