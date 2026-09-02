@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
+- Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
+
 ---
 
 ## [2.6.4] - 2026-05-20
