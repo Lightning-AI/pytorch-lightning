@@ -43,6 +43,8 @@ To save the state to the filesystem, pass it to the :meth:`~lightning.fabric.fab
 
     fabric.save("path/to/checkpoint.ckpt", state)
 
+This method must be called on all processes.
+
 This will unwrap your model and optimizer and automatically convert their ``state_dict`` for you.
 Fabric and the underlying strategy will decide in which format your checkpoint gets saved.
 For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` :doc:`saves multiple files from all ranks <distributed_checkpoint>`.
@@ -63,6 +65,8 @@ You can restore the state by loading a saved checkpoint back with :meth:`~lightn
 .. code-block:: python
 
     fabric.load("path/to/checkpoint.ckpt", state)
+
+This method must be called on all processes.
 
 Fabric will replace the state of your objects in-place.
 You can also request only to restore a portion of the checkpoint.
