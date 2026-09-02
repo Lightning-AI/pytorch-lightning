@@ -643,11 +643,14 @@ class WandbLogger(Logger):
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if status != "success":
-            # Currently, checkpoints only get logged on success
+        if self._experiment is None:
             return
-        # log checkpoints as artifacts
-        if self._experiment is not None:
+        if status == "failed":
+            # Mark the run as failed so W&B doesn't incorrectly show it as finished (e.g. when sys.exit(0) is called
+            # mid-training, atexit would otherwise call wandb.finish() with exit_code=0).
+            self._experiment.finish(exit_code=1)
+            return
+        if status == "success":
             for checkpoint_callback in self._checkpoint_callbacks.values():
                 self._scan_and_log_checkpoints(checkpoint_callback)
 
