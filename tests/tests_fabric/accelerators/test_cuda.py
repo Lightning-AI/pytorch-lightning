@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib
 import logging
+import multiprocessing
 import os
 from re import escape
 from unittest import mock
@@ -152,3 +153,32 @@ def test_find_usable_cuda_devices_error_handling():
 
     # Edge case
     assert find_usable_cuda_devices(0) == []
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.skip(reason="Fails if CUDA is initialized. Another test should run this in a spawned subprocess.")
+def test_setup_device_calls_set_device_before_lazy_init():
+    mock_set_device = mock.MagicMock(wraps=torch.cuda.set_device)
+    mock_lazy_init = mock.MagicMock(wraps=torch.cuda._lazy_init)
+
+    mock_manager = mock.MagicMock()
+    mock_manager.attach_mock(mock_set_device, "set_device")
+    mock_manager.attach_mock(mock_lazy_init, "_lazy_init")
+
+    device = torch.device("cuda:0")
+
+    with (
+        mock.patch("torch.cuda.set_device", new=mock_set_device),
+        mock.patch("torch.cuda._lazy_init", new=mock_lazy_init),
+    ):
+        CUDAAccelerator().setup_device(device)
+
+    assert mock_manager.mock_calls[0] == mock.call.set_device(device)
+    assert mock_manager.mock_calls[1] == mock.call._lazy_init()
+
+
+@RunIf(min_cuda_gpus=1)
+def test_setup_device_calls_set_device_before_lazy_init_in_spawned_subprocess():
+    spawn_context = multiprocessing.get_context("spawn")
+    with spawn_context.Pool(processes=1) as pool:
+        pool.apply(test_setup_device_calls_set_device_before_lazy_init)
