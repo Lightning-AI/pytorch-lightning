@@ -154,3 +154,38 @@ def test_load_from_checkpoint_strict(strict, strict_loading, expected, tmp_path)
     else:
         model = LoadingModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=strict)
         model.load_state_dict.assert_called_once_with(ANY, strict=expected)
+
+
+def test_load_from_checkpoint_blocks_untrusted_instantiator(tmp_path):
+    """A checkpoint pointing ``_instantiator`` at an arbitrary import target must be rejected, not executed."""
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {"_instantiator": "os.system"},
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "malicious.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    with pytest.raises(ValueError, match="not in the allowlist of trusted instantiators"):
+        BoringModel.load_from_checkpoint(ckpt_path, strict=False)
+
+
+def test_load_from_checkpoint_allows_lightning_instantiator(tmp_path, monkeypatch):
+    """An allowlisted instantiator is still resolved and used to build the model."""
+    import lightning.pytorch.cli as cli
+
+    instantiator = Mock(side_effect=lambda cls, kwargs: cls())
+    monkeypatch.setattr(cli, "instantiate_module", instantiator)
+
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {"_instantiator": "lightning.pytorch.cli.instantiate_module"},
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    # the allowlisted path resolves without raising and the instantiator is used to build the model
+    model = BoringModel.load_from_checkpoint(ckpt_path, strict=False)
+    assert isinstance(model, BoringModel)
+    instantiator.assert_called_once()
