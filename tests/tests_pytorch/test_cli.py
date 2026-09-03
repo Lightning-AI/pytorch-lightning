@@ -36,6 +36,7 @@ from lightning.pytorch import Callback, LightningDataModule, LightningModule, Tr
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
+    _KEEP_NONE_KWARGS,
     LightningArgumentParser,
     LightningCLI,
     LRSchedulerCallable,
@@ -136,7 +137,7 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
         save_callback[0].on_train_start(trainer, model)
 
     def on_train_start(callback, trainer, _):
-        config_dump = callback.parser.dump(callback.config, skip_none=False)
+        config_dump = callback.parser.dump(callback.config, **_KEEP_NONE_KWARGS)
         for k, v in expected_model.items():
             assert f"  {k}: {v}" in config_dump
         for k, v in expected_trainer.items():
