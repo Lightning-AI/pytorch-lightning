@@ -165,6 +165,45 @@ def test_reducelronplateau_scheduling(tmp_path):
     )
 
 
+def test_reducelronplateau_with_check_val_every_n_epoch(tmp_path):
+    """Test that ReduceLROnPlateau works correctly when validation runs every N epochs."""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)["loss"]
+            self.log("train/loss", loss)
+            return loss
+
+        def validation_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)["x"]
+            self.log("val/loss", loss)
+            return loss
+
+        def configure_optimizers(self):
+            optimizer = optim.Adam(self.parameters())
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    "monitor": "val/loss",
+                },
+            }
+
+    model = TestModel()
+    # Validation runs every 2 epochs, but scheduler should only update on validation epochs
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        check_val_every_n_epoch=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    # This should not raise an error about missing val/loss metric
+    trainer.fit(model)
+
+
 def test_optimizer_return_options(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path)
     model = BoringModel()
