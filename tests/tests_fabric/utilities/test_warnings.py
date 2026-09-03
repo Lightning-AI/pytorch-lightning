@@ -50,10 +50,10 @@ if __name__ == "__main__":
     with redirect_stderr(stderr):
         base_line = line_number() + 1
         _warn("test1")
-        _warn("test2", category=DeprecationWarning)
+        _warn("test2", category=FutureWarning)
 
         rank_zero_warn("test3")
-        rank_zero_warn("test4", category=DeprecationWarning)
+        rank_zero_warn("test4", category=FutureWarning)
 
         rank_zero_deprecation("test5")
 
