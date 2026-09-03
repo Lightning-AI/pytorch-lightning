@@ -355,6 +355,9 @@ class _TrainingEpochLoop(loops._Loop):
 
         self.batch_progress.increment_processed()
 
+        # Sync on_step metrics across ranks and validate all ranks logged the same keys
+        trainer._logger_connector.sync_on_step_metrics()
+
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
