@@ -276,6 +276,7 @@ class WandbLogger(Logger):
             * if ``log_model == False`` (default), no checkpoint is logged.
 
         prefix: A string to put at the beginning of metric keys.
+        log_key_prefix: String prefix prepended to W&B-generated logged metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
         add_file_policy: If "mutable", copies file to tempdirectory before upload.
@@ -304,6 +305,7 @@ class WandbLogger(Logger):
         log_model: Union[Literal["all"], bool] = False,
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
+        log_key_prefix: Optional[str] = None,
         checkpoint_name: Optional[str] = None,
         add_file_policy: Literal["mutable", "immutable"] = "mutable",
         **kwargs: Any,
@@ -322,6 +324,7 @@ class WandbLogger(Logger):
         self._offline = offline
         self._log_model = log_model
         self._prefix = prefix
+        self._log_key_prefix = log_key_prefix or ""
         self._experiment = experiment
         self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callbacks: dict[int, ModelCheckpoint] = {}
@@ -416,8 +419,9 @@ class WandbLogger(Logger):
                     if self._wandb_init.get("sync_tensorboard"):
                         self._experiment.define_metric("*", step_metric="global_step")
                     else:
-                        self._experiment.define_metric("trainer/global_step")
-                        self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                        global_step_key = f"{self._log_key_prefix}global_step"
+                        self._experiment.define_metric(global_step_key)
+                        self._experiment.define_metric("*", step_metric=global_step_key, step_sync=True)
 
         return self._experiment
 
@@ -441,7 +445,7 @@ class WandbLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None and not self._wandb_init.get("sync_tensorboard"):
-            self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
+            self.experiment.log(dict(metrics, **{f"{self._log_key_prefix}global_step": step}))
         else:
             self.experiment.log(metrics)
 
