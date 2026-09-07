@@ -102,3 +102,17 @@ def test_setup_device_calls_set_device_before_lazy_init():
     spawn_context = multiprocessing.get_context("spawn")
     with spawn_context.Pool(processes=1) as pool:
         pool.apply(_assert_set_device_precedes_lazy_init)
+
+
+@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("torch.cuda.set_device")
+def test_setup_device_sets_device_before_matmul_precision_check(set_device_mock, matmul_check_mock):
+    """The matmul precision check may initialize CUDA, so the device must be selected first."""
+    manager = mock.MagicMock()
+    manager.attach_mock(set_device_mock, "set_device")
+    manager.attach_mock(matmul_check_mock, "check_matmul_precision")
+
+    device = torch.device("cuda", 3)
+    CUDAAccelerator().setup_device(device)
+
+    assert manager.mock_calls == [mock.call.set_device(device), mock.call.check_matmul_precision(device)]
