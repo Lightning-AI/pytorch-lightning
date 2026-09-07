@@ -300,7 +300,18 @@ class MLFlowLogger(Logger):
 
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
+            # Handle both proper file URIs (file:///path) and legacy format (file:/path)
+            uri_without_prefix = self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
+
+            # If it starts with ///, it's a proper file URI, use urlparse
+            if uri_without_prefix.startswith("///"):
+                from urllib.parse import urlparse
+                from urllib.request import url2pathname
+
+                parsed_uri = urlparse(self._tracking_uri)
+                return url2pathname(parsed_uri.path)
+            # Legacy format: file:/path or file:./path - return as-is
+            return uri_without_prefix
         return None
 
     @property
