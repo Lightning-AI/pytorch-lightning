@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib
 import logging
+import multiprocessing
 import os
 from re import escape
 from unittest import mock
@@ -152,3 +153,50 @@ def test_find_usable_cuda_devices_error_handling():
 
     # Edge case
     assert find_usable_cuda_devices(0) == []
+
+
+def _assert_set_device_precedes_lazy_init():
+    """Assert `setup_device` selects the device before anything initializes CUDA.
+
+    Only meaningful in a process where CUDA has not been initialized yet.
+
+    """
+    mock_set_device = mock.MagicMock(wraps=torch.cuda.set_device)
+    mock_lazy_init = mock.MagicMock(wraps=torch.cuda._lazy_init)
+
+    mock_manager = mock.MagicMock()
+    mock_manager.attach_mock(mock_set_device, "set_device")
+    mock_manager.attach_mock(mock_lazy_init, "_lazy_init")
+
+    device = torch.device("cuda:0")
+
+    with (
+        mock.patch("torch.cuda.set_device", new=mock_set_device),
+        mock.patch("torch.cuda._lazy_init", new=mock_lazy_init),
+    ):
+        CUDAAccelerator().setup_device(device)
+
+    assert mock_manager.mock_calls[0] == mock.call.set_device(device)
+    assert mock_manager.mock_calls[1] == mock.call._lazy_init()
+
+
+@RunIf(min_cuda_gpus=1)
+def test_setup_device_calls_set_device_before_lazy_init():
+    # spawn a fresh process so the check is not invalidated by CUDA already being initialized
+    spawn_context = multiprocessing.get_context("spawn")
+    with spawn_context.Pool(processes=1) as pool:
+        pool.apply(_assert_set_device_precedes_lazy_init)
+
+
+@mock.patch("lightning.fabric.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("torch.cuda.set_device")
+def test_setup_device_sets_device_before_matmul_precision_check(set_device_mock, matmul_check_mock):
+    """The matmul precision check may initialize CUDA, so the device must be selected first."""
+    manager = mock.MagicMock()
+    manager.attach_mock(set_device_mock, "set_device")
+    manager.attach_mock(matmul_check_mock, "check_matmul_precision")
+
+    device = torch.device("cuda", 3)
+    CUDAAccelerator().setup_device(device)
+
+    assert manager.mock_calls == [mock.call.set_device(device), mock.call.check_matmul_precision(device)]
