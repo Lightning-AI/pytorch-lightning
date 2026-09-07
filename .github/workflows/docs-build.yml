@@ -48,6 +48,8 @@ env:
   FREEZE_REQUIREMENTS: "1"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYPI_LOCAL_DIR: "pypi_pkgs/"
+  # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
+  UV_EXCLUDE_NEWER: "2 days"
 
 jobs:
   docs-make:
@@ -63,7 +65,7 @@ jobs:
       PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.checkout }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +74,7 @@ jobs:
           lfs: ${{ matrix.pkg-name == 'pytorch' }}
 
       - name: Install uv and set Python version
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: "3.10"
           # TODO: Avoid activating environment like this
@@ -103,9 +105,15 @@ jobs:
 
       - name: Install package & dependencies
         timeout-minutes: 20
+        # `unsafe-best-match` lets uv consider all indexes when resolving a package,
+        # not just the first one it's found on. Required here because the PyTorch CPU
+        # extra-index mirrors an older `fsspec` that conflicts with `lightning[all]`'s
+        # version range under `UV_EXCLUDE_NEWER`; without this flag uv refuses to fall
+        # back to PyPI for a newer compatible version.
         run: |
           uv pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f ${PYPI_LOCAL_DIR} --extra-index-url="${TORCH_URL}"
+            -f ${PYPI_LOCAL_DIR} --extra-index-url="${TORCH_URL}" \
+            --index-strategy unsafe-best-match
           uv pip list
 
       - name: Install req. for Notebooks/tutorials
@@ -133,7 +141,7 @@ jobs:
 
       - name: Upload built docs
         if: ${{ matrix.target == 'html' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
@@ -153,18 +161,18 @@ jobs:
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v3
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
@@ -179,7 +187,7 @@ jobs:
       - name: Inject version selector
         working-directory: docs/build
         run: |
-          pip install -q wget
+          uv pip install -q wget
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/inject-selector-script.py
           python inject-selector-script.py html ${{ matrix.pkg-name }}
 

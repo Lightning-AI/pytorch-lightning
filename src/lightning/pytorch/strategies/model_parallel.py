@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import shutil
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
@@ -32,6 +30,14 @@ from lightning.fabric.strategies.model_parallel import (
     _load_checkpoint,
     _setup_device_mesh,
 )
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+)
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
@@ -39,7 +45,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -87,8 +92,6 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
         self._save_distributed_checkpoint = save_distributed_checkpoint
@@ -305,14 +308,12 @@ class ModelParallelStrategy(ParallelStrategy):
                 f" `{type(self).__name__}` does not use the `CheckpointIO`."
             )
         # broadcast the path from rank 0 to ensure all the checkpoints are saved to a common path
-        path = Path(self.broadcast(filepath))
-        if path.is_dir() and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
+        path = _resolve_path(self.broadcast(filepath))
+        if _is_checkpoint_dir(path) and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         if self._save_distributed_checkpoint:
-            if path.is_file():
-                path.unlink()
-            path.mkdir(parents=True, exist_ok=True)
+            _prepare_directory_checkpoint(path)
 
             converted_state = {"state_dict": checkpoint.pop("state_dict")}
             converted_state.update({
@@ -322,16 +323,16 @@ class ModelParallelStrategy(ParallelStrategy):
             _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
-                torch.save(checkpoint, path / _METADATA_FILENAME)
+                _atomic_save(checkpoint, _checkpoint_join(path, _METADATA_FILENAME))
         else:
             if _is_sharded_checkpoint(path):
-                shutil.rmtree(path)
+                _remove_checkpoint(path)
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(checkpoint_path))
+        path = _resolve_path(self.broadcast(checkpoint_path))
         state = {
             "state_dict": self.model,
             **{f"optimizer_{idx}": optimizer for idx, optimizer in enumerate(self.optimizers)},
@@ -351,10 +352,12 @@ class ModelParallelStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)

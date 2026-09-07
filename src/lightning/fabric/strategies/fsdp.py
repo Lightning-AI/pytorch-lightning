@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import shutil
 import warnings
 from collections.abc import Generator
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from datetime import timedelta
-from functools import partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -49,6 +47,18 @@ from lightning.fabric.strategies.strategy import (
     _Sharded,
     _validate_keys_for_strict_loading,
 )
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _get_distributed_checkpoint_reader,
+    _is_checkpoint_dir,
+    _is_local_file_protocol,
+    _load,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+    get_filesystem,
+)
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -57,10 +67,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_2,
-    _TORCH_GREATER_EQUAL_2_3,
-)
 from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
@@ -169,8 +175,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._fsdp_kwargs.setdefault("use_orig_params", True)
 
         if device_mesh is not None:
-            if not _TORCH_GREATER_EQUAL_2_2:
-                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
             self._fsdp_kwargs["device_mesh"] = device_mesh
 
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
@@ -296,12 +300,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
             _warn_if_shared_params_across_fsdp_units(module, self._fsdp_kwargs.get("auto_wrap_policy"))
+            # CPU is not a supported FSDP target; this branch only honors the torch>=2.5 contract,
+            # which rejects device_id=None (root_device.index is None on CPU). The GPU path is unchanged.
+            device_id = self.root_device if self.root_device.type == "cpu" else self.root_device.index
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
-                device_id=self.root_device.index,
+                device_id=device_id,
                 **self._fsdp_kwargs,
             )
 
@@ -354,12 +361,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
+        # CPU is not a supported FSDP target; this branch only honors the torch>=2.5 contract,
+        # which rejects device_id=None (root_device.index is None on CPU). The GPU path is unchanged.
+        device_id = self.root_device if self.root_device.type == "cpu" else self.root_device.index
         return enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
-            device_id=self.root_device.index,
+            device_id=device_id,
             **self._fsdp_kwargs,
         )
 
@@ -439,8 +449,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
 
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = Path(self.broadcast(path))
-        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+        path = _resolve_path(self.broadcast(path))
+        if self._state_dict_type == "full" and _is_checkpoint_dir(path) and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -461,9 +471,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = modules[0]
 
         if self._state_dict_type == "sharded":
-            if path.is_file():
-                path.unlink()
-            path.mkdir(parents=True, exist_ok=True)
+            _prepare_directory_checkpoint(path)
 
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
@@ -488,11 +496,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
-                torch.save(metadata, path / _METADATA_FILENAME)
+                _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME))
 
         elif self._state_dict_type == "full":
             if _is_sharded_checkpoint(path):
-                shutil.rmtree(path)
+                _remove_checkpoint(path)
 
             state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
             full_state: dict[str, Any] = {}
@@ -507,7 +515,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     _apply_filter(key, filter or {}, converted, full_state)
 
             if self.global_rank == 0:
-                torch.save(full_state, path)
+                _atomic_save(full_state, path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
@@ -527,7 +535,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(path))
+        path = _resolve_path(self.broadcast(path))
 
         if isinstance(state, Module):
             from lightning.fabric.strategies.model_parallel import _load_raw_module_state_from_path
@@ -568,11 +576,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 if optimizers:
-                    from torch.distributed.checkpoint import FileSystemReader
-
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                    reader = FileSystemReader(path=path)
+                    reader = _get_distributed_checkpoint_reader(path)
                     # the optimizer states must be loaded separately
                     for optim_key, optim in optimizers.items():
                         optim_state = load_sharded_optimizer_state_dict(
@@ -587,8 +593,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         )
                         optim.load_state_dict(flattened_osd)
 
-            # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
+            # Load metadata (anything not a module or optimizer). Default to `weights_only=False` (like the
+            # full-checkpoint path) so non-tensor metadata loads on torch>=2.6, while honoring an explicit value.
+            metadata = _load(
+                _checkpoint_join(path, _METADATA_FILENAME),
+                weights_only=False if weights_only is None else weights_only,
+            )
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
             for key in requested_metadata_keys:
@@ -600,7 +610,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path)
+            checkpoint = (
+                _lazy_load(path)
+                if _is_local_file_protocol(str(path))
+                else _load(path, weights_only=False if weights_only is None else weights_only)
+            )
 
             from lightning.fabric.strategies.model_parallel import (
                 _load_raw_module_state,
@@ -665,10 +679,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -803,13 +819,10 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         return
 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-        CheckpointImpl,
         apply_activation_checkpointing,
         checkpoint_wrapper,
     )
 
-    if not _TORCH_GREATER_EQUAL_2_2:
-        checkpoint_wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
     apply_activation_checkpointing(module, checkpoint_wrapper_fn=checkpoint_wrapper, **activation_checkpointing_kwargs)
 
 
@@ -889,8 +902,13 @@ def _get_full_state_dict_context(
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    # TODO: This can be cleaned up once PyTorch Lightning picks up the PyTorch version containing
+    # the fix https://github.com/pytorch/pytorch/pull/188990 as the root cause is in PyTorch.
+    # Offloading to CPU when FSDP is on CPU triggers a use-after-free in PyTorch's FlatParamHandle.to_cpu().
+    param = next(module.parameters(), None)
+    offload_to_cpu = param is None or param.device.type != "cpu"
+    state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
     state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,
@@ -901,13 +919,19 @@ def _get_full_state_dict_context(
     return state_dict_type_context  # type: ignore[return-value]
 
 
-def _is_sharded_checkpoint(path: Path) -> bool:
+def _is_sharded_checkpoint(path: _PATH) -> bool:
     """A heuristic check to determine whether the path points to a directory with checkpoint shards."""
-    return path.is_dir() and (path / _METADATA_FILENAME).is_file()
+    if _is_local_file_protocol(str(path)):
+        path = Path(path)
+        return path.is_dir() and (path / _METADATA_FILENAME).is_file()
+    fs = get_filesystem(path)
+    return fs.isfile(str(path).rstrip("/") + "/" + _METADATA_FILENAME)
 
 
-def _is_full_checkpoint(path: Path) -> bool:
-    return path.is_file()
+def _is_full_checkpoint(path: _PATH) -> bool:
+    if _is_local_file_protocol(str(path)):
+        return Path(path).is_file()
+    return get_filesystem(path).isfile(str(path))
 
 
 def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
@@ -928,38 +952,13 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
         metric.to(device)  # `.to()` is in-place
 
 
-def _distributed_checkpoint_save(converted_state: dict[str, Any], path: Path) -> None:
-    if _TORCH_GREATER_EQUAL_2_3:
-        from torch.distributed.checkpoint import save
+def _distributed_checkpoint_save(converted_state: dict[str, Any], path: _PATH) -> None:
+    from torch.distributed.checkpoint import save
 
-        # let torch automatically infer the writer to use. This might also support fsspec paths in the future
-        # https://github.com/pytorch/pytorch/issues/118036
-        save(converted_state, checkpoint_id=path)
-    else:  # deprecated
-        from torch.distributed.checkpoint import FileSystemWriter
-
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import save
-        else:
-            from torch.distributed.checkpoint import save_state_dict as save
-        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-        writer = FileSystemWriter(path=path, single_file_per_rank=True)
-        save(converted_state, writer)
+    save(converted_state, checkpoint_id=path)
 
 
-def _distributed_checkpoint_load(module_state: dict[str, Any], path: Path) -> None:
-    if _TORCH_GREATER_EQUAL_2_3:
-        from torch.distributed.checkpoint import load
+def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH) -> None:
+    from torch.distributed.checkpoint import load
 
-        # let torch automatically infer the reader to use. This might also support fsspec paths in the future
-        # https://github.com/pytorch/pytorch/issues/118036
-        load(module_state, checkpoint_id=path)
-    else:  # deprecated
-        from torch.distributed.checkpoint import FileSystemReader
-
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import load
-        else:
-            from torch.distributed.checkpoint import load_state_dict as load
-        reader = FileSystemReader(path=path)
-        load(module_state, reader)
+    load(module_state, checkpoint_id=path)

@@ -24,7 +24,6 @@ from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 
 def _runif_reasons(
@@ -113,7 +112,7 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not (_DEEPSPEED_AVAILABLE and _TORCH_GREATER_EQUAL_2_4):
+    if deepspeed and not _DEEPSPEED_AVAILABLE:
         reasons.append("Deepspeed")
 
     if dynamo:
