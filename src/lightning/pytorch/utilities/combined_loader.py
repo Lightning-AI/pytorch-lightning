@@ -397,7 +397,7 @@ class CombinedLoader(Iterable):
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
     if hasattr(dataloader, "_iterator"):
         if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
-            dataloader._iterator._shutdown_workers()
+            del dataloader._iterator
         dataloader._iterator = None
 
 

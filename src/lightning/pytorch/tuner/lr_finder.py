@@ -206,6 +206,7 @@ def _lr_find(
     early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
     attr_name: str = "",
+    weights_only: Optional[bool] = None,
 ) -> Optional[_LRFinder]:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in picking
     a good starting learning rate.
@@ -227,6 +228,11 @@ def _lr_find(
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
+        weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+            ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+            an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+            recommend using ``weights_only=True``. For more information, please refer to the
+            `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
     """
     if trainer.fast_dev_run:
@@ -285,7 +291,7 @@ def _lr_find(
         raise ex
     finally:
         # Restore initial state of model (this will also restore the original optimizer state)
-        trainer._checkpoint_connector.restore(ckpt_path)
+        trainer._checkpoint_connector.restore(ckpt_path, weights_only=weights_only)
         trainer.strategy.remove_checkpoint(ckpt_path)
         trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
         trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True

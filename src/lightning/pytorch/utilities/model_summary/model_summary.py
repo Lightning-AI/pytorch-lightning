@@ -28,7 +28,6 @@ from torch.utils.hooks import RemovableHandle
 import lightning.pytorch as pl
 from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.distributed import _is_dtensor
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -218,11 +217,7 @@ class ModelSummary:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
 
         # The max-depth needs to be plus one because the root module is already counted as depth 0.
-        self._flop_counter = FlopCounterMode(
-            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
-            display=False,
-            depth=max_depth + 1,
-        )
+        self._flop_counter = FlopCounterMode(display=False, depth=max_depth + 1)
 
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
@@ -350,18 +345,8 @@ class ModelSummary:
         mode.capture(model)
         model.eval()
 
-        # FlopCounterMode does not support ScriptModules before torch 2.4.0, so we use a null context
-        flop_context = (
-            contextlib.nullcontext()
-            if (
-                not _TORCH_GREATER_EQUAL_2_4
-                and any(isinstance(m, torch.jit.ScriptModule) for m in self._model.modules())
-            )
-            else self._flop_counter
-        )
-
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
-        with torch.no_grad(), forward_context, flop_context:
+        with torch.no_grad(), forward_context, self._flop_counter:
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)

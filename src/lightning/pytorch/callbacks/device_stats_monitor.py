@@ -27,6 +27,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
@@ -99,6 +100,12 @@ class DeviceStatsMonitor(Callback):
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
             If ``False``, it will not log CPU stats regardless of the accelerator.
+        filter_keys: if ``None``, all stats returned by the accelerator are logged.
+            If a ``set`` of strings is provided, only the keys present in the set will be logged.
+            Keys are matched against the base metric names before prefixing (e.g.,
+            ``"cpu_percent"`` not ``"DeviceStatsMonitor.on_train_batch_end/cpu_percent"``).
+            A ``rank_zero_warn`` is emitted for any key in ``filter_keys`` not found in the
+            collected stats, which helps catch typos early.
 
     Raises:
         MisconfigurationException:
@@ -110,13 +117,29 @@ class DeviceStatsMonitor(Callback):
 
         from lightning import Trainer
         from lightning.pytorch.callbacks import DeviceStatsMonitor
+
+        # log all stats (default behaviour)
         device_stats = DeviceStatsMonitor()
+        trainer = Trainer(callbacks=[device_stats])
+
+        # log only peak and current allocated GPU memory
+        device_stats = DeviceStatsMonitor(
+            filter_keys={"allocated_bytes.all.current", "allocated_bytes.all.peak"}
+        )
+        trainer = Trainer(callbacks=[device_stats])
+
+        # log CPU stats alongside a subset of GPU memory stats
+        device_stats = DeviceStatsMonitor(
+            cpu_stats=True,
+            filter_keys={"cpu_percent", "allocated_bytes.all.current"},
+        )
         trainer = Trainer(callbacks=[device_stats])
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
+    def __init__(self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None) -> None:
         self._cpu_stats = cpu_stats
+        self._filter_keys = filter_keys
 
     @override
     def setup(
@@ -138,6 +161,20 @@ class DeviceStatsMonitor(Callback):
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
+        if self._filter_keys is not None:
+            device_stats = trainer.accelerator.get_device_stats(device)
+            if self._cpu_stats and device.type != "cpu":
+                from lightning.pytorch.accelerators.cpu import get_cpu_stats
+
+                device_stats.update(get_cpu_stats())
+
+            unrecognized = self._filter_keys - device_stats.keys()
+            if unrecognized:
+                rank_zero_warn(
+                    f"`DeviceStatsMonitor` filter_keys contains keys not found in device stats and will be ignored:"
+                    f" {unrecognized}"
+                )
+
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -154,6 +191,9 @@ class DeviceStatsMonitor(Callback):
             from lightning.pytorch.accelerators.cpu import get_cpu_stats
 
             device_stats.update(get_cpu_stats())
+
+        if self._filter_keys is not None:
+            device_stats = {k: v for k, v in device_stats.items() if k in self._filter_keys}
 
         for logger in trainer.loggers:
             separator = logger.group_separator

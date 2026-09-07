@@ -19,16 +19,16 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Parse issue form
-        uses: stefanbuck/github-issue-parser@v3
+        uses: stefanbuck/github-issue-parser@cb6e97157cbf851e3a393ff8d57c93a484cc323f # v3.2.5
         id: issue-parser
         with:
           template-path: .github/ISSUE_TEMPLATE/1_bug_report.yaml
 
       - name: Set labels based on severity field
-        uses: redhat-plumbers-in-action/advanced-issue-labeler@v3
+        uses: redhat-plumbers-in-action/advanced-issue-labeler@b80ae64e3e156e9c111b075bfa04b295d54e8e2e # v3.2.4
         with:
           issue-form: ${{ steps.issue-parser.outputs.jsonString }}
           token: ${{ secrets.GITHUB_TOKEN }}
