@@ -6,7 +6,6 @@ from pathlib import Path
 import torch
 
 from lightning.fabric.utilities.cloud_io import _checkpoint_join, _resolve_path, get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
@@ -40,10 +39,6 @@ def _parse_cli_args() -> Namespace:
 
 
 def _process_cli_args(args: Namespace) -> Namespace:
-    if not _TORCH_GREATER_EQUAL_2_3:
-        _log.error("Processing distributed checkpoints requires PyTorch >= 2.3.")
-        sys.exit(1)
-
     checkpoint_folder = _resolve_path(args.checkpoint_folder)
     if isinstance(checkpoint_folder, Path):
         if not checkpoint_folder.exists():

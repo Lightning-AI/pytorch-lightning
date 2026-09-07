@@ -68,6 +68,7 @@ def restore_env_variables():
         "OMP_NUM_THREADS",  # set by our launchers
         # set by torchdynamo
         "TRITON_CACHE_DIR",
+        "TRITON_PTXAS_PATH",
         "TORCHINDUCTOR_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
@@ -105,8 +106,13 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.name == "QueueFeederThread"  # tensorboardX
             or thread.name == "QueueManagerThread"  # torch.compile
             or "(_read_thread)" in thread.name  # torch.compile
+            or thread.name == "subproc_worker_timer"  # torch.compile subprocess pool watchdog
         ):
             thread.join(timeout=20)
+        elif type(thread).__name__ == "_DummyThread":
+            # threads not created by the `threading` module (e.g. native NCCL/torch.compile threads
+            # that call into Python) surface as `_DummyThread` and can't be joined or stopped
+            continue
         elif (
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)

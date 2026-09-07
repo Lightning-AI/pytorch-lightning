@@ -186,7 +186,6 @@ def test_run_through_fabric_entry_point():
 def test_consolidate(save_mock, _, tmp_path, caplog, monkeypatch):
     # The checkpoint folder is validated by `_process_cli_args`, not click, so that remote (fsspec) paths
     # that don't exist as local files are not rejected before the real (fsspec-aware) check runs.
-    monkeypatch.setattr("lightning.fabric.utilities.consolidate_checkpoint._TORCH_GREATER_EQUAL_2_3", True)
     with (
         caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
         pytest.raises(SystemExit) as e,
