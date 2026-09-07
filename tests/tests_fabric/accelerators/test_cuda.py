@@ -155,9 +155,12 @@ def test_find_usable_cuda_devices_error_handling():
     assert find_usable_cuda_devices(0) == []
 
 
-@RunIf(min_cuda_gpus=1)
-@pytest.mark.skip(reason="Fails if CUDA is initialized. Another test should run this in a spawned subprocess.")
-def test_setup_device_calls_set_device_before_lazy_init():
+def _assert_set_device_precedes_lazy_init():
+    """Assert `setup_device` selects the device before anything initializes CUDA.
+
+    Only meaningful in a process where CUDA has not been initialized yet.
+
+    """
     mock_set_device = mock.MagicMock(wraps=torch.cuda.set_device)
     mock_lazy_init = mock.MagicMock(wraps=torch.cuda._lazy_init)
 
@@ -178,7 +181,8 @@ def test_setup_device_calls_set_device_before_lazy_init():
 
 
 @RunIf(min_cuda_gpus=1)
-def test_setup_device_calls_set_device_before_lazy_init_in_spawned_subprocess():
+def test_setup_device_calls_set_device_before_lazy_init():
+    # spawn a fresh process so the check is not invalidated by CUDA already being initialized
     spawn_context = multiprocessing.get_context("spawn")
     with spawn_context.Pool(processes=1) as pool:
-        pool.apply(test_setup_device_calls_set_device_before_lazy_init)
+        pool.apply(_assert_set_device_precedes_lazy_init)
