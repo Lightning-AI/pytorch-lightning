@@ -44,13 +44,9 @@ jobs:
       matrix:
         os: [macOS-14, ubuntu-22.04, windows-2022]
         config:
-          # TODO: follow-up - prune the oldest PyTorch minors (2.1-2.5) now that we test up to 2.13
-          # Test unified "lightning" package with PyTorch 2.1-2.5
-          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
-          - { pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.5.1" }
+          # Test unified "lightning" package at the oldest supported and the latest PyTorch
+          - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
+          - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.13" }
 
           # Test "pytorch" package with PyTorch 2.6-2.13
           - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
@@ -69,13 +65,11 @@ jobs:
           - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
 
           # Test minimum supported versions (oldest)
-          - { pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
+          - { pkg-name: "pytorch", pytorch-version: "2.6", requires: "oldest" }
     timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
-      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
-      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       # TODO: Remove this - Enable running MPS tests on this platform
       DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
@@ -129,14 +123,10 @@ jobs:
 
       - name: Env. variables
         run: |
-          # Switch PyTorch URL between stable and test/future
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.config.pytorch-version }}' == '2.7' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.config.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
           python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.config.pkg-name}}' != 'lightning' else 'pytorch-'))" >> $GITHUB_ENV
-          # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
-          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.config.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         timeout-minutes: 20

@@ -22,9 +22,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Removed dead code paths for PyTorch below 2.6 ([#21870](https://github.com/Lightning-AI/pytorch-lightning/pull/21870))
 
 ### Fixed
+
+- Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
@@ -35,6 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
+
+- Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
 
 ---
 
