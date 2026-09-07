@@ -43,10 +43,10 @@
      - `PR9921`_
 
 
-.. _pr13031: https://github.com/Lightning-AI/lightning/pull/13031
-.. _pr13043: https://github.com/Lightning-AI/lightning/pull/13043
-.. _pr13767: https://github.com/Lightning-AI/lightning/pull/13767
-.. _pr12308: https://github.com/Lightning-AI/lightning/pull/12308
-.. _pr13636: https://github.com/Lightning-AI/lightning/pull/13636
-.. _pr15689: https://github.com/Lightning-AI/lightning/pull/15689
-.. _pr9921: https://github.com/Lightning-AI/lightning/pull/9921
+.. _pr13031: https://github.com/Lightning-AI/pytorch-lightning/pull/13031
+.. _pr13043: https://github.com/Lightning-AI/pytorch-lightning/pull/13043
+.. _pr13767: https://github.com/Lightning-AI/pytorch-lightning/pull/13767
+.. _pr12308: https://github.com/Lightning-AI/pytorch-lightning/pull/12308
+.. _pr13636: https://github.com/Lightning-AI/pytorch-lightning/pull/13636
+.. _pr15689: https://github.com/Lightning-AI/pytorch-lightning/pull/15689
+.. _pr9921: https://github.com/Lightning-AI/pytorch-lightning/pull/9921

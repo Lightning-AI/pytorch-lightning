@@ -16,8 +16,9 @@ import torch.optim as optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.utils
-from lightning.fabric import Fabric, seed_everything
 from torchvision.datasets import CelebA
+
+from lightning.fabric import Fabric, seed_everything
 
 # Root directory for dataset
 dataroot = "data/"

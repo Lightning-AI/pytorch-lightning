@@ -18,10 +18,10 @@ import sys
 from unittest import mock
 
 import pytest
-from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
 
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -155,8 +155,9 @@ def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
-    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), pytest.raises(
-        RuntimeError, match="You set `--ntasks=2` in your SLURM"
+    with (
+        mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}),
+        pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"),
     ):
         SLURMEnvironment()
 
@@ -173,7 +174,7 @@ def test_validate_user_settings():
     with pytest.raises(ValueError, match="the number of nodes configured in SLURM .* does not match"):
         env.validate_settings(num_devices=4, num_nodes=1)
 
-    # in interactive mode, validation is skipped becauses processes get launched by Fabric/Trainer, not SLURM
+    # in interactive mode, validation is skipped because processes get launched by Fabric/Trainer, not SLURM
     with mock.patch(
         "lightning.fabric.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
     ):

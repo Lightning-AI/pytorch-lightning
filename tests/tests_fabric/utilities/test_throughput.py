@@ -1,8 +1,10 @@
+import warnings
 from unittest import mock
 from unittest.mock import Mock, call
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.throughput import (
@@ -12,12 +14,9 @@ from lightning.fabric.utilities.throughput import (
     get_available_flops,
     measure_flops,
 )
-
-from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 
-@RunIf(min_torch="2.1")
 def test_measure_flops():
     with torch.device("meta"):
         model = BoringModel()
@@ -41,8 +40,9 @@ def test_get_available_flops(xla_available):
     with pytest.warns(match="not found for 'CocoNut"), mock.patch("torch.cuda.get_device_name", return_value="CocoNut"):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
-    with pytest.warns(match="t4' does not support torch.bfloat"), mock.patch(
-        "torch.cuda.get_device_name", return_value="t4"
+    with (
+        pytest.warns(match="t4' does not support torch.bfloat"),
+        mock.patch("torch.cuda.get_device_name", return_value="t4"),
     ):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
@@ -69,6 +69,8 @@ def test_get_available_flops(xla_available):
     "device_name",
     [
         # Hopper
+        "NVIDIA H200 SXM1",
+        "NVIDIA H200 NVL1",
         "h100-nvl",  # TODO: switch with `torch.cuda.get_device_name()` result
         "h100-hbm3",  # TODO: switch with `torch.cuda.get_device_name()` result
         "NVIDIA H100 PCIe",
@@ -180,6 +182,60 @@ def test_throughput():
     throughput = Throughput(window_size=2)
     with pytest.raises(ValueError, match=r"lengths.*to be greater or equal than samples"):
         throughput.update(time=0, batches=2, samples=2, lengths=1)
+
+
+def test_throughput_sparse_model_scaling():
+    """``using_sparse_model`` scales ``available_flops`` by the acceleration factor."""
+    # explicit False — available_flops untouched (also avoids the unset-flag warning)
+    assert Throughput(available_flops=100.0, using_sparse_model=False).available_flops == 100.0
+
+    # sparse flag on with default 2.0 factor
+    assert Throughput(available_flops=100.0, using_sparse_model=True).available_flops == 200.0
+
+    # sparse flag on with custom factor
+    throughput = Throughput(available_flops=100.0, using_sparse_model=True, sparse_cuda_acceleration_factor=4.0)
+    assert throughput.available_flops == 400.0
+
+    # sparse flag on with unknown peak — stays None, no error (MFU is skipped in compute())
+    assert Throughput(available_flops=None, using_sparse_model=True).available_flops is None
+
+    # factor below 1.0 is physically meaningless (sparsity can never lower the peak)
+    with pytest.raises(AssertionError, match="sparse acceleration factor cannot reduce"):
+        Throughput(available_flops=100.0, using_sparse_model=True, sparse_cuda_acceleration_factor=0.5)
+
+
+def test_throughput_sparse_model_warning():
+    """When ``using_sparse_model`` is unset and a peak is known, warn so MFU is not silently ambiguous."""
+    # warning fires only when the peak is known and the user didn't specify intent
+    with pytest.warns(UserWarning, match="MFU assumes dense model FLOPs"):
+        throughput = Throughput(available_flops=100.0)
+    assert throughput.available_flops == 100.0  # dense default, no scaling applied
+
+    # explicit choice (True or False) silences the warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Throughput(available_flops=100.0, using_sparse_model=False)
+        Throughput(available_flops=100.0, using_sparse_model=True)
+
+    # no peak known → MFU is never computed, so no warning is needed
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Throughput(available_flops=None)
+
+
+def test_throughput_sparse_model_mfu():
+    """MFU denominator reflects the sparse-scaled peak, so MFU halves when the peak doubles."""
+    # baseline dense: mfu = flops_per_sec / available_flops = 10 / 50 = 0.2
+    throughput = Throughput(available_flops=50, window_size=2, using_sparse_model=False)
+    throughput.update(time=1, batches=1, samples=2, flops=10)
+    throughput.update(time=2, batches=2, samples=4, flops=10)
+    assert throughput.compute()["device/mfu"] == 0.2
+
+    # sparse: peak doubles to 100, so mfu = 10 / 100 = 0.1
+    throughput = Throughput(available_flops=50, window_size=2, using_sparse_model=True)
+    throughput.update(time=1, batches=1, samples=2, flops=10)
+    throughput.update(time=2, batches=2, samples=4, flops=10)
+    assert throughput.compute()["device/mfu"] == 0.1
 
 
 def mock_train_loop(monitor):
@@ -315,6 +371,17 @@ def test_throughput_monitor_world_size():
             step=4,
         ),
     ]
+
+
+def test_throughput_monitor_sparse_model():
+    """``using_sparse_model`` and ``sparse_cuda_acceleration_factor`` propagate through ThroughputMonitor."""
+    fabric_mock = Mock()
+    fabric_mock.world_size = 1
+    fabric_mock.strategy.precision = Precision()
+    with mock.patch("lightning.fabric.utilities.throughput.get_available_flops", return_value=100):
+        monitor = ThroughputMonitor(fabric_mock, using_sparse_model=True, sparse_cuda_acceleration_factor=2.0)
+    # 100 (from hardware lookup) scaled by 2.0 (sparse factor) → 200
+    assert monitor.available_flops == 200
 
 
 def test_monotonic_window():

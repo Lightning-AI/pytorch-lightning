@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from typing_extensions import override
 
@@ -34,7 +34,7 @@ class TorchCheckpointIO(CheckpointIO):
     """
 
     @override
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -59,14 +59,22 @@ class TorchCheckpointIO(CheckpointIO):
 
     @override
     def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
-    ) -> Dict[str, Any]:
+        self,
+        path: _PATH,
+        map_location: Optional[Callable] = lambda storage, loc: storage,
+        weights_only: Optional[bool] = None,
+    ) -> dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
         Args:
             path: Path to checkpoint
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
                 locations.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Returns: The loaded checkpoint.
 
@@ -80,7 +88,7 @@ class TorchCheckpointIO(CheckpointIO):
         if not fs.exists(path):
             raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
-        return pl_load(path, map_location=map_location)
+        return pl_load(path, map_location=map_location, weights_only=weights_only)
 
     @override
     def remove_checkpoint(self, path: _PATH) -> None:

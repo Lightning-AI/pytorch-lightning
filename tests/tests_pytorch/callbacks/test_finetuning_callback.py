@@ -15,13 +15,13 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
 
+from lightning.pytorch import LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -108,12 +108,12 @@ def test_finetuning_callback_warning(tmp_path):
     model.validation_step = None
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
+    trainer = Trainer(limit_train_batches=1, default_root_dir=tmp_path, callbacks=[callback, chk], max_epochs=2)
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(limit_train_batches=1, default_root_dir=tmp_path, callbacks=[callback, chk], max_epochs=2)
         trainer.fit(model)
 
     assert model.backbone.has_been_used
-    trainer = Trainer(max_epochs=3)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=3)
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
@@ -245,7 +245,7 @@ def test_base_finetuning_internal_optimizer_metadata(tmp_path):
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
-    trainer = Trainer(max_epochs=10, callbacks=[cb])
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=10, callbacks=[cb])
     with pytest.raises(IndexError, match="index 6 is out of range"):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
@@ -358,6 +358,7 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
 
     assert callback._internal_optimizer_metadata[0][0] == expected
@@ -373,6 +374,7 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
 
     assert callback._internal_optimizer_metadata[0][1] == expected

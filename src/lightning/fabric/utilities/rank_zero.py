@@ -15,8 +15,7 @@
 
 import logging
 import os
-from functools import wraps
-from typing import Callable, Optional, TypeVar, overload
+from typing import Optional
 
 import lightning_utilities.core.rank_zero as rank_zero_module
 
@@ -29,9 +28,6 @@ from lightning_utilities.core.rank_zero import (  # noqa: F401
     rank_zero_info,
     rank_zero_warn,
 )
-from typing_extensions import ParamSpec
-
-from lightning.fabric.utilities.imports import _UTILITIES_GREATER_EQUAL_0_10
 
 rank_zero_module.log = logging.getLogger(__name__)
 
@@ -48,33 +44,7 @@ def _get_rank() -> Optional[int]:
     return None
 
 
-if not _UTILITIES_GREATER_EQUAL_0_10:
-    T = TypeVar("T")
-    P = ParamSpec("P")
-
-    @overload
-    def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
-        """Rank zero only."""
-
-    @overload
-    def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]:
-        """Rank zero only."""
-
-    def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:
-        @wraps(fn)
-        def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> Optional[T]:
-            rank = getattr(rank_zero_only, "rank", None)
-            if rank is None:
-                raise RuntimeError("The `rank_zero_only.rank` needs to be set before use")
-            if rank == 0:
-                return fn(*args, **kwargs)
-            return default
-
-        return wrapped_fn
-
-    rank_zero_module.rank_zero_only.rank = getattr(rank_zero_module.rank_zero_only, "rank", _get_rank() or 0)
-else:
-    rank_zero_only = rank_zero_module.rank_zero_only
+rank_zero_only = rank_zero_module.rank_zero_only
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)

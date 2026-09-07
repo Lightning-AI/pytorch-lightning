@@ -1094,7 +1094,7 @@ for more information.
 
         on_train_epoch_start()
 
-        for batch in train_dataloader():
+        for batch_idx, batch in enumerate(train_dataloader()):
             on_train_batch_start()
 
             on_before_batch_transfer()

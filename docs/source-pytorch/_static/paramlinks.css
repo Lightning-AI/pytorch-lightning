@@ -1,0 +1,9 @@
+/* Keep sphinx_paramlinks anchors inline under the Lightning API theme. */
+article.pytorch-article .field-list .anchorjs-link {
+    display: inline;
+    position: static;
+    right: auto;
+    font-size: 1em !important;
+    padding-left: 0.25em;
+    vertical-align: baseline;
+}

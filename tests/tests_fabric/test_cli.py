@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 import os
 import subprocess
 import sys
@@ -20,12 +21,13 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
 
+from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
+from lightning.fabric.utilities.load import _METADATA_FILENAME
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_script(tmp_path):
     script = tmp_path / "script.py"
     script.touch()
@@ -46,7 +48,7 @@ def test_run_env_vars_defaults(monkeypatch, fake_script):
     assert "LT_PRECISION" not in os.environ
 
 
-@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
+@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", "auto", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
@@ -71,8 +73,9 @@ def test_run_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 def test_run_get_supported_strategies():
     """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in the
     CLI."""
-    assert len(_get_supported_strategies()) == 7
+    assert len(_get_supported_strategies()) == 8
     assert "fsdp" in _get_supported_strategies()
+    assert "ddp_find_unused_parameters_true" in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
@@ -84,7 +87,7 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
-@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
+@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
@@ -96,7 +99,7 @@ def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 
 
 @RunIf(mps=True)
-@pytest.mark.parametrize("accelerator", ["mps", "gpu"])
+@pytest.mark.parametrize("accelerator", ["mps", "gpu", "auto"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
@@ -178,31 +181,22 @@ def test_run_through_fabric_entry_point():
     assert message in result.stdout or message in result.stderr
 
 
-@pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
-def test_run_through_lightning_entry_point():
-    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-
-    deprecation_message = (
-        "`lightning run model` is deprecated and will be removed in future versions. "
-        "Please call `fabric run` instead"
-    )
-    message = "Usage: lightning run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-    assert deprecation_message in result.stdout
-    assert message in result.stdout or message in result.stderr
-
-
-@mock.patch("lightning.fabric.cli._process_cli_args")
 @mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
-@mock.patch("lightning.fabric.cli.torch.save")
-def test_consolidate(save_mock, _, __, tmp_path):
-    ioerr = StringIO()
-    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+@mock.patch("lightning.fabric.cli._atomic_save")
+def test_consolidate(save_mock, _, tmp_path, caplog, monkeypatch):
+    # The checkpoint folder is validated by `_process_cli_args`, not click, so that remote (fsspec) paths
+    # that don't exist as local files are not rejected before the real (fsspec-aware) check runs.
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit) as e,
+    ):
         _consolidate.main(["not exist"])
-    assert e.value.code == 2
-    assert "Path 'not exist' does not exist" in ioerr.getvalue()
+    assert e.value.code == 1
+    assert "checkpoint folder does not exist" in caplog.text
 
     checkpoint_folder = tmp_path / "checkpoint"
     checkpoint_folder.mkdir()
+    (checkpoint_folder / _METADATA_FILENAME).touch()
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
         _consolidate.main([str(checkpoint_folder)])

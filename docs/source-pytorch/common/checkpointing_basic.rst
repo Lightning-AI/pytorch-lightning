@@ -20,6 +20,13 @@ PyTorch Lightning checkpoints are fully usable in plain PyTorch.
 
 ----
 
+.. important::
+
+   **Important Update: Deprecated Method**
+
+   Starting from PyTorch Lightning v1.0.0, the `resume_from_checkpoint` argument has been deprecated. To resume training from a checkpoint, use the `ckpt_path` argument in the `fit()` method.
+   Please update your code accordingly to avoid potential compatibility issues.
+
 ************************
 Contents of a checkpoint
 ************************
@@ -51,12 +58,45 @@ Lightning automatically saves a checkpoint for you in your current working direc
     # simply by using the Trainer you get automatic checkpointing
     trainer = Trainer()
 
-To change the checkpoint path use the `default_root_dir` argument:
+
+Checkpoint save location
+========================
+
+The location where checkpoints are saved depends on whether you have configured a logger:
+
+**Without a logger**, checkpoints are saved to the ``default_root_dir``:
 
 .. code-block:: python
 
-    # saves checkpoints to 'some/path/' at every epoch end
-    trainer = Trainer(default_root_dir="some/path/")
+    # saves checkpoints to 'some/path/checkpoints/'
+    trainer = Trainer(default_root_dir="some/path/", logger=False)
+
+**With a logger**, checkpoints are saved to the logger's directory, **not** to ``default_root_dir``:
+
+.. code-block:: python
+
+    from lightning.pytorch.loggers import CSVLogger
+
+    # checkpoints will be saved to 'logs/my_experiment/version_0/checkpoints/'
+    # NOT to 'some/path/checkpoints/'
+    trainer = Trainer(
+        default_root_dir="some/path/",  # This will be ignored for checkpoints!
+        logger=CSVLogger("logs", "my_experiment")
+    )
+
+To explicitly control the checkpoint location when using a logger, use the
+:class:`~lightning.pytorch.callbacks.ModelCheckpoint` callback:
+
+.. code-block:: python
+
+    from lightning.pytorch.callbacks import ModelCheckpoint
+
+    # explicitly set checkpoint directory
+    checkpoint_callback = ModelCheckpoint(dirpath="my/custom/checkpoint/path/")
+    trainer = Trainer(
+        logger=CSVLogger("logs", "my_experiment"),
+        callbacks=[checkpoint_callback]
+    )
 
 
 ----
@@ -104,7 +144,7 @@ The LightningModule also has access to the Hyperparameters
 .. code-block:: python
 
     model = MyLightningModule.load_from_checkpoint("/path/to/checkpoint.ckpt")
-    print(model.learning_rate)
+    print(model.hparams.learning_rate)
 
 ----
 
@@ -197,11 +237,14 @@ You can disable checkpointing by passing:
 
 ----
 
+
 *********************
 Resume training state
 *********************
 
 If you don't just want to load weights, but instead restore the full training, do the following:
+
+Correct usage:
 
 .. code-block:: python
 
@@ -209,4 +252,16 @@ If you don't just want to load weights, but instead restore the full training, d
    trainer = Trainer()
 
    # automatically restores model, epoch, step, LR schedulers, etc...
-   trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")
+   trainer.fit(model, ckpt_path="path/to/your/checkpoint.ckpt")
+
+.. warning::
+
+   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0.
+   To resume training from a checkpoint, use the `ckpt_path` argument in the `fit()` method instead.
+
+Incorrect (deprecated) usage:
+
+.. code-block:: python
+
+   trainer = Trainer(resume_from_checkpoint="path/to/your/checkpoint.ckpt")
+   trainer.fit(model)

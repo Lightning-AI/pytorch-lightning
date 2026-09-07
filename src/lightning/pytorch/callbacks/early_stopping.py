@@ -20,7 +20,8 @@ Monitor a metric and stop training when it stops improving.
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple
+from enum import Enum
+from typing import Any, Callable, Optional
 
 import torch
 from torch import Tensor
@@ -32,6 +33,16 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_zero_warn
 
 log = logging.getLogger(__name__)
+
+
+class EarlyStoppingReason(Enum):
+    """Enum for early stopping reasons."""
+
+    NOT_STOPPED = 0
+    STOPPING_THRESHOLD = 1
+    DIVERGENCE_THRESHOLD = 2
+    PATIENCE_EXHAUSTED = 3
+    NON_FINITE_METRIC = 4
 
 
 class EarlyStopping(Callback):
@@ -65,6 +76,11 @@ class EarlyStopping(Callback):
             If this is ``False``, then the check runs at the end of the validation.
         log_rank_zero_only: When set ``True``, logs the status of the early stopping callback only for rank 0 process.
 
+    Attributes:
+        stopped_epoch: The epoch at which training was stopped. 0 if training was not stopped.
+        stopping_reason: An ``EarlyStoppingReason`` enum indicating why training was stopped.
+        stopping_reason_message: A human-readable message explaining why training was stopped.
+
     Raises:
         MisconfigurationException:
             If ``mode`` is none of ``"min"`` or ``"max"``.
@@ -75,8 +91,12 @@ class EarlyStopping(Callback):
 
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import EarlyStopping
+        >>> from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
+        >>> # After training...
+        >>> if early_stopping.stopping_reason == EarlyStoppingReason.PATIENCE_EXHAUSTED:
+        ...     print("Training stopped due to patience exhaustion")
 
     .. tip:: Saving and restoring multiple early stopping callbacks at the same time is supported under variation in the
         following arguments:
@@ -117,6 +137,8 @@ class EarlyStopping(Callback):
         self.divergence_threshold = divergence_threshold
         self.wait_count = 0
         self.stopped_epoch = 0
+        self.stopping_reason = EarlyStoppingReason.NOT_STOPPED
+        self.stopping_reason_message: Optional[str] = None
         self._check_on_train_epoch_end = check_on_train_epoch_end
         self.log_rank_zero_only = log_rank_zero_only
 
@@ -139,13 +161,13 @@ class EarlyStopping(Callback):
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs: Dict[str, Tensor]) -> bool:
+    def _validate_condition_metric(self, logs: dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
             f"Early stopping conditioned on metric `{self.monitor}` which is not available."
             " Pass in or modify your `EarlyStopping` callback to use any of the following:"
-            f' `{"`, `".join(list(logs.keys()))}`'
+            f" `{'`, `'.join(list(logs.keys()))}`"
         )
 
         if monitor_val is None:
@@ -163,20 +185,25 @@ class EarlyStopping(Callback):
         return self.mode_dict[self.mode]
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "wait_count": self.wait_count,
             "stopped_epoch": self.stopped_epoch,
             "best_score": self.best_score,
             "patience": self.patience,
+            "stopping_reason": self.stopping_reason.value,
+            "stopping_reason_message": self.stopping_reason_message,
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.wait_count = state_dict["wait_count"]
         self.stopped_epoch = state_dict["stopped_epoch"]
         self.best_score = state_dict["best_score"]
         self.patience = state_dict["patience"]
+        stopping_reason_value = state_dict.get("stopping_reason", EarlyStoppingReason.NOT_STOPPED.value)
+        self.stopping_reason = EarlyStoppingReason(stopping_reason_value)
+        self.stopping_reason_message = state_dict.get("stopping_reason_message")
 
     def _should_skip_check(self, trainer: "pl.Trainer") -> bool:
         from lightning.pytorch.trainer.states import TrainerFn
@@ -212,20 +239,23 @@ class EarlyStopping(Callback):
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch
+            self.stopping_reason_message = reason
         if reason and self.verbose:
             self._log_info(trainer, reason, self.log_rank_zero_only)
 
-    def _evaluate_stopping_criteria(self, current: Tensor) -> Tuple[bool, Optional[str]]:
+    def _evaluate_stopping_criteria(self, current: Tensor) -> tuple[bool, Optional[str]]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):
             should_stop = True
+            self.stopping_reason = EarlyStoppingReason.NON_FINITE_METRIC
             reason = (
                 f"Monitored metric {self.monitor} = {current} is not finite."
                 f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
             )
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
             should_stop = True
+            self.stopping_reason = EarlyStoppingReason.STOPPING_THRESHOLD
             reason = (
                 "Stopping threshold reached:"
                 f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.stopping_threshold}."
@@ -233,6 +263,7 @@ class EarlyStopping(Callback):
             )
         elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
             should_stop = True
+            self.stopping_reason = EarlyStoppingReason.DIVERGENCE_THRESHOLD
             reason = (
                 "Divergence threshold reached:"
                 f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.divergence_threshold}."
@@ -247,6 +278,7 @@ class EarlyStopping(Callback):
             self.wait_count += 1
             if self.wait_count >= self.patience:
                 should_stop = True
+                self.stopping_reason = EarlyStoppingReason.PATIENCE_EXHAUSTED
                 reason = (
                     f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
                     f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."

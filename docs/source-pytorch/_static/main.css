@@ -1,3 +1,13 @@
 col {
   width: 50% !important;
 }
+
+ul.no-bullets {
+    list-style-type: none; /* Remove default bullets */
+    padding-left: 0;       /* Remove default padding */
+}
+
+ul.no-bullets li {
+    padding-left: 0.5em;
+    text-indent: -2em;
+}

@@ -3,9 +3,9 @@ import os.path
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any
 
-from pkg_resources import parse_requirements
+from packaging.requirements import Requirement
 from setuptools import find_packages
 
 _PROJECT_ROOT = "."
@@ -29,7 +29,7 @@ def _load_assistant() -> ModuleType:
     return _load_py_module("assistant", location)
 
 
-def _prepare_extras() -> Dict[str, Any]:
+def _prepare_extras() -> dict[str, Any]:
     assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
@@ -42,14 +42,19 @@ def _prepare_extras() -> Dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt")
     }
-    for req in parse_requirements(extras["strategies"]):
-        extras[req.key] = [str(req)]
+    for req_str in extras["strategies"]:
+        # Strip comments before parsing
+        req_str_clean = req_str.split("#")[0].strip()
+        if not req_str_clean:  # Skip empty lines
+            continue
+        req = Requirement(req_str_clean)
+        extras[req.name.lower().replace("-", "_")] = [req_str]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
 
 
-def _setup_args() -> Dict[str, Any]:
+def _setup_args() -> dict[str, Any]:
     assistant = _load_assistant()
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
@@ -80,7 +85,7 @@ def _setup_args() -> Dict[str, Any]:
         "long_description_content_type": "text/markdown",
         "zip_safe": False,
         "keywords": ["deep learning", "pytorch", "AI"],
-        "python_requires": ">=3.8",
+        "python_requires": ">=3.10",
         "setup_requires": ["wheel"],
         # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
         # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
@@ -89,7 +94,7 @@ def _setup_args() -> Dict[str, Any]:
         ),
         "extras_require": _prepare_extras(),
         "project_urls": {
-            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
@@ -107,9 +112,9 @@ def _setup_args() -> Dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
         ],
     }

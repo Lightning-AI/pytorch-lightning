@@ -35,6 +35,6 @@
      - `PR18137`_
 
 
-.. _pr17995: https://github.com/Lightning-AI/lightning/pull/17995
-.. _pr18390: https://github.com/Lightning-AI/lightning/pull/18390
-.. _pr18137: https://github.com/Lightning-AI/lightning/pull/18390
+.. _pr17995: https://github.com/Lightning-AI/pytorch-lightning/pull/17995
+.. _pr18390: https://github.com/Lightning-AI/pytorch-lightning/pull/18390
+.. _pr18137: https://github.com/Lightning-AI/pytorch-lightning/pull/18390

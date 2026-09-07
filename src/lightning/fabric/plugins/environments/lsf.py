@@ -14,7 +14,6 @@
 import logging
 import os
 import socket
-from typing import Dict, List
 
 from typing_extensions import override
 
@@ -144,14 +143,14 @@ class LSFEnvironment(ClusterEnvironment):
 
         """
         hosts = self._read_hosts()
-        count: Dict[str, int] = {}
+        count: dict[str, int] = {}
         for host in hosts:
             if host not in count:
                 count[host] = len(count)
         return count[socket.gethostname()]
 
     @staticmethod
-    def _read_hosts() -> List[str]:
+    def _read_hosts() -> list[str]:
         """Read compute hosts that are a part of the compute job.
 
         LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.

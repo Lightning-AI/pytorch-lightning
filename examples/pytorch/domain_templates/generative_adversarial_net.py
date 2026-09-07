@@ -19,12 +19,13 @@ tensorboard --logdir default
 
 """
 
+import math
 from argparse import ArgumentParser, Namespace
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from lightning.pytorch import cli_lightning_logo
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
@@ -59,7 +60,7 @@ class Generator(nn.Module):
             *block(128, 256),
             *block(256, 512),
             *block(512, 1024),
-            nn.Linear(1024, int(np.prod(img_shape))),
+            nn.Linear(1024, int(math.prod(img_shape))),
             nn.Tanh(),
         )
 
@@ -80,7 +81,7 @@ class Discriminator(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(int(np.prod(img_shape)), 512),
+            nn.Linear(int(math.prod(img_shape)), 512),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2, inplace=True),

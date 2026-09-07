@@ -79,7 +79,7 @@ class XLAPrecision(Precision):
             # we lack coverage here so disable this - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented with XLA."
-                " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
+                " Please, open an issue in `https://github.com/Lightning-AI/pytorch-lightning/issues`"
                 " requesting this feature."
             )
         return closure_result

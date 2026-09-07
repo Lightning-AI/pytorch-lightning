@@ -35,6 +35,7 @@ Once the **.fit()** function has completed, you'll see an output like this:
     |  Action                                          |  Mean duration (s) |  Total time (s) |
     -------------------------------------------------------------------------------------------
     |  [LightningModule]BoringModel.prepare_data       |  10.0001           |  20.00          |
+    |  setup_train_dataloader                          |  2.893             |  2.893          |
     |  run_training_epoch                              |  6.1558            |  6.1558         |
     |  run_training_batch                              |  0.0022506         |  0.015754       |
     |  [LightningModule]BoringModel.optimizer_step     |  0.0017477         |  0.012234       |
@@ -80,21 +81,21 @@ Once the **.fit()** function has completed, you'll see an output like this:
 
     Profiler Report
 
-    Profile stats for: get_train_batch
-            4869394 function calls (4863767 primitive calls) in 18.893 seconds
+    Profile stats for: run_training_batch
+            9400 function calls (9200 primitive calls) in 0.019 seconds
     Ordered by: cumulative time
     List reduced from 76 to 10 due to restriction <10>
     ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-    3752/1876    0.011    0.000   18.887    0.010 {built-in method builtins.next}
-        1876     0.008    0.000   18.877    0.010 dataloader.py:344(__next__)
-        1876     0.074    0.000   18.869    0.010 dataloader.py:383(_next_data)
-        1875     0.012    0.000   18.721    0.010 fetch.py:42(fetch)
-        1875     0.084    0.000   18.290    0.010 fetch.py:44(<listcomp>)
-        60000    1.759    0.000   18.206    0.000 mnist.py:80(__getitem__)
-        60000    0.267    0.000   13.022    0.000 transforms.py:68(__call__)
-        60000    0.182    0.000    7.020    0.000 transforms.py:93(__call__)
-        60000    1.651    0.000    6.839    0.000 functional.py:42(to_tensor)
-        60000    0.260    0.000    5.734    0.000 transforms.py:167(__call__)
+       100    0.001    0.000    0.018    0.000 automatic.py:163(run)
+       100    0.001    0.000    0.014    0.000 automatic.py:245(_optimizer_step)
+       100    0.002    0.000    0.012    0.000 call.py:155(_call_lightning_module_hook)
+       100    0.000    0.000    0.007    0.000 contextlib.py:136(__enter__)
+       100    0.000    0.000    0.007    0.000 {built-in method builtins.next}
+       100    0.000    0.000    0.007    0.000 profiler.py:57(profile)
+       100    0.001    0.000    0.007    0.000 advanced.py:74(start)
+      3100    0.006    0.000    0.006    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+       100    0.001    0.000    0.003    0.000 automatic.py:199(_make_closure)
+       100    0.001    0.000    0.002    0.000 module.py:1971(__setattr__)
 
 If the profiler report becomes too long, you can stream the report to a file:
 
@@ -121,3 +122,22 @@ This can be measured with the :class:`~lightning.pytorch.callbacks.device_stats_
 
 CPU metrics will be tracked by default on the CPU accelerator. To enable it for other accelerators set ``DeviceStatsMonitor(cpu_stats=True)``. To disable logging
 CPU metrics, you can specify ``DeviceStatsMonitor(cpu_stats=False)``.
+
+.. warning::
+
+    **Do not wrap** ``Trainer.fit()``, ``Trainer.validate()``, or other Trainer methods inside a manual
+    ``torch.profiler.profile`` context manager. This will cause unexpected crashes and cryptic errors due to
+    incompatibility between PyTorch Profiler's context management and Lightning's internal training loop.
+    Instead, always use the ``profiler`` argument in the ``Trainer`` constructor or the
+    :class:`~lightning.pytorch.profilers.pytorch.PyTorchProfiler` profiler class if you want to customize the profiling.
+
+    Example:
+
+    .. code-block:: python
+
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.profilers import PytorchProfiler
+
+        trainer = Trainer(profiler="pytorch")
+        # or
+        trainer = Trainer(profiler=PytorchProfiler(dirpath=".", filename="perf_logs"))

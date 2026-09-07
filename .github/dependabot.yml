@@ -19,8 +19,6 @@ updates:
       separator: "-"
     # Allow up to 5 open pull requests for pip dependencies
     open-pull-requests-limit: 10
-    reviewers:
-      - "Lightning-AI/teams/core-lightning"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -37,5 +35,3 @@ updates:
       separator: "-"
     # Allow up to 5 open pull requests for GitHub Actions
     open-pull-requests-limit: 10
-    reviewers:
-      - "Lightning-AI/teams/core-lightning"

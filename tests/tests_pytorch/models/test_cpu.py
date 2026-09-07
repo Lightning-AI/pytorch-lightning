@@ -15,12 +15,12 @@ import os
 from unittest import mock
 
 import torch
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -49,7 +49,7 @@ def test_cpu_slurm_save_load(_, tmp_path):
     trainer.fit(model)
     real_global_step = trainer.global_step
 
-    # traning complete
+    # training complete
     assert trainer.state.finished, "cpu model failed to complete"
 
     # predict with trained model before saving

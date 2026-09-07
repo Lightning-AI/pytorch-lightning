@@ -90,7 +90,7 @@ the desired GPU in your pipeline. When moving data to a specific device, you can
 WebDataset
 ^^^^^^^^^^
 
-The `WebDataset <https://webdataset.github.io/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
+The `WebDataset <https://github.com/webdataset/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
 Datasets can be stored locally or in the cloud. ``WebDataset`` is just an instance of a standard IterableDataset.
 The webdataset library contains a small wrapper (``WebLoader``) that adds a fluid interface to the DataLoader (and is otherwise identical).
 
@@ -99,7 +99,12 @@ The webdataset library contains a small wrapper (``WebLoader``) that adds a flui
     import lightning as L
     import webdataset as wds
 
-    dataset = wds.WebDataset(urls)
+    dataset = wds.WebDataset(
+        urls,
+        # needed for multi-gpu or multi-node training
+        workersplitter=wds.shardlists.split_by_worker,
+        nodesplitter=wds.shardlists.split_by_node,
+    )
     train_dataloader = wds.WebLoader(dataset)
 
     model = ...

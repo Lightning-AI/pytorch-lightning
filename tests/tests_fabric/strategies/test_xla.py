@@ -18,20 +18,20 @@ from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.seed import seed_everything
-from torch.utils.data import DataLoader
-
 from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 

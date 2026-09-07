@@ -39,9 +39,9 @@
      - `PR8575`_
 
 
-.. _pr7431: https://github.com/Lightning-AI/lightning/pull/7431
-.. _pr7026: https://github.com/Lightning-AI/lightning/pull/7026
-.. _pr7907: https://github.com/Lightning-AI/lightning/pull/7907
-.. _pr8383: https://github.com/Lightning-AI/lightning/pull/8383
-.. _pr5043: https://github.com/Lightning-AI/lightning/pull/5043
-.. _pr8575: https://github.com/Lightning-AI/lightning/pull/8575
+.. _pr7431: https://github.com/Lightning-AI/pytorch-lightning/pull/7431
+.. _pr7026: https://github.com/Lightning-AI/pytorch-lightning/pull/7026
+.. _pr7907: https://github.com/Lightning-AI/pytorch-lightning/pull/7907
+.. _pr8383: https://github.com/Lightning-AI/pytorch-lightning/pull/8383
+.. _pr5043: https://github.com/Lightning-AI/pytorch-lightning/pull/5043
+.. _pr8575: https://github.com/Lightning-AI/pytorch-lightning/pull/8575

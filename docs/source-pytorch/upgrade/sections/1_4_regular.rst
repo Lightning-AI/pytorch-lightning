@@ -48,12 +48,12 @@
 
 
 .. _torchmetrics: https://torchmetrics.readthedocs.io/en/stable
-.. _pr7339: https://github.com/Lightning-AI/lightning/pull/7339
-.. _pr7323: https://github.com/Lightning-AI/lightning/pull/7323
-.. _pr7066: https://github.com/Lightning-AI/lightning/pull/7066
-.. _pr6146: https://github.com/Lightning-AI/lightning/pull/6146
-.. _pr6621: https://github.com/Lightning-AI/lightning/pull/6621
-.. _pr6349: https://github.com/Lightning-AI/lightning/pull/6349
-.. _pr6993: https://github.com/Lightning-AI/lightning/pull/6993
-.. _pr7253: https://github.com/Lightning-AI/lightning/pull/7253
-.. _pr7168: https://github.com/Lightning-AI/lightning/pull/7168
+.. _pr7339: https://github.com/Lightning-AI/pytorch-lightning/pull/7339
+.. _pr7323: https://github.com/Lightning-AI/pytorch-lightning/pull/7323
+.. _pr7066: https://github.com/Lightning-AI/pytorch-lightning/pull/7066
+.. _pr6146: https://github.com/Lightning-AI/pytorch-lightning/pull/6146
+.. _pr6621: https://github.com/Lightning-AI/pytorch-lightning/pull/6621
+.. _pr6349: https://github.com/Lightning-AI/pytorch-lightning/pull/6349
+.. _pr6993: https://github.com/Lightning-AI/pytorch-lightning/pull/6993
+.. _pr7253: https://github.com/Lightning-AI/pytorch-lightning/pull/7253
+.. _pr7168: https://github.com/Lightning-AI/pytorch-lightning/pull/7168

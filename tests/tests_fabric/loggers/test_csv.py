@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+
 from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
@@ -147,7 +148,7 @@ def test_automatic_step_tracking(tmp_path):
 
 
 @mock.patch(
-    # Mock the existance check, so we can simulate appending to the metrics file
+    # Mock the existence check, so we can simulate appending to the metrics file
     "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
 )
 def test_append_metrics_file(_, tmp_path):
@@ -188,7 +189,7 @@ def test_append_columns(tmp_path):
 
 
 @mock.patch(
-    # Mock the existance check, so we can simulate appending to the metrics file
+    # Mock the existence check, so we can simulate appending to the metrics file
     "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
 )
 def test_rewrite_with_new_header(_, tmp_path):

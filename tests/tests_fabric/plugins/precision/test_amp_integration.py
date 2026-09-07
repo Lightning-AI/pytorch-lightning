@@ -16,8 +16,8 @@
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric import Fabric, seed_everything
 
+from lightning.fabric import Fabric, seed_everything
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -41,8 +41,8 @@ class MixedPrecisionModule(nn.Module):
 @pytest.mark.parametrize(
     ("accelerator", "precision", "expected_dtype"),
     [
-        ("cpu", "16-mixed", torch.bfloat16),
-        ("cpu", "bf16-mixed", torch.bfloat16),
+        pytest.param("cpu", "16-mixed", torch.bfloat16, marks=RunIf(skip_windows=True)),
+        pytest.param("cpu", "bf16-mixed", torch.bfloat16, marks=RunIf(skip_windows=True)),
         pytest.param("cuda", "16-mixed", torch.float16, marks=RunIf(min_cuda_gpus=2)),
         pytest.param("cuda", "bf16-mixed", torch.bfloat16, marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
     ],
@@ -82,7 +82,7 @@ def test_amp_fused_optimizer_parity():
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
         model, optimizer = fabric.setup(model, optimizer)
-        assert isinstance(fabric._precision.scaler, torch.cuda.amp.GradScaler)
+        assert isinstance(fabric._precision.scaler, torch.amp.GradScaler)
 
         data = torch.randn(10, 10, device="cuda")
         target = torch.randn(10, 10, device="cuda")

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -29,8 +29,6 @@ from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitiz
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.wrappers import _unwrap_objects
-
-log = logging.getLogger(__name__)
 
 _TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
 _TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
@@ -107,7 +105,7 @@ class TensorBoardLogger(Logger):
         self._prefix = prefix
         self._fs = get_filesystem(root_dir)
 
-        self._experiment: Optional["SummaryWriter"] = None
+        self._experiment: Optional[SummaryWriter] = None
         self._kwargs = kwargs
 
     @property
@@ -222,15 +220,19 @@ class TensorBoardLogger(Logger):
     @override
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+        self,
+        params: Union[dict[str, Any], Namespace],
+        metrics: Optional[dict[str, Any]] = None,
+        step: Optional[int] = None,
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:
-            params: a dictionary-like container with the hyperparameters
+            params: A dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Optional global step number for the logged metrics
 
         """
         params = _convert_params(params)
@@ -246,7 +248,7 @@ class TensorBoardLogger(Logger):
             metrics = {"hp_metric": metrics}
 
         if metrics:
-            self.log_metrics(metrics, 0)
+            self.log_metrics(metrics, step)
 
             if _TENSORBOARD_AVAILABLE:
                 from torch.utils.tensorboard.summary import hparams
@@ -255,9 +257,9 @@ class TensorBoardLogger(Logger):
 
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+            writer.add_summary(exp, step)
+            writer.add_summary(ssi, step)
+            writer.add_summary(sei, step)
 
     @override
     @rank_zero_only
@@ -305,8 +307,6 @@ class TensorBoardLogger(Logger):
         try:
             listdir_info = self._fs.listdir(save_dir)
         except OSError:
-            # TODO(fabric): This message can be confusing (did user do something wrong?). Improve it or remove it.
-            log.warning("Missing logger folder: %s", save_dir)
             return 0
 
         existing_versions = []
@@ -323,12 +323,12 @@ class TensorBoardLogger(Logger):
         return max(existing_versions) + 1
 
     @staticmethod
-    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state

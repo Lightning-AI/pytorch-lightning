@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from typing import Any
 
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.strategies import DDPStrategy
@@ -24,7 +25,7 @@ def test_pluggable_accelerator(mps_count_0, cuda_count_2):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:

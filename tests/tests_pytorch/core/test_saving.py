@@ -1,11 +1,12 @@
+import sys
 from unittest.mock import ANY, Mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -13,6 +14,8 @@ from tests_pytorch.helpers.runif import RunIf
 def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="checkpoint")
     trainer = pl.Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
         devices=1,
         accelerator=accelerator,
         max_epochs=1,
@@ -37,7 +40,7 @@ def test_load_from_checkpoint_map_location_automatic(accelerator, tmp_path, monk
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator=accelerator)
 
     # The checkpoint contains tensors with storage tag on the accelerator
-    checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt")
+    checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt", weights_only=True)
     assert checkpoint["state_dict"]["layer.weight"].device.type.startswith(accelerator)
 
     # Pretend that the accelerator is not available
@@ -111,7 +114,7 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     """Test that checkpoints can be loaded with an empty state dict and that the appropriate warning is raised."""
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
     # Now edit so the state_dict is empty
-    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt", weights_only=True)
     checkpoint["state_dict"] = {}
     torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
 
@@ -152,3 +155,122 @@ def test_load_from_checkpoint_strict(strict, strict_loading, expected, tmp_path)
     else:
         model = LoadingModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=strict)
         model.load_state_dict.assert_called_once_with(ANY, strict=expected)
+
+
+def test_load_from_checkpoint_blocks_untrusted_instantiator(tmp_path):
+    """A checkpoint pointing ``_instantiator`` at an arbitrary import target must be rejected, not executed."""
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {"_instantiator": "os.system"},
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "malicious.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    with pytest.raises(ValueError, match="not in the allowlist of trusted instantiators"):
+        BoringModel.load_from_checkpoint(ckpt_path, strict=False)
+
+
+def test_load_from_checkpoint_allows_lightning_instantiator(tmp_path, monkeypatch):
+    """An allowlisted instantiator is still resolved and used to build the model."""
+    import lightning.pytorch.cli as cli
+
+    instantiator = Mock(side_effect=lambda cls, kwargs: cls())
+    monkeypatch.setattr(cli, "instantiate_module", instantiator)
+
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {"_instantiator": "lightning.pytorch.cli.instantiate_module"},
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    model = BoringModel.load_from_checkpoint(ckpt_path, strict=False)
+    assert isinstance(model, BoringModel)
+    instantiator.assert_called_once()
+
+
+def test_load_from_checkpoint_blocks_non_string_instantiator(tmp_path):
+    """A non-string ``_instantiator`` must be rejected instead of failing on the allowlist lookup."""
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {"_instantiator": ["os", "system"]},
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "malicious.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    with pytest.raises(ValueError, match="not in the allowlist of trusted instantiators"):
+        BoringModel.load_from_checkpoint(ckpt_path, strict=False)
+
+
+def test_load_from_checkpoint_blocks_unimported_class_path(tmp_path, monkeypatch):
+    """A ``_class_path`` living in a module that is not imported yet must not be imported to resolve it."""
+    module_name = "unimported_checkpoint_class_path"
+    (tmp_path / f"{module_name}.py").write_text("raise AssertionError('the module must not be imported')")
+    monkeypatch.syspath_prepend(tmp_path)
+
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {
+            "_instantiator": "lightning.pytorch.cli.instantiate_module",
+            "_class_path": f"{module_name}.AnyModel",
+        },
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "malicious.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    with pytest.raises(ValueError, match="does not resolve to an already imported subclass"):
+        pl.LightningModule.load_from_checkpoint(ckpt_path, strict=False)
+    assert module_name not in sys.modules
+
+
+@pytest.mark.parametrize(
+    "class_path",
+    [
+        "collections.OrderedDict",
+        "subprocess.Popen",
+        f"{BoringDataModule.__module__}.{BoringDataModule.__qualname__}",
+        ["not", "a", "string"],
+    ],
+)
+def test_load_from_checkpoint_blocks_class_path_outside_hierarchy(tmp_path, class_path):
+    """An imported ``_class_path`` that is not a subclass of the loaded class must be rejected."""
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {
+            "_instantiator": "lightning.pytorch.cli.instantiate_module",
+            "_class_path": class_path,
+        },
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "malicious.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    with pytest.raises(ValueError, match="does not resolve to an already imported subclass"):
+        pl.LightningModule.load_from_checkpoint(ckpt_path, strict=False)
+
+
+def test_load_from_checkpoint_allows_imported_subclass_class_path(tmp_path, monkeypatch):
+    """A ``_class_path`` naming an already imported subclass is still accepted."""
+    import lightning.pytorch.cli as cli
+
+    instantiator = Mock(side_effect=lambda cls, kwargs: BoringModel())
+    monkeypatch.setattr(cli, "instantiate_module", instantiator)
+
+    checkpoint = {
+        "state_dict": {},
+        "hyper_parameters": {
+            "_instantiator": "lightning.pytorch.cli.instantiate_module",
+            "_class_path": f"{BoringModel.__module__}.{BoringModel.__qualname__}",
+        },
+        "pytorch-lightning_version": pl.__version__,
+    }
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    model = pl.LightningModule.load_from_checkpoint(ckpt_path, strict=False)
+    assert isinstance(model, BoringModel)
+    instantiator.assert_called_once()

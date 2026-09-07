@@ -66,6 +66,11 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime as xr
+
+            return xr.world_size()
+
         import torch_xla.core.xla_model as xm
 
         return xm.xrt_world_size()
@@ -82,6 +87,11 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime as xr
+
+            return xr.global_ordinal()
+
         import torch_xla.core.xla_model as xm
 
         return xm.get_ordinal()
@@ -98,6 +108,11 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime as xr
+
+            return xr.local_ordinal()
+
         import torch_xla.core.xla_model as xm
 
         return xm.get_local_ordinal()

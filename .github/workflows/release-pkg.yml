@@ -12,8 +12,7 @@ on:
     paths:
       - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
-      - ".github/actions/pkg-publish/*"
-      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_legacy-checkpoints.yml"
       - ".github/workflows/_build-packages.yml"
       - ".github/workflows/release-pypi.yml"
 
@@ -23,8 +22,8 @@ defaults:
 
 env:
   FREEZE_REQUIREMENTS: 1
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-  PYTHON_VER: "3.8"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
+  PYTHON_VER: "3.10"
 
 jobs:
   build-packages:
@@ -37,14 +36,14 @@ jobs:
     needs: build-packages
     if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
       - run: ls -lh dist/
       - name: Upload to release
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@3d6774fae0ed91407dc5ae29d576b166536d1777 # v3.0
         with:
           files: "dist/*/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,13 +53,13 @@ jobs:
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ env.PYTHON_VER }}
       - name: install Package
         run: |
-          pip install . -f ${TORCH_URL}
+          pip install . --extra-index-url="${TORCH_URL}"
           pip list
       - name: package Version
         id: lai-package
@@ -74,7 +73,7 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
       BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
@@ -104,7 +103,7 @@ jobs:
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           title: "Bump lightning ver `${{ env.TAG }}`"
           committer: GitHub <noreply@github.com>
@@ -130,70 +129,19 @@ jobs:
             ethanwharris
             borda
 
-  waiting:
-    runs-on: ubuntu-22.04
-    needs: [release-version, signaling]
-    env:
-      TAG: ${{ needs.release-version.outputs.tag }}
-    # due to PR process this may take longer
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VER }}
-      - run: pip install gitpython
-      - name: Delay releasing
-        run: |
-          import git, os, time
-          repo = git.Repo('.')
-          branch = f"origin/builds/{os.getenv('TAG')}"
-          while True:
-            remote_refs = [b.name for b in repo.remote().refs]
-            print([n for n in remote_refs if "builds" in n])
-            if branch in remote_refs:
-              break
-            time.sleep(60)
-            for remote in repo.remotes:
-              remote.fetch()
-        shell: python
-
-  pre-publish-packages:
-    runs-on: ubuntu-22.04
-    needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-    strategy:
-      fail-fast: false
-      matrix:
-        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
-    steps:
-      - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist-packages-${{ github.sha }}
-          path: dist
-      - name: Browse folder
-        id: folder
-        run: |
-          sudo apt install -q -y tree
-          tree -L 2 -h dist/
-          python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
-      - uses: ./.github/actions/pkg-publish
-        with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
-          pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
-
   publish-packages:
     runs-on: ubuntu-22.04
-    needs: [build-packages, waiting]
+    needs: [build-packages]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    permissions:
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
-        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
+        name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2; needed for local action below
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -203,10 +151,13 @@ jobs:
           sudo apt install -q -y tree
           tree -L 2 -h dist/
           python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
-      - uses: ./.github/actions/pkg-publish
+
+      - name: Publish distribution 📦 to PyPI
+        # pypa/gh-action-pypi-publish v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
-          pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
+          packages_dir: dist/${{ steps.folder.outputs.pkg }}
+          verbose: true
 
   legacy-checkpoints:
     needs: [build-packages]

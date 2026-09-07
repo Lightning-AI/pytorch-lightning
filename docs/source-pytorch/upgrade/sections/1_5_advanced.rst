@@ -67,9 +67,9 @@
      - `PR8291`_
 
 
-.. _pr7891: https://github.com/Lightning-AI/lightning/pull/7891
-.. _pr7918: https://github.com/Lightning-AI/lightning/pull/7918
-.. _pr7994: https://github.com/Lightning-AI/lightning/pull/7994
-.. _pr7657: https://github.com/Lightning-AI/lightning/pull/7657
-.. _pr8203: https://github.com/Lightning-AI/lightning/pull/8203
-.. _pr8291: https://github.com/Lightning-AI/lightning/pull/8291
+.. _pr7891: https://github.com/Lightning-AI/pytorch-lightning/pull/7891
+.. _pr7918: https://github.com/Lightning-AI/pytorch-lightning/pull/7918
+.. _pr7994: https://github.com/Lightning-AI/pytorch-lightning/pull/7994
+.. _pr7657: https://github.com/Lightning-AI/pytorch-lightning/pull/7657
+.. _pr8203: https://github.com/Lightning-AI/pytorch-lightning/pull/8203
+.. _pr8291: https://github.com/Lightning-AI/pytorch-lightning/pull/8291

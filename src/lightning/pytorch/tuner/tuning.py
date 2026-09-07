@@ -41,6 +41,8 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
+        margin: float = 0.05,
+        max_val: int = 8192,
     ) -> Optional[int]:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
         error.
@@ -75,9 +77,16 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
+            margin: Margin to reduce the found batch size by to provide a safety buffer. Only applied when using
+                'binsearch' mode. Should be a float between 0 and 1. Defaults to 0.05 (5% reduction).
+            max_val: Maximum batch size limit, defaults to 8192.
+                Helps prevent testing unrealistically large or inefficient batch sizes (e.g., 2**25)
+                when running on CPU or when automatic OOM detection is not available.
+
         """
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
         _check_scale_batch_size_configuration(self._trainer)
+        assert 0.0 <= margin < 1.0, f"`margin` should be between 0 and 1. Found {margin=}"
 
         # local import to avoid circular import
         from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
@@ -88,6 +97,8 @@ class Tuner:
             init_val=init_val,
             max_trials=max_trials,
             batch_arg_name=batch_arg_name,
+            margin=margin,
+            max_val=max_val,
         )
         # do not continue with the loop in case Tuner is used
         batch_size_finder._early_exit = True
@@ -120,6 +131,7 @@ class Tuner:
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
+        weights_only: Optional[bool] = None,
     ) -> Optional["_LRFinder"]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
@@ -148,6 +160,11 @@ class Tuner:
             update_attr: Whether to update the learning rate attribute or not.
             attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
                 automatically detected. Otherwise, set the name here.
+            weights_only: Defaults to ``None``. If ``True``, restricts loading to ``state_dicts`` of plain
+                ``torch.Tensor`` and other primitive types. If loading a checkpoint from a trusted source that contains
+                an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
+                recommend using ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
 
         Raises:
             MisconfigurationException:
@@ -172,6 +189,7 @@ class Tuner:
             early_stop_threshold=early_stop_threshold,
             update_attr=update_attr,
             attr_name=attr_name,
+            weights_only=weights_only,
         )
 
         lr_finder_callback._early_exit = True

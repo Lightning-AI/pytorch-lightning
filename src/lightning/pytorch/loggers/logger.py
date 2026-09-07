@@ -15,11 +15,12 @@
 
 import functools
 import operator
+import statistics
 from abc import ABC
 from collections import defaultdict
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Callable, Optional
 
-import numpy as np
 from typing_extensions import override
 
 from lightning.fabric.loggers import Logger as FabricLogger
@@ -100,8 +101,8 @@ class DummyLogger(Logger):
 def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
-    default_func: Callable[[Sequence[float]], float] = np.mean,
-) -> Dict:
+    default_func: Callable[[Sequence[float]], float] = statistics.mean,
+) -> dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given function.
 
     Args:
@@ -126,7 +127,7 @@ def merge_dicts(  # pragma: no cover
         >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
         >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
         >>> dflt_func = min
-        >>> agg_funcs = {'a': np.mean, 'v': max, 'd': {'d1': sum}}
+        >>> agg_funcs = {'a': statistics.mean, 'v': max, 'd': {'d1': sum}}
         >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
         {'a': 1.3,
          'b': 2.0,
@@ -137,7 +138,7 @@ def merge_dicts(  # pragma: no cover
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out: Dict = defaultdict(dict)
+    d_out: dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]

@@ -15,10 +15,11 @@ import operator
 
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningModule
 from lightning_utilities.core.imports import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
+
+from lightning.pytorch import LightningModule
 
 # using new API with task
 _TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")
@@ -99,8 +100,7 @@ class RegressionModel(LightningModule):
         x = self.layer_1a(x)
         x = self.layer_2(x)
         x = self.layer_2a(x)
-        x = self.layer_end(x)
-        return x
+        return self.layer_end(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)

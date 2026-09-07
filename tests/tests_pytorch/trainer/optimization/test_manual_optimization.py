@@ -21,21 +21,16 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.strategies import Strategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
 def assert_emtpy_grad(grad):
-    if _TORCH_GREATER_EQUAL_2_0:
-        assert grad is None
-    else:
-        if grad is not None:  # backward has been called
-            assert torch.all(grad == 0)
+    assert grad is None
 
 
 class ManualOptModel(BoringModel):
@@ -309,8 +304,35 @@ def test_manual_optimization_and_accumulated_gradient(tmp_path):
     trainer.fit(model)
 
 
+class CustomMapping(collections.abc.Mapping):
+    """A custom implementation of Mapping for testing purposes."""
+
+    def __init__(self, *args, **kwargs):
+        self._store = dict(*args, **kwargs)
+
+    def __getitem__(self, key):
+        return self._store[key]
+
+    def __iter__(self):
+        return iter(self._store)
+
+    def __len__(self):
+        return len(self._store)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._store})"
+
+    def __copy__(self):
+        cls = self.__class__
+        return cls(self._store.copy())
+
+    def copy(self):
+        return self.__copy__()
+
+
 @RunIf(min_cuda_gpus=1)
-def test_multiple_optimizers_step(tmp_path):
+@pytest.mark.parametrize("dicttype", [dict, CustomMapping])
+def test_multiple_optimizers_step(tmp_path, dicttype):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
@@ -340,7 +362,7 @@ def test_multiple_optimizers_step(tmp_path):
             opt_b.step()
             opt_b.zero_grad()
 
-            return {"loss1": loss_1.detach(), "loss2": loss_2.detach()}
+            return dicttype(loss1=loss_1.detach(), loss2=loss_2.detach())
 
         # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
         def on_after_backward(self) -> None:
@@ -915,7 +937,7 @@ def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
             return [optimizer], [scheduler]
 
     model = Model()
-    trainer = Trainer(accelerator="cpu", max_epochs=0)
+    trainer = Trainer(accelerator="cpu", max_epochs=0, logger=False, enable_checkpointing=False)
     if automatic_optimization:
         with pytest.raises(MisconfigurationException, match="doesn't follow PyTorch's LRScheduler"):
             trainer.fit(model)

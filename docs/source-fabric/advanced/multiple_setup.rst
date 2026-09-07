@@ -113,4 +113,4 @@ You can pair up as many models and optimizers as you want. For example, two mode
     # Set up discriminator
     discriminator, optimizer_dis = fabric.setup(discriminator, optimizer_dis)
 
-For a full example of this use case, see our `GAN example <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan>`_.
+For a full example of this use case, see our `GAN example <https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/fabric/dcgan>`_.

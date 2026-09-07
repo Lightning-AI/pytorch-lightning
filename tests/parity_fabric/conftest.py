@@ -17,7 +17,7 @@ import pytest
 import torch.distributed
 
 
-@pytest.fixture()
+@pytest.fixture
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
@@ -25,7 +25,7 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def reset_cudnn_benchmark():
     """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
     yield

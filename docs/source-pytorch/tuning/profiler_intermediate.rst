@@ -55,7 +55,7 @@ The profiler will generate an output like this:
     Self CPU time total: 1.681ms
 
 .. note::
-    When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time.
+    When using the PyTorch Profiler, wall clock time will not be representative of the true wall clock time.
     This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
     the ``SimpleProfiler``.
@@ -142,7 +142,7 @@ This profiler will record ``training_step``, ``validation_step``, ``test_step``,
 The output above shows the profiling for the action ``training_step``.
 
 .. note::
-    When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time.
+    When using the PyTorch Profiler, wall clock time will not be representative of the true wall clock time.
     This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
     the ``SimpleProfiler``.

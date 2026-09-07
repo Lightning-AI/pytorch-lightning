@@ -14,20 +14,18 @@
 import logging
 import os
 import re
-import subprocess
-import sys
 from argparse import Namespace
-from typing import Any, List, Optional
+from typing import Any, Optional
 
-import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.utilities.cloud_io import _atomic_save
 from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
-from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids, _select_auto_accelerator
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
@@ -36,10 +34,10 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
 
 
-def _get_supported_strategies() -> List[str]:
+def _get_supported_strategies() -> list[str]:
     """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from the
     CLI or ones that require further configuration by the user."""
     available_strategies = STRATEGY_REGISTRY.available_strategies()
@@ -49,25 +47,6 @@ def _get_supported_strategies() -> List[str]:
 
 if _CLICK_AVAILABLE:
     import click
-
-    def _legacy_main() -> None:
-        """Legacy CLI handler for fabric.
-
-        Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
-
-        """
-        print(
-            "`lightning run model` is deprecated and will be removed in future versions."
-            " Please call `fabric run` instead."
-        )
-        args = sys.argv[1:]
-        if args and args[0] == "run" and args[1] == "model":
-            _main()
-            return
-
-        if _LIGHTNING_SDK_AVAILABLE:
-            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
-            return
 
     @click.group()
     def _main() -> None:
@@ -140,7 +119,7 @@ if _CLICK_AVAILABLE:
         type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
         default=None,
         help=(
-            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
+            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``32``), "
             "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
         ),
     )
@@ -165,11 +144,11 @@ if _CLICK_AVAILABLE:
     )
     @click.argument(
         "checkpoint_folder",
-        type=click.Path(exists=True),
+        type=str,
     )
     @click.option(
         "--output_file",
-        type=click.Path(exists=True),
+        type=str,
         default=None,
         help=(
             "Path to the file where the converted checkpoint should be saved. The file should not already exist."
@@ -180,13 +159,14 @@ if _CLICK_AVAILABLE:
     def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
         """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
 
-        Only supports FSDP sharded checkpoints at the moment.
+        Only supports FSDP sharded checkpoints at the moment. Supports checkpoints stored on remote filesystems (e.g.
+        S3, GCS) through fsspec URLs.
 
         """
         args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
         config = _process_cli_args(args)
         checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-        torch.save(checkpoint, config.output_file)
+        _atomic_save(checkpoint, config.output_file)
 
 
 def _set_env_variables(args: Namespace) -> None:
@@ -208,6 +188,14 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
+
+    if accelerator == "auto" or accelerator is None:
+        accelerator = _select_auto_accelerator()
+    if devices == "auto":
+        if accelerator == "cuda" or accelerator == "mps" or accelerator == "cpu":
+            devices = "1"
+        else:
+            raise ValueError(f"Cannot default to '1' device for accelerator='{accelerator}'")
     if accelerator == "gpu":
         parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
     elif accelerator == "cuda":
@@ -221,7 +209,7 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
     return len(parsed_devices) if parsed_devices is not None else 0
 
 
-def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
+def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     import torch.distributed.run as torchrun
 
@@ -242,7 +230,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
+def main(args: Namespace, script_args: Optional[list[str]] = None) -> None:
     _set_env_variables(args)
     _torchrun_launch(args, script_args or [])
 

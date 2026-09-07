@@ -66,10 +66,10 @@
      - use callbacks ``LearningRateFinder`` callback instead and the ``Trainer.tune()`` method was removed
      -
 
-.. _pr16579: https://github.com/Lightning-AI/lightning/pull/16579
-.. _pr16492: https://github.com/Lightning-AI/lightning/pull/16492
-.. _pr10061: https://github.com/Lightning-AI/lightning/pull/10061
-.. _pr16171: https://github.com/Lightning-AI/lightning/pull/16171
-.. _pr16184: https://github.com/Lightning-AI/lightning/pull/16184
-.. _pr16729: https://github.com/Lightning-AI/lightning/pull/16729
-.. _pr16359: https://github.com/Lightning-AI/lightning/pull/16359
+.. _pr16579: https://github.com/Lightning-AI/pytorch-lightning/pull/16579
+.. _pr16492: https://github.com/Lightning-AI/pytorch-lightning/pull/16492
+.. _pr10061: https://github.com/Lightning-AI/pytorch-lightning/pull/10061
+.. _pr16171: https://github.com/Lightning-AI/pytorch-lightning/pull/16171
+.. _pr16184: https://github.com/Lightning-AI/pytorch-lightning/pull/16184
+.. _pr16729: https://github.com/Lightning-AI/pytorch-lightning/pull/16729
+.. _pr16359: https://github.com/Lightning-AI/pytorch-lightning/pull/16359

@@ -17,6 +17,7 @@ The Main Function
 At the highest level, every Python script should contain the following boilerplate code to guard the entry point for the main function:
 
 .. code-block:: python
+    :emphasize-lines: 4-5
 
     def main():
         # Here goes all the rest of the code
@@ -41,6 +42,7 @@ Model Training
 Here is a skeleton for training a model in a function ``train()``:
 
 .. code-block:: python
+    :emphasize-lines: 3,6,11,15,18
 
     import lightning as L
 
@@ -89,6 +91,7 @@ Here is how the code would be structured if we did that periodically during trai
 
 
 .. code-block:: python
+    :emphasize-lines: 3,6,11,15,19,24,28,33,39
 
     import lightning as L
 
