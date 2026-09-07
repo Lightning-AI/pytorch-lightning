@@ -25,6 +25,7 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
+import fsspec
 import pytest
 import torch
 import yaml
@@ -34,6 +35,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
@@ -2021,6 +2023,46 @@ def test_find_last_checkpoints(name, extension, folder_contents, expected, tmp_p
     callback.FILE_EXTENSION = extension
     files = callback._find_last_checkpoints(trainer)
     assert files == {str(tmp_path / p) for p in expected}
+
+
+def test_find_last_checkpoints_remote_keeps_protocol():
+    """The paths returned for a remote dirpath must still resolve to the remote filesystem."""
+    fs = fsspec.filesystem("memory")
+    fs.mkdirs("/find_last_remote", exist_ok=True)
+    for name in ("last.ckpt", "epoch=0-step=1.ckpt"):
+        with fs.open(f"/find_last_remote/{name}", "wb") as file:
+            file.write(b"")
+
+    callback = ModelCheckpoint(dirpath="memory://find_last_remote")
+    files = callback._find_last_checkpoints(Trainer())
+
+    assert files == {"memory:///find_last_remote/last.ckpt"}
+    # this is what the checkpoint connector does with them
+    assert all(get_filesystem(path).exists(path) for path in files)
+
+
+def test_resume_from_last_checkpoint_on_remote_filesystem():
+    """`ckpt_path="last"` must find the last checkpoint a remote `dirpath` saved."""
+    dirpath = "memory://resume_last_remote"
+    fsspec.filesystem("memory").mkdirs("/resume_last_remote", exist_ok=True)
+
+    def make_trainer(max_epochs):
+        return Trainer(
+            default_root_dir=dirpath,
+            callbacks=[ModelCheckpoint(dirpath=dirpath, save_last=True)],
+            max_epochs=max_epochs,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+
+    make_trainer(1).fit(BoringModel())
+
+    trainer = make_trainer(2)
+    trainer.fit(BoringModel(), ckpt_path="last")
+    assert trainer.ckpt_path == "memory:///resume_last_remote/last.ckpt"
 
 
 def test_expand_home():
