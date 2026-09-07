@@ -325,6 +325,15 @@ class _FitLoop(_Loop):
                 category=PossibleUserWarning,
             )
 
+        if self.max_batches < trainer.accumulate_grad_batches:
+            rank_zero_warn(
+                f"The number of training batches ({self.max_batches}) is smaller than "
+                f"`accumulate_grad_batches={trainer.accumulate_grad_batches}`. Since Lightning always performs an"
+                " optimizer step on the last batch of the epoch, gradients will effectively be accumulated over only"
+                f" {self.max_batches} batch(es) instead of {trainer.accumulate_grad_batches} for this epoch.",
+                category=PossibleUserWarning,
+            )
+
     @property
     def restarted_on_epoch_start(self) -> bool:
         return self._restart_stage == RestartStage.RESTARTED_ON_EPOCH_START

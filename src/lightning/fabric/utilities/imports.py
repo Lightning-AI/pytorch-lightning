@@ -29,12 +29,6 @@ _IS_WINDOWS = platform.system() == "Windows"
 # 2. The inspection mode via `python -i`: https://stackoverflow.com/a/6879085/1162383
 _IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
 
-_TORCH_GREATER_EQUAL_2_2 = compare_version("torch", operator.ge, "2.2.0")
-_TORCH_GREATER_EQUAL_2_3 = compare_version("torch", operator.ge, "2.3.0")
-_TORCH_EQUAL_2_4_0 = compare_version("torch", operator.eq, "2.4.0")
-_TORCH_GREATER_EQUAL_2_4 = compare_version("torch", operator.ge, "2.4.0")
-_TORCH_GREATER_EQUAL_2_4_1 = compare_version("torch", operator.ge, "2.4.1")
-_TORCH_GREATER_EQUAL_2_5 = compare_version("torch", operator.ge, "2.5.0")
 _TORCH_GREATER_EQUAL_2_6 = compare_version("torch", operator.ge, "2.6.0")
 _TORCH_LESS_EQUAL_2_6 = compare_version("torch", operator.le, "2.6.0")
 _TORCH_GREATER_EQUAL_2_8 = compare_version("torch", operator.ge, "2.8.0")
