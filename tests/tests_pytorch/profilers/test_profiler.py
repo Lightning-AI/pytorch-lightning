@@ -23,7 +23,6 @@ import numpy as np
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -510,8 +509,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmp_path):
 
 def test_pytorch_profiler_nested(tmp_path):
     """Ensure that the profiler handles nested context."""
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": False}
-    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None, **kwargs)
+    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -556,14 +554,12 @@ def test_pytorch_profiler_multiple_loggers(tmp_path):
 
 def test_register_record_function(tmp_path):
     use_cuda = torch.cuda.is_available()
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": torch.cuda.is_available()}
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
         dirpath=tmp_path,
         filename="profiler",
         schedule=None,
         on_trace_ready=None,
-        **kwargs,
     )
 
     class TestModel(BoringModel):
