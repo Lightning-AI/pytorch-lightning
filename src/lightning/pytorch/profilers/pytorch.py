@@ -467,7 +467,7 @@ class PyTorchProfiler(Profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         handler = tensorboard_trace_handler(
-                            str(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
+                            os.fspath(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
                         )
                         handler(profiler)
 
