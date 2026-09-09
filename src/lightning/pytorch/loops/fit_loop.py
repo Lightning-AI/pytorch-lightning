@@ -270,6 +270,11 @@ class _FitLoop(_Loop):
 
         self._load_combined_loader_states()
 
+        # worker processes draw their first indices as soon as the iterator exists, so the sampler epoch must be
+        # restored before that when resuming from a checkpoint
+        for dl in combined_loader.flattened:
+            _set_sampler_epoch(dl, self.epoch_progress.current.processed)
+
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         with trainer.profiler.profile("setup_train_dataloader"):
