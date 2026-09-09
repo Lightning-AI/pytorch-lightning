@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `_FabricModule.__setattr__` running the wrapped module's `property` getter, so a getter that guards an uninitialized value raised out of the assignment ([#21944](https://github.com/Lightning-AI/pytorch-lightning/pull/21944))
+
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
