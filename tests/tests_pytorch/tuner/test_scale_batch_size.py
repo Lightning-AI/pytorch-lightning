@@ -482,6 +482,107 @@ def test_dataloader_batch_size_updated_on_failure(_, tmp_path, scale_method, exp
     assert trainer.train_dataloader.batch_size == expected_batch_size
 
 
+@pytest.mark.parametrize("mode", ["power", "binsearch"])
+@pytest.mark.parametrize("method", ["fit", "validate", "test", "predict"])
+def test_scale_batch_size_recovers_from_evaluation_oom(tmp_path, mode, method):
+    model = BatchSizeModel(batch_size=2)
+    hook = {"fit": "validation_step", "validate": "validation_step", "test": "test_step", "predict": "predict_step"}[
+        method
+    ]
+    original_step = getattr(model, hook)
+    failed_batch_sizes = []
+
+    def step(batch, *args, **kwargs):
+        if len(batch) > 2:
+            failed_batch_sizes.append(len(batch))
+            raise torch.OutOfMemoryError("CUDA out of memory.")
+        return original_step(batch, *args, **kwargs)
+
+    setattr(model, hook, step)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        val_check_interval=1,
+    )
+    attributes = (
+        "max_steps",
+        "limit_train_batches",
+        "limit_val_batches",
+        "limit_test_batches",
+        "limit_predict_batches",
+    )
+    before = {name: getattr(trainer, name) for name in attributes}
+    result = Tuner(trainer).scale_batch_size(
+        model, method=method, mode=mode, init_val=2, max_trials=4, steps_per_trial=1, margin=0.0
+    )
+
+    assert failed_batch_sizes
+    assert result == model.batch_size == 2
+    assert {name: getattr(trainer, name) for name in attributes} == before
+    assert not list(tmp_path.glob(".scale_batch_size_*.ckpt"))
+
+
+@pytest.mark.parametrize("mode", ["power", "binsearch"])
+def test_scale_batch_size_restores_module_modes_after_validation_oom(tmp_path, mode):
+    class CustomModel(BatchSizeModel):
+        def __init__(self):
+            super().__init__(batch_size=4)
+            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 2), torch.nn.Dropout(), torch.nn.BatchNorm1d(2))
+            self.layer[1].eval()
+            self.batch_sizes = []
+
+        def training_step(self, batch, batch_idx):
+            self.batch_sizes.append(len(batch))
+            assert self.training
+            assert not self.layer[1].training
+            assert self.layer[2].training
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            if len(batch) > 2:
+                raise torch.OutOfMemoryError("CUDA out of memory.")
+            return super().validation_step(batch, batch_idx)
+
+    model = CustomModel()
+    modes = {name: module.training for name, module in model.named_modules()}
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        val_check_interval=1,
+    )
+    result = Tuner(trainer).scale_batch_size(model, mode=mode, init_val=4, max_trials=4, steps_per_trial=1, margin=0.0)
+    assert result == 2
+    assert model.batch_sizes[:2] == [4, 2]
+    assert {name: module.training for name, module in model.named_modules()} == modes
+
+
+def test_scale_batch_size_preserves_validation_error(tmp_path):
+    class CustomModel(BatchSizeModel):
+        def validation_step(self, *args, **kwargs):
+            raise ValueError("validation failed")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        val_check_interval=1,
+    )
+    with pytest.raises(ValueError, match="validation failed"):
+        Tuner(trainer).scale_batch_size(CustomModel(batch_size=2), steps_per_trial=1)
+    assert not list(tmp_path.glob(".scale_batch_size_*.ckpt"))
+
+
 def test_batch_size_finder_callback_val_batches(tmp_path):
     """Test that `BatchSizeFinder` does not limit the number of val batches during training."""
     steps_per_trial = 2
