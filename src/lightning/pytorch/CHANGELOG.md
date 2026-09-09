@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `min_delta` parameter to `ModelCheckpoint` to prevent saving checkpoints for negligible metric improvements ([#14353](https://github.com/Lightning-AI/pytorch-lightning/issues/14353))
+- Added `min_delta` parameter to `ModelCheckpoint` to prevent saving checkpoints for negligible metric improvements ([#21942](https://github.com/Lightning-AI/pytorch-lightning/pull/21942))
 
 - Added `suggest_integrations` flag to `Trainer` to control whether optional integration suggestions (e.g., litmodels, litlogger) are shown in logs ([#21632](https://github.com/Lightning-AI/pytorch-lightning/pull/21632))
 
