@@ -32,6 +32,18 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 
 
+def _skip_if_symlink_unsupported(tmp_path) -> None:
+    target = tmp_path / "symlink_target"
+    link = tmp_path / "symlink_link"
+    target.write_text("x")
+    try:
+        os.symlink(target, link)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are not supported on this platform.")
+    else:
+        link.unlink()
+
+
 def test_tensorboard_hparams_reload(tmp_path):
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
@@ -314,6 +326,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmp_path):
 def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
+    _skip_if_symlink_unsupported(tmp_path)
     monkeypatch.chdir(tmp_path)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")
