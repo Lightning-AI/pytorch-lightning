@@ -1,1 +1,3 @@
 torch-tensorrt; platform_system != "Darwin" and python_version >= "3.12"
+# tensorrt >=10.13.2 switches to the cu13 chain, which breaks on our CUDA 12.6 runners
+tensorrt <10.13.1; platform_system != "Darwin" and python_version >= "3.12"
