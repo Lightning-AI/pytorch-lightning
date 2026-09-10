@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from collections import namedtuple
+from subprocess import SubprocessError
+from unittest import mock
 
 import pytest
 import torch
@@ -20,6 +22,7 @@ import torch
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import MPSAccelerator
+from lightning.pytorch.accelerators.mps import _get_mps_device_name
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
@@ -37,6 +40,16 @@ def test_get_mps_stats():
 @RunIf(mps=True)
 def test_mps_availability():
     assert MPSAccelerator.is_available()
+
+
+@RunIf(mps=True)
+def test_mps_device_name():
+    assert MPSAccelerator.device_name() == "True (mps)"
+
+
+def test_mps_device_name_not_available():
+    with mock.patch("torch.backends.mps.is_available", return_value=False):
+        assert MPSAccelerator.device_name() == ""
 
 
 def test_warning_if_mps_not_used(mps_count_1):
@@ -140,3 +153,21 @@ def test_single_gpu_batch_parse():
 
     batch = trainer.strategy.batch_to_device(CustomBatchType(), torch.device("mps"))
     assert batch.a.type() == "torch.mps.FloatTensor"
+
+
+@mock.patch("lightning.pytorch.accelerators.mps.subprocess.run")
+def test_get_mps_device_name(mock_run):
+    mock_stdout = mock.MagicMock()
+    mock_stdout.configure_mock(stdout="Apple M1 Pro\n")
+
+    mock_run.return_value = mock_stdout
+    device_name = _get_mps_device_name()
+    assert device_name == "Apple M1 Pro"
+
+
+@mock.patch(
+    "lightning.pytorch.accelerators.mps.subprocess.run",
+    side_effect=SubprocessError("test"),
+)
+def test_get_mps_device_name_exception(mock_run):
+    assert _get_mps_device_name() == "True (mps)"

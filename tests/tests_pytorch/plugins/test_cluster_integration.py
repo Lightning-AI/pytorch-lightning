@@ -66,7 +66,7 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
-        with mock.patch.dict(os.environ, variables):
+        with mock.patch.dict(os.environ, variables), mock.patch("torch.cuda.get_device_name", return_value="GPU"):
             strategy = strategy_cls(
                 parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
             )
