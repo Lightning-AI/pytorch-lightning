@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import concurrent.futures
 import io
 import os
 import shutil
@@ -29,7 +28,6 @@ from fsspec.spec import AbstractFileSystem
 from lightning.fabric.utilities.cloud_io import (
     _atomic_save,
     _checkpoint_join,
-    _download_chunk_mmap,
     _is_checkpoint_dir,
     _is_dir,
     _load,
@@ -303,22 +301,6 @@ def test_atomic_save_local_interrupted_save_creates_no_partial_file(tmp_path):
     assert os.listdir(tmp_path) == []
 
 
-def test_download_chunk_mmap(tmp_path):
-    src_file = tmp_path / "source.bin"
-    src_data = b"0123456789" * 1000
-    src_file.write_bytes(src_data)
-
-    dst_file = tmp_path / "dest.bin"
-    with open(dst_file, "wb") as f:
-        f.truncate(len(src_data))
-
-    mid = len(src_data) // 2
-    _download_chunk_mmap((0, mid, str(src_file), str(dst_file)))
-    _download_chunk_mmap((mid, len(src_data), str(src_file), str(dst_file)))
-
-    assert dst_file.read_bytes() == src_data
-
-
 def test_load_remote_small_file_streaming(tmp_path, monkeypatch):
     checkpoint = {"weights": torch.tensor([1.0, 2.0, 3.0])}
     ckpt_path = tmp_path / "small.ckpt"
@@ -329,20 +311,25 @@ def test_load_remote_small_file_streaming(tmp_path, monkeypatch):
     torch.testing.assert_close(loaded["weights"], checkpoint["weights"])
 
 
-def test_load_remote_large_file_mmap_multiprocessing(tmp_path, monkeypatch):
+def test_load_remote_large_file_delegates_to_get_file(tmp_path, monkeypatch):
     checkpoint = {"weights": torch.tensor([10.0, 20.0, 30.0])}
     ckpt_path = tmp_path / "large.ckpt"
     torch.save(checkpoint, ckpt_path)
-    os.path.getsize(ckpt_path)
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     orig_exists = os.path.exists
     monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
 
+    get_file_calls = []
+
     class DummyFS:
         def info(self, path):
             return {"size": 200 * 1024 * 1024}
+
+        def get_file(self, rpath, lpath):
+            get_file_calls.append((rpath, lpath))
+            shutil.copyfile(ckpt_path, lpath)
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
 
@@ -355,31 +342,17 @@ def test_load_remote_large_file_mmap_multiprocessing(tmp_path, monkeypatch):
 
     monkeypatch.setattr(torch, "load", spy_load)
 
-    class DummyExecutor:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def map(self, fn, chunks):
-            shutil.copyfile(ckpt_path, chunks[0][3])
-            return [True]
-
-    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", DummyExecutor)
-
     res = _load(str(ckpt_path), map_location="cpu")
     assert res["weights"].tolist() == [10.0, 20.0, 30.0]
+    assert len(get_file_calls) == 1
+    assert get_file_calls[0][0] == str(ckpt_path)
     if sys.platform != "win32":
         assert load_kwargs.get("mmap") is True
     else:
         assert "mmap" not in load_kwargs
 
 
-def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
+def test_load_remote_cleanup_on_exception(tmp_path, monkeypatch):
     ckpt_path = tmp_path / "error.ckpt"
     ckpt_path.write_bytes(b"dummy")
 
@@ -388,26 +361,16 @@ def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
     orig_exists = os.path.exists
     monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
 
-    class DummyFS:
+    class FailingFS:
         def info(self, path):
             return {"size": 200 * 1024 * 1024}
 
-    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
-
-    class FailingExecutor:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def map(self, fn, chunks):
+        def get_file(self, rpath, lpath):
+            with open(lpath, "wb") as f:
+                f.write(b"partial")
             raise RuntimeError("simulated download failure")
 
-    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", FailingExecutor)
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: FailingFS())
 
     with pytest.raises(RuntimeError, match="simulated download failure"):
         _load(str(ckpt_path), map_location="cpu")
@@ -415,54 +378,6 @@ def test_load_remote_mmap_cleanup_on_exception(tmp_path, monkeypatch):
     cache_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_cache_")]
     for d in cache_dirs:
         assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt"))
-        assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt.tmp"))
-
-
-def test_load_remote_mmap_atomic_staging_recovery(tmp_path, monkeypatch):
-    checkpoint = {"weights": torch.tensor([10.0, 20.0, 30.0])}
-    ckpt_path = tmp_path / "staged.ckpt"
-    torch.save(checkpoint, ckpt_path)
-    file_size = os.path.getsize(ckpt_path)
-
-    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
-    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
-    orig_exists = os.path.exists
-    monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
-
-    class DummyFS:
-        def info(self, path):
-            return {"size": 200 * 1024 * 1024}
-
-    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
-
-    class DummyExecutor:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def map(self, fn, chunks):
-            shutil.copyfile(ckpt_path, chunks[0][3])
-            return [True]
-
-    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", DummyExecutor)
-
-    import hashlib
-
-    hash_id = hashlib.sha256(str(ckpt_path).encode("utf-8")).hexdigest()[:32]
-    cache_dir = tmp_path / f"lightning_cache_{hash_id}"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    orphan_tmp = cache_dir / "checkpoint.ckpt.tmp"
-    orphan_tmp.write_bytes(b"0" * file_size)
-
-    res = _load(str(ckpt_path), map_location="cpu")
-    assert res["weights"].tolist() == [10.0, 20.0, 30.0]
-    assert not orphan_tmp.exists()
-    assert (cache_dir / "checkpoint.ckpt").exists()
 
 
 def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):
@@ -507,23 +422,10 @@ def test_load_remote_large_file_shm_cache(tmp_path, monkeypatch):
         def info(self, path):
             return {"size": 200 * 1024 * 1024}
 
+        def get_file(self, rpath, lpath):
+            shutil.copyfile(ckpt_path, lpath)
+
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
-
-    class DummyExecutor:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def map(self, fn, chunks):
-            shutil.copyfile(ckpt_path, chunks[0][3])
-            return [True]
-
-    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", DummyExecutor)
 
     res = _load(str(ckpt_path), map_location="cpu")
     torch.testing.assert_close(res["weights"], checkpoint["weights"])

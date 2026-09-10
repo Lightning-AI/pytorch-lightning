@@ -37,7 +37,7 @@ Additionally, you could also resume training with a checkpoint stored at a remot
     trainer.fit(model, ckpt_path="s3://my_bucket/ckpts/classifier.ckpt")
 
 .. note::
-    When loading remote checkpoints of size 128 MB or larger, Lightning automatically downloads and caches the checkpoint in parallel to a local temporary directory (prioritizing ``/dev/shm`` RAM disk when sufficient free capacity is available) and loads the weights using memory-mapping (``mmap=True``) for accelerated recovery and reduced Host RAM usage.
+    When loading remote checkpoints of size 128 MB or larger, Lightning automatically downloads and caches the checkpoint to a local temporary directory (prioritizing ``/dev/shm`` RAM disk when sufficient free capacity is available) and loads the weights using memory-mapping (``mmap=True``) for accelerated recovery and reduced Host RAM usage.
 
 PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
 
