@@ -369,11 +369,11 @@ class MLFlowLogger(Logger):
             # Create a temporary directory to log on mlflow
             with tempfile.TemporaryDirectory() as tmp_dir:
                 # Log the metadata
-                with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
+                with open(f"{tmp_dir}/metadata.yaml", "w", encoding="utf-8") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
 
                 # Log the aliases
-                with open(f"{tmp_dir}/aliases.txt", "w") as tmp_file_aliases:
+                with open(f"{tmp_dir}/aliases.txt", "w", encoding="utf-8") as tmp_file_aliases:
                     tmp_file_aliases.write(str(aliases))
 
                 # Log the metadata and aliases
