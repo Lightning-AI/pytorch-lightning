@@ -74,6 +74,44 @@ def test_finetuning_with_ckpt_path(tmp_path):
             assert f"epoch={idx + 1}" in best_model_path
 
 
+def test_test_ckpt_path_restores_fit_progress_for_test_hooks(tmp_path):
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{epoch}", save_top_k=-1)
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.on_test_start_current_epoch = None
+            self.on_test_start_global_step = None
+
+        def on_test_start(self):
+            self.on_test_start_current_epoch = self.trainer.current_epoch
+            self.on_test_start_global_step = self.trainer.global_step
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        limit_test_batches=1,
+        callbacks=[checkpoint_callback],
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == 3
+
+    checkpoint_path = tmp_path / "epoch=1.ckpt"
+    checkpoint = torch.load(checkpoint_path, weights_only=False)
+
+    trainer.test(model, ckpt_path=checkpoint_path, verbose=False)
+
+    assert (model.on_test_start_current_epoch, model.on_test_start_global_step) == (
+        checkpoint["epoch"],
+        checkpoint["global_step"],
+    )
+
+
 def test_trainer_save_checkpoint_storage_options(tmp_path, xla_available):
     """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
