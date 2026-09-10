@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `using_sparse_model` and `sparse_cuda_acceleration_factor` parameters to `Throughput` so MFU defaults to the dense peak and opts into the sparse peak explicitly ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
-- Added remote checkpoint caching via fs.get_file with `mmap=True` in `_load` for faster checkpoint fetching ([#21869](https://github.com/Lightning-AI/pytorch-lightning/pull/21869))
+- Optimized remote checkpoint loading by delegating to `fs.get_file` with `mmap=True` in `_load` ([#21869](https://github.com/Lightning-AI/pytorch-lightning/pull/21869))
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `FSDPStrategy` ([#21775](https://github.com/Lightning-AI/pytorch-lightning/pull/21775))
 

@@ -318,8 +318,6 @@ def test_load_remote_large_file_delegates_to_get_file(tmp_path, monkeypatch):
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
-    orig_exists = os.path.exists
-    monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
 
     get_file_calls = []
 
@@ -358,8 +356,6 @@ def test_load_remote_cleanup_on_exception(tmp_path, monkeypatch):
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
-    orig_exists = os.path.exists
-    monkeypatch.setattr(os.path, "exists", lambda p: False if p == "/dev/shm" else orig_exists(p))
 
     class FailingFS:
         def info(self, path):
@@ -375,9 +371,8 @@ def test_load_remote_cleanup_on_exception(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="simulated download failure"):
         _load(str(ckpt_path), map_location="cpu")
 
-    cache_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_cache_")]
-    for d in cache_dirs:
-        assert not os.path.exists(os.path.join(tmp_path, d, "checkpoint.ckpt"))
+    tmp_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_ckpt_")]
+    assert tmp_dirs == []
 
 
 def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):
@@ -399,24 +394,13 @@ def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):
     torch.testing.assert_close(loaded["weights"], checkpoint["weights"])
 
 
-def test_load_remote_large_file_shm_cache(tmp_path, monkeypatch):
+def test_load_remote_large_file_no_cache_leftover(tmp_path, monkeypatch):
     checkpoint = {"weights": torch.tensor([1.0, 2.0])}
-    ckpt_path = tmp_path / "shm.ckpt"
+    ckpt_path = tmp_path / "remote.ckpt"
     torch.save(checkpoint, ckpt_path)
 
     monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
-    orig_exists = os.path.exists
-    monkeypatch.setattr(os.path, "exists", lambda p: True if p == "/dev/shm" else orig_exists(p))
-    monkeypatch.setattr(os, "access", lambda *args, **kwargs: True)
-    monkeypatch.setattr(shutil, "disk_usage", lambda _: (1_000_000_000, 100_000_000, 900_000_000))
-    orig_join = os.path.join
-
-    def fake_join(*args):
-        if args and args[0] == "/dev/shm":
-            return orig_join(str(tmp_path), *args[1:])
-        return orig_join(*args)
-
-    monkeypatch.setattr(os.path, "join", fake_join)
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
 
     class DummyFS:
         def info(self, path):
@@ -429,3 +413,5 @@ def test_load_remote_large_file_shm_cache(tmp_path, monkeypatch):
 
     res = _load(str(ckpt_path), map_location="cpu")
     torch.testing.assert_close(res["weights"], checkpoint["weights"])
+    tmp_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_ckpt_")]
+    assert tmp_dirs == []

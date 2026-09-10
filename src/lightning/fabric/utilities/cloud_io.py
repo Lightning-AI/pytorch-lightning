@@ -14,7 +14,6 @@
 """Utilities related to data saving/loading."""
 
 import errno
-import hashlib
 import importlib
 import io
 import logging
@@ -110,47 +109,25 @@ def _load(
                 weights_only=weights_only,
             )
 
-    shm_dir = "/dev/shm"
-    has_shm = os.path.exists(shm_dir) and os.access(shm_dir, os.W_OK)
-
-    if has_shm:
-        total, used, free = shutil.disk_usage(shm_dir)
-        if free < file_size * 1.5:
-            has_shm = False
-
-    hash_id = hashlib.sha256(path_str.encode("utf-8")).hexdigest()[:32]
-
-    if has_shm:
-        cache_dir = os.path.join(shm_dir, f"lightning_cache_{hash_id}")
-    else:
-        cache_dir = os.path.join(tempfile.gettempdir(), f"lightning_cache_{hash_id}")
-
-    os.makedirs(cache_dir, exist_ok=True)
-    local_path = os.path.join(cache_dir, "checkpoint.ckpt")
-
-    size_gb = file_size / (1024**3)
-    log.info(f"Fetching {path_str} ({size_gb:.2f} GB) to {local_path}...")
-
-    try:
+    with tempfile.TemporaryDirectory(prefix="lightning_ckpt_") as tmp_dir:
+        local_path = os.path.join(tmp_dir, "checkpoint.ckpt")
+        size_gb = file_size / (1024**3)
+        log.info(f"Fetching {path_str} ({size_gb:.2f} GB) to {local_path}...")
         fs.get_file(path_str, local_path)
-    except Exception:
-        if os.path.exists(local_path):
-            os.remove(local_path)
-        raise
 
-    # Fast load from local cache natively (mmap=True on POSIX systems)
-    if sys.platform != "win32":
+        # Fast load from temporary file (mmap=True on POSIX systems)
+        if sys.platform != "win32":
+            return torch.load(
+                local_path,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+                mmap=True,
+            )
         return torch.load(
             local_path,
-            map_location=map_location,  # type: ignore[arg-type]
+            map_location=map_location,
             weights_only=weights_only,
-            mmap=True,
         )
-    return torch.load(
-        local_path,
-        map_location=map_location,
-        weights_only=weights_only,
-    )
 
 
 def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
