@@ -223,7 +223,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and self._has_updated:
             self._swap_models(pl_module)
 
     @override
@@ -237,7 +237,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and self._has_updated:
             self._swap_models(pl_module)
 
     @override
@@ -333,6 +333,11 @@ class WeightAveraging(Callback):
                 "initialized with state_dict."
             )
             self._average_model.module.load_state_dict(deepcopy(checkpoint["state_dict"]), strict=False)
+
+    @property
+    def _has_updated(self) -> bool:
+        """Whether the average model has been updated at least once."""
+        return self._latest_update_step > 0 or self._latest_update_epoch > -1
 
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.
