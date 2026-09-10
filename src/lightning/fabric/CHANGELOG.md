@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Changed `TransformerEnginePrecision` to raise a `RuntimeError` instead of silently skipping `LayerNorm` layers that are missing `weight` or `bias` ([#21756](https://github.com/Lightning-AI/pytorch-lightning/pull/21756))
 
 ### Removed
 
