@@ -60,8 +60,7 @@ class ActorCategorical(nn.Module):
     def __init__(self, actor_net):
         """
         Args:
-            input_shape: observation shape of the environment
-            n_actions: number of discrete actions available in the environment
+            actor_net: network that maps an observation to action logits
         """
         super().__init__()
 
@@ -95,8 +94,8 @@ class ActorContinuous(nn.Module):
     def __init__(self, actor_net, act_dim):
         """
         Args:
-            input_shape: observation shape of the environment
-            n_actions: number of discrete actions available in the environment
+            actor_net: network that maps an observation to the mean of the action distribution
+            act_dim: number of continuous action dimensions
         """
         super().__init__()
         self.actor_net = actor_net
