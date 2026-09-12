@@ -209,11 +209,17 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         @wraps(method)
         def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
+            nonlocal module_called
+            module_called = False
             handles = []
-            for module in self._original_module.modules():
-                handles.append(module.register_forward_hook(hook))
+            try:
+                for module in self._original_module.modules():
+                    handles.append(module.register_forward_hook(hook))
 
-            output = method(*args, **kwargs)
+                output = method(*args, **kwargs)
+            finally:
+                for handle in handles:
+                    handle.remove()
 
             if module_called:
                 raise RuntimeError(
@@ -221,8 +227,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                     " model. To avoid issues with the currently selected strategy, explicitly mark it as a"
                     f" forward method with `fabric_model.mark_forward_method({name!r})` after `fabric.setup()`."
                 )
-            for handle in handles:
-                handle.remove()
             return output
 
         return _wrapped_method
