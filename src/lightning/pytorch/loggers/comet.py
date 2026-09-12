@@ -187,6 +187,8 @@ class CometLogger(Logger):
             locally in an offline experiment. Default is ``True``.
         prefix: The prefix to add to names of the logged metrics.
             example: prefix=`exp1`, then metric name will be logged as `exp1_metric_name`
+        epoch_key: The metric key to extract and pass to Comet as the dedicated epoch argument.
+            Set to ``None`` to disable epoch extraction.
         **kwargs: Additional arguments like `name`, `log_code`, `offline_directory` etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
 
@@ -206,6 +208,7 @@ class CometLogger(Logger):
         mode: Optional[Literal["get_or_create", "get", "create"]] = None,
         online: Optional[bool] = None,
         prefix: Optional[str] = None,
+        epoch_key: Optional[str] = "epoch",
         **kwargs: Any,
     ):
         if not _COMET_AVAILABLE:
@@ -262,6 +265,7 @@ class CometLogger(Logger):
         self._project_name: Optional[str] = project
         self._experiment_key: Optional[str] = experiment_key
         self._prefix: Optional[str] = prefix
+        self._epoch_key = epoch_key
         self._kwargs: dict[str, Any] = kwargs
 
         # needs to be set before the first `comet_ml` import
@@ -341,7 +345,7 @@ class CometLogger(Logger):
             if isinstance(val, Tensor):
                 metrics_without_epoch[key] = val.cpu().detach()
 
-        epoch = metrics_without_epoch.pop("epoch", None)
+        epoch = metrics_without_epoch.pop(self._epoch_key, None) if self._epoch_key is not None else None
         self.experiment.__internal_api__log_metrics__(
             metrics_without_epoch,
             step=step,
