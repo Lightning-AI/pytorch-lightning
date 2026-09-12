@@ -95,10 +95,6 @@ class ModelCheckpoint(Checkpoint):
             (default: ``None``). If dirpath is ``None``, we only keep the ``k`` best checkpoints
             in memory, and do not save anything to disk.
 
-        filename: Checkpoint filename. Can contain named formatting options to be auto-filled.
-            If no name is provided, it will be ``None`` and the checkpoint will be saved to
-            ``{epoch}``.and if the Trainer uses a logger, the path will also contain logger name and version.
-
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
 
             Example::
