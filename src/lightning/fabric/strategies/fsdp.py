@@ -51,6 +51,7 @@ from lightning.fabric.utilities.cloud_io import (
     _atomic_save,
     _checkpoint_join,
     _get_distributed_checkpoint_reader,
+    _get_distributed_checkpoint_writer,
     _is_checkpoint_dir,
     _is_local_file_protocol,
     _load,
@@ -157,6 +158,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
         device_mesh: Optional[Union[tuple[int, int], "DeviceMesh"]] = None,
+        storage_options: Optional[dict[str, Any]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -184,6 +186,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self._fsdp_kwargs)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
+        self._storage_options = storage_options
 
     @property
     @override
@@ -437,11 +440,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
 
         """
-        if storage_options is not None:
-            raise TypeError(
-                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
-                " `FSDPStrategy` does not use the `CheckpointIO`."
-            )
         if filter is not None and self._state_dict_type == "sharded":
             # https://github.com/pytorch/pytorch/issues/105379
             raise NotImplementedError(
@@ -470,6 +468,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module = modules[0]
 
+        opts = storage_options if storage_options is not None else self._storage_options
+        save_kwargs = {"storage_options": opts} if opts is not None else {}
+
         if self._state_dict_type == "sharded":
             _prepare_directory_checkpoint(path)
 
@@ -493,10 +494,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         target_dict = metadata
                     _apply_filter(key, filter or {}, converted, target_dict)
 
-            _distributed_checkpoint_save(converted_state, path)
+            _distributed_checkpoint_save(converted_state, path, **save_kwargs)
 
             if self.global_rank == 0:
-                _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME))
+                _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME), **save_kwargs)
 
         elif self._state_dict_type == "full":
             if _is_sharded_checkpoint(path):
@@ -515,7 +516,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     _apply_filter(key, filter or {}, converted, full_state)
 
             if self.global_rank == 0:
-                _atomic_save(full_state, path)
+                _atomic_save(full_state, path, **save_kwargs)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
@@ -526,6 +527,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
@@ -567,18 +569,21 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module_key, module = list(modules.items())[0]
 
+        opts = storage_options if storage_options is not None else self._storage_options
+        load_kwargs = {"storage_options": opts} if opts is not None else {}
+
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, **load_kwargs)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 if optimizers:
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                    reader = _get_distributed_checkpoint_reader(path)
+                    reader = _get_distributed_checkpoint_reader(path, **(opts or {}))
                     # the optimizer states must be loaded separately
                     for optim_key, optim in optimizers.items():
                         optim_state = load_sharded_optimizer_state_dict(
@@ -598,6 +603,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             metadata = _load(
                 _checkpoint_join(path, _METADATA_FILENAME),
                 weights_only=False if weights_only is None else weights_only,
+                **load_kwargs,
             )
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
@@ -613,7 +619,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             checkpoint = (
                 _lazy_load(path)
                 if _is_local_file_protocol(str(path))
-                else _load(path, weights_only=False if weights_only is None else weights_only)
+                else _load(path, weights_only=False if weights_only is None else weights_only, **load_kwargs)
             )
 
             from lightning.fabric.strategies.model_parallel import (
@@ -952,13 +958,19 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
         metric.to(device)  # `.to()` is in-place
 
 
-def _distributed_checkpoint_save(converted_state: dict[str, Any], path: _PATH) -> None:
+def _distributed_checkpoint_save(
+    converted_state: dict[str, Any], path: _PATH, storage_options: Optional[dict[str, Any]] = None
+) -> None:
     from torch.distributed.checkpoint import save
 
-    save(converted_state, checkpoint_id=path)
+    writer = _get_distributed_checkpoint_writer(path, **(storage_options or {}))
+    save(converted_state, storage_writer=writer)
 
 
-def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH) -> None:
+def _distributed_checkpoint_load(
+    module_state: dict[str, Any], path: _PATH, storage_options: Optional[dict[str, Any]] = None
+) -> None:
     from torch.distributed.checkpoint import load
 
-    load(module_state, checkpoint_id=path)
+    reader = _get_distributed_checkpoint_reader(path, **(storage_options or {}))
+    load(module_state, storage_reader=reader)

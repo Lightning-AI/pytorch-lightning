@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) in checkpoint consolidation (`python -m lightning.fabric.utilities.consolidate_checkpoint` and the `lightning consolidate` CLI) ([#21826](https://github.com/Lightning-AI/pytorch-lightning/pull/21826))
 
+- Added `storage_options` support to `FSDPStrategy`, `ModelParallelStrategy`, `TorchCheckpointIO`, and `Fabric.save`/`Fabric.load` for configuring PyTorch DCP writers/readers (e.g. `thread_count`) and filesystem options
+
 ### Changed
 
 -

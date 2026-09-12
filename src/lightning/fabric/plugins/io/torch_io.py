@@ -40,22 +40,12 @@ class TorchCheckpointIO(CheckpointIO):
         Args:
             checkpoint: dict containing model and trainer state
             path: write-target path
-            storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
-
-        Raises:
-            TypeError:
-                If ``storage_options`` arg is passed in
+            storage_options: Optional parameters when saving to storage.
 
         """
-        if storage_options is not None:
-            raise TypeError(
-                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
-                f" is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
-                " to define how you'd like to use `storage_options`."
-            )
-        fs = get_filesystem(path)
+        fs = get_filesystem(path, **(storage_options or {}))
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        _atomic_save(checkpoint, path)
+        _atomic_save(checkpoint, path, storage_options=storage_options)
 
     @override
     def load_checkpoint(

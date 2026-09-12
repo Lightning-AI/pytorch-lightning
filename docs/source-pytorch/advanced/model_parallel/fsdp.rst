@@ -405,6 +405,20 @@ The “sharded” checkpoint format is the most efficient to save and load in Li
     The checkpoint path can also be a remote filesystem URL supported by `fsspec <https://filesystem-spec.readthedocs.io/>`_, such as ``s3://my-bucket/checkpoint``, ``gs://my-bucket/checkpoint``, or ``abfs://my-container/checkpoint``.
     This requires the corresponding fsspec implementation to be installed (e.g., ``s3fs``, ``gcsfs``, or ``adlfs``).
 
+    You can also configure ``storage_options`` (such as ``{"thread_count": 8}`` for multi-threaded shard saving, or remote filesystem credentials) either on the strategy or during ``save_checkpoint``:
+
+    .. code-block:: python
+
+        # Configure at strategy level
+        strategy = FSDPStrategy(
+            state_dict_type="sharded",
+            storage_options={"thread_count": 8},
+        )
+        trainer = L.Trainer(strategy=strategy, ...)
+
+        # Or override during save_checkpoint
+        trainer.save_checkpoint("path/to/checkpoint", storage_options={"thread_count": 8})
+
 **Which checkpoint format should I use?**
 
 - ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable. An extra step is needed to :doc:`convert the sharded checkpoint into a regular checkpoint file <../../common/checkpointing_expert>`.
