@@ -43,6 +43,11 @@ Here is a minimal example of manual optimization.
    Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
    It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
 
+.. warning::
+   In manual optimization, call ``step()`` on the optimizer returned by ``self.optimizers()``.
+   Stepping a raw optimizer reference bypasses the :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` wrapper,
+   so Lightning cannot count the step for ``Trainer.global_step``, logging, and checkpointing.
+
 
 Access your Own Optimizer
 =========================
