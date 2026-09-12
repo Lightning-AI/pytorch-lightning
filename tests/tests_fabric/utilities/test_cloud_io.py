@@ -14,6 +14,9 @@
 import errno
 import io
 import os
+import shutil
+import sys
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -28,6 +31,7 @@ from lightning.fabric.utilities.cloud_io import (
     _checkpoint_join,
     _is_checkpoint_dir,
     _is_dir,
+    _load,
     _prepare_directory_checkpoint,
     _remove_checkpoint,
     _resolve_path,
@@ -333,3 +337,119 @@ def test_atomic_save_local_interrupted_save_creates_no_partial_file(tmp_path):
 
     assert not filepath.exists()
     assert os.listdir(tmp_path) == []
+
+
+def test_load_remote_small_file_streaming(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([1.0, 2.0, 3.0])}
+    ckpt_path = tmp_path / "small.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    loaded = _load(str(ckpt_path), map_location="cpu")
+    torch.testing.assert_close(loaded["weights"], checkpoint["weights"])
+
+
+def test_load_remote_large_file_delegates_to_get_file(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([10.0, 20.0, 30.0])}
+    ckpt_path = tmp_path / "large.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+
+    get_file_calls = []
+
+    class DummyFS:
+        def info(self, path):
+            return {"size": 200 * 1024 * 1024}
+
+        def get_file(self, rpath, lpath):
+            get_file_calls.append((rpath, lpath))
+            shutil.copyfile(ckpt_path, lpath)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
+
+    orig_load = torch.load
+    load_kwargs = {}
+
+    def spy_load(f, *args, **kwargs):
+        load_kwargs.update(kwargs)
+        return orig_load(f, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", spy_load)
+
+    res = _load(str(ckpt_path), map_location="cpu")
+    assert res["weights"].tolist() == [10.0, 20.0, 30.0]
+    assert len(get_file_calls) == 1
+    assert get_file_calls[0][0] == str(ckpt_path)
+    if sys.platform != "win32":
+        assert load_kwargs.get("mmap") is True
+    else:
+        assert "mmap" not in load_kwargs
+
+
+def test_load_remote_cleanup_on_exception(tmp_path, monkeypatch):
+    ckpt_path = tmp_path / "error.ckpt"
+    ckpt_path.write_bytes(b"dummy")
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+
+    class FailingFS:
+        def info(self, path):
+            return {"size": 200 * 1024 * 1024}
+
+        def get_file(self, rpath, lpath):
+            with open(lpath, "wb") as f:
+                f.write(b"partial")
+            raise RuntimeError("simulated download failure")
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: FailingFS())
+
+    with pytest.raises(RuntimeError, match="simulated download failure"):
+        _load(str(ckpt_path), map_location="cpu")
+
+    tmp_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_ckpt_")]
+    assert tmp_dirs == []
+
+
+def test_load_remote_info_exception_fallback(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([5.0])}
+    ckpt_path = tmp_path / "fallback.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+
+    class ErrorFS:
+        def info(self, path):
+            raise FileNotFoundError("info not supported")
+
+        def open(self, path, mode):
+            return open(path, mode)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: ErrorFS())
+    loaded = _load(str(ckpt_path), map_location="cpu")
+    torch.testing.assert_close(loaded["weights"], checkpoint["weights"])
+
+
+def test_load_remote_large_file_no_cache_leftover(tmp_path, monkeypatch):
+    checkpoint = {"weights": torch.tensor([1.0, 2.0])}
+    ckpt_path = tmp_path / "remote.ckpt"
+    torch.save(checkpoint, ckpt_path)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io._is_local_file_protocol", lambda _: False)
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+
+    class DummyFS:
+        def info(self, path):
+            return {"size": 200 * 1024 * 1024}
+
+        def get_file(self, rpath, lpath):
+            shutil.copyfile(ckpt_path, lpath)
+
+    monkeypatch.setattr("lightning.fabric.utilities.cloud_io.get_filesystem", lambda _: DummyFS())
+
+    res = _load(str(ckpt_path), map_location="cpu")
+    torch.testing.assert_close(res["weights"], checkpoint["weights"])
+    tmp_dirs = [d for d in os.listdir(tmp_path) if d.startswith("lightning_ckpt_")]
+    assert tmp_dirs == []
