@@ -372,11 +372,14 @@ class _TrainingEpochLoop(loops._Loop):
             # update `is_last_batch` again after dataloader_iter was fetched in `training_step()`
             self.batch_progress.is_last_batch = data_fetcher.done
 
+        # Increment batch progress before firing on_train_batch_end hooks so that
+        # callbacks (e.g. ModelCheckpoint) that save a checkpoint inside the hook
+        # snapshot the correct completed count. See GH #18060.
+        self.batch_progress.increment_completed()
+
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         trainer._logger_connector.on_batch_end()
-
-        self.batch_progress.increment_completed()
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
