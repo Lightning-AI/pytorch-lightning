@@ -58,4 +58,5 @@ def test_uses_batches_that_stepped(mock_convert):
         metrics=mock_convert.return_value, step=trainer.fit_loop.epoch_loop._batches_that_stepped
     )
     logger.save.assert_called_once_with()
-    mock_convert.return_value.setdefault.assert_called_once_with("epoch", trainer.current_epoch)
+    # the convenience `epoch` metric is added once per `(step, epoch)` (see #20902)
+    mock_convert.return_value.__setitem__.assert_called_once_with("epoch", trainer.current_epoch)
