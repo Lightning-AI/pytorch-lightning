@@ -28,7 +28,7 @@ from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.tuner.lr_finder import _LRFinder
+from lightning.pytorch.tuner.lr_finder import _ExponentialLR, _LinearLR, _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -619,6 +619,27 @@ def test_gradient_correctness():
     suggestion = lr_finder.suggestion(skip_begin=2, skip_end=2)
     assert suggestion is not None
     assert abs(suggestion - math.pi) < 1e-2, "Suggestion should be close to pi for this synthetic example"
+
+
+@pytest.mark.parametrize("num_iter", [3, 5, 10, 100])
+def test_lr_ladder_is_evenly_spaced(num_iter):
+    """The finder tests `num_iter` learning rates evenly spaced between `min_lr` and `max_lr`."""
+    lr_min, lr_max = 1e-3, 1.0
+    model = torch.nn.Linear(1, 1)
+
+    def ladder(cls):
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr_min)
+        scheduler = cls(optimizer, end_lr=lr_max, num_iter=num_iter)
+        lrs = []
+        for _ in range(num_iter):
+            lrs.append(optimizer.param_groups[0]["lr"])
+            optimizer.step()
+            scheduler.step()
+        return lrs
+
+    fractions = [i / (num_iter - 1) for i in range(num_iter)]
+    assert ladder(_LinearLR) == pytest.approx([lr_min + r * (lr_max - lr_min) for r in fractions])
+    assert ladder(_ExponentialLR) == pytest.approx([lr_min * (lr_max / lr_min) ** r for r in fractions])
 
 
 def test_lr_finder_callback_applies_lr_after_restore(tmp_path):
