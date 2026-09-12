@@ -37,6 +37,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import ScriptModule, Tensor
+from torch.distributed import ReduceOp
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
@@ -394,6 +395,7 @@ class LightningModule(
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
+        sync_dist_op: Optional[Union[ReduceOp, str]] = None,
     ) -> None:
         """Log a key, value pair.
 
@@ -423,6 +425,9 @@ class LightningModule(
             sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
                 communication overhead.
             sync_dist_group: the DDP group to sync across.
+            sync_dist_op: the reduction operation for values across devices. Defaults to the operation inferred from
+                ``reduce_fx`` for backward compatibility. Has no effect unless ``sync_dist`` is ``True`` and the
+                strategy is distributed.
             add_dataloader_idx: if ``True``, appends the index of the current dataloader to
                 the name (when using multiple dataloaders). If False, user needs to give unique names for
                 each dataloader to not mix the values.
@@ -546,6 +551,7 @@ class LightningModule(
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
+            sync_dist_op=sync_dist_op,
         )
 
         trainer._logger_connector._current_fx = self._current_fx_name
@@ -564,6 +570,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         rank_zero_only: bool = False,
+        sync_dist_op: Optional[Union[ReduceOp, str]] = None,
     ) -> None:
         """Log a dictionary of values at once.
 
@@ -591,6 +598,9 @@ class LightningModule(
             sync_dist: if ``True``, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
                 communication overhead.
             sync_dist_group: the ddp group to sync across.
+            sync_dist_op: the reduction operation for values across devices. Defaults to the operation inferred from
+                ``reduce_fx`` for backward compatibility. Has no effect unless ``sync_dist`` is ``True`` and the
+                strategy is distributed.
             add_dataloader_idx: if ``True``, appends the index of the current dataloader to
                 the name (when using multiple). If ``False``, user needs to give unique names for
                 each dataloader to not mix values.
@@ -627,6 +637,7 @@ class LightningModule(
                 add_dataloader_idx=add_dataloader_idx,
                 batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
+                sync_dist_op=sync_dist_op,
             )
         return None
 

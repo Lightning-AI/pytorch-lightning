@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, Union, cast
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.distributed import ReduceOp
 from torchmetrics import Metric
 from typing_extensions import TypedDict, override
 
@@ -51,7 +52,7 @@ class _Sync:
     fn: Optional[Callable] = None
     _should: bool = False
     rank_zero_only: bool = False
-    _op: Optional[str] = None
+    _op: Optional[Union[ReduceOp, str]] = None
     _group: Optional[Any] = None
 
     def __post_init__(self) -> None:
@@ -68,11 +69,11 @@ class _Sync:
         self._generate_sync_fn()
 
     @property
-    def op(self) -> Optional[str]:
+    def op(self) -> Optional[Union[ReduceOp, str]]:
         return self._op
 
     @op.setter
-    def op(self, op: Optional[str]) -> None:
+    def op(self, op: Optional[Union[ReduceOp, str]]) -> None:
         self._op = op
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
@@ -371,6 +372,7 @@ class _ResultCollection(dict):
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
+        sync_dist_op: Optional[Union[ReduceOp, str]] = None,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -397,7 +399,13 @@ class _ResultCollection(dict):
             dataloader_idx=self.dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(
+            _should=sync_dist,
+            fn=sync_dist_fn,
+            _group=sync_dist_group,
+            rank_zero_only=rank_zero_only,
+            _op=sync_dist_op,
+        )
 
         # register logged value if it doesn't exist
         if key not in self:
