@@ -84,12 +84,15 @@ def test_init_local_comm(monkeypatch):
         env._comm_world.gather.return_value = ["host1", "host2"]
         env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 0
+        assert env.num_nodes() == 2
 
         env._node_rank = None
+        env._num_nodes = None
         hostname_mock.return_value = "host2"
         env._comm_world.gather.return_value = None
         env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 1
+        assert env.num_nodes() == 2
 
         assert env._comm_local is not None
         env._comm_local.Get_rank.return_value = 33

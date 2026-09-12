@@ -56,6 +56,7 @@ def test_default_attributes():
         "SLURM_LOCALID": "2",
         "SLURM_PROCID": "1",
         "SLURM_NODEID": "3",
+        "SLURM_NNODES": "2",
         "SLURM_JOB_NAME": "JOB",
     },
 )
@@ -70,6 +71,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    assert env.num_nodes() == 2
     assert env.job_name() == "JOB"
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
