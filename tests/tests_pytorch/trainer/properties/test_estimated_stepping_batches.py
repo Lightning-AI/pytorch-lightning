@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
@@ -144,6 +145,7 @@ def test_num_stepping_batches_with_tpu_single():
 
 
 class MultiprocessModel(BoringModel):
+    @override
     def on_train_start(self):
         assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // self.trainer.world_size
 

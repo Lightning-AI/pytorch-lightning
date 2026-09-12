@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -276,6 +277,7 @@ def test_litlogger_with_trainer(litlogger_mock, tmp_path):
     """Test LitLogger works with Trainer."""
 
     class LoggingModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             self.log("train_loss", loss["loss"])

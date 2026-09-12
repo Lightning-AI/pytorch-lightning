@@ -43,8 +43,8 @@ class LightningEnvironment(ClusterEnvironment):
         self._global_rank: int = 0
         self._world_size: int = 1
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         """Returns whether the cluster creates the processes or not.
 
@@ -54,13 +54,13 @@ class LightningEnvironment(ClusterEnvironment):
         """
         return "LOCAL_RANK" in os.environ
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         if self._main_port == -1:
             self._main_port = (

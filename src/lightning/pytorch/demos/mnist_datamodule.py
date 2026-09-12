@@ -24,6 +24,7 @@ from warnings import warn
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import LightningDataModule
@@ -64,6 +65,7 @@ class _MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
+    @override
     def __getitem__(self, idx: int) -> tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
@@ -191,11 +193,13 @@ class MNISTDataModule(LightningDataModule):
     def num_classes(self) -> int:
         return 10
 
+    @override
     def prepare_data(self) -> None:
         """Saves MNIST files to `data_dir`"""
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
+    @override
     def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
         extra = {"transform": self.default_transforms} if self.default_transforms else {}
@@ -206,6 +210,7 @@ class MNISTDataModule(LightningDataModule):
             dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(42)
         )
 
+    @override
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
         return DataLoader(
@@ -217,6 +222,7 @@ class MNISTDataModule(LightningDataModule):
             pin_memory=True,
         )
 
+    @override
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
         return DataLoader(
@@ -228,6 +234,7 @@ class MNISTDataModule(LightningDataModule):
             pin_memory=True,
         )
 
+    @override
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
         extra = {"transform": self.default_transforms} if self.default_transforms else {}

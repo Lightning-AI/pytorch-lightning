@@ -44,13 +44,13 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         return self._root_device
 
-    @property
     @override
+    @property
     def is_global_zero(self) -> bool:
         return True
 

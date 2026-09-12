@@ -21,6 +21,7 @@ from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -47,6 +48,7 @@ if _OMEGACONF_AVAILABLE:
 @mock.patch("lightning.pytorch.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
     class MyDataModule(LightningDataModule):
+        @override
         def prepare_data(self):
             pass
 
@@ -114,9 +116,11 @@ def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/Lightning-AI/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
+        @override
         def setup(self, *args, **kwargs):
             pass
 
+        @override
         def prepare_data(self, *args, **kwargs):
             pass
 
@@ -187,15 +191,18 @@ def test_train_val_loop_only(tmp_path):
 
 def test_dm_checkpoint_save_and_load(tmp_path):
     class CustomBoringModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
             self.log("early_stop_on", out["x"])
             return out
 
     class CustomBoringDataModule(BoringDataModule):
+        @override
         def state_dict(self) -> dict[str, Any]:
             return {"my": "state_dict"}
 
+        @override
         def load_state_dict(self, state_dict: dict[str, Any]) -> None:
             self.my_state_dict = state_dict
 
@@ -257,6 +264,7 @@ def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
             super().__init__()
             self._epochs_called_for = []
 
+        @override
         def train_dataloader(self):
             assert self.trainer.current_epoch not in self._epochs_called_for
             self._epochs_called_for.append(self.trainer.current_epoch)
@@ -275,6 +283,7 @@ def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
 
 
 class DummyDS(torch.utils.data.Dataset):
+    @override
     def __getitem__(self, index):
         return 1
 
@@ -283,6 +292,7 @@ class DummyDS(torch.utils.data.Dataset):
 
 
 class DummyIDS(torch.utils.data.IterableDataset):
+    @override
     def __iter__(self):
         yield 1
 
@@ -473,10 +483,12 @@ def test_datamodule_hooks_are_profiled(tmp_path):
         )
 
     class CustomBoringDataModule(BoringDataModule):
+        @override
         def state_dict(self):
             return {"temp": 1}
 
         # override so that it gets called
+        @override
         def prepare_data(self):
             pass
 

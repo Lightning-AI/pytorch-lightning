@@ -25,6 +25,7 @@ from queue import Queue
 import numpy as np
 import pytest
 from torch.utils.data import DataLoader, IterableDataset
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -35,6 +36,7 @@ class QueueDataset(IterableDataset):
         super().__init__()
         self.queue = queue
 
+    @override
     def __iter__(self) -> Iterator:
         for _ in range(5):
             tensor, _ = self.queue.get(timeout=5)

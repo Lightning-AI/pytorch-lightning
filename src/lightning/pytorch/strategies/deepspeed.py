@@ -398,8 +398,8 @@ class DeepSpeedStrategy(DDPStrategy):
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
-    @property
     @override
+    @property
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
@@ -594,8 +594,8 @@ class DeepSpeedStrategy(DDPStrategy):
         )
         self.model = model
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
@@ -614,11 +614,12 @@ class DeepSpeedStrategy(DDPStrategy):
         self.optimizers = []
         self.lr_scheduler_configs = []
 
+    @override
     def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
         return model
 
-    @property
     @override
+    @property
     def handles_gradient_accumulation(self) -> bool:
         """Whether the strategy handles gradient accumulation internally."""
         return True
@@ -703,8 +704,8 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return client_state
 
-    @property
     @override
+    @property
     def lightning_restore_optimizer(self) -> bool:
         assert self.lightning_module is not None
         # managed by DeepSpeed

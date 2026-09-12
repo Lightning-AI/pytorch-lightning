@@ -19,6 +19,7 @@ import pytest
 import torch
 from torch import nn
 from torch.optim import SGD, Adam
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.pytorch import LightningModule, Trainer
@@ -153,6 +154,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
             self.layer_2[1].weight.requires_grad = False
             self.layer_2[3].weight.requires_grad = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
 
@@ -186,6 +188,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
             opt2.step()
             self.untoggle_optimizer(opt2)
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = SGD(self.layer_1.parameters(), lr=0.1)
             optimizer_2 = Adam(self.layer_2.parameters(), lr=0.1)
@@ -222,6 +225,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmp_path):
             self.layer_3[1].weight.requires_grad = False
             self.layer_3[5].weight.requires_grad = False
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2, opt3 = self.optimizers()
 
@@ -287,6 +291,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmp_path):
             yield from gen_1
             yield from gen_2
 
+        @override
         def configure_optimizers(self):
             optimizer_1 = SGD(self.combine_generators(self.layer_1.parameters(), self.layer_2.parameters()), lr=0.1)
             optimizer_2 = Adam(self.combine_generators(self.layer_2.parameters(), self.layer_3.parameters()), lr=0.1)
@@ -385,6 +390,7 @@ def test_lightning_module_configure_gradient_clipping(tmp_path):
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
+        @override
         def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             assert gradient_clip_val == self.trainer.gradient_clip_val
             assert gradient_clip_algorithm == self.trainer.gradient_clip_algorithm
@@ -414,6 +420,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_val = 1e-2
 
+        @override
         def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_val=self.custom_gradient_clip_val)
 
@@ -430,6 +437,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
     class TestModel(BoringModel):
         custom_gradient_clip_algorithm = "foo"
 
+        @override
         def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
             self.clip_gradients(optimizer, gradient_clip_algorithm=self.custom_gradient_clip_algorithm)
 

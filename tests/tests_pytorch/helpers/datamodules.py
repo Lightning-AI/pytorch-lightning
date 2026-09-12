@@ -15,6 +15,7 @@
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch.core.datamodule import LightningDataModule
 from tests_pytorch.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
@@ -32,20 +33,24 @@ class MNISTDataModule(LightningDataModule):
         # TrialMNIST is a constrained MNIST dataset
         self.dataset_cls = TrialMNIST if use_trials else MNIST
 
+    @override
     def prepare_data(self):
         # download only
         self.dataset_cls(self.data_dir, train=True, download=True)
         self.dataset_cls(self.data_dir, train=False, download=True)
 
+    @override
     def setup(self, stage: str):
         if stage == "fit":
             self.mnist_train = self.dataset_cls(self.data_dir, train=True)
         if stage == "test":
             self.mnist_test = self.dataset_cls(self.data_dir, train=False)
 
+    @override
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=self.batch_size, shuffle=False)
 
+    @override
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size, shuffle=False)
 
@@ -72,22 +77,26 @@ class SklearnDataModule(LightningDataModule):
             self.x_train, self.y_train, test_size=0.40, random_state=42
         )
 
+    @override
     def train_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
             batch_size=self.batch_size,
         )
 
+    @override
     def val_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_valid, self.y_valid, self._x_type, self._y_type), batch_size=self.batch_size
         )
 
+    @override
     def test_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
         )
 
+    @override
     def predict_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size

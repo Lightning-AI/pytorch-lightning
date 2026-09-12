@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric import Fabric
@@ -246,6 +247,7 @@ def test_load_quantized_checkpoint(tmp_path):
             super().__init__()
             self.linear = torch.nn.Linear(16, 16, bias=False)
 
+        @override
         def forward(self, x):
             return self.linear(x)
 

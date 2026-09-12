@@ -15,6 +15,7 @@ import os
 from unittest import mock
 
 import torch
+from typing_extensions import override
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
@@ -81,6 +82,7 @@ def test_cpu_slurm_save_load(_, tmp_path):
 
     class _StartCallback(Callback):
         # set the epoch start hook so we can predict before the model does the full training
+        @override
         def on_train_epoch_start(self, trainer, model):
             assert trainer.global_step == real_global_step
             assert trainer.global_step > 0
@@ -106,6 +108,7 @@ def test_early_stopping_cpu_model(tmp_path):
     seed_everything(42)
 
     class ModelTrainVal(BoringModel):
+        @override
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
             self.log("val_loss", output["x"])
@@ -205,11 +208,13 @@ def test_running_test_after_fitting(tmp_path):
     seed_everything(42)
 
     class ModelTrainValTest(BoringModel):
+        @override
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
             self.log("val_loss", output["x"])
             return output
 
+        @override
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
             self.log("test_loss", output["y"])
@@ -253,6 +258,7 @@ def test_running_test_no_val(tmp_path):
     seed_everything(42)
 
     class ModelTrainTest(BoringModel):
+        @override
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
             self.log("test_loss", output["y"])

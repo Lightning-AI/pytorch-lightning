@@ -15,6 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -97,6 +98,7 @@ def test_trainer_predict_verify_config(tmp_path, datamodule):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
@@ -105,9 +107,11 @@ def test_trainer_predict_verify_config(tmp_path, datamodule):
             super().__init__()
             self._dataloaders = dataloaders
 
+        @override
         def test_dataloader(self):
             return self._dataloaders
 
+        @override
         def predict_dataloader(self):
             return self._dataloaders
 

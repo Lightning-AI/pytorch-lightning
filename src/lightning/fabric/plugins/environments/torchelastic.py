@@ -27,13 +27,13 @@ log = logging.getLogger(__name__)
 class TorchElasticEnvironment(ClusterEnvironment):
     """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
@@ -41,8 +41,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return os.environ["MASTER_ADDR"]
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")

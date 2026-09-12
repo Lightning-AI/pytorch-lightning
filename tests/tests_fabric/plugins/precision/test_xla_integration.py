@@ -17,6 +17,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import XLAPrecision
@@ -29,6 +30,7 @@ class BoringPrecisionModule(nn.Module):
         self.expected_dtype = expected_dtype
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x):
         # TODO: These should be float16/bfloat16
         assert x.dtype == torch.float32

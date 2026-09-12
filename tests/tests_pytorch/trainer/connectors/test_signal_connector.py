@@ -18,6 +18,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
@@ -60,6 +61,7 @@ def test_sigterm_handler_can_be_added(tmp_path):
     signal.signal(signal.SIGTERM, handler)
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             os.kill(os.getpid(), signal.SIGTERM)
 

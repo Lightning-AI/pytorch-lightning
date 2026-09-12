@@ -17,6 +17,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 
@@ -62,6 +63,7 @@ class Transformer(nn.Module):
         mask = mask.float().masked_fill(mask == 1, float("-inf")).masked_fill(mask == 0, 0.0)
         return mask
 
+    @override
     def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
         _, t = inputs.shape
 
@@ -90,6 +92,7 @@ class PositionalEncoding(nn.Module):
         self.max_len = max_len
         self.pe: Optional[Tensor] = None
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         if self.pe is None:
             # 1) can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
@@ -128,6 +131,7 @@ class WikiText2(Dataset):
     def __len__(self) -> int:
         return len(self.data) // self.block_size - 1
 
+    @override
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
@@ -194,21 +198,26 @@ class LightningTransformer(LightningModule):
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size)
 
+    @override
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
         return self.model(inputs, target)
 
+    @override
     def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))
         return loss
 
+    @override
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.SGD(self.model.parameters(), lr=0.1)
 
+    @override
     def prepare_data(self) -> None:
         WikiText2(download=True)
 
+    @override
     def train_dataloader(self) -> DataLoader:
         dataset = WikiText2()
         return DataLoader(dataset)

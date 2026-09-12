@@ -14,6 +14,7 @@
 """Tests to ensure that the training loop works with a dict (1.0)"""
 
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
@@ -24,12 +25,14 @@ def test__training_step__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.training_step_called = True
             return {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -54,6 +57,7 @@ def test__training_step__tr_batch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -61,9 +65,11 @@ def test__training_step__tr_batch_end__flow_dict(tmp_path):
             self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
             return self.out
 
+        @override
         def on_train_batch_end(self, tr_step_output, *_):
             assert self.count_num_graphs(tr_step_output) == 0
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -88,6 +94,7 @@ def test__training_step__epoch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -95,6 +102,7 @@ def test__training_step__epoch_end__flow_dict(tmp_path):
             self.training_step_called = True
             return {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 
@@ -119,6 +127,7 @@ def test__training_step__batch_end__epoch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
+        @override
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -127,9 +136,11 @@ def test__training_step__batch_end__epoch_end__flow_dict(tmp_path):
             self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return self.out
 
+        @override
         def on_train_batch_end(self, tr_step_output, *_):
             assert self.count_num_graphs(tr_step_output) == 0
 
+        @override
         def backward(self, loss):
             return LightningModule.backward(self, loss)
 

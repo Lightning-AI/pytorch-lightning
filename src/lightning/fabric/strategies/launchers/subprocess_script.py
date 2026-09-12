@@ -83,8 +83,8 @@ class _SubprocessScriptLauncher(_Launcher):
         self.num_nodes = num_nodes
         self.procs: list[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
-    @property
     @override
+    @property
     def is_interactive_compatible(self) -> bool:
         return False
 

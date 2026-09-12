@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary, ProgressBar, RichModelSummary, RichProgressBar, TQDMProgressBar
@@ -130,6 +131,7 @@ class TestRichIntegration:
         """Test that tensor metrics are converted to float for RichProgressBar."""
 
         class MyModel(BoringModel):
+            @override
             def training_step(self, batch, batch_idx):
                 self.log("my_tensor_metric", torch.tensor(1.23), prog_bar=True)
                 return super().training_step(batch, batch_idx)

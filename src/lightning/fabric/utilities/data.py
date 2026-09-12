@@ -23,7 +23,7 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
-from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard, override
 
 from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.exceptions import MisconfigurationException
@@ -493,14 +493,17 @@ class AttributeDict(dict):
         except KeyError as e:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'") from e
 
+    @override
     def __setattr__(self, key: str, val: Any) -> None:
         self[key] = val
 
+    @override
     def __delattr__(self, item: str) -> None:
         if item not in self:
             raise KeyError(item)
         del self[item]
 
+    @override
     def __repr__(self) -> str:
         if not len(self):
             return ""

@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import RichModelSummary, RichProgressBar
@@ -48,6 +49,7 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     model_summary = RichModelSummary()
 
     class TestModel(BoringModel):
+        @override
         @property
         def example_input_array(self) -> Any:
             return torch.randn(4, 32)

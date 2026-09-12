@@ -21,6 +21,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
@@ -588,6 +589,7 @@ class Strategy(ABC):
         self._lightning_optimizers = []
         self.lr_scheduler_configs = []
 
+    @override
     def __getstate__(self) -> dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy

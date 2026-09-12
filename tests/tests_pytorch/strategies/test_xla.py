@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
@@ -25,6 +26,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModelTPU(BoringModel):
+    @override
     def on_train_start(self) -> None:
         # assert strategy attributes for device setting
         assert self.device == torch.device("xla", index=0)

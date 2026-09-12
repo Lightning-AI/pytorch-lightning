@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from typing_extensions import override
 
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import TorchElasticEnvironment
@@ -222,6 +223,7 @@ def test_non_blocking():
 )
 def test_input_tensors_cast_before_transfer_to_device(strategy, precision, expected_dtype):
     class CustomBoringModel(BoringModel):
+        @override
         def transfer_batch_to_device(self, batch, *args, **kwargs):
             assert batch.dtype == expected_dtype
             return super().transfer_batch_to_device(batch, *args, **kwargs)

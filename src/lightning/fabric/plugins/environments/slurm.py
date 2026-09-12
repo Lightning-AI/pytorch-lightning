@@ -53,13 +53,13 @@ class SLURMEnvironment(ClusterEnvironment):
         self._validate_srun_used()
         self._validate_srun_variables()
 
-    @property
     @override
+    @property
     def creates_processes_externally(self) -> bool:
         return True
 
-    @property
     @override
+    @property
     def main_address(self) -> str:
         root_node = os.environ.get("MASTER_ADDR")
         if root_node is None:
@@ -70,8 +70,8 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
-    @property
     @override
+    @property
     def main_port(self) -> int:
         # -----------------------
         # SLURM JOB = PORT number

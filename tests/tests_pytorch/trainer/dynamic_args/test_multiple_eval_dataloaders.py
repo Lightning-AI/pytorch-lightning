@@ -14,6 +14,7 @@
 import pytest
 import torch
 from torch.utils.data import Dataset
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -24,6 +25,7 @@ class RandomDatasetA(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
+    @override
     def __getitem__(self, index):
         return torch.zeros(1)
 
@@ -36,6 +38,7 @@ class RandomDatasetB(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
+    @override
     def __getitem__(self, index):
         return torch.ones(1)
 
@@ -46,6 +49,7 @@ class RandomDatasetB(Dataset):
 @pytest.mark.parametrize("seq_type", [tuple, list])
 def test_multiple_eval_dataloaders_seq(tmp_path, seq_type):
     class TestModel(BoringModel):
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
                 assert batch.sum() == 0
@@ -54,6 +58,7 @@ def test_multiple_eval_dataloaders_seq(tmp_path, seq_type):
             else:
                 raise Exception("should only have two dataloaders")
 
+        @override
         def val_dataloader(self):
             dl1 = torch.utils.data.DataLoader(RandomDatasetA(32, 64), batch_size=11)
             dl2 = torch.utils.data.DataLoader(RandomDatasetB(32, 64), batch_size=11)

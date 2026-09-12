@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
+from typing_extensions import override
 
 from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch import Trainer
@@ -284,6 +285,7 @@ class TestIterableDataset(IterableDataset):
     def __init__(self, size: int = 10):
         self.size = size
 
+    @override
     def __iter__(self):
         self.sampler = SequentialSampler(range(self.size))
         self.sampler_iter = iter(self.sampler)
@@ -335,6 +337,7 @@ def test_combined_loader_simultaneous_workers(mode):
             super().__init__(*args, **kwargs)
             self.workers_active = False
 
+        @override
         def _get_iterator(self):
             self.workers_active = True
             return super()._get_iterator()
@@ -398,6 +401,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
         def __init__(self, size: int = 10):
             self.size = size
 
+        @override
         def __iter__(self):
             self.sampler = SequentialSampler(range(self.size))
             self.iter_sampler = iter(self.sampler)
@@ -410,6 +414,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
         def __init__(self, size: int = 10):
             self.size = size
 
+        @override
         def __getitem__(self, index):
             return index
 
@@ -434,6 +439,7 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
         def __len__(self):
             return len(self.data)
 
+        @override
         def __getitem__(self, index):
             return self.data[index]
 
@@ -521,6 +527,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
                 assert last_batch == {"a": torch.tensor([8]), "b": torch.tensor([0])}
 
     class InfiniteDataset(IterableDataset):
+        @override
         def __iter__(self):
             while True:
                 yield 1

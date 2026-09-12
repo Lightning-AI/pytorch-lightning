@@ -72,14 +72,14 @@ class DummyLogger(Logger):
     def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    @property
     @override
+    @property
     def name(self) -> str:
         """Return the experiment name."""
         return ""
 
-    @property
     @override
+    @property
     def version(self) -> str:
         """Return the experiment version."""
         return ""

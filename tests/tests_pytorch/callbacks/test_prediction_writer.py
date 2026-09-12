@@ -15,6 +15,7 @@ from unittest.mock import ANY, Mock, call
 
 import pytest
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import BasePredictionWriter
@@ -23,9 +24,11 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class DummyPredictionWriter(BasePredictionWriter):
+    @override
     def write_on_batch_end(self, *_, **__):
         pass
 
+    @override
     def write_on_epoch_end(self, *_, **__):
         pass
 
@@ -107,6 +110,7 @@ def test_batch_level_batch_indices(tmp_path):
     DummyPredictionWriter.write_on_batch_end = Mock()
 
     class CustomBoringModel(BoringModel):
+        @override
         def on_predict_epoch_end(self, *args, **kwargs):
             assert self.trainer.predict_loop.epoch_batch_indices == [[]]
 

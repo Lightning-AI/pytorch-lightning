@@ -21,6 +21,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
@@ -88,9 +89,11 @@ def test_loop_restore():
 
             self.outputs.append(value)
 
+        @override
         def state_dict(self) -> dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
 
+        @override
         def load_state_dict(self, state_dict: dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
@@ -141,9 +144,11 @@ def test_loop_hierarchy():
                 return
             loop.run()
 
+        @override
         def on_save_checkpoint(self) -> dict:
             return {"a": self.a}
 
+        @override
         def on_load_checkpoint(self, state_dict: dict) -> None:
             self.a = state_dict["a"]
 
@@ -205,11 +210,13 @@ def test_loop_restart_progress_multiple_dataloaders(tmp_path, n_dataloaders, sto
         def __init__(self):
             super().__init__()
 
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if self.current_epoch == stop_epoch and batch_idx == stop_batch and dataloader_idx == stop_dataloader:
                 raise CustomException
             return super().validation_step(batch, batch_idx)
 
+        @override
         def val_dataloader(self):
             return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
@@ -263,6 +270,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     n_batches = 3
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             if self.trainer.current_epoch == stop_epoch and batch_idx == stop_batch:
                 raise CustomException
@@ -429,6 +437,7 @@ def test_loop_state_on_complete_run(tmp_path):
     accumulate_grad_batches = 1
 
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             # override to test the `is_last_batch` value
             return DataLoader(RandomDataset(32, n_batches))
@@ -669,6 +678,7 @@ class RangeDataset(torch.utils.data.Dataset):
         data = torch.arange(0, size) / size
         self.data = data.unsqueeze(0).repeat(length, 1)
 
+    @override
     def __getitem__(self, index: int) -> torch.Tensor:
         return self.data[index]
 
@@ -681,18 +691,23 @@ class PredictableBoringModel(BoringModel):
         super().__init__()
         self.last_loss = float("inf")
 
+    @override
     def train_dataloader(self) -> DataLoader:
         return DataLoader(RangeDataset(32, 64))
 
+    @override
     def val_dataloader(self) -> DataLoader:
         return DataLoader(RangeDataset(32, 64))
 
+    @override
     def test_dataloader(self) -> DataLoader:
         return DataLoader(RangeDataset(32, 64))
 
+    @override
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(RangeDataset(32, 64))
 
+    @override
     def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         loss = self.step(batch)
         self.last_loss = loss
@@ -947,20 +962,25 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         def step(self, batch):
             return sum(self.layer(b).sum() for b in batch)
 
+        @override
         def training_step(self, batch, batch_idx):
             return self.step(batch)
 
+        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             if self.should_fail and dataloader_idx == stop_dataloader and batch_idx == stop_batch:
                 raise CustomException
             return self.step(batch)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
+        @override
         def train_dataloader(self):
             return [DataLoader(cls(size, n_batches)) for cls in train_datasets]
 
+        @override
         def val_dataloader(self):
             return [DataLoader(cls(size, n_batches)) for cls in val_datasets]
 
@@ -1087,6 +1107,7 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
 
     class TestCallback(Callback):
+        @override
         def on_train_epoch_end(self, trainer, *_):
             if trainer.current_epoch == 1:
                 raise CustomException
@@ -1111,6 +1132,7 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
             super().__init__(*args, **kwargs)
             self.dataloader = dataloader
 
+        @override
         def __del__(self):
             self.dataloader.shutdown_workers_epochs.append(trainer.current_epoch)
             super().__del__()
@@ -1120,6 +1142,7 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
             super().__init__(*args, **kwargs)
             self.shutdown_workers_epochs = []
 
+        @override
         def _get_iterator(self):
             if self.num_workers == 0:
                 return super()._get_iterator()
@@ -1179,6 +1202,7 @@ def test_validation_during_gradient_accumulation_window(tmp_path):
     phase."""
 
     class ValidationModel(BoringModel):
+        @override
         def on_validation_start(self):
             batch_idx = self.trainer.fit_loop.epoch_loop.batch_progress.current.completed
             grad_expected = batch_idx % self.trainer.accumulate_grad_batches != 0
@@ -1258,10 +1282,12 @@ def test_fit_loop_save_and_restore_dataloaders(
             super().__init__()
             self.seen_data = []
 
+        @override
         def training_step(self, batch, batch_idx):
             self.seen_data.append(batch)
             print(batch)
 
+        @override
         def train_dataloader(self):
             return train_dataloader_factory()
 
