@@ -39,6 +39,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `RichProgressBar` showing a nonsensical negative epoch total (e.g. `Epoch 5/-2`) when `Trainer(max_epochs=-1)` (unlimited epochs) is used and training stops via another condition ([#21925](https://github.com/Lightning-AI/pytorch-lightning/issues/21925))
 
+- Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
+
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))
 
 - Fixed PyTorch Lightning profiler not capturing dataloader worker initialization time ([#21771](https://github.com/Lightning-AI/pytorch-lightning/issues/21771))
@@ -54,6 +56,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
+
+- Fixed arbitrary code execution in `load_from_checkpoint` by rejecting a checkpoint `_class_path` that does not resolve to an already imported subclass of the loaded class ([#21914](https://github.com/Lightning-AI/pytorch-lightning/pull/21914))
 
 ---
 
