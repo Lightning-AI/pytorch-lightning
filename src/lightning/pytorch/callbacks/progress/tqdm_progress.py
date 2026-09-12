@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,6 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
 else:
@@ -49,7 +48,7 @@ class Tqdm(_tqdm):
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
             n = _tqdm.format_num(n)
-            assert isinstance(n, str)
+        assert isinstance(n, str)
         if should_be_padded and "e" not in n:
             if "." not in n and len(n) < _PAD_SIZE:
                 try:
@@ -60,18 +59,46 @@ class Tqdm(_tqdm):
             n += "0" * (_PAD_SIZE - len(n))
         return n
 
+    def reset_timer(self) -> None:
+        """Reset the timing window so that rate and ETA calculations exclude previous iterations.
+
+        This is useful when the first N iterations are anomalously slow due to one-time costs such
+        as ``torch.compile`` JIT compilation or lazy model/optimizer initialization. Calling this
+        method after those warmup batches complete ensures the displayed ``it/s`` and remaining-time
+        estimate reflect steady-state throughput rather than the compilation overhead.
+
+        Only the timing state is touched — the iteration counter (``n``), total, and postfix metrics
+        are left unchanged, so there is no visual flicker or progress jump in the terminal.
+
+        Note:
+            This method accesses tqdm internal attributes (``start_t``, ``last_print_t``,
+            ``_ema_dn``, ``_ema_dt``, ``avg_time``) whose names may differ across tqdm versions.
+            A :func:`hasattr` guard is used for each optional attribute so the method degrades
+            gracefully on older or newer tqdm releases.
+
+        """
+        t = self._time()
+        self.start_t = t
+        self.last_print_t = t
+        # Reset exponential-moving-average accumulators.  Field names differ across tqdm versions:
+        #   tqdm < 4.66 uses _ema_dn / _ema_dt
+        #   some builds expose avg_time instead
+        for attr in ("_ema_dn", "_ema_dt", "avg_time"):
+            if hasattr(self, attr):
+                setattr(self, attr, 0.0)
+
 
 class TQDMProgressBar(ProgressBar):
     r"""This is the default progress bar used by Lightning. It prints to ``stdout`` using the :mod:`tqdm` package and
     shows up to four different bars:
 
-        - **sanity check progress:** the progress during the sanity check run
-        - **train progress:** shows the training progress. It will pause if validation starts and will resume
-          when it ends, and also accounts for multiple validation runs during training when
-          :paramref:`~lightning.pytorch.trainer.trainer.Trainer.val_check_interval` is used.
-        - **validation progress:** only visible during validation;
-          shows total progress over all validation datasets.
-        - **test progress:** only active when testing; shows total progress over all test datasets.
+    - **sanity check progress:** the progress during the sanity check run
+    - **train progress:** shows the training progress. It will pause if validation starts and will resume
+      when it ends, and also accounts for multiple validation runs during training when
+      :paramref:`~lightning.pytorch.trainer.trainer.Trainer.val_check_interval` is used.
+    - **validation progress:** only visible during validation;
+      shows total progress over all validation datasets.
+    - **test progress:** only active when testing; shows total progress over all test datasets.
 
     For infinite datasets, the progress bar never ends.
 
@@ -79,7 +106,7 @@ class TQDMProgressBar(ProgressBar):
     specific methods of the callback class and pass your custom implementation to the
     :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
-    Example:
+    Example::
 
         >>> class LitProgressBar(TQDMProgressBar):
         ...     def init_validation_tqdm(self):
@@ -99,12 +126,40 @@ class TQDMProgressBar(ProgressBar):
             together.
         leave: If set to ``True``, leaves the finished progress bar in the terminal at the end of the epoch.
             Default: ``False``
+        warmup_batches: Number of batches at the start of the *first* epoch whose wall-clock time is
+            excluded from the progress bar's rate and ETA calculation. After the last warmup batch
+            completes the timer is reset so that all subsequent rate and remaining-time estimates
+            reflect steady-state throughput only.
 
+            This is particularly useful when ``torch.compile`` is enabled, because the first one or
+            more batches trigger JIT compilation and are orders of magnitude slower than normal
+            batches. Including that one-time cost in the ETA would make the estimate misleading for
+            the remainder of training.
+
+            How many batches to skip depends on the model:
+
+            * **Static graph / single subgraph** — ``warmup_batches=1`` is usually sufficient.
+            * **Dynamic shapes or multiple subgraphs** — set ``warmup_batches=2`` or ``3``.
+
+            Default: ``0`` (no warmup; backward-compatible with existing behaviour).
+
+    Example — skip the first batch when using ``torch.compile``::
+
+        >>> from lightning.pytorch.callbacks import TQDMProgressBar
+        >>> bar = TQDMProgressBar(warmup_batches=1)
+        >>> from lightning.pytorch import Trainer
+        >>> trainer = Trainer(callbacks=[bar])
     """
 
     BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0, leave: bool = False):
+    def __init__(
+        self,
+        refresh_rate: int = 1,
+        process_position: int = 0,
+        leave: bool = False,
+        warmup_batches: int = 0,
+    ):
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
@@ -114,6 +169,9 @@ class TQDMProgressBar(ProgressBar):
         self._test_progress_bar: Optional[_tqdm] = None
         self._predict_progress_bar: Optional[_tqdm] = None
         self._leave = leave
+        if warmup_batches < 0:
+            raise ValueError(f"`warmup_batches` must be a non-negative integer, got {warmup_batches!r}.")
+        self._warmup_batches = warmup_batches
 
     def __getstate__(self) -> dict:
         # can't pickle the tqdm objects
@@ -276,6 +334,19 @@ class TQDMProgressBar(ProgressBar):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         n = batch_idx + 1
+
+        # After the last warmup batch in epoch 0, reset the progress bar timer so that
+        # rate (it/s) and ETA are computed only from steady-state iterations.  This
+        # prevents one-time costs such as torch.compile JIT compilation from distorting
+        # the displayed throughput for the rest of training.
+        if (
+            self._warmup_batches > 0
+            and batch_idx == self._warmup_batches - 1
+            and trainer.current_epoch == 0
+            and isinstance(self.train_progress_bar, Tqdm)
+        ):
+            self.train_progress_bar.reset_timer()
+
         if self.train_progress_bar is not None and self._should_update(n, self.train_progress_bar.total):
             _update_n(self.train_progress_bar, n)
             self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
@@ -307,7 +378,6 @@ class TQDMProgressBar(ProgressBar):
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
-
         total = convert_inf(self.total_val_batches_current_dataloader)
         self.val_progress_bar.reset()
         self.val_progress_bar.total = total
@@ -351,7 +421,6 @@ class TQDMProgressBar(ProgressBar):
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
-
         total = convert_inf(self.total_test_batches_current_dataloader)
         self.test_progress_bar.reset()
         self.test_progress_bar.total = total
@@ -392,7 +461,6 @@ class TQDMProgressBar(ProgressBar):
     ) -> None:
         if not self.has_dataloader_changed(dataloader_idx):
             return
-
         total = convert_inf(self.total_predict_batches_current_dataloader)
         self.predict_progress_bar.reset()
         self.predict_progress_bar.total = total
