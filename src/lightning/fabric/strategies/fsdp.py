@@ -419,7 +419,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 f" Got: {module.__class__.__name__}."
             )
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        total_norm = module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        if error_if_nonfinite and torch.logical_or(total_norm.isnan(), total_norm.isinf()):
+            raise RuntimeError(
+                f"The total norm of order {float(norm_type)} for gradients from `parameters` is non-finite, so it "
+                "cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, "
+                "set `error_if_nonfinite=False`"
+            )
+        return total_norm
 
     @override
     def save_checkpoint(
