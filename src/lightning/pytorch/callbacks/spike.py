@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from typing import Any, Union
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.spike import SpikeDetection as FabricSpikeDetection
@@ -10,6 +11,7 @@ from lightning.pytorch.callbacks.callback import Callback
 
 
 class SpikeDetection(FabricSpikeDetection, Callback):
+    @override
     @torch.no_grad()
     def on_train_batch_end(  # type: ignore
         self,
