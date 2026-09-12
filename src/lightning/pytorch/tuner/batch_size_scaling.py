@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
+from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.parsing import lightning_getattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -401,7 +402,14 @@ def _try_loop_run(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     assert loop is not None
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
-    loop.run()
+    stage = trainer.state.stage
+    module_mode = _ModuleMode()
+    module_mode.capture(trainer.lightning_module)
+    try:
+        loop.run()
+    finally:
+        trainer.state.stage = stage
+        module_mode.restore(trainer.lightning_module)
 
 
 def _reset_progress(trainer: "pl.Trainer") -> None:
