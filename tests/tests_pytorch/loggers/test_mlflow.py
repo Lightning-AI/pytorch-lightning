@@ -252,6 +252,14 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
     )
     param.assert_called_with(key="test", value="test_param")
 
+    long_params = {"test": "test_param" * 50}
+    logger.log_hyperparams(long_params)
+
+    logger.experiment.log_batch.assert_called_with(
+        run_id=logger.run_id, params=[param(key="test", value="test_param" * 50)]
+    )
+    param.assert_called_with(key="test", value="test_param" * 50)
+
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
 
@@ -317,12 +325,7 @@ def test_mlflow_logger_no_synchronous_support(mlflow_mock, tmp_path):
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_with_long_param_value(mlflow_mock, tmp_path):
-    """Test that long parameter values are truncated to 250 characters."""
-
-    def _check_value_length(value, *args, **kwargs):
-        assert len(value) <= 250
-
-    mlflow_mock.entities.Param.side_effect = _check_value_length
+    """Test that long parameter values are handled correctly."""
 
     logger = MLFlowLogger("test", save_dir=str(tmp_path))
 
