@@ -310,7 +310,7 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, monkeypatch
     wandb_mock.run = None
     wandb_mock.init().step = 0
     logger.log_metrics({"test": 1.0}, step=0)
-    logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+    logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "global_step": 0})
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
