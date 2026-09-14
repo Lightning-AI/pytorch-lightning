@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
+- Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
+
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
 - Fixed `FSDPStrategy` raising `RuntimeError` under PyTorch 2.5+ when `root_device` is CPU, by passing an explicit `torch.device("cpu")` instead of `device_id=None` (relevant only when the GPU-accelerator guard is bypassed) ([#21774](https://github.com/Lightning-AI/pytorch-lightning/pull/21774))
@@ -37,6 +39,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
 - Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
+
+---
+
+## [2.6.5] - 2026-05-27
+
+### Changed
+
+- Use `fs.pipe()` for S3/GCS checkpoint uploads in `_atomic_save` ([#21595](https://github.com/Lightning-AI/pytorch-lightning/pull/21595))
 
 ---
 
