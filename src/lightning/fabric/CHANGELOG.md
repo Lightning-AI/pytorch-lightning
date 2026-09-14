@@ -42,6 +42,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.6.5] - 2026-05-27
+
+### Changed
+
+- Use `fs.pipe()` for S3/GCS checkpoint uploads in `_atomic_save` ([#21595](https://github.com/Lightning-AI/pytorch-lightning/pull/21595))
+
+---
+
 ## [2.6.4] - 2026-05-20
 
 > Versions 2.6.2 and 2.6.3 were skipped due to a supply chain security compromise. See [#21691](https://github.com/Lightning-AI/pytorch-lightning/issues/21691) for details.
