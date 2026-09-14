@@ -97,6 +97,7 @@ class Trainer:
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        log_key_prefix: Optional[str] = None,
         callbacks: Optional[Union[list[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
@@ -160,6 +161,9 @@ class Trainer:
                 ``False`` will disable logging. If multiple loggers are provided, local files
                 (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
+
+            log_key_prefix: String prefix prepended to Trainer-generated logged metric keys.
+                Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -332,6 +336,7 @@ class Trainer:
         self.suggest_integrations = suggest_integrations
 
         self.barebones = barebones
+        self.log_key_prefix = log_key_prefix or ""
         if barebones:
             # opt-outs
             if enable_checkpointing:

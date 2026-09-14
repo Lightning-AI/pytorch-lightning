@@ -105,12 +105,12 @@ def test_wandb_logger_init(wandb_mock):
 
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb_mock.init.assert_called_once()
-    wandb_mock.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
+    wandb_mock.init().log.assert_called_once_with({"acc": 1.0, "global_step": 3})
 
     # continue training on same W&B run and offset step
     logger.finalize("success")
     logger.log_metrics({"acc": 1.0}, step=6)
-    wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
+    wandb_mock.init().log.assert_called_with({"acc": 1.0, "global_step": 6})
 
     # log hyper parameters
     hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
@@ -141,6 +141,27 @@ def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
 
     # test that trainer/global_step is not added to the logged metrics if sync_tensorboard=True
     wandb_mock.run.log.assert_called_once_with(metrics)
+
+
+@pytest.mark.parametrize("log_key_prefix", ["", None])
+def test_wandb_logger_log_key_prefix_uses_bare_global_step(wandb_mock, log_key_prefix):
+    wandb_mock.run = None
+    logger = WandbLogger(log_key_prefix=log_key_prefix)
+    logger.log_metrics({"acc": 1.0}, step=3)
+
+    wandb_mock.init.return_value.define_metric.assert_any_call("global_step")
+    wandb_mock.init.return_value.define_metric.assert_any_call("*", step_metric="global_step", step_sync=True)
+    wandb_mock.init.return_value.log.assert_called_once_with({"acc": 1.0, "global_step": 3})
+
+
+def test_wandb_logger_prefix_does_not_apply_to_generated_global_step(wandb_mock):
+    wandb_mock.run = None
+    logger = WandbLogger(prefix="exp", log_key_prefix="trainer/")
+    logger.log_metrics({"acc": 1.0}, step=3)
+
+    wandb_mock.init.return_value.define_metric.assert_any_call("trainer/global_step")
+    wandb_mock.init.return_value.define_metric.assert_any_call("*", step_metric="trainer/global_step", step_sync=True)
+    wandb_mock.init.return_value.log.assert_called_once_with({"exp-acc": 1.0, "trainer/global_step": 3})
 
 
 def test_wandb_logger_init_before_spawn(wandb_mock):
@@ -534,7 +555,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.Image.assert_called_with("2.jpg")
     wandb_mock.init().log.assert_called_once_with({
         "samples": [wandb_mock.Image(), wandb_mock.Image()],
-        "trainer/global_step": 5,
+        "global_step": 5,
     })
 
     # test log_image with captions
@@ -564,7 +585,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.Audio.assert_called_with("2.mp3")
     wandb_mock.init().log.assert_called_once_with({
         "samples": [wandb_mock.Audio(), wandb_mock.Audio()],
-        "trainer/global_step": 5,
+        "global_step": 5,
     })
 
     # test log_audio with captions
@@ -594,7 +615,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.Video.assert_called_with("2.mp4")
     wandb_mock.init().log.assert_called_once_with({
         "samples": [wandb_mock.Video(), wandb_mock.Video()],
-        "trainer/global_step": 5,
+        "global_step": 5,
     })
 
     # test log_video with captions
@@ -621,7 +642,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
         data=data,
         dataframe=df,
     )
-    wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table(), "trainer/global_step": 5})
+    wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table(), "global_step": 5})
 
 
 def test_wandb_logger_offline_log_model(wandb_mock, tmp_path):
