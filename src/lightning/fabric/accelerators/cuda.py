@@ -34,8 +34,8 @@ class CUDAAccelerator(Accelerator):
         """
         if device.type != "cuda":
             raise ValueError(f"Device should be CUDA, got {device} instead.")
-        _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
+        _check_cuda_matmul_precision(device)  # may initialize CUDA, set_device first
 
     @override
     def teardown(self) -> None:

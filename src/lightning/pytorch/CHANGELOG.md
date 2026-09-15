@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Changed the `dirpath` argument of `lightning.pytorch.profilers` profilers to accept `str | os.PathLike[str]` instead of `str | pathlib.Path` ([#21871](https://github.com/Lightning-AI/pytorch-lightning/pull/21871))
 
 ### Removed
 
@@ -55,8 +55,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
-- Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
+- Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
+---
+
+## [2.6.6] - 2026-09-10
+
+### Fixed
+
+- Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
 - Fixed arbitrary code execution in `load_from_checkpoint` by rejecting a checkpoint `_class_path` that does not resolve to an already imported subclass of the loaded class ([#21914](https://github.com/Lightning-AI/pytorch-lightning/pull/21914))
 
 ---
