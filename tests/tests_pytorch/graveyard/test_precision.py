@@ -14,7 +14,7 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(PrecisionPlugin2, Precision)
 
     for plugin_cls in [PrecisionPlugin0, PrecisionPlugin1, PrecisionPlugin2]:
-        with pytest.warns(DeprecationWarning, match="The `PrecisionPlugin` is deprecated"):
+        with pytest.warns(FutureWarning, match="The `PrecisionPlugin` is deprecated"):
             plugin_cls()
 
     # bitsandbytes
@@ -48,7 +48,7 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(DoublePlugin2, DoublePrecision)
 
     for plugin_cls in [DoublePlugin0, DoublePlugin1, DoublePlugin2]:
-        with pytest.warns(DeprecationWarning, match="The `DoublePrecisionPlugin` is deprecated"):
+        with pytest.warns(FutureWarning, match="The `DoublePrecisionPlugin` is deprecated"):
             plugin_cls()
 
     # fsdp
@@ -62,7 +62,7 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(FSDPPlugin2, FSDPPrecision)
 
     for plugin_cls in [FSDPPlugin0, FSDPPlugin1, FSDPPlugin2]:
-        with pytest.warns(DeprecationWarning, match="The `FSDPPrecisionPlugin` is deprecated"):
+        with pytest.warns(FutureWarning, match="The `FSDPPrecisionPlugin` is deprecated"):
             plugin_cls(precision="16-mixed")
 
     # half
@@ -76,7 +76,7 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(HalfPlugin2, HalfPrecision)
 
     for plugin_cls in [HalfPlugin0, HalfPlugin1, HalfPlugin2]:
-        with pytest.warns(DeprecationWarning, match="The `HalfPrecisionPlugin` is deprecated"):
+        with pytest.warns(FutureWarning, match="The `HalfPrecisionPlugin` is deprecated"):
             plugin_cls()
 
     # mixed
@@ -90,7 +90,7 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(MixedPlugin2, MixedPrecision)
 
     for plugin_cls in [MixedPlugin0, MixedPlugin1, MixedPlugin2]:
-        with pytest.warns(DeprecationWarning, match="The `MixedPrecisionPlugin` is deprecated"):
+        with pytest.warns(FutureWarning, match="The `MixedPrecisionPlugin` is deprecated"):
             plugin_cls(precision="bf16-mixed", device="cuda:0")
 
     # transformer_engine

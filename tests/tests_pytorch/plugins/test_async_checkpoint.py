@@ -26,6 +26,7 @@ class _CaptureCheckpointIO(CheckpointIO):
 
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_async_checkpoint_should_snapshot_values_before_mutation():
     base = _CaptureCheckpointIO()
     async_io = AsyncCheckpointIO(checkpoint_io=base)
