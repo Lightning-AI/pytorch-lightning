@@ -182,7 +182,12 @@ def test_model_checkpoint_score_and_ckpt(
             assert actual_step_count == epoch + 2  # step_count starts at 1
             assert actual_lr == lr * gamma ** (epoch + 1)
         else:
-            assert calls[epoch] == {monitor: score}
+            if validation_step_none and reduce_lr_on_plateau and monitor == "train_log_epoch":
+                # reduce_lr_on_plateau should not be called when validation_step is None,
+                # so there should be no calls to `get_monitor_value``
+                assert calls == {}
+            else:
+                assert calls[epoch] == {monitor: score}
 
 
 @pytest.mark.parametrize(
