@@ -18,6 +18,7 @@ import os
 from argparse import Namespace
 from typing import Any, Optional, Union
 
+from fsspec.implementations import local
 from torch import Tensor
 from typing_extensions import override
 
@@ -207,6 +208,8 @@ class _ExperimentWriter:
         self.log_dir = log_dir
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
+        self._is_local_fs = isinstance(self._fs, local.LocalFileSystem)
+
         self._check_log_dir_exists()
         self._fs.makedirs(self.log_dir, exist_ok=True)
 
@@ -230,37 +233,52 @@ class _ExperimentWriter:
         if not self.metrics:
             return
 
+        # Update column list with any new metrics keys
         new_keys = self._record_new_keys()
+
         file_exists = self._fs.isfile(self.metrics_file_path)
 
-        if new_keys and file_exists:
-            # we need to re-write the file if the keys (header) change
-            self._rewrite_with_new_header(self.metrics_keys)
+        # Decision logic: when can we safely append?
+        # 1. Must be local filesystem (remote FS don't support append)
+        # 2. File must already exist
+        # 3. No new columns (otherwise CSV header would be wrong)
+        can_append = self._is_local_fs and file_exists and not new_keys
 
-        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
-            if not file_exists:
-                # only write the header if we're writing a fresh file
-                writer.writeheader()
-            writer.writerows(self.metrics)
+        if can_append:
+            # Safe to append: local FS + existing file + same columns
+            self._write_metrics(self.metrics, mode="a", write_header=False)
+        else:
+            # Need to rewrite: new file OR remote FS OR new columns
+            all_metrics = self.metrics
+            if file_exists:
+                # Include existing data when rewriting
+                all_metrics = self._read_existing_metrics() + self.metrics
+            self._write_metrics(all_metrics, mode="w", write_header=True)
 
-        self.metrics = []  # reset
+        self.metrics = []
 
     def _record_new_keys(self) -> set[str]:
-        """Records new keys that have not been logged before."""
+        """Identifies and records any new metric keys that have not been previously logged."""
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
         self.metrics_keys.sort()
         return new_keys
 
-    def _rewrite_with_new_header(self, fieldnames: list[str]) -> None:
-        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
-            metrics = list(csv.DictReader(file))
+    def _read_existing_metrics(self) -> list[dict[str, Any]]:
+        """Read all existing metrics from the CSV file."""
+        try:
+            with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+                return list(csv.DictReader(file))
+        except (FileNotFoundError, OSError):
+            return []
 
-        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
+    def _write_metrics(self, metrics: list[dict[str, Any]], mode: str, write_header: bool) -> None:
+        """Write metrics to CSV file with the specified mode and header option."""
+        with self._fs.open(self.metrics_file_path, mode=mode, newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
+            if write_header:
+                writer.writeheader()
             writer.writerows(metrics)
 
     def _check_log_dir_exists(self) -> None:
