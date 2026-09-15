@@ -456,7 +456,7 @@ def test_metriccollection_compute_groups(tmp_path, compute_groups):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
         def on_train_epoch_end(self) -> None:
-            self.metrics.wrapped_assertion_calls.call_count == 2
+            assert self.metrics.wrapped_assertion_calls.call_count == 2
             self.metrics.wrapped_assertion_calls.reset_mock()
 
     trainer = Trainer(
