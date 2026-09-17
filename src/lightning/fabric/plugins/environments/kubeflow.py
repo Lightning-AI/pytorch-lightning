@@ -76,3 +76,7 @@ class KubeflowEnvironment(ClusterEnvironment):
     @override
     def node_rank(self) -> int:
         return self.global_rank()
+
+    @override
+    def num_nodes(self) -> int:
+        return self.world_size()

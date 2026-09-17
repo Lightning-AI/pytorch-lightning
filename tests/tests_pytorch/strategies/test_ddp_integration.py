@@ -340,6 +340,9 @@ def test_configure_launcher_create_processes_externally():
         def node_rank(self):
             return 0
 
+        def num_nodes(self):
+            return 1
+
     ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment(), parallel_devices=[torch.device("cpu")])
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
