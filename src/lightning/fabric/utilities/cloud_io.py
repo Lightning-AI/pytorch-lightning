@@ -17,7 +17,10 @@ import errno
 import importlib
 import io
 import logging
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 from typing import IO, Any, Optional, Union
 
@@ -57,7 +60,9 @@ def _load(
             map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
             weights_only=weights_only,
         )
-    if str(path_or_url).startswith("http"):
+
+    path_str = str(path_or_url)
+    if path_str.startswith("http"):
         if weights_only is None:
             weights_only = False
             log.debug(
@@ -66,15 +71,61 @@ def _load(
             )
 
         return torch.hub.load_state_dict_from_url(
-            str(path_or_url),
+            path_str,
             map_location=map_location,  # type: ignore[arg-type]
             weights_only=weights_only,
         )
+
     fs = get_filesystem(path_or_url)
-    with fs.open(path_or_url, "rb") as f:
+
+    # 1. Local path optimization (mmap=True on POSIX systems)
+    if _is_local_file_protocol(path_str):
+        if sys.platform != "win32":
+            return torch.load(
+                path_str,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+                mmap=True,
+            )
         return torch.load(
-            f,
-            map_location=map_location,  # type: ignore[arg-type]
+            path_str,
+            map_location=map_location,
+            weights_only=weights_only,
+        )
+
+    # 2. Remote checkpoint fetching via fs.get_file
+    try:
+        file_info = fs.info(path_str)
+        file_size = file_info.get("size", 0)
+    except Exception:
+        file_size = 0
+
+    # Fallback to standard streaming for small files or unknown size
+    if file_size < 128 * 1024 * 1024:
+        with fs.open(path_str, "rb") as f:
+            return torch.load(
+                f,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+            )
+
+    with tempfile.TemporaryDirectory(prefix="lightning_ckpt_") as tmp_dir:
+        local_path = os.path.join(tmp_dir, "checkpoint.ckpt")
+        size_gb = file_size / (1024**3)
+        log.info(f"Fetching {path_str} ({size_gb:.2f} GB) to {local_path}...")
+        fs.get_file(path_str, local_path)
+
+        # Fast load from temporary file (mmap=True on POSIX systems)
+        if sys.platform != "win32":
+            return torch.load(
+                local_path,
+                map_location=map_location,  # type: ignore[arg-type]
+                weights_only=weights_only,
+                mmap=True,
+            )
+        return torch.load(
+            local_path,
+            map_location=map_location,
             weights_only=weights_only,
         )
 
