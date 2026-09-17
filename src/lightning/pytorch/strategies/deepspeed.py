@@ -818,7 +818,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 raise MisconfigurationException(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
                 )
-            with open(config) as f:
+            with open(config, encoding="utf-8") as f:
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
