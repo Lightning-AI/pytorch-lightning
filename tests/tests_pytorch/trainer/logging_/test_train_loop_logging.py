@@ -744,6 +744,78 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+def test_trainer_default_log_key_prefix_uses_bare_generated_epoch(mock_log_metrics, tmp_path):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"foo": 0.0, "epoch": 0}, step=0)
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+@pytest.mark.parametrize("log_key_prefix", ["trainer/", "custom/"])
+def test_trainer_log_key_prefix_can_prefix_generated_epoch(mock_log_metrics, tmp_path, log_key_prefix):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+        log_key_prefix=log_key_prefix,
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"foo": 0.0, f"{log_key_prefix}epoch": 0}, step=0)
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+def test_trainer_log_key_prefix_does_not_rewrite_user_epoch_metric(mock_log_metrics, tmp_path):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("epoch", -batch_idx, logger=True)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+        log_key_prefix="trainer/",
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"epoch": 0.0, "trainer/epoch": 0}, step=0)
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_on_train_start(mock_log_metrics, tmp_path):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 
