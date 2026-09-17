@@ -38,6 +38,9 @@ class _LoggerConnector:
         self._current_fx: Optional[str] = None
         # None: hasn't started, True: first loop iteration, False: subsequent iterations
         self._first_loop_iter: Optional[bool] = None
+        # tracks the last ``(step, epoch)`` for which the convenience ``epoch`` metric was
+        # auto-added, so it is not logged more than once at the same step (see ``log_metrics``)
+        self._logged_epoch_step: Optional[tuple[int, int]] = None
 
     def on_trainer_init(
         self,
@@ -121,9 +124,17 @@ class _LoggerConnector:
             if step_metric is not None:
                 step = int(step_metric)
             else:
-                # added metrics for convenience
-                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
                 step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
+                # add the convenience `epoch` metric, but only once per `(step, epoch)`.
+                # Several metric groups can be flushed at the same step (e.g. the
+                # training-epoch-end and validation-end flushes), and stamping `epoch` on
+                # each of them makes loggers that keep per-call history (e.g. MLflow) record
+                # duplicate `epoch` datapoints per epoch, misaligning epoch-based x-axes (#20902).
+                if "epoch" not in scalar_metrics:
+                    current_epoch = self.trainer.current_epoch
+                    if self._logged_epoch_step != (step, current_epoch):
+                        scalar_metrics["epoch"] = current_epoch
+                        self._logged_epoch_step = (step, current_epoch)
 
         # log actual metrics
         for logger in self.trainer.loggers:
@@ -230,6 +241,9 @@ class _LoggerConnector:
         self._progress_bar_metrics = {}
         self._logged_metrics = {}
         self._callback_metrics = {}
+        # reset per-run so the convenience `epoch` metric is re-emitted at the start of a
+        # fresh fit/validate/test run (this is called per-run, not per-epoch)
+        self._logged_epoch_step = None
 
     def reset_results(self) -> None:
         results = self.trainer._results
