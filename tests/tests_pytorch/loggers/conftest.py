@@ -75,7 +75,6 @@ def wandb_mock(monkeypatch):
     monkeypatch.setitem(sys.modules, "wandb.sdk", wandb_sdk)
 
     wandb_sdk_lib = ModuleType("lib")
-    wandb_sdk_lib.RunDisabled = RunType
     monkeypatch.setitem(sys.modules, "wandb.sdk.lib", wandb_sdk_lib)
 
     wandb_wandb_run = ModuleType("wandb_run")
