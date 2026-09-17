@@ -86,8 +86,10 @@ class ProgressBar(Callback):
 
         """
         if self.trainer.max_epochs == -1 and self.trainer.max_steps is not None and self.trainer.max_steps > 0:
+            # The progress bar counts batches, but ``max_steps``/``global_step`` count optimizer steps.
+            # With gradient accumulation, each optimizer step consumes ``accumulate_grad_batches`` batches.
             remaining_steps = self.trainer.max_steps - self.trainer.global_step
-            return min(self.trainer.num_training_batches, remaining_steps)
+            return min(self.trainer.num_training_batches, remaining_steps * self.trainer.accumulate_grad_batches)
         return self.trainer.num_training_batches
 
     @property
