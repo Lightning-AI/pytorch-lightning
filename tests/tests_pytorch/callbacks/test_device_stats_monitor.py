@@ -20,6 +20,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
@@ -40,6 +41,7 @@ def test_device_stats_gpu_from_torch(tmp_path):
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
+        @override
         def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             fields = [
                 "allocated_bytes.all.freed",
@@ -74,6 +76,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
     CPU_METRIC_KEYS = (_CPU_VM_PERCENT, _CPU_SWAP_PERCENT, _CPU_PERCENT)
 
     class DebugLogger(CSVLogger):
+        @override
         def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             enabled = cpu_stats is not False
             for f in CPU_METRIC_KEYS:
@@ -101,6 +104,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
 
 class AssertTpuMetricsLogger(CSVLogger):
     @rank_zero_only
+    @override
     def log_metrics(self, metrics, step=None) -> None:
         fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
         for f in fields:
@@ -240,6 +244,7 @@ def test_device_stats_monitor_filter_keys(tmp_path, filter_keys, expected_presen
     model = BoringModel()
 
     class AssertFilterLogger(CSVLogger):
+        @override
         def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             for key in expected_present:
                 assert any(key in k for k in metrics), f"Expected key {key!r} not found in metrics"

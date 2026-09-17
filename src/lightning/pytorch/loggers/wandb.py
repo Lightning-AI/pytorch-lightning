@@ -352,6 +352,7 @@ class WandbLogger(Logger):
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
 
+    @override
     def __getstate__(self) -> dict[str, Any]:
         import wandb
 
@@ -553,8 +554,8 @@ class WandbLogger(Logger):
         metrics = {key: [wandb.Video(video, **kwarg) for video, kwarg in zip(videos, kwarg_list)]}
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
-    @property
     @override
+    @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
 
@@ -564,8 +565,8 @@ class WandbLogger(Logger):
         """
         return self._save_dir
 
-    @property
     @override
+    @property
     def name(self) -> Optional[str]:
         """The project name of this experiment.
 
@@ -576,8 +577,8 @@ class WandbLogger(Logger):
         """
         return self._project
 
-    @property
     @override
+    @property
     def version(self) -> Optional[str]:
         """Gets the id of the experiment.
 

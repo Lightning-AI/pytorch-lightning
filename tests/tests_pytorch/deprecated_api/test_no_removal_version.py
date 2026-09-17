@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch.nn
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.pytorch import Trainer
@@ -13,6 +14,7 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
+        @override
         def configure_sharded_model(self) -> None: ...
 
     model = MyModel()
@@ -21,6 +23,7 @@ def test_configure_sharded_model():
         trainer.fit(model)
 
     class MyModelBoth(MyModel):
+        @override
         def configure_model(self): ...
 
     model = MyModelBoth()

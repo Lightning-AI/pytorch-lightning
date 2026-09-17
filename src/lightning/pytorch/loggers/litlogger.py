@@ -122,26 +122,26 @@ class LitLogger(Logger):
     # Properties
     # ──────────────────────────────────────────────────────────────────────────────
 
-    @property
     @override
+    @property
     def name(self) -> str:
         """Gets the name of the experiment."""
         return self._name
 
-    @property
     @override
+    @property
     def version(self) -> Optional[str]:
         """Get the experiment version - its time of creation."""
         return self._version
 
-    @property
     @override
+    @property
     def root_dir(self) -> str:
         """Gets the save directory where the litlogger experiments are saved."""
         return self._root_dir
 
-    @property
     @override
+    @property
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 

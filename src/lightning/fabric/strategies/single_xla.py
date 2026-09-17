@@ -28,6 +28,7 @@ from lightning.fabric.utilities.types import _DEVICE
 class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     """Strategy for training on a single XLA device."""
 
+    @override
     def __init__(
         self,
         device: _DEVICE,
@@ -50,8 +51,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             precision=precision,
         )
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -59,15 +60,15 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             return plugin
         return XLACheckpointIO()
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property
     @override
+    @property
     def precision(self) -> XLAPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -75,8 +76,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             return plugin
         return XLAPrecision("32-true")
 
-    @precision.setter
     @override
+    @precision.setter
     def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")

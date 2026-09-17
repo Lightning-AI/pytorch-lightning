@@ -10,6 +10,7 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.utilities.data import (
@@ -82,6 +83,7 @@ def test_replace_dunder_methods_multiple_loaders_without_init():
 
 def test_replace_dunder_methods_cleanup_tolerates_concurrent_restore():
     class ConcurrentCleanupMeta(type):
+        @override
         def __getattribute__(cls, name):
             if (
                 name == "__old__delattr__"
@@ -296,6 +298,7 @@ def test_replace_dunder_methods_attrs():
     """
 
     class Loader(DataLoader):
+        @override
         def __setattr__(self, attr, val):
             if attr == "custom_arg":
                 val = val + 2
@@ -340,10 +343,12 @@ def test_replace_dunder_methods_restore_methods():
             super().__init__(*args, **kwargs)
 
     class SetAttr(DataLoader):
+        @override
         def __setattr__(self, *args):
             return super().__setattr__(*args)
 
     class DelAttr(DataLoader):
+        @override
         def __delattr__(self, *args):
             return super().__delattr__(*args)
 

@@ -111,6 +111,7 @@ class _AcceleratorRegistry(dict):
         """Returns a set of registered accelerators."""
         return set(self.keys())
 
+    @override
     def __str__(self) -> str:
         return "Registered Accelerators: {}".format(", ".join(self.available_accelerators()))
 

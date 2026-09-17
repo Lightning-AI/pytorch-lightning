@@ -15,6 +15,7 @@
 
 import torch
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
@@ -26,6 +27,7 @@ class BoringDoubleModule(nn.Module):
         self.layer = torch.nn.Linear(32, 2)
         self.register_buffer("complex_buffer", torch.complex(torch.rand(10), torch.rand(10)), False)
 
+    @override
     def forward(self, x):
         assert x.dtype == torch.float64
         # the default dtype for new tensors is now float64

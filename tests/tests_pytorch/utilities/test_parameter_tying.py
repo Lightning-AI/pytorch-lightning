@@ -14,6 +14,7 @@
 import pytest
 import torch
 from torch import nn
+from typing_extensions import override
 
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
@@ -27,6 +28,7 @@ class ParameterSharingModule(BoringModel):
         self.layer_3 = nn.Linear(32, 10, bias=False)
         self.layer_3.weight = self.layer_1.weight
 
+    @override
     def forward(self, x):
         x = self.layer_1(x)
         x = self.layer_2(x)
@@ -52,6 +54,7 @@ def test_set_shared_parameters():
             super().__init__()
             self.layer = layer
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
@@ -63,6 +66,7 @@ def test_set_shared_parameters():
             self.layer_2 = nn.Linear(10, 32, bias=False)
             self.net_b = SubModule(self.layer)
 
+        @override
         def forward(self, x):
             x = self.net_a(x)
             x = self.layer_2(x)

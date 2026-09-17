@@ -20,6 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, DistributedSampler
 from torchmetrics.classification import Accuracy
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -34,6 +35,7 @@ class FeedForward(nn.Module):
         self.w2 = nn.Linear(32, 64)
         self.w3 = nn.Linear(64, 32)
 
+    @override
     def forward(self, x):
         return self.w3(F.silu(self.w1(x)) * self.w2(x))
 
@@ -98,20 +100,24 @@ class TemplateModel(LightningModule):
         self.model = FeedForward()
         self._compile = compile
 
+    @override
     def training_step(self, batch):
         output = self.model(batch)
         return output.sum()
 
+    @override
     def train_dataloader(self):
         dataset_size = 8
         dataset = RandomDataset(32, dataset_size)
         return DataLoader(dataset, batch_size=2)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.AdamW(self.model.parameters())
 
 
 class FSDP2Model(TemplateModel):
+    @override
     def configure_model(self):
         parallelize = _parallelize_feed_forward_fsdp2_tp
         if self._compile:
@@ -120,6 +126,7 @@ class FSDP2Model(TemplateModel):
 
 
 class TensorParallelModel(TemplateModel):
+    @override
     def configure_model(self):
         parallelize = _parallelize_feed_forward_tp
         if self._compile:
@@ -128,6 +135,7 @@ class TensorParallelModel(TemplateModel):
 
 
 class FSDP2TensorParallelModel(TemplateModel):
+    @override
     def configure_model(self):
         parallelize = _parallelize_feed_forward_fsdp2_tp
         if self._compile:
@@ -141,14 +149,17 @@ class SimpleCompiledModule(LightningModule):
         self.model = nn.Sequential(nn.Linear(32, 64), nn.ReLU(), nn.Linear(64, 32))
         self._loss = nn.MSELoss()
 
+    @override
     def configure_model(self):
         self.model = torch.compile(self.model)
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         preds = self.model(x)
         return self._loss(preds, y)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=1e-3)
 
@@ -181,6 +192,7 @@ def test_setup_device_mesh(distributed):
         )
 
         class Model(BoringModel):
+            @override
             def configure_model(self):
                 device_mesh = self.device_mesh
                 assert isinstance(device_mesh, DeviceMesh)
@@ -209,6 +221,7 @@ def test_setup_device_mesh(distributed):
     )
 
     class Model(BoringModel):
+        @override
         def configure_model(self):
             device_mesh = self.device_mesh
             assert device_mesh.mesh_dim_names == ("data_parallel", "tensor_parallel")
@@ -228,6 +241,7 @@ def test_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     class Model(TensorParallelModel):
+        @override
         def on_train_start(self):
             device_mesh = self.device_mesh
             optimizer = self.optimizers()
@@ -242,6 +256,7 @@ def test_tensor_parallel(distributed, compile):
             assert len(dataloader) == 8 // dataloader.batch_size
             assert isinstance(dataloader.sampler, DistributedSampler)
 
+        @override
         def training_step(self, batch):
             # All batches must be identical across TP group
             batches = self.all_gather(batch)
@@ -311,6 +326,7 @@ def test_fsdp2_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     class Model(FSDP2TensorParallelModel):
+        @override
         def on_train_start(self):
             optimizer = self.optimizers()
             assert all(isinstance(weight, DTensor) for weight in self.model.parameters())
@@ -329,6 +345,7 @@ def test_fsdp2_tensor_parallel(distributed, compile):
             assert len(dataloader) == 8 // dataloader.batch_size // dp_mesh.size()
             assert isinstance(dataloader.sampler, DistributedSampler)
 
+        @override
         def training_step(self, batch):
             batches = self.all_gather(batch)
             dp_mesh = self.device_mesh["data_parallel"]
@@ -373,9 +390,11 @@ def test_modules_without_parameters(distributed, tmp_path):
             self.metric = Accuracy("multiclass", num_classes=10)
             assert self.metric.device == self.metric.tp.device == torch.device("cpu")
 
+        @override
         def setup(self, stage) -> None:
             assert self.metric.device == self.metric.tp.device == torch.device("cpu")
 
+        @override
         def training_step(self, batch):
             assert self.metric.device.type == self.metric.tp.device.type == "cuda"
             self.metric(torch.rand(2, 10, device=self.device), torch.randint(0, 10, size=(2,), device=self.device))
@@ -411,6 +430,7 @@ def test_module_init_context(distributed, compile, precision, expected_dtype, tm
     """Test that the module under the init-context gets moved to the right device and dtype."""
 
     class Model(FSDP2Model):
+        @override
         def on_train_start(self):
             assert self.model.w1.weight.device == torch.device("cuda", self.local_rank)
             assert self.model.w1.weight.dtype == expected_dtype
@@ -570,6 +590,7 @@ def test_save_load_sharded_state_dict(distributed, tmp_path):
             super().__init__()
             self.params_to_compare = params_to_compare
 
+        @override
         def on_train_start(self):
             if self.params_to_compare is None:
                 return

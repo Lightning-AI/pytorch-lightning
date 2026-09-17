@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -22,22 +23,28 @@ def test_train_step_no_return(tmp_path, single_cb: bool):
     """Tests that only training_step can be used."""
 
     class CB(Callback):
+        @override
         def on_train_batch_end(self, trainer, pl_module, outputs, *_):
             assert "loss" in outputs
 
+        @override
         def on_validation_batch_end(self, trainer, pl_module, outputs, *_):
             assert "x" in outputs
 
+        @override
         def on_test_batch_end(self, trainer, pl_module, outputs, *_):
             assert "x" in outputs
 
     class TestModel(BoringModel):
+        @override
         def on_train_batch_end(self, outputs, *_):
             assert "loss" in outputs
 
+        @override
         def on_validation_batch_end(self, outputs, *_):
             assert "x" in outputs
 
+        @override
         def on_test_batch_end(self, outputs, *_):
             assert "x" in outputs
 

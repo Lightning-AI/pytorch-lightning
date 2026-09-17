@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Callable, Union
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.types import _DEVICE
@@ -68,6 +69,7 @@ class _TransferableDataType(ABC):
     """
 
     @classmethod
+    @override
     def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is _TransferableDataType:
             to = getattr(subclass, "to", None)

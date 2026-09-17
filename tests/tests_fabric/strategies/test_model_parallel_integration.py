@@ -21,6 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, DistributedSampler
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.strategies.model_parallel import ModelParallelStrategy, _load_raw_module_state
@@ -43,6 +44,7 @@ class FeedForward(nn.Module):
         self.w2 = nn.Linear(32, 64)
         self.w3 = nn.Linear(64, 32)
 
+    @override
     def forward(self, x):
         return self.w3(F.silu(self.w1(x)) * self.w2(x))
 

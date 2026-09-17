@@ -73,8 +73,8 @@ class _MultiProcessingLauncher(_Launcher):
                 f" {', '.join(mp.get_all_start_methods())}"
             )
 
-    @property
     @override
+    @property
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA

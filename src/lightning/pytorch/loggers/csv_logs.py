@@ -102,8 +102,8 @@ class CSVLogger(Logger, FabricCSVLogger):
         )
         self._save_dir = os.fspath(save_dir)
 
-    @property
     @override
+    @property
     def root_dir(self) -> str:
         """Parent directory for all checkpoint subdirectories.
 
@@ -113,8 +113,8 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         return os.path.join(self.save_dir, self.name)
 
-    @property
     @override
+    @property
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -126,8 +126,8 @@ class CSVLogger(Logger, FabricCSVLogger):
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         return os.path.join(self.root_dir, version)
 
-    @property
     @override
+    @property
     def save_dir(self) -> str:
         """The current directory where logs are saved.
 
@@ -143,8 +143,8 @@ class CSVLogger(Logger, FabricCSVLogger):
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
-    @property
     @override
+    @property
     @rank_zero_experiment
     def experiment(self) -> _FabricExperimentWriter:
         r"""Actual _ExperimentWriter object. To use _ExperimentWriter features in your

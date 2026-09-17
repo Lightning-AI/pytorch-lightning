@@ -17,6 +17,7 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -28,6 +29,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_trainer_flag(caplog, tmp_path):
     class TestModel(BoringModel):
+        @override
         def on_fit_start(self):
             raise SystemExit()
 

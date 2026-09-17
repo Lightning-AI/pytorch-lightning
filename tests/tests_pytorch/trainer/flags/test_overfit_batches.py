@@ -17,6 +17,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -50,6 +51,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
         def __init__(self, data_source):
             self.data_source = data_source
 
+        @override
         def __iter__(self):
             return iter(range(len(self.data_source)))
 
@@ -57,11 +59,13 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
             return len(self.data_source)
 
     class TestModel(BoringModel):
+        @override
         def train_dataloader(self):
             dataset = RandomDataset(32, 64)
             sampler = NonSequentialSampler(dataset)
             return torch.utils.data.DataLoader(dataset, sampler=sampler)
 
+        @override
         def val_dataloader(self):
             dataset = RandomDataset(32, 64)
             sampler = NonSequentialSampler(dataset)
@@ -114,6 +118,7 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
 @RunIf(sklearn=True)
 def test_overfit_batch_limits_train(overfit_batches):
     class CustomDataModule(ClassifDataModule):
+        @override
         def train_dataloader(self):
             return DataLoader(
                 SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
@@ -181,10 +186,12 @@ def test_overfit_batches_same_batch_for_train_and_val(tmp_path):
             self.train_batches = []
             self.val_batches = []
 
+        @override
         def training_step(self, batch, batch_idx):
             self.train_batches.append(batch)
             return super().training_step(batch, batch_idx)
 
+        @override
         def validation_step(self, batch, batch_idx):
             self.val_batches.append(batch)
             return super().validation_step(batch, batch_idx)

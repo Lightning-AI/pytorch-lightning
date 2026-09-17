@@ -19,6 +19,7 @@ import torch
 from torch._dynamo import OptimizedModule
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
@@ -83,6 +84,7 @@ def test_fabric_module_method_lookup():
             super().__init__()
             self.submodule = torch.nn.Linear(2, 3)
 
+        @override
         def forward(self, x):
             return x
 
@@ -102,6 +104,7 @@ def test_fabric_module_method_lookup():
             super().__init__()
             self.wrapped = module
 
+        @override
         def forward(self, *args, **kwargs):
             return self.wrapped(*args, **kwargs)
 
@@ -135,6 +138,7 @@ def test_fabric_module_mark_forward_method():
     class OriginalModule(torch.nn.Module):
         attribute = 1
 
+        @override
         def forward(self, x):
             return x
 
@@ -521,6 +525,7 @@ def test_fabric_optimizer_zero_grad_kwargs():
     custom_zero_grad = Mock()
 
     class CustomSGD(torch.optim.SGD):
+        @override
         def zero_grad(self, set_grads_to_None=False):
             custom_zero_grad(set_grads_to_None=set_grads_to_None)
 
@@ -607,10 +612,12 @@ def test_step_method_redirection():
             super().__init__()
             self.module = module
 
+        @override
         def forward(self, *args, **kwargs):
             return self.module(*args, **kwargs)
 
     class LightningModule(torch.nn.Module):
+        @override
         def forward(self):
             return "forward_return"
 

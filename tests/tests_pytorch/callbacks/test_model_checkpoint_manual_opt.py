@@ -7,6 +7,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -20,6 +21,7 @@ class FakeDataset(Dataset):
     def __len__(self):
         return 4
 
+    @override
     def __getitem__(self, idx):
         return self.data[idx], self.labels[idx]
 
@@ -47,6 +49,7 @@ class SimpleModule(LightningModule):
         ]
         self.saved_models = {}
 
+    @override
     def training_step(self, batch, batch_idx):
         out = self.layer(batch[0])
         loss = torch.nn.functional.binary_cross_entropy_with_logits(out, batch[1].float())
@@ -59,6 +62,7 @@ class SimpleModule(LightningModule):
         optimizer.step()
         return loss
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -123,6 +127,7 @@ def test_model_checkpoint_manual_opt_warning():
     """Test that a warning is raised when using manual optimization without saving the state."""
 
     class SimpleModuleNoSave(SimpleModule):
+        @override
         def training_step(self, batch, batch_idx):
             out = self.layer(batch[0])
             loss = torch.nn.functional.binary_cross_entropy_with_logits(out, batch[1].float())
