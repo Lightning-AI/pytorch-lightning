@@ -42,6 +42,19 @@ skip_advanced_profiler_py312 = pytest.mark.skipif(
 )
 
 
+class _CustomPath:
+    """A minimal ``os.PathLike`` that is not a ``pathlib.Path`` and whose ``__str__`` is not the path."""
+
+    def __init__(self, path):
+        self._path = str(path)
+
+    def __fspath__(self) -> str:
+        return self._path
+
+    def __str__(self) -> str:
+        return f"<_CustomPath {self._path}>"
+
+
 def _get_python_cprofile_total_duration(profile):
     return sum(x.inlinetime for x in profile.getstats())
 
@@ -154,6 +167,18 @@ def test_simple_profiler_with_nonexisting_dirpath(tmp_path):
 
     assert nonexisting_tmp_path.exists()
     assert (nonexisting_tmp_path / "fit-profiler.txt").exists()
+
+
+@pytest.mark.parametrize("profiler_cls", [SimpleProfiler, AdvancedProfiler])
+def test_profiler_with_pathlike_dirpath(tmp_path, profiler_cls):
+    """Ensure the profiler accepts any ``os.PathLike`` as ``dirpath``, not just ``pathlib.Path``."""
+    profiler = profiler_cls(dirpath=_CustomPath(tmp_path), filename="profiler")
+
+    with profiler.profile("test_action"):
+        pass
+    profiler.describe()
+
+    assert (tmp_path / "profiler.txt").exists()
 
 
 @RunIf(skip_windows=True)
@@ -737,3 +762,16 @@ def test_setup_train_dataloader_profiled_actions(tmp_path):
     trainer.fit(model)
 
     assert "setup_train_dataloader" in profiler.recorded_durations
+
+
+@pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
+def test_pytorch_profiler_chrome_export_with_pathlike_dirpath(tmp_path):
+    """Ensure the chrome trace is written under a ``dirpath`` given as a non-``Path`` ``os.PathLike``."""
+    profiler = PyTorchProfiler(dirpath=_CustomPath(tmp_path), filename="profiler", export_to_chrome=True, schedule=None)
+
+    for _ in range(2):
+        with profiler.profile("training_step"):
+            torch.randn(10, 10).sum()
+    profiler.describe()
+
+    assert any(f.name.endswith(".json") for f in tmp_path.iterdir())
