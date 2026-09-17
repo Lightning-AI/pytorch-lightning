@@ -823,6 +823,12 @@ to_torchscript
 .. automethod:: lightning.pytorch.core.module.LightningModule.to_torchscript
     :noindex:
 
+to_tensorrt
+~~~~~~~~~~~
+
+.. automethod:: lightning.pytorch.core.module.LightningModule.to_tensorrt
+    :noindex:
+
 training_step
 ~~~~~~~~~~~~~
 
