@@ -33,6 +33,7 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector, _validate_callbacks_list
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
@@ -238,6 +239,51 @@ def test_attach_model_callbacks():
     bare_callback = Callback()
     trainer = _attach_callbacks(trainer_callbacks=[bare_callback], model_callbacks=[custom_progress_bar])
     assert trainer.callbacks == [bare_callback, custom_progress_bar]
+
+
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
+def test_model_configure_callbacks_overrides_default_progress_bar():
+    class CustomProgressBar(ProgressBar):
+        def disable(self):
+            pass
+
+        def enable(self):
+            pass
+
+    class Model(BoringModel):
+        def configure_callbacks(self):
+            return [CustomProgressBar()]
+
+    trainer = Trainer(
+        accelerator="cpu",
+        devices=1,
+        max_steps=1,
+        logger=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(Model())
+
+    bars = [callback for callback in trainer.callbacks if isinstance(callback, ProgressBar)]
+    assert len(bars) == 1
+    assert isinstance(bars[0], CustomProgressBar)
+
+
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
+def test_model_configure_callbacks_rejects_multiple_progress_bars():
+    class CustomProgressBar(ProgressBar):
+        def disable(self):
+            pass
+
+        def enable(self):
+            pass
+
+    model = LightningModule()
+    model.configure_callbacks = lambda: [CustomProgressBar(), CustomProgressBar()]
+    trainer = Trainer(enable_checkpointing=False, enable_progress_bar=True, enable_model_summary=False)
+    trainer.strategy._lightning_module = model
+
+    with pytest.raises(MisconfigurationException, match="multiple progress bar callbacks"):
+        _CallbackConnector(trainer)._attach_model_callbacks()
 
 
 def test_attach_model_callbacks_override_info(caplog):
