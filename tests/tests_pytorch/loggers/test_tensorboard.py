@@ -319,7 +319,14 @@ def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     dest = os.path.join(".", "sym_lightning_logs")
 
     os.makedirs(source, exist_ok=True)
-    os.symlink(source, dest)
+    try:
+        os.symlink(source, dest)
+    except OSError as ex:
+        # Windows requires an elevated process or Developer Mode for symlinks.
+        # Keep reporting every other setup error instead of turning it into a skip.
+        if os.name == "nt" and getattr(ex, "winerror", None) == 1314:
+            pytest.skip(f"Can't create symlinks: {ex}")
+        raise
 
     logger = TensorBoardLogger(save_dir=dest, name="")
     _ = logger.version
