@@ -28,8 +28,13 @@ def measure_loops(cls_model, kind: str, loop: Callable, num_runs: int = 10, num_
 
         time_end = time.perf_counter()
 
+        # TEMP(experiment): stream per-run timing so the benchmark log shows where wall time goes.
+        print(f"[timing] {kind} / {cls_model.__name__} run {i}: {time_end - time_start:.1f}s", flush=True)
+
         hist_losses.append(final_loss)
         hist_durations.append(time_end - time_start)
         hist_memory.append(used_memory)
 
+    # TEMP(experiment): total time for this loop kind.
+    print(f"[timing] {kind} / {cls_model.__name__} TOTAL: {sum(hist_durations):.1f}s", flush=True)
     return {"losses": hist_losses, "durations": hist_durations, "memory": hist_memory}
