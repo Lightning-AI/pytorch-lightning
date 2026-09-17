@@ -822,6 +822,7 @@ class Fabric:
         path: Union[str, Path],
         state: dict[str, Union[nn.Module, Optimizer, Any]],
         filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
+        storage_options: Optional[Any] = None,
     ) -> None:
         r"""Save checkpoint contents to a file.
 
@@ -836,6 +837,8 @@ class Fabric:
             filter: An optional dictionary containing filter callables that return a boolean indicating whether the
                 given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
                 state key, where its filter will be applied to the ``state_dict`` generated.
+            storage_options: Optional parameters when saving to storage (e.g. ``{"thread_count": 8}`` for PyTorch DCP
+                or fsspec storage options).
 
         Raises:
             TypeError: If filter is not a dictionary or contains non-callable values.
@@ -863,7 +866,9 @@ class Fabric:
             for k, v in filter.items():
                 if not callable(v):
                     raise TypeError(f"Expected `fabric.save(filter=...)` for key {k!r} to be a callable, given {v!r}")
-        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state), filter=filter)
+        self._strategy.save_checkpoint(
+            path=path, state=_unwrap_objects(state), filter=filter, storage_options=storage_options
+        )
         self.barrier()
 
     def load(
@@ -873,6 +878,7 @@ class Fabric:
         strict: bool = True,
         *,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[Any] = None,
     ) -> dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.).
 
@@ -889,6 +895,7 @@ class Fabric:
                 an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+            storage_options: Optional parameters when loading from storage (e.g. fsspec or DCP reader storage options).
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -911,6 +918,7 @@ class Fabric:
             state=unwrapped_state,
             strict=strict,
             weights_only=weights_only,
+            storage_options=storage_options,
         )
         self.barrier()
         if state is not None:
