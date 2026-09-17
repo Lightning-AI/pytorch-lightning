@@ -333,3 +333,190 @@ def test_distributed_sampler_wrapper_set_epoch():
     wrapper.set_epoch(5)  # Should not raise
     assert wrapper.epoch == 5
     assert sampler_non_callable.set_epoch == "not a method"  # Should remain unchanged
+
+
+def _copy_barrier_name_collective(gathered, value):
+    for output in gathered:
+        output.copy_(value)
+
+
+def test_validate_same_barrier_name_noops_without_a_multi_process_group():
+    from unittest.mock import patch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    with patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=False):
+        _validate_same_barrier_name("save")
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=1),
+    ):
+        _validate_same_barrier_name("save")
+
+
+def test_validate_same_barrier_name_uses_gloo_cpu_and_round_trips_utf8():
+    from unittest.mock import patch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    devices = []
+
+    def gather(gathered, value):
+        devices.append(value.device)
+        _copy_barrier_name_collective(gathered, value)
+
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=0),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", side_effect=gather),
+    ):
+        _validate_same_barrier_name("save-\u2713")
+
+    assert [device.type for device in devices] == ["cpu", "cpu"]
+
+
+def test_validate_same_barrier_name_uses_the_strategy_root_device():
+    from unittest.mock import patch
+
+    import torch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    root_device = torch.device("cpu")
+    devices = []
+
+    def gather(gathered, value):
+        devices.append(value.device)
+        _copy_barrier_name_collective(gathered, value)
+
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=0),
+        patch("torch.distributed.get_backend", return_value="nccl"),
+        patch("torch.distributed.all_gather", side_effect=gather),
+    ):
+        _validate_same_barrier_name("save", device=root_device)
+
+    assert devices == [root_device, root_device]
+
+
+def _assert_barrier_name_mismatch(local_name, names):
+    from unittest.mock import patch
+
+    import torch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    def gather(gathered, value):
+        if value.dtype == torch.long:
+            for output, gathered_name in zip(gathered, names):
+                encoded_name = (gathered_name or "").encode()
+                output.copy_(
+                    torch.tensor([gathered_name is not None, len(encoded_name)], dtype=torch.long, device=value.device)
+                )
+            return
+        for output, gathered_name in zip(gathered, names):
+            encoded_name = (gathered_name or "").encode()
+            output.zero_()
+            if encoded_name:
+                output[: len(encoded_name)] = torch.tensor(list(encoded_name), dtype=torch.uint8, device=value.device)
+
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=0),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", side_effect=gather),
+        pytest.raises(RuntimeError, match="Barrier name mismatch on rank 0") as exc_info,
+    ):
+        _validate_same_barrier_name(local_name)
+
+    expected_mapping = ", ".join(f"{rank}: {name!r}" for rank, name in enumerate(names))
+    assert f"names by rank are {{{expected_mapping}}}" in str(exc_info.value)
+
+
+def test_validate_same_barrier_name_rejects_mismatched_strings():
+    _assert_barrier_name_mismatch("save", ["save", "load"])
+
+
+def test_validate_same_barrier_name_rejects_empty_string_and_none():
+    _assert_barrier_name_mismatch("", ["", None])
+
+
+def test_validate_same_barrier_name_handles_unequal_utf8_lengths_and_padding():
+    _assert_barrier_name_mismatch("\u00e9", ["\u00e9", "\u65e5\u672c"])
+
+
+def test_validate_same_barrier_name_allows_exactly_maximum_size():
+    from unittest.mock import patch
+
+    from lightning.fabric.utilities.distributed import _BARRIER_NAME_MAX_BYTES, _validate_same_barrier_name
+
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=0),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", side_effect=_copy_barrier_name_collective),
+    ):
+        _validate_same_barrier_name("a" * _BARRIER_NAME_MAX_BYTES)
+
+
+def test_validate_same_barrier_name_rejects_oversize_after_metadata_exchange():
+    from unittest.mock import Mock, patch
+
+    from lightning.fabric.utilities.distributed import _BARRIER_NAME_MAX_BYTES, _validate_same_barrier_name
+
+    all_gather = Mock(side_effect=_copy_barrier_name_collective)
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=0),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", all_gather),
+        pytest.raises(RuntimeError, match="exceed"),
+    ):
+        _validate_same_barrier_name("a" * (_BARRIER_NAME_MAX_BYTES + 1))
+
+    assert all_gather.call_count == 1
+
+
+@pytest.mark.parametrize(("name", "match"), [(object(), "invalid type"), (chr(0xD800), "invalid UTF-8")])
+def test_validate_same_barrier_name_rejects_invalid_values_after_metadata_exchange(name, match):
+    from unittest.mock import Mock, patch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    all_gather = Mock(side_effect=_copy_barrier_name_collective)
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=1),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", all_gather),
+        pytest.raises(RuntimeError, match=match),
+    ):
+        _validate_same_barrier_name(name)  # type: ignore[arg-type]
+
+    assert all_gather.call_count == 1
+
+
+def test_validate_same_barrier_name_wraps_collective_failures():
+    from unittest.mock import patch
+
+    from lightning.fabric.utilities.distributed import _validate_same_barrier_name
+
+    with (
+        patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        patch("torch.distributed.get_world_size", return_value=2),
+        patch("torch.distributed.get_rank", return_value=1),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.all_gather", side_effect=RuntimeError("collective failed")),
+        pytest.raises(RuntimeError, match="barrier 'save' on rank 1") as exc_info,
+    ):
+        _validate_same_barrier_name("save")
+
+    assert isinstance(exc_info.value.__cause__, RuntimeError)

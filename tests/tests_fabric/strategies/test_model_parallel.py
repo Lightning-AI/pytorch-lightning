@@ -428,3 +428,20 @@ def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, t
     mp._load_checkpoint(path=ckpt_dir, state=state, strict=False)
     assert isinstance(state["user_meta"], _NonTensorMeta)
     assert state["user_meta"].value == 42
+
+
+def test_model_parallel_barrier_validates_name_before_entering_the_collective():
+    from unittest.mock import ANY, Mock, patch
+
+    from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
+
+    validator = Mock()
+    with (
+        patch("lightning.fabric.strategies.model_parallel._distributed_is_initialized", return_value=True),
+        patch("lightning.fabric.strategies.model_parallel._validate_same_barrier_name", validator),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.barrier"),
+    ):
+        ModelParallelStrategy.barrier(Mock(), name="test.model_parallel")
+
+    validator.assert_called_once_with("test.model_parallel", device=ANY)

@@ -685,3 +685,20 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_reader("memory:///w/ckpt")
+
+
+def test_fsdp_barrier_validates_name_before_entering_the_collective():
+    from unittest.mock import ANY, Mock, patch
+
+    from lightning.fabric.strategies.fsdp import FSDPStrategy
+
+    validator = Mock()
+    with (
+        patch("lightning.fabric.strategies.fsdp._distributed_is_initialized", return_value=True),
+        patch("lightning.fabric.strategies.fsdp._validate_same_barrier_name", validator),
+        patch("torch.distributed.get_backend", return_value="gloo"),
+        patch("torch.distributed.barrier"),
+    ):
+        FSDPStrategy.barrier(Mock(), name="test.fsdp")
+
+    validator.assert_called_once_with("test.fsdp", device=ANY)

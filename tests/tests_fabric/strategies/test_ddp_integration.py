@@ -130,3 +130,31 @@ def test_clip_gradients(clip_type, accelerator, precision):
     fabric = Fabric(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
     fabric.launch()
     _run_test_clip_gradients(fabric=fabric, clip_type=clip_type)
+
+
+def _barrier_name_mismatch_worker(rank, world_size, init_file):
+    from datetime import timedelta
+
+    import pytest
+    import torch
+    import torch.distributed
+
+    from lightning.fabric.strategies.ddp import DDPStrategy
+
+    torch.distributed.init_process_group(
+        "gloo", init_method=f"file://{init_file}", rank=rank, world_size=world_size, timeout=timedelta(seconds=10)
+    )
+    try:
+        strategy = DDPStrategy(parallel_devices=[torch.device("cpu")])
+        name = "test.ddp.rank_zero" if rank == 0 else "test.ddp.rank_one"
+        with pytest.raises(RuntimeError, match="Barrier name mismatch"):
+            strategy.barrier(name=name)
+        strategy.barrier(name="test.ddp.reuse")
+    finally:
+        torch.distributed.destroy_process_group()
+
+
+@RunIf(standalone=True)
+def test_ddp_barrier_name_mismatch_fails_on_every_rank_and_the_group_is_reusable(tmp_path):
+    init_file = tmp_path / "barrier-name-init"
+    torch.multiprocessing.spawn(_barrier_name_mismatch_worker, args=(2, str(init_file)), nprocs=2, join=True)
