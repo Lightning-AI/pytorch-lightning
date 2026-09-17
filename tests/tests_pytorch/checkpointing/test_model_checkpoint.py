@@ -2180,3 +2180,92 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     assert len(checkpoint_files) == expected_files, (
         f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
     )
+
+
+def test_model_checkpoint_min_delta_validation():
+    """Test that min_delta must be non-negative."""
+    with pytest.raises(MisconfigurationException, match="Invalid value for min_delta=-0.5"):
+        ModelCheckpoint(min_delta=-0.5)
+
+
+def test_model_checkpoint_min_delta_min_mode():
+    """Test min_delta logic with mode='min'."""
+    checkpoint = ModelCheckpoint(monitor="val_loss", mode="min", min_delta=0.1, save_top_k=1)
+    trainer = Trainer(logger=False)
+
+    checkpoint.best_k_models["model_1.ckpt"] = torch.tensor(1.0)
+    checkpoint.kth_best_model_path = "model_1.ckpt"
+
+    # Improvement of 0.05 <= min_delta (0.1) -> should NOT update
+    assert not checkpoint.check_monitor_top_k(trainer, torch.tensor(0.95))
+    # Exactly min_delta improvement (1.0 - 0.9 = 0.1) -> should NOT update
+    assert not checkpoint.check_monitor_top_k(trainer, torch.tensor(0.90))
+    # Improvement of 0.15 > min_delta (0.1) -> SHOULD update
+    assert checkpoint.check_monitor_top_k(trainer, torch.tensor(0.85))
+
+
+def test_model_checkpoint_min_delta_max_mode():
+    """Test min_delta logic with mode='max'."""
+    checkpoint = ModelCheckpoint(monitor="val_acc", mode="max", min_delta=0.1, save_top_k=1)
+    trainer = Trainer(logger=False)
+
+    checkpoint.best_k_models["model_1.ckpt"] = torch.tensor(0.5)
+    checkpoint.kth_best_model_path = "model_1.ckpt"
+
+    # Improvement of 0.05 <= min_delta (0.1) -> should NOT update
+    assert not checkpoint.check_monitor_top_k(trainer, torch.tensor(0.55))
+    # Exactly min_delta improvement (0.6 - 0.5 = 0.1) -> should NOT update
+    assert not checkpoint.check_monitor_top_k(trainer, torch.tensor(0.60))
+    # Improvement of 0.15 > min_delta (0.1) -> SHOULD update
+    assert checkpoint.check_monitor_top_k(trainer, torch.tensor(0.65))
+
+
+def test_model_checkpoint_min_delta_state_dict():
+    """Test state_dict and load_state_dict preserve min_delta."""
+    checkpoint = ModelCheckpoint(min_delta=0.25)
+    state = checkpoint.state_dict()
+    assert state["min_delta"] == 0.25
+
+    new_checkpoint = ModelCheckpoint()
+    new_checkpoint.load_state_dict(state)
+    assert new_checkpoint.min_delta == 0.25
+
+
+def test_model_checkpoint_min_delta_integration(tmp_path):
+    """Integration test verifying min_delta prevents checkpoint writes for sub-delta improvements."""
+
+    class DynamicLossModel(BoringModel):
+        losses = [1.0, 0.95, 0.80]
+
+        def validation_step(self, batch, batch_idx):
+            loss = torch.tensor(self.losses[self.current_epoch])
+            self.log("val_loss", loss)
+            return loss
+
+    model = DynamicLossModel()
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        filename="best-{epoch}-{val_loss:.2f}",
+        monitor="val_loss",
+        mode="min",
+        min_delta=0.1,
+        save_top_k=1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=3,
+        callbacks=[checkpoint],
+        logger=False,
+        enable_progress_bar=False,
+        limit_train_batches=1,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    # Epoch 0 (val_loss=1.00) saved.
+    # Epoch 1 (val_loss=0.95) delta=0.05 < 0.10, skipped!
+    # Epoch 2 (val_loss=0.80) delta=0.20 > 0.10, saved!
+    saved_files = [f.name for f in tmp_path.glob("*.ckpt")]
+    assert "best-epoch=2-val_loss=0.80.ckpt" in saved_files
+    assert "best-epoch=1-val_loss=0.95.ckpt" not in saved_files
+    assert checkpoint.best_model_score == torch.tensor(0.80)
