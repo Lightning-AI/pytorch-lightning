@@ -468,13 +468,11 @@ class _LinearLR(LRScheduler):
 
     @override
     def get_lr(self) -> list[float]:
-        curr_iter = self.last_epoch + 1
-        r = curr_iter / self.num_iter
-
-        if self.last_epoch > 0:
-            val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
-        else:
-            val = list(self.base_lrs)
+        # `num_iter` evenly spaced points covering both boundaries. Using `(last_epoch + 1) /
+        # num_iter` together with the `last_epoch == 0` special case skipped one rung and left the
+        # first interval twice as wide as the rest.
+        r = self.last_epoch / max(self.num_iter - 1, 1)
+        val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         self._lr = val
         return val
 
@@ -505,13 +503,10 @@ class _ExponentialLR(LRScheduler):
 
     @override
     def get_lr(self) -> list[float]:
-        curr_iter = self.last_epoch + 1
-        r = curr_iter / self.num_iter
-
-        if self.last_epoch > 0:
-            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
-        else:
-            val = list(self.base_lrs)
+        # Same ladder as `_LinearLR`, geometric instead of arithmetic: on the old fraction the
+        # first ratio was the square of every other one.
+        r = self.last_epoch / max(self.num_iter - 1, 1)
+        val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         self._lr = val
         return val
 
