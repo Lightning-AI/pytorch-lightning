@@ -242,6 +242,37 @@ def test_fabric_module_setattr():
         assert repr(fabric_module) == "test"
 
 
+def test_fabric_module_setattr_does_not_run_property_getter():
+    """Assigning through the wrapper must not read the attribute off the original module first."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self._guarded = None
+            self.reads = 0
+
+        @property
+        def guarded(self):
+            # A getter that refuses to hand out an uninitialized value is a common pattern
+            self.reads += 1
+            if self._guarded is None:
+                raise ValueError("not set yet")
+            return self._guarded
+
+        @guarded.setter
+        def guarded(self, value):
+            self._guarded = value
+
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(original_module, Mock(), original_module=original_module)
+
+    fabric_module.guarded = 5
+    assert original_module.guarded == 5
+    # the assignment itself must not have gone through the getter
+    assert original_module.reads == 1
+
+
 def test_fabric_module_state_dict_access():
     """Test that state_dict access passes through to the original module."""
 
