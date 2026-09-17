@@ -328,6 +328,47 @@ def test_min_epochs_min_steps_global_step(tmp_path, limit_train_batches, min_epo
     assert trainer.global_step == stop_step
 
 
+class _ScriptedScoreModel(BoringModel):
+    """Logs a predetermined ``val_loss`` per epoch."""
+
+    def __init__(self, scores):
+        super().__init__()
+        self.scores = scores
+
+    def on_validation_epoch_end(self):
+        self.log("val_loss", self.scores[min(self.current_epoch, len(self.scores) - 1)])
+
+
+def test_early_stopping_recovers_from_improvement_during_min_epochs(tmp_path):
+    """Patience is exhausted before `min_epochs`, but the metric improves again within the grace window.
+
+    Training must not stop the instant `min_epochs` is reached. See issue #19966.
+
+    """
+    #         epoch:  0     1     2     3    4    5    6    7
+    scores = [10.0, 11.0, 12.0, 1.0, 0.9, 0.8, 0.7, 0.6]
+    model = _ScriptedScoreModel(scores)
+    early_stopping = EarlyStopping(monitor="val_loss", mode="min", patience=2)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        min_epochs=6,
+        max_epochs=8,
+        callbacks=[early_stopping],
+        limit_train_batches=2,
+        limit_val_batches=2,
+        num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # the metric improved on epochs 3, 4 and 5, so the stale patience decision from epoch 2 must be revoked
+    assert early_stopping.wait_count == 0
+    assert trainer.current_epoch == 8
+
+
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
         EarlyStopping(monitor="foo", mode="unknown_option")
