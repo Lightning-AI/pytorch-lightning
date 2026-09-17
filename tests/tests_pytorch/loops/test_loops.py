@@ -1294,3 +1294,42 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_resume_sets_sampler_epoch_before_workers_draw_indices(tmp_path):
+    """Test that a resumed run restores the sampler epoch before the dataloader workers start drawing indices."""
+
+    class EpochRecordingSampler(torch.utils.data.RandomSampler):
+        def __init__(self, data_source):
+            super().__init__(data_source)
+            self.epoch = 0
+            self.iter_epochs = []
+
+        def set_epoch(self, epoch):
+            self.epoch = epoch
+
+        def __iter__(self):
+            # like `DistributedSampler`, the epoch is read when the first index is drawn
+            self.iter_epochs.append(self.epoch)
+            yield from super().__iter__()
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "limit_train_batches": 2,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    dataset = RandomDataset(32, 64)
+    trainer = Trainer(**trainer_kwargs, max_epochs=1)
+    trainer.fit(BoringModel(), DataLoader(dataset, sampler=EpochRecordingSampler(dataset), num_workers=1))
+    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+
+    # workers prefetch as soon as the iterator exists, so the epoch must already be restored at that point
+    sampler = EpochRecordingSampler(dataset)
+    trainer = Trainer(**trainer_kwargs, max_epochs=2)
+    dataloader = DataLoader(dataset, sampler=sampler, num_workers=1)
+    trainer.fit(BoringModel(), dataloader, ckpt_path=tmp_path / "checkpoint.ckpt")
+    assert sampler.iter_epochs == [1]
