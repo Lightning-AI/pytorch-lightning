@@ -38,13 +38,12 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 class ExperimentWriter(_FabricExperimentWriter):
     r"""Experiment writer for CSVLogger.
 
-    Currently, supports to log hyperparameters and metrics in YAML and CSV
-    format, respectively.
+    Logs metrics in CSV format and hyperparameters in YAML format.
 
     This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
     Args:
-        log_dir: Directory for the experiment logs
+        log_dir: Directory where experiment logs will be saved.
 
     """
 
@@ -55,22 +54,77 @@ class ExperimentWriter(_FabricExperimentWriter):
         self.hparams: dict[str, Any] = {}
 
     def log_hparams(self, params: dict[str, Any]) -> None:
-        """Record hparams and save into files."""
+        """Save hyperparameters to a YAML file in the log directory.
+
+        This method updates the internal hyperparameters dictionary and saves
+        all hyperparameters to ``hparams.yaml`` in the log directory.
+
+        Args:
+            params: Dictionary of hyperparameters to log.
+
+        """
         self.hparams.update(params)
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""Log to local file system in yaml and CSV format.
+    r"""Log to local file system in CSV and YAML format.
 
-    Logs are saved to ``os.path.join(save_dir, name, version)``.
+    **Metrics** (from ``self.log()`` calls) are logged to CSV format while **hyperparameters**
+    (from ``self.log_hyperparams()`` or ``self.save_hyperparameters()``) are logged to YAML format.
+
+    Logs are saved to ``os.path.join(save_dir, name, version)``. The CSV file is named ``metrics.csv``
+    and the YAML file is named ``hparams.yaml``.
+
+    This logger supports logging to remote filesystems via ``fsspec``. Make sure you have it installed.
 
     Example:
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.loggers import CSVLogger
-        >>> logger = CSVLogger("logs", name="my_exp_name")
-        >>> trainer = Trainer(logger=logger)
+
+    .. code-block:: python
+
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.loggers import CSVLogger
+
+        # Basic usage
+        logger = CSVLogger("logs", name="my_exp_name")
+        trainer = Trainer(logger=logger)
+
+    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
+
+    .. code-block:: python
+
+        import torch
+        from lightning.pytorch import LightningModule
+
+        class LitModel(LightningModule):
+            def __init__(self, learning_rate=0.001, batch_size=32):
+                super().__init__()
+                # This will log hyperparameters to hparams.yaml
+                self.save_hyperparameters()
+
+            def training_step(self, batch, batch_idx):
+                loss = self.compute_loss(batch)
+                # This will log metrics to metrics.csv
+                self.log("train_loss", loss)
+                return loss
+
+            def configure_optimizers(self):
+                return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+
+    You can also manually log hyperparameters:
+
+    .. code-block:: python
+
+        # Log additional hyperparameters manually
+        logger.log_hyperparams({"dropout": 0.2, "optimizer": "adam"})
+
+    **File Structure:**
+
+    The logger creates the following files in the log directory:
+
+    - ``metrics.csv``: Contains metrics from ``self.log()`` calls
+    - ``hparams.yaml``: Contains hyperparameters from ``self.save_hyperparameters()`` or ``self.log_hyperparams()``
 
     Args:
         save_dir: Save directory
@@ -140,6 +194,21 @@ class CSVLogger(Logger, FabricCSVLogger):
     @override
     @rank_zero_only
     def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
+        """Log hyperparameters to YAML format.
+
+        Hyperparameters are saved to ``hparams.yaml`` in the log directory.
+        This method is automatically called when using ``self.save_hyperparameters()``
+        in your LightningModule, but can also be called manually.
+
+        Args:
+            params: Dictionary or Namespace containing hyperparameters to log.
+
+        Example:
+            >>> logger = CSVLogger("logs")
+            >>> logger.log_hyperparams({"learning_rate": 0.001, "batch_size": 32})
+            >>> # This creates logs/lightning_logs/version_0/hparams.yaml
+
+        """
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
