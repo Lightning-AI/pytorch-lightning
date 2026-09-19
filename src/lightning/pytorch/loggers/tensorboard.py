@@ -26,7 +26,7 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
-from lightning.fabric.utilities.cloud_io import _is_dir
+from lightning.fabric.utilities.cloud_io import _is_dir, _path_join
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -119,7 +119,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         be saved in "save_dir/version"
 
         """
-        return os.path.join(super().root_dir, self.name)
+        return _path_join(super().root_dir, self.name)
 
     @property
     @override
@@ -132,9 +132,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
+        log_dir = _path_join(self.root_dir, version)
         if isinstance(self.sub_dir, str):
-            log_dir = os.path.join(log_dir, self.sub_dir)
+            log_dir = _path_join(log_dir, self.sub_dir)
         log_dir = os.path.expandvars(log_dir)
         log_dir = os.path.expanduser(log_dir)
         return log_dir
@@ -215,7 +215,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         dir_path = self.log_dir
 
         # prepare the file path
-        hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
+        hparams_file = _path_join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist and the log directory exists
         if _is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
