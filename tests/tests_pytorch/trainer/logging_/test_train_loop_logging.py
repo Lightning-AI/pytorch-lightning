@@ -24,6 +24,7 @@ import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
+from torch.multiprocessing import ProcessRaisedException
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
@@ -342,6 +343,110 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
+class InconsistentSyncDistKeysModel(BoringModel):
+    """Model that logs different metric keys on different ranks with sync_dist=True."""
+
+    def validation_step(self, batch, batch_idx):
+        self.log("val_loss", torch.tensor(0.0), sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("val_metric_a", torch.tensor(1.0), sync_dist=True)
+        else:
+            self.log("val_metric_b", torch.tensor(2.0), sync_dist=True)
+        return super().validation_step(batch, batch_idx)
+
+
+class InconsistentSyncDistKeysOnStepModel(BoringModel):
+    """Model that logs different metric keys on different ranks with on_step=True and sync_dist=True."""
+
+    def training_step(self, batch, batch_idx):
+        # make sure we exercise the on_step sync path
+        self.log("train_loss", torch.tensor(0.0), on_step=True, on_epoch=False, sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("train_metric_a", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+        else:
+            self.log("train_metric_b", torch.tensor(2.0), on_step=True, on_epoch=False, sync_dist=True)
+        return super().training_step(batch, batch_idx)
+
+
+class InconsistentSyncDistKeysOrderModel(BoringModel):
+    """Model that logs the same metric keys but in different order on different ranks."""
+
+    def validation_step(self, batch, batch_idx):
+        self.log("val_loss", torch.tensor(0.0), sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("val_metric_a", torch.tensor(1.0), sync_dist=True)
+            self.log("val_metric_b", torch.tensor(2.0), sync_dist=True)
+        else:
+            self.log("val_metric_b", torch.tensor(2.0), sync_dist=True)
+            self.log("val_metric_a", torch.tensor(1.0), sync_dist=True)
+        return super().validation_step(batch, batch_idx)
+
+
+class InconsistentSyncDistKeysOnEpochTrainingModel(BoringModel):
+    """Model that logs different metric keys on different ranks with on_epoch=True in training."""
+
+    def training_step(self, batch, batch_idx):
+        # Exercise the on_epoch sync path in training loop
+        self.log("train_loss", torch.tensor(0.0), on_step=False, on_epoch=True, sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("train_metric_a", torch.tensor(1.0), on_step=False, on_epoch=True, sync_dist=True)
+        else:
+            self.log("train_metric_b", torch.tensor(2.0), on_step=False, on_epoch=True, sync_dist=True)
+        return super().training_step(batch, batch_idx)
+
+
+class InconsistentSyncDistKeysOnStepValidationModel(BoringModel):
+    """Model that logs different metric keys on different ranks with on_step=True in validation."""
+
+    def validation_step(self, batch, batch_idx):
+        # Exercise the on_step sync path in validation loop
+        self.log("val_loss", torch.tensor(0.0), on_step=True, on_epoch=False, sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("val_metric_a", torch.tensor(1.0), on_step=True, on_epoch=False, sync_dist=True)
+        else:
+            self.log("val_metric_b", torch.tensor(2.0), on_step=True, on_epoch=False, sync_dist=True)
+        return super().validation_step(batch, batch_idx)
+
+
+class InconsistentSyncDistKeysBothStepAndEpochModel(BoringModel):
+    """Model that logs different metric keys with on_step=True, on_epoch=True."""
+
+    def training_step(self, batch, batch_idx):
+        # Exercise both on_step and on_epoch sync paths
+        self.log("train_loss", torch.tensor(0.0), on_step=True, on_epoch=True, sync_dist=True)
+        if self.trainer.global_rank == 0:
+            self.log("train_metric_a", torch.tensor(1.0), on_step=True, on_epoch=True, sync_dist=True)
+        else:
+            self.log("train_metric_b", torch.tensor(2.0), on_step=True, on_epoch=True, sync_dist=True)
+        return super().training_step(batch, batch_idx)
+
+
+class ConsistentSyncDistKeysModel(BoringModel):
+    """Model that logs consistent metric keys on all ranks with sync_dist=True."""
+
+    def training_step(self, batch, batch_idx):
+        # All ranks log the same keys
+        self.log(
+            "train_loss", torch.tensor(float(self.trainer.global_rank)), on_step=True, on_epoch=True, sync_dist=True
+        )
+        self.log(
+            "train_acc",
+            torch.tensor(0.9 + self.trainer.global_rank * 0.05),
+            on_step=True,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        # All ranks log the same keys
+        self.log("val_loss", torch.tensor(float(self.trainer.global_rank)), on_step=True, on_epoch=True, sync_dist=True)
+        self.log(
+            "val_acc", torch.tensor(0.85 + self.trainer.global_rank * 0.05), on_step=True, on_epoch=True, sync_dist=True
+        )
+        return super().validation_step(batch, batch_idx)
+
+
 @pytest.mark.parametrize(
     ("devices", "accelerator"),
     [
@@ -420,6 +525,202 @@ def test_logging_sync_dist_true_ddp(tmp_path):
 
     assert trainer.logged_metrics["foo"] == 2
     assert trainer.logged_metrics["bar"] == 2
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_raises(tmp_path):
+    """Test that logging different metric keys with sync_dist=True raises an error."""
+    model = InconsistentSyncDistKeysModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=0,
+        limit_val_batches=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.validate(model, dataloaders=model.val_dataloader(), verbose=False)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+    assert "validation_step.val_metric_a" in message
+    assert "validation_step.val_metric_b" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_on_step_raises(tmp_path):
+    """Test that logging different metric keys with on_step=True and sync_dist=True raises an error."""
+    model = InconsistentSyncDistKeysOnStepModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        log_every_n_steps=1,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.fit(model)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+    assert "training_step.train_metric_a" in message
+    assert "training_step.train_metric_b" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_order_raises(tmp_path):
+    """Test that logging same metric keys in different order with sync_dist=True raises an error."""
+    model = InconsistentSyncDistKeysOrderModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=0,
+        limit_val_batches=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.validate(model, dataloaders=model.val_dataloader(), verbose=False)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+    assert "validation_step.val_metric_a" in message
+    assert "validation_step.val_metric_b" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_on_epoch_training_raises(tmp_path):
+    """Test that logging different metric keys with on_epoch=True in training raises an error."""
+    model = InconsistentSyncDistKeysOnEpochTrainingModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.fit(model)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+    assert "training_step.train_metric_a" in message
+    assert "training_step.train_metric_b" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_on_step_validation_raises(tmp_path):
+    """Test that logging different metric keys with on_step=True in validation raises an error."""
+    model = InconsistentSyncDistKeysOnStepValidationModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=0,
+        limit_val_batches=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.validate(model, dataloaders=model.val_dataloader(), verbose=False)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+    assert "validation_step.val_metric_a" in message
+    assert "validation_step.val_metric_b" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_inconsistent_keys_both_step_and_epoch_raises(tmp_path):
+    """Test that logging different metric keys with on_step=True and on_epoch=True raises an error."""
+    model = InconsistentSyncDistKeysBothStepAndEpochModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        log_every_n_steps=1,
+    )
+
+    with pytest.raises(ProcessRaisedException) as excinfo:
+        trainer.fit(model)
+
+    message = str(excinfo.value)
+    assert "sync_dist=True" in message
+    assert "Detected a mismatch" in message
+
+
+@RunIf(skip_windows=True)
+def test_logging_sync_dist_consistent_keys_works(tmp_path):
+    """Test that logging consistent metric keys with sync_dist=True works correctly."""
+    model = ConsistentSyncDistKeysModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    # Should not raise - all ranks have consistent keys
+    trainer.fit(model)
+
+    # Verify metrics were logged (values are averaged across ranks)
+    assert "train_loss" in trainer.callback_metrics
+    assert "train_acc" in trainer.callback_metrics
+    assert "val_loss" in trainer.callback_metrics
+    assert "val_acc" in trainer.callback_metrics
 
 
 def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmp_path: str):

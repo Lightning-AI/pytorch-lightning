@@ -59,3 +59,45 @@ def test_uses_batches_that_stepped(mock_convert):
     )
     logger.save.assert_called_once_with()
     mock_convert.return_value.setdefault.assert_called_once_with("epoch", trainer.current_epoch)
+
+
+def test_sync_on_step_metrics_delegates_to_results():
+    """Test that sync_on_step_metrics delegates to results.sync_on_step_metrics."""
+    trainer = MagicMock(spec=Trainer)
+    trainer._results = MagicMock()
+    connector = _LoggerConnector(trainer)
+
+    connector.sync_on_step_metrics()
+
+    trainer._results.sync_on_step_metrics.assert_called_once()
+
+
+def test_sync_on_step_metrics_handles_none_results():
+    """Test that sync_on_step_metrics handles None results gracefully."""
+    trainer = MagicMock(spec=Trainer)
+    trainer._results = None
+    connector = _LoggerConnector(trainer)
+
+    # Should not raise when results is None
+    connector.sync_on_step_metrics()
+
+
+def test_sync_on_epoch_metrics_delegates_to_results():
+    """Test that sync_on_epoch_metrics delegates to results.sync_on_epoch_metrics."""
+    trainer = MagicMock(spec=Trainer)
+    trainer._results = MagicMock()
+    connector = _LoggerConnector(trainer)
+
+    connector.sync_on_epoch_metrics()
+
+    trainer._results.sync_on_epoch_metrics.assert_called_once()
+
+
+def test_sync_on_epoch_metrics_handles_none_results():
+    """Test that sync_on_epoch_metrics handles None results gracefully."""
+    trainer = MagicMock(spec=Trainer)
+    trainer._results = None
+    connector = _LoggerConnector(trainer)
+
+    # Should not raise when results is None
+    connector.sync_on_epoch_metrics()
