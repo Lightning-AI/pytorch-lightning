@@ -168,16 +168,19 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop.epoch_progress.current.processed = 3
     fit_loop.max_epochs = 3
     trainer.should_stop = True
+    fit_loop.epoch_loop.min_steps = 0
+    with caplog.at_level(level=logging.DEBUG, logger="lightning.pytorch.utilities.rank_zero"):
+        assert fit_loop.done
+    assert "should_stop` was set" in caplog.text
+    caplog.clear()
+
+    trainer.should_stop = False
     assert fit_loop.done
     assert "max_epochs=3` reached" in caplog.text
     caplog.clear()
     fit_loop.max_epochs = 5
 
-    fit_loop.epoch_loop.min_steps = 0
-    with caplog.at_level(level=logging.DEBUG, logger="lightning.pytorch.utilities.rank_zero"):
-        assert fit_loop.done
-    assert "should_stop` was set" in caplog.text
-
+    trainer.should_stop = True
     fit_loop.epoch_loop.min_steps = 100
     assert not fit_loop.done
 
@@ -185,7 +188,7 @@ def test_fit_loop_done_log_messages(caplog):
 @pytest.mark.parametrize(
     ("min_epochs", "min_steps", "current_epoch", "early_stop", "fit_loop_done", "raise_debug_msg"),
     [
-        (4, None, 100, True, True, False),
+        (4, None, 100, True, True, True),
         (4, None, 3, False, False, False),
         (4, 10, 3, False, False, False),
         (None, 10, 4, True, True, True),
