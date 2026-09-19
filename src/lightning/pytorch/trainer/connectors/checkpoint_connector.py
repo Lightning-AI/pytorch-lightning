@@ -344,10 +344,13 @@ class _CheckpointConnector:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
+                self._restore_fit_progress_for_evaluation(state_dict["fit_loop"])
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
             elif self.trainer.state.fn == TrainerFn.TESTING:
+                self._restore_fit_progress_for_evaluation(state_dict["fit_loop"])
                 self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
             elif self.trainer.state.fn == TrainerFn.PREDICTING:
+                self._restore_fit_progress_for_evaluation(state_dict["fit_loop"])
                 self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
         if self.trainer.state.fn != TrainerFn.FITTING:
@@ -363,6 +366,23 @@ class _CheckpointConnector:
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
             )
+
+    def _restore_fit_progress_for_evaluation(self, fit_loop_state_dict: dict[str, Any]) -> None:
+        """Restores the fit-loop counters that back ``trainer.current_epoch`` and ``trainer.global_step``.
+
+        Evaluation-only entry points should not load the full fit loop because that marks the loop as restarting.
+        However, loggers and hooks still read their epoch and step from the fit-loop progress.
+
+        """
+        fit_loop = self.trainer.fit_loop
+        fit_loop.epoch_progress.load_state_dict(fit_loop_state_dict["epoch_progress"])
+        fit_loop.epoch_loop.automatic_optimization.optim_progress.load_state_dict(
+            fit_loop_state_dict["epoch_loop.automatic_optimization.optim_progress"]
+        )
+        fit_loop.epoch_loop.manual_optimization.optim_step_progress.load_state_dict(
+            fit_loop_state_dict["epoch_loop.manual_optimization.optim_step_progress"]
+        )
+        fit_loop.epoch_loop.on_load_checkpoint(fit_loop_state_dict["epoch_loop.state_dict"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
