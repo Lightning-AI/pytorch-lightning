@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
 
 import torch
 import torch.backends.cudnn
@@ -78,7 +78,7 @@ class _MultiProcessingLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
-        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        # initialization. For more context, see https://github.com/Lightning-AI/pytorch-lightning/issues/7550
         return self._start_method == "fork"
 
     @override
@@ -167,7 +167,7 @@ class _GlobalStateSnapshot:
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
     cudnn_benchmark: bool
-    rng_states: Dict[str, Any]
+    rng_states: dict[str, Any]
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
@@ -195,17 +195,29 @@ def _check_bad_cuda_fork() -> None:
     Lightning users.
 
     """
-    if not torch.cuda.is_initialized():
-        return
+    # Use PyTorch's internal check for bad fork state, which is more accurate than just checking if CUDA
+    # is initialized. This allows passive CUDA initialization (e.g., from library imports or device queries)
+    # while still catching actual problematic cases where CUDA context was created before forking.
+    _is_in_bad_fork = getattr(torch.cuda, "_is_in_bad_fork", None)
+    if _is_in_bad_fork is not None and callable(_is_in_bad_fork) and _is_in_bad_fork():
+        message = (
+            "Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, "
+            "you must use the 'spawn' start method or avoid CUDA initialization in the main process."
+        )
+        if _IS_INTERACTIVE:
+            message += " You will have to restart the Python kernel."
+        raise RuntimeError(message)
 
-    message = (
-        "Lightning can't create new processes if CUDA is already initialized. Did you manually call"
-        " `torch.cuda.*` functions, have moved the model to the device, or allocated memory on the GPU any"
-        " other way? Please remove any such calls, or change the selected strategy."
-    )
-    if _IS_INTERACTIVE:
-        message += " You will have to restart the Python kernel."
-    raise RuntimeError(message)
+    # Fallback to the old check if _is_in_bad_fork is not available (older PyTorch versions)
+    if _is_in_bad_fork is None and torch.cuda.is_initialized():
+        message = (
+            "Lightning can't create new processes if CUDA is already initialized. Did you manually call"
+            " `torch.cuda.*` functions, have moved the model to the device, or allocated memory on the GPU any"
+            " other way? Please remove any such calls, or change the selected strategy."
+        )
+        if _IS_INTERACTIVE:
+            message += " You will have to restart the Python kernel."
+        raise RuntimeError(message)
 
 
 def _disable_module_memory_sharing(data: Any) -> Any:

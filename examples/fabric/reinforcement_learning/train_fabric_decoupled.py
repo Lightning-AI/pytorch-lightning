@@ -25,16 +25,17 @@ from datetime import datetime
 
 import gymnasium as gym
 import torch
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
-from lightning.fabric.plugins.collectives import TorchCollective
-from lightning.fabric.plugins.collectives.collective import CollectibleGroup
-from lightning.fabric.strategies import DDPStrategy
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch.distributed.algorithms.join import Join
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torchmetrics import MeanMetric
+
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.fabric.plugins.collectives import TorchCollective
+from lightning.fabric.plugins.collectives.collective import CollectibleGroup
+from lightning.fabric.strategies import DDPStrategy
 
 
 @torch.no_grad()
@@ -55,7 +56,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     # Log hyperparameters
     logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup
@@ -135,7 +136,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
-            rewards[step] = torch.tensor(reward, device=device).view(-1)
+            rewards[step] = torch.tensor(reward, device=device, dtype=torch.float32).view(-1)
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
@@ -273,7 +274,7 @@ def trainer(
         if group_rank == 0:
             metrics = {}
 
-        # Lerning rate annealing
+        # Learning rate annealing
         if args.anneal_lr:
             linear_annealing(optimizer, update, num_updates, args.learning_rate)
         if group_rank == 0:

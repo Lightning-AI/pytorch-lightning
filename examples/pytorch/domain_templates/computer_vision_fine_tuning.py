@@ -46,11 +46,6 @@ from typing import Union
 
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
-from lightning.pytorch.callbacks.finetuning import BaseFinetuning
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.utilities import rank_zero_info
-from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
@@ -59,6 +54,12 @@ from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
+
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
+from lightning.pytorch.callbacks.finetuning import BaseFinetuning
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.utilities import rank_zero_info
+from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"

@@ -15,4 +15,4 @@
      - `PR17381`_
 
 
-.. _pr17381: https://github.com/Lightning-AI/lightning/pull/17381
+.. _pr17381: https://github.com/Lightning-AI/pytorch-lightning/pull/17381

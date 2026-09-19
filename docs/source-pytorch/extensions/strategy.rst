@@ -78,12 +78,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - deepspeed
      - :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :doc:`Learn more. <../advanced/model_parallel/deepspeed>`
-   * - hpu_parallel
-     - ``HPUParallelStrategy``
-     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../integrations/hpu/index>`
-   * - hpu_single
-     - ``SingleHPUStrategy``
-     - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`

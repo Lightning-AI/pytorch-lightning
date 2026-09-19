@@ -14,10 +14,10 @@
 from unittest import mock
 
 import pytest
+
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
-
 from tests_fabric.helpers.runif import RunIf
 
 

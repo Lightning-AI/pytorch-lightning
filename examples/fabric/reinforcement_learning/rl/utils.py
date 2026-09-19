@@ -1,7 +1,6 @@
 import argparse
 import math
 import os
-from distutils.util import strtobool
 from typing import TYPE_CHECKING, Optional, Union
 
 import gymnasium as gym
@@ -10,6 +9,23 @@ from torch.utils.tensorboard import SummaryWriter
 
 if TYPE_CHECKING:
     from rl.agent import PPOAgent, PPOLightningAgent
+
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values are 'n', 'no', 'f', 'false', 'off', and '0'.
+    Raises ValueError if 'val' is anything else.
+
+    Note: taken from distutils after its deprecation.
+
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    if val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    raise ValueError(f"invalid truth value {val!r}")
 
 
 def parse_args():

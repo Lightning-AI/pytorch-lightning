@@ -22,11 +22,3 @@ In this folder, we have 2 simple examples that showcase the power of the Lightni
 
 - [Image Classifier](pytorch/basics/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
 - [Autoencoder](pytorch/basics/autoencoder.py)
-
-______________________________________________________________________
-
-## Domain Examples
-
-This folder contains older examples. You should instead use the examples
-in [Lightning Bolts](https://lightning.ai/docs/pytorch/stable/ecosystem/bolts.html)
-for advanced use cases.

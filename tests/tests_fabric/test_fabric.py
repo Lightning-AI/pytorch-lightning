@@ -11,17 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
+import warnings
 from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
-import lightning.fabric
 import pytest
 import torch
-import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
+import lightning.fabric
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -37,10 +42,6 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -289,7 +290,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 def test_setup_optimizer_on_meta_device():
     """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
@@ -623,7 +624,7 @@ def test_backward():
         ("auto", "32-true", False),
         ("auto", "bf16-true", False),
         ("auto", "bf16-mixed", True),
-        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
@@ -735,6 +736,22 @@ def test_autocast():
     fabric._precision.forward_context().__exit__.assert_called()
 
 
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_autocast_does_not_use_cuda_on_mps(precision):
+    """Ensure Fabric.autocast on MPS does not fall back to CUDA when using (bf)16-mixed precision."""
+    fabric = Fabric(accelerator="mps", precision=precision)
+    fabric.launch()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with fabric.autocast():
+            pass
+
+    for warning in w:
+        assert "device_type of 'cuda'" not in str(warning.message)
+
+
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
     fabric = Fabric(devices=1)
@@ -746,9 +763,10 @@ def test_no_backward_sync():
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(
-        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
-    ), fabric.no_backward_sync(model):
+    with (
+        pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"),
+        fabric.no_backward_sync(model),
+    ):
         pass
 
     # for single-device strategies, it becomes a no-op without warning
@@ -855,7 +873,6 @@ def test_module_sharding_context():
 
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
-    import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
@@ -866,18 +883,8 @@ def test_init_module_context(monkeypatch):
     strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
-        with fabric.init_module():
-            pass
-    strategy.module_init_context.assert_called_once()
-
 
 def test_init_tensor_context(monkeypatch):
-    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-    import lightning.fabric
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
@@ -886,13 +893,6 @@ def test_init_tensor_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once()
     strategy.tensor_init_context.reset_mock()
-
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
-        with fabric.init_tensor():
-            pass
-    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():
@@ -1110,7 +1110,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state, strict):
+    def mocked_load_checkpoint(path, state, strict, **kwargs):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})
@@ -1145,11 +1145,11 @@ def test_load_raw():
     wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
 
     fabric.load_raw(path="path0", obj=model)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True, weights_only=None)
     fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False, weights_only=None)
     fabric.load_raw(path="path2", obj=wrapped_optimizer)
-    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True, weights_only=None)
 
 
 def test_barrier():
@@ -1294,3 +1294,97 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+def test_callback_kwargs_filtering():
+    """Test that callbacks receive only the kwargs they can handle based on their signature."""
+
+    class CallbackWithLimitedKwargs:
+        def on_train_epoch_end(self, epoch: int):
+            self.epoch = epoch
+
+    class CallbackWithVarKeywords:
+        def on_train_epoch_end(self, epoch: int, **kwargs):
+            self.epoch = epoch
+            self.kwargs = kwargs
+
+    class CallbackWithNoParams:
+        def on_train_epoch_end(self):
+            self.called = True
+
+    callback1 = CallbackWithLimitedKwargs()
+    callback2 = CallbackWithVarKeywords()
+    callback3 = CallbackWithNoParams()
+    fabric = Fabric(callbacks=[callback1, callback2, callback3])
+    fabric.call("on_train_epoch_end", epoch=5, loss=0.1, metrics={"acc": 0.9})
+
+    assert callback1.epoch == 5
+    assert not hasattr(callback1, "loss")
+    assert callback2.epoch == 5
+    assert callback2.kwargs == {"loss": 0.1, "metrics": {"acc": 0.9}}
+    assert callback3.called is True
+
+
+def test_callback_kwargs_filtering_signature_inspection_failure():
+    """Test behavior when signature inspection fails - should fallback to passing all kwargs."""
+    callback = Mock()
+    fabric = Fabric(callbacks=[callback])
+    original_signature = inspect.signature
+
+    def mock_signature(obj):
+        if hasattr(obj, "_mock_name") or hasattr(obj, "_mock_new_name"):
+            raise ValueError("Cannot inspect mock signature")
+        return original_signature(obj)
+
+    # Temporarily replace signature function in fabric module
+    import lightning.fabric.fabric
+
+    lightning.fabric.fabric.inspect.signature = mock_signature
+
+    try:
+        # Should still work by passing all kwargs when signature inspection fails
+        fabric.call("on_test_hook", arg1="value1", arg2="value2")
+        callback.on_test_hook.assert_called_with(arg1="value1", arg2="value2")
+    finally:
+        lightning.fabric.fabric.inspect.signature = original_signature
+
+
+def test_fabric_load_accepts_weights_only_false(tmp_path):
+    import torch
+
+    from lightning.fabric import Fabric
+
+    fabric = Fabric(accelerator="cpu")
+
+    ckpt = {"foo": 123}
+    path = tmp_path / "ckpt.pt"
+    torch.save(ckpt, path)
+
+    remainder = fabric.load(path, weights_only=False)
+
+    assert remainder["foo"] == 123
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock(return_value={})
+
+    fabric.load("path.pt", weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=None, strict=True, weights_only=weights_only
+    )
+
+
+@pytest.mark.parametrize("weights_only", [None, False, True])
+def test_fabric_load_raw_forwards_weights_only_to_strategy(weights_only):
+    """Test that `Fabric.load_raw()` correctly forwards the weights_only argument to the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    fabric.load_raw("path.pt", model, weights_only=weights_only)
+    fabric.strategy.load_checkpoint.assert_called_with(
+        path="path.pt", state=model, strict=True, weights_only=weights_only
+    )

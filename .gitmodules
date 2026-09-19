@@ -1,4 +1,4 @@
 [submodule "_notebooks"]
 	path = _notebooks
-	url = https://github.com/Lightning-AI/lightning-tutorials.git
+	url = https://github.com/Lightning-AI/tutorials.git
 	branch = publication

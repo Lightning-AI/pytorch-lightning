@@ -52,7 +52,7 @@ Example:
     model = WeightSharingModule()
     trainer = Trainer(max_epochs=1, accelerator="tpu")
 
-See `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
+See `XLA Documentation <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md#xla-tensor-quirks>`_
 
 ----
 
@@ -61,4 +61,4 @@ XLA
 XLA is the library that interfaces PyTorch with the TPUs.
 For more information check out `XLA <https://github.com/pytorch/xla>`_.
 
-Guide for `troubleshooting XLA <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md>`_
+Guide for `troubleshooting XLA <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md>`_

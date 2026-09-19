@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -41,7 +41,7 @@ class XLACheckpointIO(TorchCheckpointIO):
         super().__init__(*args, **kwargs)
 
     @override
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

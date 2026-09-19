@@ -108,10 +108,15 @@ class LightningEnvironment(ClusterEnvironment):
 def find_free_network_port() -> int:
     """Finds a free port on localhost.
 
+    If the environment variable `STANDALONE_PORT` is set, its value is used as the port number.
+
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
 
     """
+    if "STANDALONE_PORT" in os.environ:
+        _port = os.environ["STANDALONE_PORT"]
+        return int(_port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
     port = s.getsockname()[1]

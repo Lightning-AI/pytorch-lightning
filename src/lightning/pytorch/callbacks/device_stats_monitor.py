@@ -19,7 +19,7 @@ Monitors and logs device stats during training.
 
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from typing_extensions import override
 
@@ -27,6 +27,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
@@ -34,10 +35,77 @@ class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
     ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
+    **Logged Metrics**
+
+    Logs device statistics with keys prefixed as ``DeviceStatsMonitor.{hook_name}/{base_metric_name}``.
+    The actual metrics depend on the active accelerator and the ``cpu_stats`` flag. Below are an overview of the
+    possible available metrics and their meaning.
+
+    - CPU (via ``psutil``)
+
+        - ``cpu_percent`` — System-wide CPU utilization (%)
+        - ``cpu_vm_percent`` — System-wide virtual memory (RAM) utilization (%)
+        - ``cpu_swap_percent`` — System-wide swap memory utilization (%)
+
+    - CUDA GPU (via ``torch.cuda.memory_stats``)
+
+        Logs memory statistics from PyTorch caching allocator (all in bytes).
+        GPU compute utilization is not logged by default.
+
+        - General Memory Usage:
+
+            - ``allocated_bytes.all.current`` — Current allocated GPU memory
+            - ``allocated_bytes.all.peak`` — Peak allocated GPU memory
+            - ``reserved_bytes.all.current`` — Current reserved GPU memory (allocated + cached)
+            - ``reserved_bytes.all.peak`` — Peak reserved GPU memory
+            - ``active_bytes.all.current`` — Current GPU memory in active use
+            - ``active_bytes.all.peak`` — Peak GPU memory in active use
+            - ``inactive_split_bytes.all.current`` — Memory in inactive, splittable blocks
+
+        - Allocator Pool Statistics* (for ``small_pool`` and ``large_pool``):
+
+            - ``allocated_bytes.{pool_type}.current`` / ``allocated_bytes.{pool_type}.peak``
+            - ``reserved_bytes.{pool_type}.current`` / ``reserved_bytes.{pool_type}.peak``
+            - ``active_bytes.{pool_type}.current`` / ``active_bytes.{pool_type}.peak``
+
+        - Allocator Events:
+
+            - ``num_ooms`` — Cumulative out-of-memory errors
+            - ``num_alloc_retries`` — Number of allocation retries
+            - ``num_device_alloc`` — Number of device allocations
+            - ``num_device_free`` — Number of device deallocations
+
+        For a full list of CUDA memory stats, see the
+        `PyTorch documentation <https://docs.pytorch.org/docs/stable//generated/torch.cuda.device_memory_used.html>`_.
+
+    - TPU (via ``torch_xla``)
+
+        - *Memory Metrics* (per device, e.g., ``xla:0``):
+
+            - ``memory.free.xla:0`` — Free HBM memory (MB)
+            - ``memory.used.xla:0`` — Used HBM memory (MB)
+            - ``memory.percent.xla:0`` — Percentage of HBM memory used (%)
+
+        - *XLA Operation Counters*:
+
+            - ``CachedCompile.xla``
+            - ``CreateXlaTensor.xla``
+            - ``DeviceDataCacheMiss.xla``
+            - ``UncachedCompile.xla``
+            - ``xla::add.xla``, ``xla::addmm.xla``, etc.
+
+        These counters can be retrieved using: ``torch_xla.debug.metrics.counter_names()``
+
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
             If ``False``, it will not log CPU stats regardless of the accelerator.
+        filter_keys: if ``None``, all stats returned by the accelerator are logged.
+            If a ``set`` of strings is provided, only the keys present in the set will be logged.
+            Keys are matched against the base metric names before prefixing (e.g.,
+            ``"cpu_percent"`` not ``"DeviceStatsMonitor.on_train_batch_end/cpu_percent"``).
+            A ``rank_zero_warn`` is emitted for any key in ``filter_keys`` not found in the
+            collected stats, which helps catch typos early.
 
     Raises:
         MisconfigurationException:
@@ -49,13 +117,29 @@ class DeviceStatsMonitor(Callback):
 
         from lightning import Trainer
         from lightning.pytorch.callbacks import DeviceStatsMonitor
+
+        # log all stats (default behaviour)
         device_stats = DeviceStatsMonitor()
+        trainer = Trainer(callbacks=[device_stats])
+
+        # log only peak and current allocated GPU memory
+        device_stats = DeviceStatsMonitor(
+            filter_keys={"allocated_bytes.all.current", "allocated_bytes.all.peak"}
+        )
+        trainer = Trainer(callbacks=[device_stats])
+
+        # log CPU stats alongside a subset of GPU memory stats
+        device_stats = DeviceStatsMonitor(
+            cpu_stats=True,
+            filter_keys={"cpu_percent", "allocated_bytes.all.current"},
+        )
         trainer = Trainer(callbacks=[device_stats])
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
+    def __init__(self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None) -> None:
         self._cpu_stats = cpu_stats
+        self._filter_keys = filter_keys
 
     @override
     def setup(
@@ -77,6 +161,20 @@ class DeviceStatsMonitor(Callback):
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
+        if self._filter_keys is not None:
+            device_stats = trainer.accelerator.get_device_stats(device)
+            if self._cpu_stats and device.type != "cpu":
+                from lightning.pytorch.accelerators.cpu import get_cpu_stats
+
+                device_stats.update(get_cpu_stats())
+
+            unrecognized = self._filter_keys - device_stats.keys()
+            if unrecognized:
+                rank_zero_warn(
+                    f"`DeviceStatsMonitor` filter_keys contains keys not found in device stats and will be ignored:"
+                    f" {unrecognized}"
+                )
+
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -93,6 +191,9 @@ class DeviceStatsMonitor(Callback):
             from lightning.pytorch.accelerators.cpu import get_cpu_stats
 
             device_stats.update(get_cpu_stats())
+
+        if self._filter_keys is not None:
+            device_stats = {k: v for k, v in device_stats.items() if k in self._filter_keys}
 
         for logger in trainer.loggers:
             separator = logger.group_separator
@@ -158,5 +259,5 @@ class DeviceStatsMonitor(Callback):
         self._get_and_log_device_stats(trainer, "on_test_batch_end")
 
 
-def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+def _prefix_metric_keys(metrics_dict: dict[str, float], prefix: str, separator: str) -> dict[str, float]:
     return {prefix + separator + k: v for k, v in metrics_dict.items()}

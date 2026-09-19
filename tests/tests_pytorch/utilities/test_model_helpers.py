@@ -16,10 +16,11 @@ import logging
 
 import pytest
 import torch.nn
+from lightning_utilities import module_available
+
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.model_helpers import _ModuleMode, _restricted_classmethod, is_overridden
-from lightning_utilities import module_available
 
 
 def test_is_overridden():
@@ -41,10 +42,11 @@ def test_is_overridden():
     reason="This test is ONLY relevant for the UNIFIED package",
 )
 def test_mixed_imports_unified():
-    from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
-    from lightning.pytorch.utilities.model_helpers import is_overridden as new_is_overridden
     from pytorch_lightning.callbacks import EarlyStopping as OldEarlyStopping
     from pytorch_lightning.demos.boring_classes import BoringModel as OldBoringModel
+
+    from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
+    from lightning.pytorch.utilities.model_helpers import is_overridden as new_is_overridden
 
     model = OldBoringModel()
     with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(BoringModel\) to a `lightning.pytorch`"):

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
-from typing import Type
 
 from typing_extensions import override
 
@@ -68,6 +67,10 @@ class _ReadyCompletedTracker(_BaseProgress):
         """
         self.ready = self.completed
 
+    def increment_by(self, n: int) -> None:
+        self.ready += n
+        self.completed += n
+
 
 @dataclass
 class _StartedTracker(_ReadyCompletedTracker):
@@ -93,6 +96,11 @@ class _StartedTracker(_ReadyCompletedTracker):
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.started = self.completed
+
+    @override
+    def increment_by(self, n: int) -> None:
+        super().increment_by(n)
+        self.started += n
 
 
 @dataclass
@@ -120,6 +128,11 @@ class _ProcessedTracker(_StartedTracker):
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.processed = self.completed
+
+    @override
+    def increment_by(self, n: int) -> None:
+        super().increment_by(n)
+        self.processed += n
 
 
 @dataclass
@@ -160,7 +173,7 @@ class _Progress(_BaseProgress):
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, tracker_cls: Type[_ReadyCompletedTracker], **kwargs: int) -> "_Progress":
+    def from_defaults(cls, tracker_cls: type[_ReadyCompletedTracker], **kwargs: int) -> "_Progress":
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
@@ -174,6 +187,10 @@ class _Progress(_BaseProgress):
 
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
+
+    def increment_by(self, n: int) -> None:
+        self.total.increment_by(n)
+        self.current.increment_by(n)
 
     @override
     def load_state_dict(self, state_dict: dict) -> None:
@@ -205,6 +222,10 @@ class _BatchProgress(_Progress):
     def reset_on_run(self) -> None:
         super().reset_on_run()
         self.is_last_batch = False
+
+    def increment_by(self, n: int, is_last_batch: bool = False) -> None:
+        super().increment_by(n)
+        self.is_last_batch = is_last_batch
 
     @override
     def load_state_dict(self, state_dict: dict) -> None:

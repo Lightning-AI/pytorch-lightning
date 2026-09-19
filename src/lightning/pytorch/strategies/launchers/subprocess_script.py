@@ -14,7 +14,7 @@
 import logging
 import os
 import subprocess
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -77,7 +77,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
+        self.procs: list[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
     @override
@@ -107,7 +107,7 @@ class _SubprocessScriptLauncher(_Launcher):
     @override
     def kill(self, signum: _SIGNUM) -> None:
         for proc in self.procs:
-            log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+            log.debug(f"Process {os.getpid()} is terminating {proc.pid} with {signum}")
             # this skips subprocesses already terminated
             proc.send_signal(signum)
 

@@ -18,11 +18,11 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import Tensor
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import MixedPrecision
-from torch import Tensor
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -165,8 +165,7 @@ def test_amp_skip_optimizer(tmp_path):
 
         def forward(self, x: Tensor):
             x = self.layer1(x)
-            x = self.layer2(x)
-            return x
+            return self.layer2(x)
 
         def training_step(self, batch, batch_idx):
             _, opt2 = self.optimizers()

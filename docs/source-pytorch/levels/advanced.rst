@@ -46,15 +46,7 @@ Configure all aspects of Lightning for advanced usecases.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 18: Explore HPUs
-   :description: Explore Habana Gaudi Processing Unit (HPU) for model scaling.
-   :col_css: col-md-6
-   :button_link: advanced_level_19.html
-   :height: 150
-   :tag: advanced
-
-.. displayitem::
-   :header: Level 19: Master TPUs
+   :header: Level 18: Master TPUs
    :description: Master TPUs and run on cloud TPUs.
    :col_css: col-md-6
    :button_link: advanced_level_20.html
@@ -62,7 +54,7 @@ Configure all aspects of Lightning for advanced usecases.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 20: Train models with billions of parameters
+   :header: Level 19: Train models with billions of parameters
    :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-6
    :button_link: advanced_level_21.html

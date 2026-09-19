@@ -19,7 +19,8 @@ Freeze and unfreeze models for finetuning purposes.
 """
 
 import logging
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
+from collections.abc import Generator, Iterable
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.nn import Module, ModuleDict
@@ -30,7 +31,12 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+
+if not _TORCHVISION_AVAILABLE:
+    __doctest_skip__ = ["BackboneFinetuning"]
+
 
 log = logging.getLogger(__name__)
 
@@ -85,17 +91,17 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self) -> None:
-        self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
+        self._internal_optimizer_metadata: dict[int, list[dict[str, Any]]] = {}
         self._restarting = False
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self._restarting = True
         if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
@@ -107,16 +113,18 @@ class BaseFinetuning(Callback):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
-            named_parameters = dict(pl_module.named_parameters())
-            for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self._apply_mapping_to_param_groups(
-                    self._internal_optimizer_metadata[opt_idx], named_parameters
-                )
-                optimizer.param_groups = param_groups
+            if self._internal_optimizer_metadata:
+                named_parameters = dict(pl_module.named_parameters())
+                for opt_idx, optimizer in enumerate(trainer.optimizers):
+                    if opt_idx in self._internal_optimizer_metadata:
+                        param_groups = self._apply_mapping_to_param_groups(
+                            self._internal_optimizer_metadata[opt_idx], named_parameters
+                        )
+                        optimizer.param_groups = param_groups
             self._restarting = False
 
     @staticmethod
-    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
+    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> list[Module]:
         """This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
         with no children) and parent modules that have parameters directly themselves.
 
@@ -132,7 +140,7 @@ class BaseFinetuning(Callback):
 
         if isinstance(modules, Iterable):
             _flatten_modules = []
-            for m in modules:  # type: ignore[union-attr]
+            for m in modules:
                 _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
             _modules = iter(_flatten_modules)
@@ -215,7 +223,7 @@ class BaseFinetuning(Callback):
                 BaseFinetuning.freeze_module(mod)
 
     @staticmethod
-    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
+    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> list:
         """This function is used to exclude any parameter which already exists in this optimizer.
 
         Args:
@@ -285,7 +293,7 @@ class BaseFinetuning(Callback):
             )
 
     @staticmethod
-    def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+    def _apply_mapping_to_param_groups(param_groups: list[dict[str, Any]], mapping: dict) -> list[dict[str, Any]]:
         output = []
         for g in param_groups:
             # skip params to save memory
@@ -299,7 +307,7 @@ class BaseFinetuning(Callback):
         pl_module: "pl.LightningModule",
         opt_idx: int,
         num_param_groups: int,
-        current_param_groups: List[Dict[str, Any]],
+        current_param_groups: list[dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
         if opt_idx not in self._internal_optimizer_metadata:
@@ -353,10 +361,46 @@ class BackboneFinetuning(BaseFinetuning):
 
     Example::
 
-        >>> from lightning.pytorch import Trainer
+        >>> import torch
+        >>> import torch.nn as nn
+        >>> from lightning.pytorch import LightningModule, Trainer
         >>> from lightning.pytorch.callbacks import BackboneFinetuning
+        >>> import torchvision.models as models
+        >>>
+        >>> class TransferLearningModel(LightningModule):
+        ...     def __init__(self, num_classes=10):
+        ...         super().__init__()
+        ...         # REQUIRED: Your model must have a 'backbone' attribute
+        ...         self.backbone = models.resnet50(weights=None)
+        ...         # Remove the final classification layer from backbone
+        ...         self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
+        ...
+        ...         # Add your task-specific head
+        ...         self.head = nn.Sequential(
+        ...             nn.Flatten(),
+        ...             nn.Linear(2048, 512),
+        ...             nn.ReLU(),
+        ...             nn.Linear(512, num_classes)
+        ...         )
+        ...
+        ...     def forward(self, x):
+        ...         # Extract features with backbone
+        ...         features = self.backbone(x)
+        ...         # Classify with head
+        ...         return self.head(features)
+        ...
+        ...     def configure_optimizers(self):
+        ...         # Initially only optimize the head - backbone will be added by callback
+        ...         return torch.optim.Adam(self.head.parameters(), lr=1e-3)
+        ...
+        >>> # Setup the callback
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
+        >>> backbone_finetuning = BackboneFinetuning(
+        ...     unfreeze_backbone_at_epoch=10,  # Start unfreezing at epoch 10
+        ...     lambda_func=multiplicative,     # Gradually increase backbone LR
+        ...     backbone_initial_ratio_lr=0.1,  # Start backbone at 10% of head LR
+        ... )
+        >>> model = TransferLearningModel()
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
 
     """
@@ -387,14 +431,14 @@ class BackboneFinetuning(BaseFinetuning):
         self.previous_backbone_lr: Optional[float] = None
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.previous_backbone_lr = state_dict["previous_backbone_lr"]
         super().load_state_dict(state_dict)
 

@@ -14,7 +14,9 @@
 """LightningDataModule for loading DataLoaders with ease."""
 
 import inspect
-from typing import IO, Any, Dict, Iterable, Optional, Union, cast
+import os
+from collections.abc import Iterable, Sized
+from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -78,10 +80,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
 
-    def __init__(self) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self.trainer: Optional[pl.Trainer] = None
 
     @classmethod
     def from_datasets(
@@ -147,7 +149,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate and save datamodule state.
 
         Returns:
@@ -156,7 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
 
         Args:
@@ -175,6 +177,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
+        weights_only: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint it stores the
@@ -204,6 +207,11 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 If your datamodule's ``hparams`` argument is :class:`~argparse.Namespace`
                 and ``.yaml`` file has hierarchical structure, you need to refactor your datamodule to treat
                 ``hparams`` as :class:`~dict`.
+            weights_only: If ``True``, restricts loading to ``state_dicts`` of plain ``torch.Tensor`` and other
+                primitive types. If loading a checkpoint from a trusted source that contains an ``nn.Module``, use
+                ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
+                ``weights_only=True``. For more information, please refer to the
+                `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
             \**kwargs: Any extra keyword args needed to init the datamodule. Can also be used to override saved
                 hyperparameter values.
 
@@ -235,11 +243,84 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
         loaded = _load_from_checkpoint(
-            cls,  # type: ignore[arg-type]
+            cls,
             checkpoint_path,
             map_location=map_location,
             hparams_file=hparams_file,
             strict=None,
+            weights_only=weights_only,
             **kwargs,
         )
         return cast(Self, loaded)
+
+    def __str__(self) -> str:
+        """Return a string representation of the datasets that are set up.
+
+        Returns:
+            A string representation of the datasets that are setup.
+
+        """
+
+        class dataset_info:
+            def __init__(self, available: bool, length: str) -> None:
+                self.available = available
+                self.length = length
+
+        def retrieve_dataset_info(loader: DataLoader) -> dataset_info:
+            """Helper function to compute dataset information."""
+            dataset = loader.dataset
+            size: str = str(len(dataset)) if isinstance(dataset, Sized) else "NA"
+
+            return dataset_info(True, size)
+
+        def loader_info(
+            loader: Union[DataLoader, Iterable[DataLoader]],
+        ) -> Union[dataset_info, Iterable[dataset_info]]:
+            """Helper function to compute dataset information."""
+            return apply_to_collection(loader, DataLoader, retrieve_dataset_info)
+
+        def extract_loader_info(methods: list[tuple[str, str]]) -> dict:
+            """Helper function to extract information for each dataloader method."""
+            info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
+            for loader_name, func_name in methods:
+                loader_method = getattr(self, func_name, None)
+
+                try:
+                    loader = loader_method()  # type: ignore
+                    info[loader_name] = loader_info(loader)
+                except Exception:
+                    info[loader_name] = dataset_info(False, "")
+
+            return info
+
+        def format_loader_info(info: dict[str, Union[dataset_info, Iterable[dataset_info]]]) -> str:
+            """Helper function to format loader information."""
+            output = []
+            for loader_name, loader_info in info.items():
+                # Single dataset
+                if isinstance(loader_info, dataset_info):
+                    loader_info_formatted = "None" if not loader_info.available else f"size={loader_info.length}"
+                # Iterable of datasets
+                else:
+                    loader_info_formatted = " ; ".join(
+                        "None" if not loader_info_i.available else f"{i}. size={loader_info_i.length}"
+                        for i, loader_info_i in enumerate(loader_info, start=1)
+                    )
+
+                output.append(f"{{{loader_name}: {loader_info_formatted}}}")
+
+            return os.linesep.join(output)
+
+        # Available dataloader methods
+        datamodule_loader_methods: list[tuple[str, str]] = [
+            ("Train dataloader", "train_dataloader"),
+            ("Validation dataloader", "val_dataloader"),
+            ("Test dataloader", "test_dataloader"),
+            ("Predict dataloader", "predict_dataloader"),
+        ]
+
+        # Retrieve information for each dataloader method
+        dataloader_info = extract_loader_info(datamodule_loader_methods)
+        # Format the information
+        dataloader_str = format_loader_info(dataloader_info)
+        return dataloader_str

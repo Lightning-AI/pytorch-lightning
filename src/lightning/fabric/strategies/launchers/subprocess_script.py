@@ -18,7 +18,8 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any, Callable, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -80,7 +81,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
+        self.procs: list[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
     @override
@@ -155,18 +156,18 @@ class _SubprocessScriptLauncher(_Launcher):
 
 
 def _basic_subprocess_cmd() -> Sequence[str]:
-    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+    import __main__  # local import to avoid https://github.com/Lightning-AI/pytorch-lightning/issues/15218
 
     if __main__.__spec__ is None:  # pragma: no-cover
         return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
     return [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
 
-def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
+def _hydra_subprocess_cmd(local_rank: int) -> tuple[Sequence[str], str]:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
-    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+    import __main__  # local import to avoid https://github.com/Lightning-AI/pytorch-lightning/issues/15218
 
     # when user is using hydra find the absolute path
     if __main__.__spec__ is None:  # pragma: no-cover
@@ -183,13 +184,13 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     return command, cwd
 
 
-def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
+def _launch_process_observer(child_processes: list[subprocess.Popen]) -> None:
     """Launches a thread that runs along the main process and monitors the health of all processes."""
     _ChildProcessObserver(child_processes=child_processes, main_pid=os.getpid()).start()
 
 
 class _ChildProcessObserver(threading.Thread):
-    def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
+    def __init__(self, main_pid: int, child_processes: list[subprocess.Popen], sleep_period: int = 5) -> None:
         super().__init__(daemon=True, name="child-process-observer")  # thread stops if the main process exits
         self._main_pid = main_pid
         self._child_processes = child_processes

@@ -12,7 +12,7 @@ Intel® Neural Compressor, is an open-source Python library that runs on Intel C
 
 **Audience** : Machine learning engineers optimizing models for a better model inference speed and lower memory usage.
 
-Visit the Intel® Neural Compressor online document website at: `<https://intel.github.io/neural-compressor>`_.
+Visit the Intel® Neural Compressor online document website at: `<https://github.com/intel/neural-compressor>`_.
 
 ******************
 Model Quantization
@@ -33,7 +33,7 @@ Installation
 Prerequisites
 =============
 
-Python version: 3.8, 3.9, 3.10
+Python version: 3.9, 3.10
 
 Install Intel® Neural Compressor
 ================================
@@ -106,7 +106,7 @@ The "approach" parameter in PostTrainingQuantConfig is defined by the user to ma
 Quantize the model
 ==================
 
-The model can be qutized by Intel® Neural Compressor with:
+The model can be quantized by Intel® Neural Compressor with:
 
 .. code-block:: python
 
@@ -126,7 +126,7 @@ At last, the quantized model can be saved by:
 Hands-on Examples
 *****************
 
-Based on the `given example code <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
+Based on the `given example code <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conducts model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
 
 .. code-block:: python
 
@@ -176,10 +176,10 @@ Following is the performance comparison between FP32 model and INT8 model:
 +-------------+-----------------+------------------+
 
 
-For more model quantization performance, please refer to `our model list <https://github.com/intel/neural-compressor/blob/master/docs/source/validated_model_list.md>`_
+For more model quantization performance, please refer to `our model list <https://github.com/intel/neural-compressor/blob/8a6db49e0e06f89562a0c3b22184f0b1bcf0123f/docs/source/validated_model_list.md>`_
 
 *****************
 Technical Support
 *****************
 
-Welcome to visit Intel® Neural Compressor website at: https://intel.github.io/neural-compressor to find technical support or contribute your code.
+Welcome to visit Intel® Neural Compressor website at: https://github.com/intel/neural-compressor to find technical support or contribute your code.

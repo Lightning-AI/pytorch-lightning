@@ -1,14 +1,13 @@
 import math
-from typing import Dict, Tuple
 
 import gymnasium as gym
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningModule
 from torch import Tensor
 from torch.distributions import Categorical
 from torchmetrics import MeanMetric
 
+from lightning.pytorch import LightningModule
 from rl.loss import entropy_loss, policy_loss, value_loss
 from rl.utils import layer_init
 
@@ -43,7 +42,7 @@ class PPOAgent(torch.nn.Module):
             layer_init(torch.nn.Linear(64, envs.single_action_space.n), std=0.01, ortho_init=ortho_init),
         )
 
-    def get_action(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor]:
+    def get_action(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor]:
         logits = self.actor(x)
         distribution = Categorical(logits=logits)
         if action is None:
@@ -58,12 +57,12 @@ class PPOAgent(torch.nn.Module):
     def get_value(self, x: Tensor) -> Tensor:
         return self.critic(x)
 
-    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         action, log_prob, entropy = self.get_action(x, action)
         value = self.get_value(x)
         return action, log_prob, entropy, value
 
-    def forward(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         return self.get_action_and_value(x, action)
 
     @torch.no_grad()
@@ -77,7 +76,7 @@ class PPOAgent(torch.nn.Module):
         num_steps: int,
         gamma: float,
         gae_lambda: float,
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         next_value = self.get_value(next_obs).reshape(1, -1)
         advantages = torch.zeros_like(rewards)
         lastgaelam = 0
@@ -143,7 +142,7 @@ class PPOLightningAgent(LightningModule):
         self.avg_value_loss = MeanMetric(**torchmetrics_kwargs)
         self.avg_ent_loss = MeanMetric(**torchmetrics_kwargs)
 
-    def get_action(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor]:
+    def get_action(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor]:
         logits = self.actor(x)
         distribution = Categorical(logits=logits)
         if action is None:
@@ -158,12 +157,12 @@ class PPOLightningAgent(LightningModule):
     def get_value(self, x: Tensor) -> Tensor:
         return self.critic(x)
 
-    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def get_action_and_value(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         action, log_prob, entropy = self.get_action(x, action)
         value = self.get_value(x)
         return action, log_prob, entropy, value
 
-    def forward(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor, action: Tensor = None) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         return self.get_action_and_value(x, action)
 
     @torch.no_grad()
@@ -177,7 +176,7 @@ class PPOLightningAgent(LightningModule):
         num_steps: int,
         gamma: float,
         gae_lambda: float,
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         next_value = self.get_value(next_obs).reshape(1, -1)
         advantages = torch.zeros_like(rewards)
         lastgaelam = 0
@@ -193,7 +192,7 @@ class PPOLightningAgent(LightningModule):
         returns = advantages + values
         return returns, advantages
 
-    def training_step(self, batch: Dict[str, Tensor]):
+    def training_step(self, batch: dict[str, Tensor]):
         # Get actions and values given the current observations
         _, newlogprob, entropy, newvalue = self(batch["obs"], batch["actions"].long())
         logratio = newlogprob - batch["logprobs"]

@@ -13,7 +13,7 @@
 # limitations under the License.
 """General utilities."""
 
-import numpy
+import torch
 
 from lightning.fabric.utilities import (
     LightningEnum,
@@ -55,6 +55,6 @@ __all__ = [
     "suggested_max_num_workers",
 ]
 
-FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
-FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
-FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
+FLOAT16_EPSILON = torch.finfo(torch.float16).eps
+FLOAT32_EPSILON = torch.finfo(torch.float32).eps
+FLOAT64_EPSILON = torch.finfo(torch.float64).eps

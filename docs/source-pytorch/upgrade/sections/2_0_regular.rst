@@ -6,7 +6,7 @@
      - Then
      - Ref
 
-   * - used PyTorch 3.11
+   * - used PyTorch 1.11
      - upgrade to PyTorch 2.1 or higher
      - `PR18691`_
 
@@ -47,11 +47,11 @@
      - `PR18386`_
 
 
-.. _pr18691: https://github.com/Lightning-AI/lightning/pull/18691
-.. _pr16579: https://github.com/Lightning-AI/lightning/pull/16579
-.. _pr17309: https://github.com/Lightning-AI/lightning/pull/17309
-.. _pr17227: https://github.com/Lightning-AI/lightning/pull/17227
-.. _pr17368: https://github.com/Lightning-AI/lightning/pull/17368
-.. _pr18441: https://github.com/Lightning-AI/lightning/pull/18441
-.. _pr18291: https://github.com/Lightning-AI/lightning/pull/18291
-.. _pr18386: https://github.com/Lightning-AI/lightning/pull/18386
+.. _pr18691: https://github.com/Lightning-AI/pytorch-lightning/pull/18691
+.. _pr16579: https://github.com/Lightning-AI/pytorch-lightning/pull/16579
+.. _pr17309: https://github.com/Lightning-AI/pytorch-lightning/pull/17309
+.. _pr17227: https://github.com/Lightning-AI/pytorch-lightning/pull/17227
+.. _pr17368: https://github.com/Lightning-AI/pytorch-lightning/pull/17368
+.. _pr18441: https://github.com/Lightning-AI/pytorch-lightning/pull/18441
+.. _pr18291: https://github.com/Lightning-AI/pytorch-lightning/pull/18291
+.. _pr18386: https://github.com/Lightning-AI/pytorch-lightning/pull/18386

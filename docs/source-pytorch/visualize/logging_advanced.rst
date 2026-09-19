@@ -361,7 +361,7 @@ This table shows the default values of *on_step* and *on_epoch* depending on the
 In LightningModule
 ==================
 
-.. list-table:: Default behavior of logging in ightningModule
+.. list-table:: Default behavior of logging in LightningModule
    :widths: 50 25 25
    :header-rows: 1
 

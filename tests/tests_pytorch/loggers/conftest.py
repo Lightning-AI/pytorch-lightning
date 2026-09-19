@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def mlflow_mock(monkeypatch):
     mlflow = ModuleType("mlflow")
     mlflow.set_tracking_uri = Mock()
@@ -38,11 +38,12 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    (monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
     return mlflow
 
 
-@pytest.fixture()
+@pytest.fixture
 def wandb_mock(monkeypatch):
     class RunType:  # to make isinstance checks pass
         pass
@@ -54,6 +55,7 @@ def wandb_mock(monkeypatch):
         watch=Mock(),
         log_artifact=Mock(),
         use_artifact=Mock(),
+        define_metric=Mock(),
         id="run_id",
     )
 
@@ -88,66 +90,61 @@ def wandb_mock(monkeypatch):
     return wandb
 
 
-@pytest.fixture()
+@pytest.fixture
 def comet_mock(monkeypatch):
     comet = ModuleType("comet_ml")
     monkeypatch.setitem(sys.modules, "comet_ml", comet)
 
-    comet.Experiment = Mock()
-    comet.ExistingExperiment = Mock()
-    comet.OfflineExperiment = Mock()
-    comet.API = Mock()
+    # to support dunder methods calling we will create a special mock
+    comet_experiment = MagicMock(name="CommonExperiment")
+    setattr(comet_experiment, "__internal_api__set_model_graph__", MagicMock())
+    setattr(comet_experiment, "__internal_api__log_metrics__", MagicMock())
+    setattr(comet_experiment, "__internal_api__log_parameters__", MagicMock())
+
+    comet.Experiment = MagicMock(name="Experiment", return_value=comet_experiment)
+    comet.ExistingExperiment = MagicMock(name="ExistingExperiment", return_value=comet_experiment)
+    comet.OfflineExperiment = MagicMock(name="OfflineExperiment", return_value=comet_experiment)
+
+    comet.ExperimentConfig = Mock()
+    comet.start = Mock(name="comet_ml.start", return_value=comet.Experiment())
     comet.config = Mock()
-
-    comet_api = ModuleType("api")
-    comet_api.API = Mock()
-    monkeypatch.setitem(sys.modules, "comet_ml.api", comet_api)
-
-    comet.api = comet_api
 
     monkeypatch.setattr("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
     return comet
 
 
-@pytest.fixture()
-def neptune_mock(monkeypatch):
-    class RunType:  # to make isinstance checks pass
-        def get_root_object(self):
-            pass
+@pytest.fixture
+def litlogger_mock(monkeypatch):
+    """Mock litlogger module for unit testing LightningLogger."""
+    experiment_mock = MagicMock()
+    experiment_mock.url = "https://lightning.ai/test/experiments/test-experiment"
+    experiment_mock.name = "test-experiment"
+    experiment_mock.version = "2024-01-01T00:00:00.000Z"
+    experiment_mock.get_file.return_value = "/path/to/file"
+    experiment_mock.get_model.return_value = MagicMock()
+    experiment_mock.get_model_artifact.return_value = "/path/to/artifact"
+    experiment_mock.series_mocks = {}
 
-        def __getitem__(self, item):
-            pass
+    def get_series(key):
+        if key not in experiment_mock.series_mocks:
+            experiment_mock.series_mocks[key] = MagicMock()
+        return experiment_mock.series_mocks[key]
 
-        def __setitem__(self, key, value):
-            pass
+    experiment_mock.__getitem__.side_effect = get_series
 
-    run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
-    run_mock.get_root_object.return_value = run_mock
+    litlogger = ModuleType("litlogger")
+    litlogger.experiment = None
+    litlogger.Experiment = Mock(return_value=experiment_mock)
+    litlogger.File = Mock()
+    litlogger.Model = Mock()
+    monkeypatch.setitem(sys.modules, "litlogger", litlogger)
 
-    neptune = ModuleType("neptune")
-    neptune.init_run = Mock(return_value=run_mock)
-    neptune.Run = RunType
-    monkeypatch.setitem(sys.modules, "neptune", neptune)
+    # Create generator submodule
+    generator_module = ModuleType("litlogger.generator")
+    generator_module._create_name = Mock(return_value="generated-name")
+    monkeypatch.setitem(sys.modules, "litlogger.generator", generator_module)
 
-    neptune_handler = ModuleType("handler")
-    neptune_handler.Handler = RunType
-    monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
+    litlogger.generator = generator_module
 
-    neptune_types = ModuleType("types")
-    neptune_types.File = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.types", neptune_types)
-
-    neptune_utils = ModuleType("utils")
-    neptune_utils.stringify_unsupported = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
-
-    neptune_exceptions = ModuleType("exceptions")
-    neptune_exceptions.InactiveRunException = Exception
-    monkeypatch.setitem(sys.modules, "neptune.exceptions", neptune_exceptions)
-
-    neptune.handler = neptune_handler
-    neptune.types = neptune_types
-    neptune.utils = neptune_utils
-
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
-    return neptune
+    monkeypatch.setattr("lightning.pytorch.loggers.litlogger._LITLOGGER_AVAILABLE", True)
+    return litlogger

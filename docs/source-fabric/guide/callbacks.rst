@@ -83,6 +83,30 @@ The :meth:`~lightning.fabric.fabric.Fabric.call` calls the callback objects in t
 Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name.
 The ones that have a matching method name will get called.
 
+The different callbacks can have different method signatures. Fabric automatically filters keyword arguments based on
+each callback's function signature, allowing callbacks with different signatures to work together seamlessly.
+
+.. code-block:: python
+
+    class TrainingMetricsCallback:
+        def on_train_epoch_end(self, train_loss):
+            print(f"Training loss: {train_loss:.4f}")
+
+    class ValidationMetricsCallback:
+        def on_train_epoch_end(self, val_accuracy):
+            print(f"Validation accuracy: {val_accuracy:.4f}")
+
+    class ComprehensiveCallback:
+        def on_train_epoch_end(self, epoch, **kwargs):
+            print(f"Epoch {epoch} complete with metrics: {kwargs}")
+
+    fabric = Fabric(
+        callbacks=[TrainingMetricsCallback(), ValidationMetricsCallback(), ComprehensiveCallback()]
+    )
+
+    # Each callback receives only the arguments it can handle
+    fabric.call("on_train_epoch_end", epoch=5, train_loss=0.1, val_accuracy=0.95, learning_rate=0.001)
+
 
 ----
 

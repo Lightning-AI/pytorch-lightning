@@ -1,18 +1,18 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Union
 from unittest.mock import Mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -53,9 +53,9 @@ def test_restore_checkpoint_after_pre_setup(tmp_path, restore_after_pre_setup):
         def restore_checkpoint_after_setup(self) -> bool:
             return restore_after_pre_setup
 
-        def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        def load_checkpoint(self, checkpoint_path: Union[str, Path], weights_only: bool) -> dict[str, Any]:
             assert self.setup_called == restore_after_pre_setup
-            return super().load_checkpoint(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path, weights_only)
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)

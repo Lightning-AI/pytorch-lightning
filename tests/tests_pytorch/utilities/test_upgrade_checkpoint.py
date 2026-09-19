@@ -18,6 +18,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
+
 from lightning.pytorch.utilities.upgrade_checkpoint import main as upgrade_main
 
 
@@ -33,8 +34,9 @@ def test_upgrade_checkpoint_file_missing(tmp_path, caplog):
 
     # path to non-empty directory, but no checkpoints with matching extension
     file.touch()
-    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(tmp_path), "--extension", ".other"]), caplog.at_level(
-        logging.ERROR
+    with (
+        mock.patch("sys.argv", ["upgrade_checkpoint.py", str(tmp_path), "--extension", ".other"]),
+        caplog.at_level(logging.ERROR),
     ):
         with pytest.raises(SystemExit):
             upgrade_main()

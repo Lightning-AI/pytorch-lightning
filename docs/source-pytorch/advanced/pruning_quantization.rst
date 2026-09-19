@@ -32,7 +32,7 @@ You can also perform iterative pruning, apply the `lottery ticket hypothesis <ht
 .. code-block:: python
 
     def compute_amount(epoch):
-        # the sum of all returned values need to be smaller than 1
+        # the sum of all returned values needs to be smaller than 1
         if epoch == 10:
             return 0.5
 
@@ -43,7 +43,7 @@ You can also perform iterative pruning, apply the `lottery ticket hypothesis <ht
             return 0.01
 
 
-    # the amount can be also be a callable
+    # the amount can also be a callable
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
 
 

@@ -13,23 +13,25 @@
 # limitations under the License.
 import logging
 import os
+from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import ContextManager, Optional
+from typing import Optional
 from unittest import mock
 
 import pytest
 import torch
+from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.swa_utils import SWALR
+from torch.utils.data import DataLoader
+
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.swa_utils import SWALR
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -172,8 +174,9 @@ def train_with_swa(
         devices=devices,
     )
 
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
     with _backward_patch(trainer):
-        trainer.fit(model)
+        trainer.fit(model, weights_only=weights_only)
 
     # check the model is the expected
     assert trainer.lightning_module == model
@@ -265,8 +268,7 @@ def test_swa_multiple_lrs(tmp_path):
 
         def forward(self, x):
             x = self.layer1(x)
-            x = self.layer2(x)
-            return x
+            return self.layer2(x)
 
         def configure_optimizers(self):
             params = [{"params": self.layer1.parameters(), "lr": 0.1}, {"params": self.layer2.parameters(), "lr": 0.2}]
@@ -306,8 +308,9 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
     }
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
     with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
-        trainer.fit(model)
+        trainer.fit(model, weights_only=weights_only)
 
     checkpoint_dir = Path(tmp_path) / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
@@ -317,7 +320,7 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
     with _backward_patch(trainer):
-        trainer.fit(resume_model, ckpt_path=ckpt_path)
+        trainer.fit(resume_model, ckpt_path=ckpt_path, weights_only=weights_only)
 
 
 class CustomSchedulerModel(SwaTestModel):
@@ -346,13 +349,15 @@ def test_swa_resume_training_from_checkpoint(tmp_path, crash_on_epoch):
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3])
 def test_swa_resume_training_from_checkpoint_custom_scheduler(tmp_path, crash_on_epoch):
-    # Reproduces the bug reported in https://github.com/Lightning-AI/lightning/issues/11665
+    # Reproduces the bug reported in https://github.com/Lightning-AI/pytorch-lightning/issues/11665
     model = CustomSchedulerModel(crash_on_epoch=crash_on_epoch)
     resume_model = CustomSchedulerModel()
     _swa_resume_training_from_checkpoint(tmp_path, model, resume_model)
 
 
 @RunIf(skip_windows=True)
+# flaky with "torch.multiprocessing.spawn.ProcessExitedException: process 0 terminated with signal SIGABRT" (GLOO)
+@pytest.mark.flaky(reruns=3)
 def test_swa_resume_training_from_checkpoint_ddp(tmp_path):
     model = SwaTestModel(crash_on_epoch=3)
     resume_model = SwaTestModel()
@@ -382,5 +387,35 @@ def test_misconfiguration_error_with_sharded_model(tmp_path, strategy: str):
         trainer.fit(model)
 
 
-def _backward_patch(trainer: Trainer) -> ContextManager:
+def test_swa_with_infinite_epochs_and_batchnorm(tmp_path):
+    """Test that SWA works correctly with max_epochs=-1 (infinite training) and BatchNorm."""
+    model = SwaTestModel(batchnorm=True)
+    swa_callback = StochasticWeightAveraging(swa_lrs=0.1, swa_epoch_start=2)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        max_epochs=-1,
+        max_steps=30,  # Use max_steps as stopping condition
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_callback],
+        logger=False,
+    )
+    assert trainer.max_epochs == -1
+    assert trainer.fit_loop.max_epochs == -1
+
+    trainer.fit(model)
+    assert trainer.current_epoch >= 5
+    assert trainer.global_step == 30
+    assert trainer.max_epochs == -1
+
+    # Verify SWA was actually applied (update_parameters should have been called)
+    # SWA starts at epoch 2, so with 6 epochs (0-5), we should have 4 updates (epochs 2, 3, 4, 5)
+    assert swa_callback.n_averaged is not None
+    assert swa_callback.n_averaged > 0, "SWA should have updated parameters"
+
+
+def _backward_patch(trainer: Trainer) -> AbstractContextManager:
     return mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)

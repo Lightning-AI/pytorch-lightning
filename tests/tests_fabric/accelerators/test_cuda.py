@@ -13,22 +13,21 @@
 # limitations under the License.
 import importlib
 import logging
+import multiprocessing
 import os
 from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
+
+import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
     CUDAAccelerator,
     _check_cuda_matmul_precision,
     find_usable_cuda_devices,
-    is_cuda_available,
-    num_cuda_devices,
 )
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -65,18 +64,6 @@ def test_set_cuda_device(_, set_device_mock):
     device = torch.device("cuda", 1)
     CUDAAccelerator().setup_device(device)
     set_device_mock.assert_called_once_with(device)
-
-
-@mock.patch("lightning.fabric.accelerators.cuda._device_count_nvml", return_value=-1)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=100)
-def test_num_cuda_devices_without_nvml(*_):
-    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for determining
-    CUDA availability."""
-    num_cuda_devices.cache_clear()
-    assert is_cuda_available()
-    assert num_cuda_devices() == 100
-    num_cuda_devices.cache_clear()
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -135,29 +122,81 @@ def test_tf32_message(_, __, ___, caplog, monkeypatch):
 def test_find_usable_cuda_devices_error_handling():
     """Test error handling for edge cases when using `find_usable_cuda_devices`."""
     # Asking for GPUs if no GPUs visible
-    with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0), pytest.raises(
-        ValueError, match="You requested to find 2 devices but there are no visible CUDA"
+    with (
+        mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0),
+        pytest.raises(ValueError, match="You requested to find 2 devices but there are no visible CUDA"),
     ):
         find_usable_cuda_devices(2)
 
     # Asking for more GPUs than are visible
-    with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1), pytest.raises(
-        ValueError, match="this machine only has 1 GPUs"
+    with (
+        mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1),
+        pytest.raises(ValueError, match="this machine only has 1 GPUs"),
     ):
         find_usable_cuda_devices(2)
 
     # All GPUs are unusable
     tensor_mock = Mock(side_effect=RuntimeError)  # simulate device placement fails
-    with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2), mock.patch(
-        "lightning.fabric.accelerators.cuda.torch.tensor", tensor_mock
-    ), pytest.raises(RuntimeError, match=escape("The devices [0, 1] are occupied by other processes")):
+    with (
+        mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2),
+        mock.patch("lightning.fabric.accelerators.cuda.torch.tensor", tensor_mock),
+        pytest.raises(RuntimeError, match=escape("The devices [0, 1] are occupied by other processes")),
+    ):
         find_usable_cuda_devices(2)
 
     # Request for as many GPUs as there are, no error should be raised
-    with mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5), mock.patch(
-        "lightning.fabric.accelerators.cuda.torch.tensor"
+    with (
+        mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5),
+        mock.patch("lightning.fabric.accelerators.cuda.torch.tensor"),
     ):
         assert find_usable_cuda_devices(-1) == [0, 1, 2, 3, 4]
 
     # Edge case
     assert find_usable_cuda_devices(0) == []
+
+
+def _assert_set_device_precedes_lazy_init():
+    """Assert `setup_device` selects the device before anything initializes CUDA.
+
+    Only meaningful in a process where CUDA has not been initialized yet.
+
+    """
+    mock_set_device = mock.MagicMock(wraps=torch.cuda.set_device)
+    mock_lazy_init = mock.MagicMock(wraps=torch.cuda._lazy_init)
+
+    mock_manager = mock.MagicMock()
+    mock_manager.attach_mock(mock_set_device, "set_device")
+    mock_manager.attach_mock(mock_lazy_init, "_lazy_init")
+
+    device = torch.device("cuda:0")
+
+    with (
+        mock.patch("torch.cuda.set_device", new=mock_set_device),
+        mock.patch("torch.cuda._lazy_init", new=mock_lazy_init),
+    ):
+        CUDAAccelerator().setup_device(device)
+
+    assert mock_manager.mock_calls[0] == mock.call.set_device(device)
+    assert mock_manager.mock_calls[1] == mock.call._lazy_init()
+
+
+@RunIf(min_cuda_gpus=1)
+def test_setup_device_calls_set_device_before_lazy_init():
+    # spawn a fresh process so the check is not invalidated by CUDA already being initialized
+    spawn_context = multiprocessing.get_context("spawn")
+    with spawn_context.Pool(processes=1) as pool:
+        pool.apply(_assert_set_device_precedes_lazy_init)
+
+
+@mock.patch("lightning.fabric.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("torch.cuda.set_device")
+def test_setup_device_sets_device_before_matmul_precision_check(set_device_mock, matmul_check_mock):
+    """The matmul precision check may initialize CUDA, so the device must be selected first."""
+    manager = mock.MagicMock()
+    manager.attach_mock(set_device_mock, "set_device")
+    manager.attach_mock(matmul_check_mock, "check_matmul_precision")
+
+    device = torch.device("cuda", 3)
+    CUDAAccelerator().setup_device(device)
+
+    assert manager.mock_calls == [mock.call.set_device(device), mock.call.check_matmul_precision(device)]

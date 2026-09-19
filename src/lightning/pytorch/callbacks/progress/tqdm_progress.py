@@ -15,7 +15,7 @@ import importlib
 import math
 import os
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -96,15 +96,15 @@ class TQDMProgressBar(ProgressBar):
             Set it to ``0`` to disable the display.
         process_position: Set this to a value greater than ``0`` to offset the progress bars by this many lines.
             This is useful when you have progress bars defined elsewhere and want to show all of them
-            together. This corresponds to
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
-            :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+            together.
+        leave: If set to ``True``, leaves the finished progress bar in the terminal at the end of the epoch.
+            Default: ``False``
 
     """
 
     BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, leave: bool = False):
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
@@ -113,8 +113,9 @@ class TQDMProgressBar(ProgressBar):
         self._val_progress_bar: Optional[_tqdm] = None
         self._test_progress_bar: Optional[_tqdm] = None
         self._predict_progress_bar: Optional[_tqdm] = None
+        self._leave = leave
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         # can't pickle the tqdm objects
         return {k: v if not isinstance(v, _tqdm) else None for k, v in vars(self).items()}
 
@@ -262,7 +263,11 @@ class TQDMProgressBar(ProgressBar):
 
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
-        self.train_progress_bar.reset(convert_inf(self.total_train_batches))
+        if self._leave:
+            self.train_progress_bar = self.init_train_tqdm()
+        total = convert_inf(self.total_train_batches)
+        self.train_progress_bar.reset()
+        self.train_progress_bar.total = total
         self.train_progress_bar.initial = 0
         self.train_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
@@ -271,7 +276,7 @@ class TQDMProgressBar(ProgressBar):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         n = batch_idx + 1
-        if self._should_update(n, self.train_progress_bar.total):
+        if self.train_progress_bar is not None and self._should_update(n, self.train_progress_bar.total):
             _update_n(self.train_progress_bar, n)
             self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
@@ -279,6 +284,8 @@ class TQDMProgressBar(ProgressBar):
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self.train_progress_bar.disable:
             self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
+        if self._leave:
+            self.train_progress_bar.close()
 
     @override
     def on_train_end(self, *_: Any) -> None:
@@ -301,7 +308,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.val_progress_bar.reset(convert_inf(self.total_val_batches_current_dataloader))
+        total = convert_inf(self.total_val_batches_current_dataloader)
+        self.val_progress_bar.reset()
+        self.val_progress_bar.total = total
         self.val_progress_bar.initial = 0
         desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
         self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
@@ -317,7 +326,7 @@ class TQDMProgressBar(ProgressBar):
         dataloader_idx: int = 0,
     ) -> None:
         n = batch_idx + 1
-        if self._should_update(n, self.val_progress_bar.total):
+        if self.val_progress_bar is not None and self._should_update(n, self.val_progress_bar.total):
             _update_n(self.val_progress_bar, n)
 
     @override
@@ -343,7 +352,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.test_progress_bar.reset(convert_inf(self.total_test_batches_current_dataloader))
+        total = convert_inf(self.total_test_batches_current_dataloader)
+        self.test_progress_bar.reset()
+        self.test_progress_bar.total = total
         self.test_progress_bar.initial = 0
         self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
@@ -358,7 +369,7 @@ class TQDMProgressBar(ProgressBar):
         dataloader_idx: int = 0,
     ) -> None:
         n = batch_idx + 1
-        if self._should_update(n, self.test_progress_bar.total):
+        if self.test_progress_bar is not None and self._should_update(n, self.test_progress_bar.total):
             _update_n(self.test_progress_bar, n)
 
     @override
@@ -382,7 +393,9 @@ class TQDMProgressBar(ProgressBar):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.predict_progress_bar.reset(convert_inf(self.total_predict_batches_current_dataloader))
+        total = convert_inf(self.total_predict_batches_current_dataloader)
+        self.predict_progress_bar.reset()
+        self.predict_progress_bar.total = total
         self.predict_progress_bar.initial = 0
         self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 
@@ -397,7 +410,7 @@ class TQDMProgressBar(ProgressBar):
         dataloader_idx: int = 0,
     ) -> None:
         n = batch_idx + 1
-        if self._should_update(n, self.predict_progress_bar.total):
+        if self.predict_progress_bar is not None and self._should_update(n, self.predict_progress_bar.total):
             _update_n(self.predict_progress_bar, n)
 
     @override

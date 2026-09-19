@@ -18,6 +18,11 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import AveragePrecision as AvgPre
+
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -28,11 +33,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _Result
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from lightning_utilities.core.imports import compare_version
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
-from torchmetrics import AveragePrecision as AvgPre
-
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
 
@@ -245,7 +246,7 @@ def test_fx_validator_integration(tmp_path):
     })
     trainer.test(model, verbose=False)
 
-    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
+    not_supported.update(dict.fromkeys(not_supported, "result collection is not registered yet"))
     not_supported.update({
         "predict_dataloader": "result collection is not registered yet",
         "on_predict_model_eval": "result collection is not registered yet",
@@ -639,3 +640,23 @@ def test_result_collection_no_batch_size_extraction():
     assert results["training_step.epoch_log_val"].value == log_val * batch_size
     assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size
     assert results["training_step.epoch_sum_log_val"].value == log_val
+
+
+@RunIf(min_cuda_gpus=1)
+def test_result_collection_changes_device():
+    """Test that the keys in the ResultCollection are moved to the device together with the collection."""
+    results = _ResultCollection(training=True)
+    fx, name = "training_step", "step_log_val"
+    log_val = torch.tensor(7.0, device="cuda:0")
+
+    # same device as the original tensor
+    results.log(fx, name, log_val, on_step=True, on_epoch=False, reduce_fx="mean")
+    assert results[f"{fx}.{name}"].cumulated_batch_size.device == log_val.device
+
+    # moved to cpu
+    results.cpu()
+    assert results[f"{fx}.{name}"].cumulated_batch_size.device == torch.device("cpu")
+
+    # same device as the new tensor
+    results.log(fx, name, log_val, on_step=True, on_epoch=False, reduce_fx="mean")
+    assert results[f"{fx}.{name}"].cumulated_batch_size.device == log_val.device

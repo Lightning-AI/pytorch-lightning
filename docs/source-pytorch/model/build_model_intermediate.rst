@@ -27,7 +27,7 @@ Enable advanced training features using Trainer arguments. These are SOTA techni
     )
 
    # access the latest state of the art techniques
-   trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
+   trainer = Trainer(callbacks=[WeightAveraging(...)])
 
 ----
 

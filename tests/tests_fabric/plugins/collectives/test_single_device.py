@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+
 from lightning.fabric.plugins.collectives import SingleDeviceCollective
 
 

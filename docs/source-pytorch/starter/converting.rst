@@ -192,6 +192,6 @@ The predict loop will not be used until you call :meth:`~lightning.pytorch.train
     model = LitModel()
     trainer.predict(model)
 
-.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for testing.
+.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for predicting.
 
 .. tip:: ``trainer.predict()`` loads the best checkpoint automatically by default if checkpointing is enabled.

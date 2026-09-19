@@ -13,6 +13,7 @@
 # limitations under the License.
 """Houses the methods used to set up the Trainer."""
 
+from datetime import timedelta
 from typing import Optional, Union
 
 import lightning.pytorch as pl
@@ -28,7 +29,6 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _habana_available_and_importable
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -40,7 +40,7 @@ def _init_debugging_flags(
     limit_predict_batches: Optional[Union[int, float]],
     fast_dev_run: Union[int, bool],
     overfit_batches: Union[int, float],
-    val_check_interval: Optional[Union[int, float]],
+    val_check_interval: Optional[Union[int, float, str, timedelta, dict]],
     num_sanity_val_steps: int,
 ) -> None:
     # init debugging flags
@@ -69,6 +69,7 @@ def _init_debugging_flags(
         trainer.num_sanity_val_steps = 0
         trainer.fit_loop.max_epochs = 1
         trainer.val_check_interval = 1.0
+        trainer._val_check_time_interval = None  # time not applicable in fast_dev_run
         trainer.check_val_every_n_epoch = 1
         trainer.loggers = [DummyLogger()] if trainer.loggers else []
         rank_zero_info(
@@ -82,7 +83,14 @@ def _init_debugging_flags(
         trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
         trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         trainer.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
-        trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        # Support time-based validation intervals:
+        # If `val_check_interval` is str/dict/timedelta, parse and store seconds on the trainer
+        # for the loops to consume.
+        trainer._val_check_time_interval = None  # default
+        if isinstance(val_check_interval, (str, dict, timedelta)):
+            trainer._val_check_time_interval = _parse_time_interval_seconds(val_check_interval)
+        else:
+            trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
 
     if overfit_batches_enabled:
         trainer.limit_train_batches = overfit_batches
@@ -158,16 +166,6 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
     rank_zero_info(f"TPU available: {XLAAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
-    if _habana_available_and_importable():
-        from lightning_habana import HPUAccelerator
-
-        num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
-        hpu_available = HPUAccelerator.is_available()
-    else:
-        num_hpus = 0
-        hpu_available = False
-    rank_zero_info(f"HPU available: {hpu_available}, using: {num_hpus} HPUs")
-
     if (
         CUDAAccelerator.is_available()
         and not isinstance(trainer.accelerator, CUDAAccelerator)
@@ -182,8 +180,64 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if XLAAccelerator.is_available() and not isinstance(trainer.accelerator, XLAAccelerator):
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
-    if _habana_available_and_importable():
-        from lightning_habana import HPUAccelerator
 
-        if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
-            rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
+def _parse_time_interval_seconds(value: Union[str, timedelta, dict]) -> float:
+    """Convert a time interval into seconds.
+
+    This helper parses different representations of a time interval and
+    normalizes them into a float number of seconds.
+
+    Supported input formats:
+      * `timedelta`: The total seconds are returned directly.
+      * `dict`: A dictionary of keyword arguments accepted by
+        `datetime.timedelta`, e.g. `{"days": 1, "hours": 2}`.
+      * `str`: A string in the format `"DD:HH:MM:SS"`, where each
+        component must be an integer.
+
+    Args:
+        value (Union[str, timedelta, dict]): The time interval to parse.
+
+    Returns:
+        float: The duration represented by `value` in seconds.
+
+    Raises:
+        MisconfigurationException: If the input type is unsupported, the
+        string format is invalid, or any string component is not an integer.
+
+    Examples:
+        >>> _parse_time_interval_seconds("01:02:03:04")
+        93784.0
+
+        >>> _parse_time_interval_seconds({"hours": 2, "minutes": 30})
+        9000.0
+
+        >>> from datetime import timedelta
+        >>> _parse_time_interval_seconds(timedelta(days=1, seconds=30))
+        86430.0
+
+    """
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+    if isinstance(value, dict):
+        td = timedelta(**value)
+        return td.total_seconds()
+    if isinstance(value, str):
+        parts = value.split(":")
+        if len(parts) != 4:
+            raise MisconfigurationException(
+                f"Invalid time format for `val_check_interval`: {value!r}. Expected 'DD:HH:MM:SS'."
+            )
+        d, h, m, s = parts
+        try:
+            days = int(d)
+            hours = int(h)
+            minutes = int(m)
+            seconds = int(s)
+        except ValueError:
+            raise MisconfigurationException(
+                f"Non-integer component in `val_check_interval` string: {value!r}. Use 'DD:HH:MM:SS'."
+            )
+        td = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        return td.total_seconds()
+    # Should not happen given the caller guards
+    raise MisconfigurationException(f"Unsupported type for `val_check_interval`: {type(value)!r}")

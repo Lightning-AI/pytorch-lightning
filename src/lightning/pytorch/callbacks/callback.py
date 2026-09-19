@@ -13,7 +13,7 @@
 # limitations under the License.
 r"""Base class used to build new callbacks."""
 
-from typing import Any, Dict, Type
+from typing import Any
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -41,7 +41,7 @@ class Callback:
         return self.__class__.__qualname__
 
     @property
-    def _legacy_state_key(self) -> Type["Callback"]:
+    def _legacy_state_key(self) -> type["Callback"]:
         """State key for checkpoints saved prior to version 1.5.0."""
         return type(self)
 
@@ -229,7 +229,7 @@ class Callback:
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
 
         Returns:
@@ -238,7 +238,7 @@ class Callback:
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
 
         Args:
@@ -248,7 +248,7 @@ class Callback:
         pass
 
     def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: dict[str, Any]
     ) -> None:
         r"""Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
@@ -260,7 +260,7 @@ class Callback:
         """
 
     def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: dict[str, Any]
     ) -> None:
         r"""Called when loading a model checkpoint, use to reload state.
 

@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import nullcontext
-from typing import Any, ContextManager, Dict, Literal, Optional, Union
+from contextlib import AbstractContextManager, nullcontext
+from typing import Any, Literal, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -53,11 +53,11 @@ class Precision:
         """
         return module
 
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         """Controls how tensors get created (device, dtype)."""
         return nullcontext()
 
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
@@ -65,7 +65,7 @@ class Precision:
         """
         return nullcontext()
 
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         return nullcontext()
 
@@ -135,7 +135,7 @@ class Precision:
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         return
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate precision plugin state_dict.
 
         Returns:
@@ -144,7 +144,7 @@ class Precision:
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
         state_dict.
 

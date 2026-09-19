@@ -18,6 +18,7 @@ Run it with:
 import cherry
 import learn2learn as l2l
 import torch
+
 from lightning.fabric import Fabric, seed_everything
 
 
@@ -29,7 +30,7 @@ def accuracy(predictions, targets):
 def fast_adapt(batch, learner, loss, adaptation_steps, shots, ways):
     data, labels = batch
 
-    # Separate data into adaptation/evalutation sets
+    # Separate data into adaptation/evaluation sets
     adaptation_indices = torch.zeros(data.size(0), dtype=bool)
     adaptation_indices[torch.arange(shots * ways) * 2] = True
     evaluation_indices = ~adaptation_indices
