@@ -272,6 +272,10 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
+        # Set the sampler epoch before creating the iterator, so that the first epoch after
+        # resuming from a checkpoint uses the restored epoch instead of epoch 0 (#21938).
+        for dl in combined_loader.flattened:
+            _set_sampler_epoch(dl, self.epoch_progress.current.processed)
         with trainer.profiler.profile("setup_train_dataloader"):
             iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
