@@ -214,10 +214,18 @@ class _CallbackConnector:
         model_callbacks = [model_callbacks] if not isinstance(model_callbacks, Sequence) else model_callbacks
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in trainer.callbacks}
+        model_progress_bars = [callback for callback in model_callbacks if isinstance(callback, ProgressBar)]
+        if len(model_progress_bars) > 1:
+            raise MisconfigurationException(
+                "You added multiple progress bar callbacks through `LightningModule.configure_callbacks`, but "
+                "currently only one progress bar is supported."
+            )
         # edge case: if an unmodified callback was added, the logic below would filter it
         trainer_callback_types.discard(Callback)
         # exclude trainer callbacks of the same class or subclass
         override_types = set()
+        if model_progress_bars:
+            override_types.update(type(callback) for callback in trainer.callbacks if isinstance(callback, ProgressBar))
         for model_cb in model_callback_types:
             for trainer_cb in trainer_callback_types:
                 if issubclass(model_cb, trainer_cb):
