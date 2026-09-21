@@ -158,10 +158,16 @@ class _FitLoop(_Loop):
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
+    def _met_min_epochs(self) -> bool:
+        return self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
+
+    @property
+    def _met_min_steps(self) -> bool:
+        return self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
+
+    @property
     def _can_stop_early(self) -> bool:
-        met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-        met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
-        return met_min_epochs and met_min_steps
+        return self._met_min_epochs and self._met_min_steps
 
     @property
     def _should_reload_train_dl(self) -> bool:
