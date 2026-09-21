@@ -22,6 +22,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from typing_extensions import override
 
 import lightning.fabric
 import lightning.pytorch
@@ -134,10 +135,12 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmp_path)
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
+        @override
         @property
         def main_address(self):
             return "asdf"
 
+        @override
         @property
         def creates_processes_externally(self) -> bool:
             return True
@@ -171,32 +174,40 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmp_path)
 @mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(cuda_count_0):
     class Accel(Accelerator):
+        @override
         def setup_device(self, device: torch.device) -> None:
             pass
 
+        @override
         def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
+        @override
         def teardown(self) -> None:
             pass
 
         @staticmethod
+        @override
         def parse_devices(devices):
             return devices
 
         @staticmethod
+        @override
         def get_parallel_devices(devices):
             return [torch.device("cpu")] * devices
 
         @staticmethod
+        @override
         def auto_device_count() -> int:
             return 1
 
         @staticmethod
+        @override
         def is_available() -> bool:
             return True
 
         @staticmethod
+        @override
         def name() -> str:
             return "custom_acc_name"
 

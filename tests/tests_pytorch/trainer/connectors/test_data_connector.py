@@ -20,6 +20,7 @@ import pytest
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
@@ -44,6 +45,7 @@ from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distributed_sampler(tmp_path, mode):
     class IndexedRandomDataset(RandomDataset):
+        @override
         def __getitem__(self, index):
             return self.data[index]
 
@@ -62,9 +64,11 @@ def test_replace_distributed_sampler(tmp_path, mode):
             self._numbers_test_dataloaders = numbers_test_dataloaders
             self._mode = mode
 
+        @override
         def test_step(self, batch, batch_idx, dataloader_idx=0):
             return super().test_step(batch, batch_idx)
 
+        @override
         def on_test_start(self) -> None:
             dataloader = self.trainer.test_dataloaders[0]
             assert isinstance(dataloader, CustomDataLoader)
@@ -92,6 +96,7 @@ def test_replace_distributed_sampler(tmp_path, mode):
                 return CustomDataLoader(32, dataset, batch_size=2, drop_last=True)
             return None
 
+        @override
         def test_dataloader(self):
             return [self.create_dataset()] * self._numbers_test_dataloaders
 
@@ -112,12 +117,14 @@ class TestSpawnBoringModel(BoringModel):
         super().__init__()
         self.warning_expected = warning_expected
 
+    @override
     def on_fit_start(self):
         ctx = pytest.warns if self.warning_expected else no_warning_call
         self.ctx = ctx(UserWarning, match="Consider setting `persistent_workers=True`")
         if self.global_rank == 0:
             self.ctx.__enter__()
 
+    @override
     def on_train_end(self):
         if self.global_rank == 0:
             self.ctx.__exit__(None, None, None)
@@ -321,6 +328,7 @@ def test_dataloader_reinit_for_subclass():
         def __len__(self):
             return len(self.data_source)
 
+        @override
         def __iter__(self):
             return iter(range(len(self)))
 
@@ -335,18 +343,22 @@ def test_dataloader_reinit_for_subclass():
 
 
 class LoaderTestModel(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         assert len(self.trainer.train_dataloader) == 10
         return super().training_step(batch, batch_idx)
 
+    @override
     def validation_step(self, batch, batch_idx):
         assert len(self.trainer.val_dataloaders) == 10
         return super().validation_step(batch, batch_idx)
 
+    @override
     def test_step(self, batch, batch_idx):
         assert len(self.trainer.test_dataloaders) == 10
         return super().test_step(batch, batch_idx)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert len(self.trainer.predict_dataloaders) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
@@ -588,6 +600,7 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     """Test that shuffle is not changed if set to True."""
 
     class CustomModel(BoringModel):
+        @override
         def val_dataloader(self):
             return DataLoader(RandomDataset(32, 64), shuffle=shuffle)
 

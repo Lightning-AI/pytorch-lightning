@@ -17,6 +17,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.plugins.environments import SLURMEnvironment
@@ -26,6 +27,7 @@ from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 class AMPTestModel(BoringModel):
+    @override
     def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
@@ -33,6 +35,7 @@ class AMPTestModel(BoringModel):
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return self.loss(output)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
         output = self(batch)

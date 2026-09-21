@@ -18,6 +18,7 @@ import torch.nn.functional as F
 from lightning_utilities.core.imports import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 
@@ -40,6 +41,7 @@ class ClassificationModel(LightningModule):
         self.valid_acc = acc.clone()
         self.test_acc = acc.clone()
 
+    @override
     def forward(self, x):
         x = self.layer_0(x)
         x = self.layer_0a(x)
@@ -50,10 +52,12 @@ class ClassificationModel(LightningModule):
         x = self.layer_end(x)
         return F.softmax(x, dim=1)
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return [optimizer], []
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
@@ -62,18 +66,21 @@ class ClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
+    @override
     def predict_step(self, batch, batch_idx):
         x, _ = batch
         return self.forward(x)
@@ -93,6 +100,7 @@ class RegressionModel(LightningModule):
         self.valid_mse = MeanSquaredError()
         self.test_mse = MeanSquaredError()
 
+    @override
     def forward(self, x):
         x = self.layer_0(x)
         x = self.layer_0a(x)
@@ -102,10 +110,12 @@ class RegressionModel(LightningModule):
         x = self.layer_2a(x)
         return self.layer_end(x)
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
@@ -114,12 +124,14 @@ class RegressionModel(LightningModule):
         self.log("train_MSE", self.train_mse(out, y), prog_bar=True)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
         self.log("val_loss", F.mse_loss(out, y), prog_bar=False)
         self.log("val_MSE", self.valid_mse(out, y), prog_bar=True)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)

@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -30,6 +31,7 @@ class RandomFloatIntDataset(Dataset):
         self.float_data = torch.randn(length, size)
         self.int_data = torch.randint(10, (length, 1))
 
+    @override
     def __getitem__(self, index):
         return self.float_data[index], self.int_data[index]
 
@@ -38,6 +40,7 @@ class RandomFloatIntDataset(Dataset):
 
 
 class DoublePrecisionBoringModel(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         float_data, _ = batch
         assert torch.tensor([0.0]).dtype == torch.float64
@@ -45,43 +48,52 @@ class DoublePrecisionBoringModel(BoringModel):
         assert float_data.dtype == torch.float64
         return super().training_step(float_data, batch_idx)
 
+    @override
     def on_train_epoch_end(self):
         assert torch.tensor([0.0]).dtype == torch.float32
 
+    @override
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         return super().validation_step(batch, batch_idx)
 
+    @override
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         return super().test_step(batch, batch_idx)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         return self(batch)
 
+    @override
     def on_fit_start(self):
         assert self.layer.weight.dtype == torch.float64
 
+    @override
     def on_after_backward(self):
         assert self.layer.weight.grad.dtype == torch.float64
 
+    @override
     def train_dataloader(self):
         dataset = RandomFloatIntDataset(32, 64)
         assert dataset.float_data.dtype == torch.float32  # Don't start with double data
         return DataLoader(dataset)
 
+    @override
     def predict_dataloader(self):
         return DataLoader(RandomDataset(32, 64))
 
 
 class DoublePrecisionBoringModelNoForward(BoringModel):
+    @override
     def training_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
@@ -89,6 +101,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         loss = self.loss(output)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
@@ -96,6 +109,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         loss = self.loss(output)
         return {"x": loss}
 
+    @override
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
@@ -103,12 +117,14 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         loss = self.loss(output)
         return {"y": loss}
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
         return output
 
+    @override
     def predict_dataloader(self):
         return DataLoader(RandomDataset(32, 64))
 
@@ -118,9 +134,11 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         super().__init__()
         self.register_buffer("complex_buffer_wrong", torch.complex(torch.rand(10), torch.rand(10)), persistent=False)
 
+    @override
     def configure_model(self) -> None:
         self.register_buffer("complex_buffer_right", torch.complex(torch.rand(10), torch.rand(10)), persistent=False)
 
+    @override
     def on_fit_start(self):
         # when the default floating point type is float64 the default complex type is complex128, as long as it is
         # initialized under the precision context manager, because `model.to(double)` will not convert properly
@@ -129,6 +147,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         # this hook is not wrapped
         assert torch.tensor([1.2, 3.4j]).dtype == torch.complex64
 
+    @override
     def training_step(self, batch, batch_idx):
         assert torch.tensor([1.2, 3.4j]).dtype == torch.complex128
         return super().training_step(batch, batch_idx)

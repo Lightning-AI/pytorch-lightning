@@ -13,6 +13,8 @@
 # limitations under the License.
 from threading import Thread
 
+from typing_extensions import override
+
 
 class ThreadExceptionHandler(Thread):
     """Adopted from https://stackoverflow.com/a/67022927."""
@@ -21,12 +23,14 @@ class ThreadExceptionHandler(Thread):
         super().__init__(*args, **kwargs)
         self.exception = None
 
+    @override
     def run(self):
         try:
             super().run()
         except Exception as e:
             self.exception = e
 
+    @override
     def join(self):
         super().join()
         if self.exception:

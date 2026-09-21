@@ -108,8 +108,8 @@ class TensorBoardLogger(Logger):
         self._experiment: Optional[SummaryWriter] = None
         self._kwargs = kwargs
 
-    @property
     @override
+    @property
     def name(self) -> str:
         """Get the name of the experiment.
 
@@ -119,8 +119,8 @@ class TensorBoardLogger(Logger):
         """
         return self._name
 
-    @property
     @override
+    @property
     def version(self) -> Union[int, str]:
         """Get the experiment version.
 
@@ -132,8 +132,8 @@ class TensorBoardLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    @property
     @override
+    @property
     def root_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
@@ -143,8 +143,8 @@ class TensorBoardLogger(Logger):
         """
         return self._root_dir
 
-    @property
     @override
+    @property
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -328,6 +328,7 @@ class TensorBoardLogger(Logger):
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
+    @override
     def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None

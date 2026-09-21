@@ -17,6 +17,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.pytorch import LightningModule, Trainer
@@ -61,10 +62,12 @@ def test_configure_model(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", te_mock)
 
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(8, 16)
             assert self.l.weight.dtype == torch.float16
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

@@ -47,14 +47,14 @@ class DataParallelStrategy(ParallelStrategy):
             precision=precision,
         )
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[0]
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> None:
         return None
 

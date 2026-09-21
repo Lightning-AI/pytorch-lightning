@@ -58,8 +58,8 @@ class ParallelStrategy(Strategy, ABC):
     def world_size(self) -> int:
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
-    @property
     @override
+    @property
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 

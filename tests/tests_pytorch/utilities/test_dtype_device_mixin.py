@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch.nn as nn
+from typing_extensions import override
 
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch import Callback, Trainer
@@ -36,6 +37,7 @@ class TopModule(BoringModel):
 
 
 class DeviceAssertCallback(Callback):
+    @override
     def on_train_batch_start(self, trainer, model, batch, batch_idx):
         rank = trainer.local_rank
         assert isinstance(model, TopModule)

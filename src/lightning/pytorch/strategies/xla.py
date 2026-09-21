@@ -46,6 +46,7 @@ class XLAStrategy(DDPStrategy):
 
     strategy_name = "xla"
 
+    @override
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
@@ -70,8 +71,8 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -79,15 +80,15 @@ class XLAStrategy(DDPStrategy):
             return plugin
         return XLACheckpointIO()
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property
     @override
+    @property
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -95,15 +96,15 @@ class XLAStrategy(DDPStrategy):
             return plugin
         return XLAPrecision()
 
-    @precision_plugin.setter
     @override
+    @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         if not self._launched:
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
@@ -111,23 +112,23 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    @property
     @override
+    @property
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def local_rank(self) -> int:
         return super().local_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def node_rank(self) -> int:
         return super().node_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
@@ -170,8 +171,8 @@ class XLAStrategy(DDPStrategy):
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
 
-    @property
     @override
+    @property
     def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 

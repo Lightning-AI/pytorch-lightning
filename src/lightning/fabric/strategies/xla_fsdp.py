@@ -111,8 +111,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         self._sequential_save = sequential_save
         self._launched = False
 
-    @property
     @override
+    @property
     def root_device(self) -> torch.device:
         if not self._launched:
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
@@ -120,12 +120,13 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
         return xm.xla_device()
 
+    @override
     @property
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
     @override
+    @property
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -133,15 +134,15 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             return plugin
         return XLACheckpointIO()
 
-    @checkpoint_io.setter
     @override
+    @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property
     @override
+    @property
     def precision(self) -> XLAPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -149,30 +150,30 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             return plugin
         return XLAPrecision("32-true")
 
-    @precision.setter
     @override
+    @precision.setter
     def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
 
-    @property
     @override
+    @property
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def local_rank(self) -> int:
         return super().local_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def node_rank(self) -> int:
         return super().node_rank if self._launched else 0
 
-    @property
     @override
+    @property
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
@@ -226,6 +227,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def module_to_device(self, module: Module) -> None:
         pass
 
+    @override
     def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()

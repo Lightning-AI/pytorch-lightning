@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -19,6 +20,7 @@ class TinyDataset(Dataset):
     def __len__(self):
         return len(self.x)
 
+    @override
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
@@ -39,20 +41,24 @@ class MultiValPerEpochModule(LightningModule):
         self._val_scores = [float(s) for s in val_scores]
         self._val_call_idx = 0
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.layer(x)
         loss = F.mse_loss(y_hat, y)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         pass
 
+    @override
     def on_validation_epoch_end(self):
         score = self._val_scores[self._val_call_idx]
         self._val_call_idx += 1
         self.log("auroc", torch.tensor(score, dtype=torch.float32), prog_bar=False, logger=True)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -65,20 +71,24 @@ class ValOnceEveryTwoEpochsModule(LightningModule):
         self.layer = nn.Linear(1, 1)
         self._val_scores = [float(s) for s in val_scores]
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.layer(x)
         loss = F.mse_loss(y_hat, y)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         pass
 
+    @override
     def on_validation_epoch_end(self):
         # current_epoch indexes into provided scores; only called when validation runs
         score = self._val_scores[self.current_epoch]
         self.log("auroc", torch.tensor(score, dtype=torch.float32), prog_bar=False, logger=True)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 

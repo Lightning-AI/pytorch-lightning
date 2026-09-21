@@ -76,8 +76,8 @@ class CSVLogger(Logger):
         self._experiment: Optional[_ExperimentWriter] = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
-    @property
     @override
+    @property
     def name(self) -> str:
         """Gets the name of the experiment.
 
@@ -87,8 +87,8 @@ class CSVLogger(Logger):
         """
         return self._name
 
-    @property
     @override
+    @property
     def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
@@ -100,14 +100,14 @@ class CSVLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    @property
     @override
+    @property
     def root_dir(self) -> str:
         """Gets the save directory where the versioned CSV experiments are saved."""
         return self._root_dir
 
-    @property
     @override
+    @property
     def log_dir(self) -> str:
         """The log directory for this run.
 

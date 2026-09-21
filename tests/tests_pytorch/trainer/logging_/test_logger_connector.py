@@ -22,6 +22,7 @@ from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
 from torchmetrics import AveragePrecision as AvgPre
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback
@@ -266,10 +267,12 @@ def test_auto_add_dataloader_idx(tmp_path, add_dataloader_idx):
     """Test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
+        @override
         def val_dataloader(self):
             dl = super().val_dataloader()
             return [dl, dl]
 
+        @override
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args[:-1], **kwargs)
             name = "val_loss" if add_dataloader_idx else f"val_loss_custom_naming_{args[-1]}"
@@ -307,6 +310,7 @@ def test_metrics_reset(tmp_path):
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
+        @override
         def setup(self, stage):
             fn = stage.value
             if fn == "fit":
@@ -320,6 +324,7 @@ def test_metrics_reset(tmp_path):
                 self.add_module(f"acc_{fn}_{stage}", acc)
                 self.add_module(f"ap_{fn}_{stage}", ap)
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
@@ -347,28 +352,35 @@ def test_metrics_reset(tmp_path):
 
             return loss
 
+        @override
         def training_step(self, batch, batch_idx, *args, **kwargs):
             return self._step(batch)
 
+        @override
         def validation_step(self, batch, batch_idx, *args, **kwargs):
             if self.trainer.sanity_checking:
                 return None
             return self._step(batch)
 
+        @override
         def test_step(self, batch, batch_idx, *args, **kwargs):
             return self._step(batch)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
 
+        @override
         def val_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
 
+        @override
         def test_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
 
@@ -442,6 +454,7 @@ def test_metriccollection_compute_groups(tmp_path, compute_groups):
             )
             self.layer = torch.nn.Linear(32, 10)
 
+        @override
         def training_step(self, batch):
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.metrics._is_currently_logging = True
@@ -449,12 +462,15 @@ def test_metriccollection_compute_groups(tmp_path, compute_groups):
             self.metrics._is_currently_logging = False
             return self.layer(batch).sum()
 
+        @override
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
+        @override
         def on_train_epoch_end(self) -> None:
             self.metrics.wrapped_assertion_calls.call_count == 2
             self.metrics.wrapped_assertion_calls.reset_mock()
@@ -572,6 +588,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
 @pytest.mark.parametrize("logger", [False, True])
 def test_logged_metrics_has_logged_epoch_value(tmp_path, logger):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("epoch", -batch_idx, logger=True)
             return super().training_step(batch, batch_idx)

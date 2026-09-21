@@ -21,6 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import DeepSpeedPrecision
@@ -274,6 +275,7 @@ def test_deepspeed_with_bfloat16_precision():
             super().__init__()
             self.layer = nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             assert x.dtype == torch.bfloat16
             return self.layer(x)

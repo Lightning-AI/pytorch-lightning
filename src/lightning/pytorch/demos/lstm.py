@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
+from typing_extensions import override
 
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.transformer import WikiText2
@@ -38,6 +39,7 @@ class SimpleLSTM(nn.Module):
         nn.init.zeros_(self.decoder.bias)
         nn.init.uniform_(self.decoder.weight, -0.1, 0.1)
 
+    @override
     def forward(self, input: Tensor, hidden: tuple[Tensor, Tensor]) -> tuple[Tensor, Tensor]:
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
@@ -60,6 +62,7 @@ class SequenceSampler(Sampler[list[int]]):
         self.batch_size = batch_size
         self.chunk_size = len(self.dataset) // self.batch_size
 
+    @override
     def __iter__(self) -> Iterator[list[int]]:
         n = len(self.dataset)
         for i in range(self.chunk_size):
@@ -75,9 +78,11 @@ class LightningLSTM(LightningModule):
         self.model = SimpleLSTM(vocab_size=vocab_size)
         self.hidden: Optional[tuple[Tensor, Tensor]] = None
 
+    @override
     def on_train_epoch_end(self) -> None:
         self.hidden = None
 
+    @override
     def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         input, target = batch
         if self.hidden is None:
@@ -88,12 +93,15 @@ class LightningLSTM(LightningModule):
         self.log("train_loss", loss, prog_bar=True)
         return loss
 
+    @override
     def prepare_data(self) -> None:
         WikiText2(download=True)
 
+    @override
     def train_dataloader(self) -> DataLoader:
         dataset = WikiText2()
         return DataLoader(dataset, batch_sampler=SequenceSampler(dataset, batch_size=20))
 
+    @override
     def configure_optimizers(self) -> Optimizer:
         return torch.optim.SGD(self.parameters(), lr=20.0)

@@ -25,6 +25,7 @@ from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, Opti
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
@@ -75,11 +76,13 @@ class BasicTrainer:
 
 
 class _Trainer(BasicTrainer):
+    @override
     def get_model(self):
         model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.num_wrapped = 4
         return model
 
+    @override
     def step(self, model, batch):
         wrapped_layers = [m for m in model.modules() if isinstance(m, FullyShardedDataParallel)]
         assert len(wrapped_layers) == self.num_wrapped
@@ -104,6 +107,7 @@ class _Trainer(BasicTrainer):
 
 
 class _TrainerManualWrapping(_Trainer):
+    @override
     def get_model(self):
         model = super().get_model()
         for i, layer in enumerate(model):

@@ -14,6 +14,7 @@
 from unittest.mock import Mock
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
@@ -27,6 +28,7 @@ class FusedOptimizerParityModel(BoringModel):
         super().__init__()
         self.fused = fused
 
+    @override
     def configure_optimizers(self):
         assert isinstance(self.trainer.precision_plugin.scaler, torch.amp.GradScaler)
         return torch.optim.Adam(self.parameters(), lr=1.0, fused=self.fused)
@@ -64,6 +66,7 @@ def test_skip_training_step_with_grad_scaler():
     """Test that the grad scaler gets skipped when skipping a training step."""
 
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             if batch_idx % 2:
                 return None  # skipping the backward should skip the grad scaler too

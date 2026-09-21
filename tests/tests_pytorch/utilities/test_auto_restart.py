@@ -15,6 +15,7 @@ import inspect
 
 import pytest
 from torch.utils.data.dataloader import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, Trainer
@@ -38,6 +39,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             # simulate `os.kill(os.getpid(), signal.SIGTERM)`
             self.trainer._signal_connector.received_sigterm = True
 
+    @override
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
         should_signal = self.trainer.fit_loop.epoch_loop._is_training_done if self.on_last_batch else batch_idx == 2
@@ -45,6 +47,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             self._signal()
         return super().training_step(batch, batch_idx)
 
+    @override
     def validation_step(self, batch, batch_idx):
         should_signal = (
             self.trainer.fit_loop.epoch_loop.val_loop.batch_progress.is_last_batch
@@ -55,17 +58,21 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             self._signal()
         return super().validation_step(batch, batch_idx)
 
+    @override
     def on_train_epoch_end(self):
         if not self.failure_on_step and self.failure_on_training:
             self._signal()
 
+    @override
     def on_validation_epoch_end(self):
         if not self.failure_on_step and not self.failure_on_training:
             self._signal()
 
+    @override
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 4))
 
+    @override
     def val_dataloader(self):
         return DataLoader(RandomDataset(32, 4))
 
@@ -79,6 +86,7 @@ def _fit_model(
     class MyTestCallback(Callback):
         raising_function = None
 
+        @override
         def on_exception(self, trainer, pl_module, exception):
             if isinstance(exception, SIGTERMException):
                 caller = inspect.trace()[-1]

@@ -108,5 +108,6 @@ class _StrategyRegistry(dict):
         """Returns a list of registered strategies."""
         return list(self.keys())
 
+    @override
     def __str__(self) -> str:
         return "Registered Strategies: {}".format(", ".join(self.keys()))

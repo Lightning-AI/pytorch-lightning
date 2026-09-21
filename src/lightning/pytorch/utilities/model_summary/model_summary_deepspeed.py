@@ -35,8 +35,8 @@ def deepspeed_param_size(p: torch.nn.Parameter) -> int:
 
 
 class DeepSpeedLayerSummary(LayerSummary):
-    @property
     @override
+    @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
         return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
@@ -67,13 +67,13 @@ class DeepSpeedSummary(ModelSummary):
 
         return summary
 
-    @property
     @override
+    @property
     def total_parameters(self) -> int:
         return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
-    @property
     @override
+    @property
     def trainable_parameters(self) -> int:
         return sum(
             deepspeed_param_size(p) if not _tensor_has_shape(p) else 0

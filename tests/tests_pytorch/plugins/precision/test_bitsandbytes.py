@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
+from typing_extensions import override
 
 import lightning.fabric
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
@@ -49,9 +50,11 @@ def test_bitsandbytes_plugin(monkeypatch):
     _NF4Linear.quantize = quantize_mock
 
     class MyModel(LightningModule):
+        @override
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
 
+        @override
         def test_step(self, *_): ...
 
     model = MyModel()

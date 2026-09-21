@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO
@@ -45,14 +46,17 @@ def test_restore_checkpoint_after_pre_setup(tmp_path, restore_after_pre_setup):
     class TestPlugin(SingleDeviceStrategy):
         setup_called = False
 
+        @override
         def setup(self, trainer: "pl.Trainer") -> None:
             super().setup(trainer)
             self.setup_called = True
 
+        @override
         @property
         def restore_checkpoint_after_setup(self) -> bool:
             return restore_after_pre_setup
 
+        @override
         def load_checkpoint(self, checkpoint_path: Union[str, Path], weights_only: bool) -> dict[str, Any]:
             assert self.setup_called == restore_after_pre_setup
             return super().load_checkpoint(checkpoint_path, weights_only)

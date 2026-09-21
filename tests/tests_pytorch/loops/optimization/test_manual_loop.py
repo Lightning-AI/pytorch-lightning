@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -35,6 +36,7 @@ def test_warning_invalid_trainstep_output(tmp_path):
             super().__init__()
             self.automatic_optimization = False
 
+        @override
         def training_step(self, batch, batch_idx):
             return 5
 

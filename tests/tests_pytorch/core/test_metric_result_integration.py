@@ -23,6 +23,7 @@ from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 from torchmetrics.classification import Accuracy
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -281,6 +282,7 @@ class DummyMeanMetric(Metric):
     def compute(self):
         return self.sum // self.count
 
+    @override
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
@@ -302,6 +304,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
         def results(self):
             return self.trainer.fit_loop._results
 
+        @override
         def training_step(self, batch, batch_idx):
             # We run 5 batches, meaning batch_idx from [0..4]
             # Without failure, we expect to get `total=sum(range(5))` and `num_batches=5`
@@ -343,6 +346,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 
             return super().training_step(batch, batch_idx)
 
+        @override
         def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 # the state of the results before the exception is not saved and restored, so the total starts after
@@ -419,6 +423,7 @@ def test_metric_collections(tmp_path):
                 "a": ModuleList([ModuleDict({"b": DummyMetric()}), DummyMetric()])
             })
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             self.metrics_list[0](batch_idx)
@@ -447,6 +452,7 @@ def test_metric_collections(tmp_path):
 
             return loss
 
+        @override
         def on_train_epoch_end(self) -> None:
             results = self.trainer.fit_loop.epoch_loop._results
             assert results["training_step.a"].meta.metric_attribute == "metrics_list.0"
@@ -582,6 +588,7 @@ def test_compute_not_a_tensor_raises():
             super().__init__()
             self.metric = RandomMetric()
 
+        @override
         def on_train_start(self):
             self.log("foo", self.metric)
 

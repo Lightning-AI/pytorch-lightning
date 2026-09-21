@@ -17,6 +17,7 @@ from unittest.mock import call
 import pytest
 import torch
 from torch import optim
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -53,6 +54,7 @@ def test_multi_optimizer_with_scheduling(tmp_path):
     class Model(BoringModel):
         init_lr = 5e-4
 
+        @override
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
             loss = self.loss(self.step(batch))
@@ -62,11 +64,13 @@ def test_multi_optimizer_with_scheduling(tmp_path):
             opt1.step()
             opt2.step()
 
+        @override
         def on_train_epoch_end(self):
             scheduler1, scheduler2 = self.lr_schedulers()
             scheduler1.step()
             scheduler2.step()
 
+        @override
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=self.init_lr)
             optimizer2 = optim.Adam(self.parameters(), lr=self.init_lr)
@@ -137,10 +141,12 @@ def test_scheduler_initialized_with_custom_reduceonplateau():
 
 def test_reducelronplateau_scheduling(tmp_path):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", batch_idx)
             return super().training_step(batch, batch_idx)
 
+        @override
         def configure_optimizers(self):
             optimizer = optim.Adam(self.parameters())
             return {
@@ -255,6 +261,7 @@ def test_configure_optimizer_from_dict(tmp_path):
     """Tests if `configure_optimizer` method could return a dictionary with `optimizer` field only."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return {"optimizer": optim.SGD(params=self.parameters(), lr=1e-03)}
 
@@ -268,6 +275,7 @@ def test_init_optimizers_during_evaluation_and_prediction(tmp_path, fn):
     """Test that optimizers is an empty list during evaluation and prediction."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=0.1)
             optimizer2 = optim.Adam(self.parameters(), lr=0.1)
@@ -402,6 +410,7 @@ def test_invalid_optimizer_in_scheduler(tmp_path):
     """Test exception when optimizer attached to lr_schedulers wasn't returned."""
 
     class InvalidOptimizerModel(BoringModel):
+        @override
         def configure_optimizers(self):
             opt1 = optim.SGD(self.layer.parameters(), lr=0.1)
             opt2 = optim.SGD(self.layer.parameters(), lr=0.1)
@@ -418,6 +427,7 @@ def test_invalid_optimizer_dict_raises(tmp_path):
     """Test exception when lr_scheduler dict has no scheduler."""
 
     class DummyModel(BoringModel):
+        @override
         def configure_optimizers(self):
             return [{"optimizer": optim.Adam(self.parameters())}, optim.Adam(self.parameters())]
 
@@ -432,10 +442,12 @@ def test_optimizer_state_on_device(tmp_path):
     """Test that optimizers that create state initially at instantiation still end up with the state on the GPU."""
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             # Adagrad creates state tensors immediately, model is not yet on GPU.
             return optim.Adagrad(self.parameters())
 
+        @override
         def on_train_start(self, *args, **kwargs):
             opt = self.optimizers()
             _, state = next(iter(opt.state.items()))
@@ -488,6 +500,7 @@ def test_lr_scheduler_state_updated_before_saving(tmp_path, every_n_train_steps,
     )
 
     class TestModel(BoringModel):
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=lr)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
@@ -496,6 +509,7 @@ def test_lr_scheduler_state_updated_before_saving(tmp_path, every_n_train_steps,
                 lr_scheduler_config["interval"] = "step"
             return [optimizer], [lr_scheduler_config]
 
+        @override
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config = checkpoint["lr_schedulers"][0]
             # 2 batches ran. since the lr_scheduler_config interval is `step`, the step count should be 2
@@ -524,10 +538,12 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmp_path, save_
     )
 
     class Model(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             self.log("foo", batch_idx)
             return super().training_step(batch, batch_idx)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters())
 
@@ -538,6 +554,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmp_path, save_
             lr_scheduler_config_2 = {"scheduler": lr_scheduler2, "interval": "step"}
             return [optimizer], [lr_scheduler_config_1, lr_scheduler_config_2]
 
+        @override
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config_1 = checkpoint["lr_schedulers"][0]
             last_epoch = lr_scheduler_config_1["last_epoch"]
@@ -567,6 +584,7 @@ def test_lr_scheduler_step_hook(tmp_path):
         def load_state_dict(self, state_dict): ...
 
     class CustomBoringModel(BoringModel):
+        @override
         def lr_scheduler_step(self, scheduler: int, metric):
             # step-level
             if isinstance(scheduler, torch.optim.lr_scheduler.StepLR):
@@ -575,6 +593,7 @@ def test_lr_scheduler_step_hook(tmp_path):
             elif isinstance(scheduler, CustomEpochScheduler):
                 scheduler.step(epoch=self.current_epoch)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
             lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1), "interval": "step"}
@@ -613,6 +632,7 @@ def test_invalid_scheduler_missing_state_dict():
         def step(self): ...
 
     class CustomBoringModel(BoringModel):
+        @override
         def configure_optimizers(self):
             opt = torch.optim.SGD(self.parameters(), lr=1e-2)
             lr_scheduler = CustomScheduler(opt)
@@ -640,6 +660,7 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
         def load_state_dict(self, state_dict): ...
 
     class CustomBoringModel(BoringModel):
+        @override
         def configure_optimizers(self):
             opt = torch.optim.SGD(self.parameters(), lr=1e-2)
             lr_scheduler = CustomScheduler(opt)

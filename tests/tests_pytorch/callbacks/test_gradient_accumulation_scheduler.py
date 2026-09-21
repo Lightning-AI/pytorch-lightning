@@ -15,6 +15,7 @@ import math
 from unittest.mock import Mock, patch
 
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
@@ -114,10 +115,12 @@ def test_warn_if_model_has_overridden_optimization_hooks():
     """Test that the callback warns if optimization hooks were overridden in the LightningModule."""
 
     class OverriddenOptimizerStepModel(BoringModel):
+        @override
         def optimizer_step(self, *args, **kwargs):
             super().optimizer_step(*args, **kwargs)
 
     class OverriddenZeroGradModel(BoringModel):
+        @override
         def optimizer_zero_grad(self, *args, **kwargs):
             super().optimizer_zero_grad(*args, **kwargs)
 

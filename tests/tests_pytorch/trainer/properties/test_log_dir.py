@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -25,6 +26,7 @@ class TestModel(BoringModel):
         super().__init__()
         self.expected_log_dir = expected_log_dir
 
+    @override
     def training_step(self, *args, **kwargs):
         assert self.trainer.log_dir == self.expected_log_dir
         return super().training_step(*args, **kwargs)

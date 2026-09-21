@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -61,6 +62,7 @@ def test_top_k(save_mock, tmp_path, k, epochs, val_check_interval, expected, sav
             super().__init__()
             self.last_coeff = 10.0
 
+        @override
         def training_step(self, batch, batch_idx):
             loss = self.step(torch.ones(32, device=self.device))
             loss = loss / (loss + 0.0000001)
@@ -89,11 +91,13 @@ def test_top_k(save_mock, tmp_path, k, epochs, val_check_interval, expected, sav
 @pytest.mark.parametrize(("k", "epochs", "val_check_interval", "expected"), [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
 def test_top_k_ddp(save_mock, tmp_path, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
+        @override
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
             self.log("my_loss", batch_idx * (1 + local_rank), on_epoch=True)
             return super().training_step(batch, batch_idx)
 
+        @override
         def on_train_epoch_end(self):
             local_rank = int(os.getenv("LOCAL_RANK"))
             if self.trainer.is_global_zero:

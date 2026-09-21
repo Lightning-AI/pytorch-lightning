@@ -55,8 +55,8 @@ class _XLALauncher(_MultiProcessingLauncher):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
 
-    @property
     @override
+    @property
     def is_interactive_compatible(self) -> bool:
         return True
 

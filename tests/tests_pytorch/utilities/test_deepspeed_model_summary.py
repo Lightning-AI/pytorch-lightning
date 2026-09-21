@@ -15,6 +15,7 @@
 from unittest import mock
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
@@ -33,6 +34,7 @@ def test_deepspeed_summary(tmp_path):
     total_parameters = sum(x.numel() for x in model.parameters())
 
     class TestCallback(Callback):
+        @override
         def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             model_summary = DeepSpeedSummary(pl_module, max_depth=1)
             assert model_summary.total_parameters == total_parameters

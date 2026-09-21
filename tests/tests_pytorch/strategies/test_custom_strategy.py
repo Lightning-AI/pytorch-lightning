@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 import torch
+from typing_extensions import override
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -28,10 +29,12 @@ def test_strategy_lightning_restore_optimizer_and_schedulers(tmp_path, restore_o
     class TestStrategy(SingleDeviceStrategy):
         load_optimizer_state_dict_called = False
 
+        @override
         @property
         def lightning_restore_optimizer(self) -> bool:
             return restore_optimizer_and_schedulers
 
+        @override
         def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
             self.load_optimizer_state_dict_called = True
 
