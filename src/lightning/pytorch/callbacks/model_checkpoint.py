@@ -180,6 +180,8 @@ class ModelCheckpoint(Checkpoint):
             (``val_check_interval != 1``), checkpointing is performed after validation.
         enable_version_counter: Whether to append a version to the existing file name.
             If ``False``, then the checkpoint files will be overwritten.
+        min_delta: Minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
+            change of less than or equal to `min_delta`, will count as no improvement. Default: ``0.0``.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -206,8 +208,9 @@ class ModelCheckpoint(Checkpoint):
     Raises:
         MisconfigurationException:
             If ``save_top_k`` is smaller than ``-1``,
-            if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
-            if ``mode`` is none of ``"min"`` or ``"max"``.
+            if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``,
+            if ``mode`` is none of ``"min"`` or ``"max"``, or
+            if ``min_delta`` is smaller than ``0.0``.
         ValueError:
             If ``trainer.save_checkpoint`` is ``None``.
 
@@ -277,6 +280,7 @@ class ModelCheckpoint(Checkpoint):
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
         enable_version_counter: bool = True,
+        min_delta: float = 0.0,
     ):
         super().__init__()
         self.monitor = monitor
@@ -288,6 +292,7 @@ class ModelCheckpoint(Checkpoint):
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
+        self.min_delta = min_delta
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
@@ -550,6 +555,7 @@ class ModelCheckpoint(Checkpoint):
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
             "last_model_path": self.last_model_path,
+            "min_delta": self.min_delta,
         }
 
     @override
@@ -562,6 +568,7 @@ class ModelCheckpoint(Checkpoint):
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+            self.min_delta = state_dict.get("min_delta", self.min_delta)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
@@ -672,6 +679,8 @@ class ModelCheckpoint(Checkpoint):
             )
         if self._every_n_epochs < 0:
             raise MisconfigurationException(f"Invalid value for every_n_epochs={self._every_n_epochs}. Must be >= 0")
+        if self.min_delta < 0:
+            raise MisconfigurationException(f"Invalid value for min_delta={self.min_delta}. Must be >= 0")
 
         every_n_train_steps_triggered = self._every_n_train_steps >= 1
         every_n_epochs_triggered = self._every_n_epochs >= 1
@@ -744,7 +753,10 @@ class ModelCheckpoint(Checkpoint):
             return True
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-        should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        min_delta_adjusted = self.min_delta if self.mode == "max" else -self.min_delta
+        should_update_best_and_save = monitor_op(
+            current - min_delta_adjusted, self.best_k_models[self.kth_best_model_path].to(current.device)
+        )
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
         should_update_best_and_save = trainer.strategy.reduce_boolean_decision(bool(should_update_best_and_save))
