@@ -30,6 +30,24 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
+_CORE_DEVICE_STATS_KEYS = frozenset([
+    # CPU
+    "cpu_percent",
+    "cpu_vm_percent",
+    # CUDA
+    "allocated_bytes.all.current",
+    "allocated_bytes.all.peak",
+    "reserved_bytes.all.current",
+    "reserved_bytes.all.peak",
+    "num_ooms",
+])
+
+_CORE_TPU_STATS_PREFIXES = frozenset([
+    "memory.free.",
+    "memory.used.",
+    "memory.percent.",
+])
+
 
 class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
@@ -106,6 +124,9 @@ class DeviceStatsMonitor(Callback):
             ``"cpu_percent"`` not ``"DeviceStatsMonitor.on_train_batch_end/cpu_percent"``).
             A ``rank_zero_warn`` is emitted for any key in ``filter_keys`` not found in the
             collected stats, which helps catch typos early.
+        verbose: if ``True``, logs all available device stats returned by the accelerator.
+            If ``False``, logs only a core set of metrics (memory usage, CPU utilization)
+            that are most relevant for monitoring training health. Defaults to ``True``.
 
     Raises:
         MisconfigurationException:
@@ -137,9 +158,12 @@ class DeviceStatsMonitor(Callback):
 
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None) -> None:
+    def __init__(
+        self, cpu_stats: Optional[bool] = None, filter_keys: Optional[set[str]] = None, verbose: bool = False
+    ) -> None:
         self._cpu_stats = cpu_stats
         self._filter_keys = filter_keys
+        self._verbose = verbose
 
     @override
     def setup(
@@ -175,6 +199,14 @@ class DeviceStatsMonitor(Callback):
                     f" {unrecognized}"
                 )
 
+    @staticmethod
+    def _filter_core_device_stats(stats: dict[str, float]) -> dict[str, float]:
+        return {
+            k: v
+            for k, v in stats.items()
+            if k in _CORE_DEVICE_STATS_KEYS or any(k.startswith(prefix) for prefix in _CORE_TPU_STATS_PREFIXES)
+        }
+
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -192,6 +224,8 @@ class DeviceStatsMonitor(Callback):
 
             device_stats.update(get_cpu_stats())
 
+        if not self._verbose:
+            device_stats = self._filter_core_device_stats(device_stats)
         if self._filter_keys is not None:
             device_stats = {k: v for k, v in device_stats.items() if k in self._filter_keys}
 
