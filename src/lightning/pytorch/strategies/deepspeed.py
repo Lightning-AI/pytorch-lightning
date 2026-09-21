@@ -125,6 +125,7 @@ class DeepSpeedStrategy(DDPStrategy):
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         exclude_frozen_parameters: bool = False,
+        load_full_weights: bool = False
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. *For more information:* :ref:`deepspeed_advanced`.
@@ -850,10 +851,6 @@ class DeepSpeedStrategy(DDPStrategy):
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
         logging_batch_size_per_gpu: Union[str, int],
-        partition_activations: bool,
-        cpu_checkpointing: bool,
-        contiguous_memory_optimization: bool,
-        synchronize_checkpoint_boundary: bool,
         offload_optimizer: bool,
         offload_parameters: bool,
         nvme_path: str,
@@ -869,15 +866,19 @@ class DeepSpeedStrategy(DDPStrategy):
         single_submit: bool,
         overlap_events: bool,
         thread_count: int,
-        **zero_kwargs: Any,
-    ) -> dict:
-        cfg = {
-            "activation_checkpointing": {
-                "partition_activations": partition_activations,
-                "cpu_checkpointing": cpu_checkpointing,
-                "contiguous_memory_optimization": contiguous_memory_optimization,
-                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary,
-            },
+        free_memory_interval: int,
+        pipeline_read: bool,
+        pipeline_write: bool,
+        max_reuse_distance: int,
+        **kwargs: Any,
+) -> Dict:
+    cfg = super()._create_default_config(...)  # existing logic
+
+    # new addition
+    if self.load_full_weights:
+        cfg["checkpoint"] = {"load_universal": True}
+
+    return cfg
             "aio": {
                 "block_size": block_size,
                 "queue_depth": queue_depth,
