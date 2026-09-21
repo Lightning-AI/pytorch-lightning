@@ -23,7 +23,7 @@ from torch.nn import Module
 from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, _path_join, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -153,9 +153,9 @@ class TensorBoardLogger(Logger):
 
         """
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, self.name, version)
+        log_dir = _path_join(self.root_dir, self.name, version)
         if isinstance(self.sub_dir, str):
-            log_dir = os.path.join(log_dir, self.sub_dir)
+            log_dir = _path_join(log_dir, self.sub_dir)
         log_dir = os.path.expandvars(log_dir)
         log_dir = os.path.expanduser(log_dir)
         return log_dir
@@ -302,7 +302,7 @@ class TensorBoardLogger(Logger):
             self.experiment.close()
 
     def _get_next_version(self) -> int:
-        save_dir = os.path.join(self.root_dir, self.name)
+        save_dir = _path_join(self.root_dir, self.name)
 
         try:
             listdir_info = self._fs.listdir(save_dir)
