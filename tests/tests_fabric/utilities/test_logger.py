@@ -70,6 +70,18 @@ def test_flatten_dict():
 
     assert params == {"dl/0/a": 1, "dl/0/c": 3, "dl/1/b": 2, "dl/1/d": 5, "l": [1, 2, 3, 4]}
 
+    # The list index has to use the requested delimiter too, not a hardcoded slash
+    assert _flatten_dict({"dl": [{"a": 1}]}, delimiter=".") == {"dl.0.a": 1}
+    assert _flatten_dict({"dl": [{"x": {"y": 1}}]}, delimiter="--") == {"dl--0--x--y": 1}
+
+    # Test that values holding no leaves are preserved instead of being silently dropped
+    assert _flatten_dict({"a": [], "b": 5}) == {"a": [], "b": 5}
+    assert _flatten_dict({"a": [{}], "b": 5}) == {"a": [{}], "b": 5}
+    assert _flatten_dict({"a": [{}, {}], "b": 5}) == {"a": [{}, {}], "b": 5}
+    assert _flatten_dict({"a": {}, "b": 5}) == {"a": {}, "b": 5}
+    assert _flatten_dict({"a": {"b": {}}}) == {"a/b": {}}
+    assert _flatten_dict({"a": Namespace()}) == {"a": {}}
+
     # Test flattening of argparse Namespace
     params = Namespace(a=1, b=2)
     wrapping_dict = {"params": params}
