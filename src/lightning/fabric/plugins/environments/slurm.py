@@ -225,7 +225,14 @@ class SLURMEnvironment(ClusterEnvironment):
 
 
 def _is_srun_used() -> bool:
-    return "SLURM_NTASKS" in os.environ and not _is_slurm_interactive_mode()
+    if "SLURM_NTASKS" not in os.environ:
+        return False
+    # `srun` sets `SLURM_STEP_ID` in the launched process, while `salloc` alone does not. This catches
+    # the case of running `srun python ...` inside an interactive `salloc` allocation, where
+    # `SLURM_JOB_NAME` inherited from the allocation is ``bash`` or ``interactive``.
+    if "SLURM_STEP_ID" in os.environ:
+        return True
+    return not _is_slurm_interactive_mode()
 
 
 def _is_slurm_interactive_mode() -> bool:
