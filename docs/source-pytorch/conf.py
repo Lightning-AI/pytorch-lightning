@@ -493,7 +493,6 @@ nitpick_ignore = [
     ("py:meth", "validation_step"),
     ("py:class", "wandb.Artifact"),
     ("py:func", "wandb.init"),
-    ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
     ("py:class", "litlogger.Experiment"),
 ]
