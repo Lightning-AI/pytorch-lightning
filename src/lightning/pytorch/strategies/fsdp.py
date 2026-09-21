@@ -338,6 +338,9 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
+        if isinstance(self.precision_plugin, FSDPPrecision):
+            self.precision_plugin.device_type = self.root_device.type
+
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
