@@ -240,6 +240,31 @@ def test_grad_clipping_norm_error():
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
 
 
+@pytest.mark.parametrize("total_norm", [float("nan"), float("inf"), float("-inf")])
+def test_grad_clipping_norm_error_if_nonfinite(total_norm):
+    strategy = FSDPStrategy()
+    module = MagicMock(spec=FullyShardedDataParallel)
+    module.clip_grad_norm_.return_value = torch.tensor(total_norm)
+    optimizer = Mock()
+
+    with pytest.raises(RuntimeError, match="The total norm of order 2.0 for gradients.*is non-finite"):
+        strategy.clip_gradients_norm(module, optimizer, max_norm=1.0, error_if_nonfinite=True)
+
+    module.clip_grad_norm_.assert_called_once_with(max_norm=1.0, norm_type=2.0)
+
+
+def test_grad_clipping_norm_nonfinite_allowed():
+    strategy = FSDPStrategy()
+    module = MagicMock(spec=FullyShardedDataParallel)
+    module.clip_grad_norm_.return_value = torch.tensor(float("nan"))
+    optimizer = Mock()
+
+    norm = strategy.clip_gradients_norm(module, optimizer, max_norm=1.0, error_if_nonfinite=False)
+
+    assert torch.isnan(norm)
+    module.clip_grad_norm_.assert_called_once_with(max_norm=1.0, norm_type=2.0)
+
+
 def test_save_checkpoint_storage_options(tmp_path):
     """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
     strategy = FSDPStrategy()

@@ -602,6 +602,22 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_clip_gradients_norm_error_if_nonfinite():
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy())
+    fabric.launch()
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+
+    loss = model(torch.ones(1, 2, device=fabric.device)).sum() * torch.tensor(float("nan"), device=fabric.device)
+    fabric.backward(loss)
+
+    with pytest.raises(RuntimeError, match="The total norm of order 2.0 for gradients.*is non-finite"):
+        fabric.clip_gradients(model, optimizer, max_norm=1.0, error_if_nonfinite=True)
+
+
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
