@@ -22,6 +22,7 @@ from lightning.fabric.utilities.data import (
     _WrapAttrTag,
     has_iterable_dataset,
     has_len,
+    sized_len,
     suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
@@ -48,6 +49,22 @@ def test_has_len():
         assert has_len(DataLoader(RandomDataset(0, 0)))
 
     assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
+
+
+def test_sized_len():
+    # a sized object returns its length
+    assert sized_len(DataLoader(RandomDataset(1, 5))) == 5
+    # a zero-length sized object returns 0, not None
+    assert sized_len(DataLoader(RandomDataset(0, 0))) == 0
+    # an object without __len__ returns None (len() raises TypeError)
+    assert sized_len(DataLoader(RandomIterableDataset(1, 1))) is None
+
+    # an object whose __len__ raises NotImplementedError also returns None
+    class _NoLen:
+        def __len__(self):
+            raise NotImplementedError
+
+    assert sized_len(_NoLen()) is None
 
 
 def test_replace_dunder_methods_multiple_loaders_without_init():
