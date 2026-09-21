@@ -29,6 +29,7 @@ def test_default_attributes():
     assert env.world_size() == 1
     assert env.local_rank() == 0
     assert env.node_rank() == 0
+    assert env.num_nodes() == 1
 
 
 @mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "500", "LOCAL_RANK": "2", "NODE_RANK": "3"})

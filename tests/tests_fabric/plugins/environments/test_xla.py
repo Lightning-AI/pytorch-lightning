@@ -49,6 +49,8 @@ def test_default_attributes(monkeypatch):
     assert env.global_rank() == 0
     assert env.local_rank() == 0
     assert env.node_rank() == 1
+    # num_nodes() returns 1 when not using XLA >= 2.1
+    assert env.num_nodes() == 1
 
     with pytest.raises(NotImplementedError):
         _ = env.main_address
@@ -158,3 +160,16 @@ def test_setters_readonly_when_xla_runtime_greater_2_1(xla_available):
 
         env.set_global_rank(100)
         assert env.global_rank() == 2
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.accelerators.xla._XLA_GREATER_EQUAL_2_1", True)
+@mock.patch("lightning.fabric.plugins.environments.xla._XLA_GREATER_EQUAL_2_1", True)
+def test_num_nodes_from_xla_runtime_greater_2_1(xla_available):
+    """Test that num_nodes uses torch_xla.runtime.host_count when XLA >= 2.1."""
+    env = XLAEnvironment()
+
+    with mock.patch("torch_xla.runtime.host_count", return_value=8) as mock_host_count:
+        env.num_nodes.cache_clear()
+        assert env.num_nodes() == 8
+        mock_host_count.assert_called_once()

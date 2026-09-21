@@ -133,3 +133,17 @@ class XLAEnvironment(ClusterEnvironment):
         from torch_xla.utils.utils import getenv_as
 
         return getenv_as(xenv.HOST_ORDINAL, int, 0)
+
+    @override
+    @functools.lru_cache(maxsize=1)
+    def num_nodes(self) -> int:
+        """The total number of hosts (nodes) in the cluster.
+
+        The output is cached for performance.
+
+        """
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime as xr
+
+            return xr.host_count()
+        return 1

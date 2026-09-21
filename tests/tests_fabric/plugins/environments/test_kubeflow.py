@@ -60,6 +60,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.global_rank() == 1
     assert env.local_rank() == 0
     assert env.node_rank() == 1
+    assert env.num_nodes() == 20
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_global_rank(100)
