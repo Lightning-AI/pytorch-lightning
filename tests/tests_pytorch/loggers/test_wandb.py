@@ -676,3 +676,33 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+
+def test_wandb_finalize_failed_marks_run_as_failed(wandb_mock):
+    """Finalize with 'failed' status must explicitly mark the W&B run as failed.
+
+    Without this, atexit calls wandb.finish() with exit_code=0 (e.g. after sys.exit(0)), which W&B incorrectly
+    interprets as a successful run.
+
+    """
+    wandb_mock.run = None
+    logger = WandbLogger()
+    _ = logger.experiment  # trigger wandb.init()
+    logger.finalize("failed")
+    wandb_mock.init().finish.assert_called_once_with(exit_code=1)
+
+
+def test_wandb_finalize_success_does_not_finish_run(wandb_mock):
+    """Finalize with 'success' status should not call finish, atexit handles that."""
+    wandb_mock.run = None
+    logger = WandbLogger()
+    _ = logger.experiment
+    logger.finalize("success")
+    wandb_mock.init().finish.assert_not_called()
+
+
+def test_wandb_finalize_without_experiment_does_not_raise(wandb_mock):
+    """Finalize must be a no-op when no experiment was ever created."""
+    logger = WandbLogger()
+    logger.finalize("failed")  # _experiment is None, should not raise
+    wandb_mock.init.assert_not_called()
