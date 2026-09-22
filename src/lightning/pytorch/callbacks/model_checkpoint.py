@@ -92,12 +92,9 @@ class ModelCheckpoint(Checkpoint):
                 in your training loop as shown in the example above.
 
             Can be remote file paths such as `s3://mybucket/path/` or 'hdfs://path/'
-            (default: ``None``). If dirpath is ``None``, we only keep the ``k`` best checkpoints
-            in memory, and do not save anything to disk.
-
-        filename: Checkpoint filename. Can contain named formatting options to be auto-filled.
-            If no name is provided, it will be ``None`` and the checkpoint will be saved to
-            ``{epoch}``.and if the Trainer uses a logger, the path will also contain logger name and version.
+            (default: ``None``). If ``dirpath`` is ``None``, checkpoints are still saved to disk: they go to
+            ``<default_root_dir>/checkpoints``, or, if the ``Trainer`` uses a logger, to
+            ``<logger's save_dir or default_root_dir>/<name>/<version>/checkpoints``.
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
 
