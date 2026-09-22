@@ -81,3 +81,15 @@ def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_dev
         spike_value=spike_value,
         should_raise=should_raise,
     )
+
+
+@pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
+def test_spike_detection_state_dict_roundtrip():
+    # Regression: ``load_state_dict`` previously called
+    # ``self.running.load_state_dict(...)`` but the attribute is named
+    # ``self.running_mean`` (set in ``__init__``), so any resume of a
+    # SpikeDetection callback crashed with
+    # ``AttributeError: 'SpikeDetection' object has no attribute 'running'``.
+    src = SpikeDetection()
+    dst = SpikeDetection()
+    dst.load_state_dict(src.state_dict())
