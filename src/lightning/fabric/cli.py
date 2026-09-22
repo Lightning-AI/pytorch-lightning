@@ -58,9 +58,12 @@ if _CLICK_AVAILABLE:
             "ignore_unknown_options": True,
         },
     )
-    @click.argument(
-        "script",
-        type=click.Path(exists=True),
+    @click.argument("script", type=str)
+    @click.option(
+        "-m",
+        "--module",
+        is_flag=True,
+        help="Run SCRIPT as a Python module, equivalent to 'python -m'.",
     )
     @click.option(
         "--accelerator",
@@ -124,15 +127,20 @@ if _CLICK_AVAILABLE:
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-    def _run(**kwargs: Any) -> None:
+    @click.pass_context
+    def _run(ctx: click.Context, **kwargs: Any) -> None:
         """Run a Lightning Fabric script.
 
-        SCRIPT is the path to the Python script with the code to run. The script must contain a Fabric object.
+        SCRIPT is the path to the Python script with the code to run, or a module name when --module is set. The script
+        or module must contain a Fabric object.
 
         SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
         there.
 
         """
+        if not kwargs["module"]:
+            script_param = next(param for param in ctx.command.params if param.name == "script")
+            kwargs["script"] = click.Path(exists=True).convert(kwargs["script"], script_param, ctx)
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
 
@@ -221,8 +229,10 @@ def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
         f"--node_rank={args.node_rank}",
         f"--master_addr={args.main_address}",
         f"--master_port={args.main_port}",
-        args.script,
     ]
+    if args.module:
+        torchrun_args.append("--module")
+    torchrun_args.append(args.script)
     torchrun_args.extend(script_args)
 
     # set a good default number of threads for OMP to avoid warnings being emitted to the user
