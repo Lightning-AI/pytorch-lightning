@@ -1,13 +1,13 @@
 # PyTorch-Lightning Docs
 
-We are using Sphinx with Napoleon extension.
+We are using Sphinx with the Napoleon extension.
 Moreover, we set Google style to follow with type convention.
 
 - [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
 - [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
 - [Paragraph-level markup](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#paragraphs)
 
-See following short example of a sample function taking one position string and optional
+See the following short example of a sample function taking an int parameter and an optional float parameter.
 
 ```python
 from typing import Optional
@@ -39,7 +39,7 @@ def my_func(param_a: int, param_b: Optional[float] = None) -> str:
 
 When updating the docs, make sure to build them first locally and visually inspect the html files in your browser for
 formatting errors. In certain cases, a missing blank line or a wrong indent can lead to a broken layout.
-Run these commands
+Run these commands:
 
 ```bash
 git submodule update --init --recursive
@@ -48,11 +48,11 @@ make docs
 
 and open `docs/build/html/index.html` in your browser.
 
-When you send a PR the continuous integration will run tests and build the docs.
+When you send a PR, the continuous integration will run tests and build the docs.
 
 Notes:
 
-- You need to have LaTeX installed for rendering math equations. You can for example install TeXLive with the necessary extras by doing one of the following:
+- You need to have LaTeX installed for rendering math equations. You can, for example, install TeXLive with the necessary extras by doing one of the following:
   - on Ubuntu (Linux) run `sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures`
   - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
 - You need to have pandoc installed for rendering Jupyter Notebooks. On Ubuntu (Linux), you can run: `sudo apt-get install pandoc`
@@ -60,17 +60,17 @@ Notes:
 ## Developing docs
 
 When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
-To speed this up, enable this flag in before building docs:
+To speed this up, enable this flag before building docs:
 
 ```bash
-# builds notebooks which is slow
+# builds notebooks, which is slow
 export FAST_DOCS_DEV=0
 
-# fast notebook build which is fast
+# fast notebook build
 export FAST_DOCS_DEV=1
 ```
 
 ## docs CSS/theme
 
 To change the CSS theme of the docs, go [here](https://github.com/Lightning-AI/lightning_sphinx_theme).
-Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.
+Apologies in advance... this is a bit complex to build and requires a basic understanding of JavaScript/npm.
