@@ -152,6 +152,34 @@ def test_comet_epoch_logging(comet_mock, tmp_path, monkeypatch):
 
 
 @mock.patch.dict(os.environ, {})
+def test_comet_epoch_key_can_extract_custom_epoch_logging(comet_mock, tmp_path, monkeypatch):
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=str(tmp_path), epoch_key="trainer/epoch")
+    logger.log_metrics({"test": 1, "trainer/epoch": 1}, step=123)
+    logger.experiment.__internal_api__log_metrics__.assert_called_once_with(
+        {"test": 1},
+        epoch=1,
+        step=123,
+        prefix=logger._prefix,
+        framework="pytorch-lightning",
+    )
+
+
+@mock.patch.dict(os.environ, {})
+def test_comet_epoch_key_none_disables_epoch_extraction(comet_mock, tmp_path, monkeypatch):
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=str(tmp_path), epoch_key=None)
+    logger.log_metrics({"test": 1, "epoch": 1}, step=123)
+    logger.experiment.__internal_api__log_metrics__.assert_called_once_with(
+        {"test": 1, "epoch": 1},
+        epoch=None,
+        step=123,
+        prefix=logger._prefix,
+        framework="pytorch-lightning",
+    )
+
+
+@mock.patch.dict(os.environ, {})
 def test_comet_log_hyperparams(comet_mock, tmp_path, monkeypatch):
     """Test that CometLogger.log_hyperparams calls internal API method."""
     _patch_comet_atexit(monkeypatch)
