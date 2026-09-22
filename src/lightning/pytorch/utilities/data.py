@@ -29,6 +29,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
@@ -46,7 +47,22 @@ def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
             yield 1
         else:
             yield batch.size(0)
-    elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
+        return
+
+    # ndarray is Iterable, so this must run before the generic Iterable branch.
+    # Otherwise a 0-d array TypeErrors ("iteration over a 0-d array") and a
+    # batched array walks into scalars instead of using the leading dim.
+    if _NUMPY_AVAILABLE:
+        import numpy as np
+
+        if isinstance(batch, np.ndarray):
+            if batch.ndim == 0:
+                yield 1
+            else:
+                yield batch.shape[0]
+            return
+
+    if isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
 
@@ -60,10 +76,10 @@ def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
 
 
 def extract_batch_size(batch: BType) -> int:
-    """Unpack a batch to find a ``torch.Tensor``.
+    """Unpack a batch to find a ``torch.Tensor`` or NumPy ndarray.
 
     Returns:
-        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+        The leading dimension when a tensor or ndarray is found, or ``1`` for a 0-d array.
 
     """
     error_msg = (

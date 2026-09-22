@@ -62,6 +62,15 @@ def test_extract_batch_size():
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
 
+    batch = np.zeros((11, 10, 9, 8))
+    _check_warning_not_raised(batch, 11)
+
+    batch = {"images": np.zeros((11, 3, 32, 32))}
+    _check_warning_not_raised(batch, 11)
+
+    batch = np.array(3.0)
+    _check_warning_not_raised(batch, 1)
+
     # Warning raised
     batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
     _check_warning_raised(batch, 1)
