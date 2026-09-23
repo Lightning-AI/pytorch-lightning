@@ -45,6 +45,24 @@ Inside a Lightning checkpoint you'll find:
 - The hyperparameters (init arguments) with which the model was created
 - The hyperparameters (init arguments) with which the datamodule was created
 - State of Loops
+- Training metadata (device, node, process, and training dataloader worker counts; full checkpoints only)
+
+Full checkpoints (``weights_only=False``) include a ``training_metadata`` dictionary:
+
+.. code-block:: python
+
+    checkpoint = torch.load("/path/to/checkpoint.ckpt", weights_only=True)
+    metadata = checkpoint["training_metadata"]
+    # Example for training on two nodes with four devices per node:
+    # {"num_devices": 4, "num_nodes": 2, "world_size": 8, "num_workers": [2]}
+
+``num_devices`` is the number of devices per node and ``world_size`` is the total number of processes.
+``num_workers`` records the worker count per process for each training dataloader in flattened
+:class:`~lightning.pytorch.utilities.combined_loader.CombinedLoader` order.
+It is empty before training dataloaders are set up; entries for iterables that are not PyTorch
+:class:`~torch.utils.data.DataLoader` instances are ``None``.
+These fields also appear in full checkpoints saved on exceptions. They describe the configuration at save time
+for inspection and are not used to configure or reject a resumed run. Older checkpoints may not contain this dictionary.
 
 ----
 

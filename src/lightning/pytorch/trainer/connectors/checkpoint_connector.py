@@ -21,6 +21,7 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
 from lightning_utilities import module_available
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
@@ -424,6 +425,7 @@ class _CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
+                'training_metadata':         Device, node, process, and training worker counts # if not weights_only
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
@@ -455,6 +457,19 @@ class _CheckpointConnector:
             log.info("`weights_only` was not set, defaulting to `False`.")
 
         if not weights_only:
+            combined_loader = trainer.fit_loop._combined_loader
+            checkpoint["training_metadata"] = {
+                "num_devices": trainer.num_devices,
+                "num_nodes": trainer.num_nodes,
+                "world_size": trainer.world_size,
+                "num_workers": [
+                    loader.num_workers if isinstance(loader, DataLoader) else None
+                    for loader in combined_loader.flattened
+                ]
+                if combined_loader is not None
+                else [],
+            }
+
             # dump callbacks
             checkpoint["callbacks"] = call._call_callbacks_state_dict(trainer)
 
