@@ -579,6 +579,7 @@ def test_fit_loop_reset(tmp_path):
 
     # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     assert fit_loop.restarting
+    assert fit_loop.restarted_mid_epoch
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
     assert fit_loop.epoch_progress.current.ready == 1
@@ -619,6 +620,8 @@ def test_fit_loop_reset(tmp_path):
     # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     # since we are restarting at the end of epoch, we need to see `completed` being updated after reset
     assert fit_loop.restarting
+    # the saved epoch is finished, so the next one must start as a new epoch (#21967)
+    assert not fit_loop.restarted_mid_epoch
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 1
     assert fit_loop.epoch_progress.current.ready == 1
@@ -632,6 +635,54 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.processed == 0
     assert epoch_loop.batch_progress.current.completed == 0
+
+
+def test_resume_from_last_train_batch_checkpoint_starts_the_next_epoch(tmp_path):
+    """A checkpoint saved on an epoch's last training batch is fast-forwarded to the end of that epoch on resume.
+
+    The next epoch must then start like any other: with ``on_train_epoch_start`` and its ``ready``/``started``
+    counters. Otherwise a checkpoint saved during it reads as if no epoch were in flight, and resuming from that
+    checkpoint runs the epoch a second time (#21967).
+
+    """
+
+    class RecordEpochStarts(Callback):
+        def __init__(self):
+            self.epochs = []
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self.epochs.append(trainer.current_epoch)
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "limit_train_batches": 2,
+        "limit_val_batches": 0,
+        "logger": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+    }
+
+    # epoch 0 ends with a checkpoint on its last training batch
+    first = ModelCheckpoint(dirpath=tmp_path / "first", every_n_train_steps=2, save_top_k=-1)
+    Trainer(max_epochs=1, callbacks=[first], **trainer_kwargs).fit(BoringModel())
+
+    # resume and run epoch 1, which again ends with a checkpoint on its last training batch
+    starts = RecordEpochStarts()
+    second = ModelCheckpoint(dirpath=tmp_path / "second", every_n_train_steps=2, save_top_k=-1)
+    trainer = Trainer(max_epochs=2, callbacks=[starts, second], **trainer_kwargs)
+    trainer.fit(BoringModel(), ckpt_path=tmp_path / "first" / "epoch=0-step=2.ckpt")
+    assert starts.epochs == [1]
+    saved = torch.load(tmp_path / "second" / "epoch=1-step=4.ckpt", weights_only=True)
+    progress = saved["loops"]["fit_loop"]["epoch_progress"]["total"]
+    assert (progress["ready"], progress["started"]) == (2, 2)
+    assert (progress["processed"], progress["completed"]) == (1, 1)  # epoch 1 was in flight
+
+    # max_epochs=2 is already reached, so resuming from that checkpoint runs no further epoch
+    starts = RecordEpochStarts()
+    trainer = Trainer(max_epochs=2, callbacks=[starts], **trainer_kwargs)
+    trainer.fit(BoringModel(), ckpt_path=tmp_path / "second" / "epoch=1-step=4.ckpt")
+    assert starts.epochs == []
+    assert trainer.global_step == 4
 
 
 def compare_state_dicts(dict1, dict2):

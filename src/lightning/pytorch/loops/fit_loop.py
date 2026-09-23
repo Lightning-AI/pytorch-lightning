@@ -411,8 +411,11 @@ class _FitLoop(_Loop):
         ):
             self.epoch_progress.increment_processed()
             self.epoch_progress.increment_completed()
-
-        if (
+            # The saved epoch is finished now, so the next iteration starts a new epoch. Leaving the
+            # stage at RESTARTED_MID_EPOCH made `on_advance_start` treat it as the resumed one and skip
+            # its `ready`/`started` counters and `on_train_epoch_start`.
+            self._restart_stage = RestartStage.NONE
+        elif (
             self.epoch_loop.restarted_on_train_batch_end
             and self.epoch_loop.batch_progress.is_last_batch
             and not self.restarted_mid_epoch
