@@ -33,6 +33,7 @@ from lightning.fabric.utilities.device_parser import _determine_root_gpu_device,
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
@@ -430,11 +431,14 @@ class _AcceleratorConnector:
 
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
+        ) and not (
+            self._accelerator_flag in ("cuda", "gpu", "cpu")
+            or isinstance(self._accelerator_flag, (CUDAAccelerator, CPUAccelerator))
+        ):
             raise ValueError(
-                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
+                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU or CPU accelerator, but received "
                 f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
-                " or pass a `CUDAAccelerator()` instance to use FSDP."
+                " `accelerator='cpu'`, or pass a `CUDAAccelerator()`/`CPUAccelerator()` instance to use FSDP."
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
