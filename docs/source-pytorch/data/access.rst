@@ -10,6 +10,7 @@ via the trainer properties :meth:`~lightning.pytorch.trainer.trainer.Trainer.tra
 :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict_dataloaders`.
 
 .. code-block:: python
+   :emphasize-lines: 1
 
     dataloaders = trainer.train_dataloader
     dataloaders = trainer.val_dataloaders
