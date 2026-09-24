@@ -215,7 +215,7 @@ class LightningArgumentParser(ArgumentParser):
         """Adds arguments from a learning rate scheduler class to a nested key of the parser.
 
         Args:
-            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``. Use
+            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{LRScheduler, ReduceLROnPlateau}``. Use
                 tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.

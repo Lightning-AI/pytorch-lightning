@@ -18,7 +18,6 @@ import math
 import os
 import time
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional, Union
 
 from typing_extensions import override
@@ -39,7 +38,7 @@ class SimpleProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
         extended: bool = True,
     ) -> None:
