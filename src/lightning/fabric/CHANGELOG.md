@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
+- Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
+
 - Fixed DeepSpeed checkpoint path validation rejecting remote filesystem URIs (S3, GCS, HDFS) ([#21636](https://github.com/Lightning-AI/pytorch-lightning/pull/21636))
 
 - Fixed `FSDPStrategy` raising `RuntimeError` under PyTorch 2.5+ when `root_device` is CPU, by passing an explicit `torch.device("cpu")` instead of `device_id=None` (relevant only when the GPU-accelerator guard is bypassed) ([#21774](https://github.com/Lightning-AI/pytorch-lightning/pull/21774))
@@ -35,6 +37,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed inconsistent FLOPs reporting on NVIDIA H100/H200 GPUs by defaulting to dense FLOPs, with sparse FLOPs now requiring an explicit opt-in. ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
 - Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
+
+- Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
+
+- Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
+
+- Fixed the `scheduler` type hint on `Fabric.setup` and `Strategy.setup_module_and_optimizers` to use the public `LRScheduler` instead of the private `_LRScheduler` ([#21934](https://github.com/Lightning-AI/pytorch-lightning/pull/21934))
+
+---
+
+## [2.6.5] - 2026-05-27
+
+### Changed
+
+- Use `fs.pipe()` for S3/GCS checkpoint uploads in `_atomic_save` ([#21595](https://github.com/Lightning-AI/pytorch-lightning/pull/21595))
 
 ---
 
