@@ -205,6 +205,34 @@ def test_loops_restore(tmp_path):
                 trainer_loop2.load_state_dict.assert_not_called()
 
 
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_current_epoch_restored_outside_fit(trainer_fn, tmp_path):
+    """Regression test for #19558: `trainer.current_epoch` should reflect the checkpoint's epoch even when
+    restoring outside of `fit` (e.g. via `trainer.test(ckpt_path=...)`)."""
+    model = BoringModel()
+    trainer_args = {
+        "default_root_dir": tmp_path,
+        "max_epochs": 2,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "limit_test_batches": 1,
+        "limit_predict_batches": 1,
+        "logger": False,
+        "num_sanity_val_steps": 0,
+        "enable_checkpointing": False,
+    }
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+    assert trainer.current_epoch == 2
+
+    ckpt_path = str(tmp_path / "ckpt")
+    trainer.save_checkpoint(ckpt_path)
+
+    trainer = Trainer(**trainer_args)
+    getattr(trainer, trainer_fn)(model, ckpt_path=ckpt_path)
+    assert trainer.current_epoch == 2
+
+
 def test_stateful_trainer_ckpt_path_support(tmp_path):
     """Tests support for the pattern used by NeMo's experiment manager."""
     model = BoringModel()
