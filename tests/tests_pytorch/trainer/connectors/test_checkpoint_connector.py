@@ -207,8 +207,8 @@ def test_loops_restore(tmp_path):
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
 def test_current_epoch_restored_outside_fit(trainer_fn, tmp_path):
-    """Regression test for #19558: `trainer.current_epoch` should reflect the checkpoint's epoch even when
-    restoring outside of `fit` (e.g. via `trainer.test(ckpt_path=...)`)."""
+    """Regression test for #19558: `trainer.current_epoch` should reflect the checkpoint's epoch even when restoring
+    outside of `fit` (e.g. via `trainer.test(ckpt_path=...)`)."""
     model = BoringModel()
     trainer_args = {
         "default_root_dir": tmp_path,

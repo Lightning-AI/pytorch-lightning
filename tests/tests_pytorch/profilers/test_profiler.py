@@ -418,8 +418,8 @@ def test_advanced_profiler_nested(advanced_profiler):
 
 
 def test_advanced_profiler_manual_nested_in_hook(tmp_path):
-    """Regression test for #17333: manually calling start/stop inside a Trainer hook nests with the Trainer's own
-    hook-level profiling and must not raise ValueError."""
+    """Regression test for #17333: manually calling start/stop inside a Trainer hook nests with the Trainer's own hook-
+    level profiling and must not raise ValueError."""
 
     class ManualProfileModel(BoringModel):
         def on_validation_epoch_start(self):
