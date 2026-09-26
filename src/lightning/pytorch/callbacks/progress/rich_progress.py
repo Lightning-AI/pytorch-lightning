@@ -529,6 +529,9 @@ class RichProgressBar(ProgressBar):
         if self.is_enabled and self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             assert self.progress is not None
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
+            # refresh the metrics column too: without this, the frame re-renders the
+            # column's cache, which still holds the previous validation's values
+            self._update_metrics(trainer, pl_module)
             self.refresh()
 
     @override

@@ -265,8 +265,14 @@ def test_rich_progress_bar_update_counts(tmp_path, train_batches, val_batches, e
         assert fit_val_bar.total == val_batches
         assert not fit_val_bar.visible
 
-    # one call for each train batch + one at the end of training epoch + one for validation end
-    assert metrics_update.call_count == train_batches + (1 if train_batches > 0 else 0) + (1 if val_batches > 0 else 0)
+    # one call for each train batch + one at the end of training epoch + one when the validation
+    # epoch ends + one for validation end
+    assert metrics_update.call_count == (
+        train_batches
+        + (1 if train_batches > 0 else 0)
+        + (1 if val_batches > 0 else 0)  # the metrics column is refreshed before the val bar is hidden
+        + (1 if val_batches > 0 else 0)
+    )
 
 
 @RunIf(rich=True)
@@ -418,11 +424,13 @@ def test_rich_progress_bar_correct_value_epoch_end(tmp_path):
         ("sanity_check", 0, 0, {"b": 0}),
         ("train", 0, 1, {}),
         ("train", 0, 2, {}),
+        ("validate", 0, 2, {"b": 2}),  # validation epoch end: the metrics column is refreshed here
         ("validate", 0, 2, {"b": 2}),  # validation end
         # epoch end over, `on_epoch=True` metrics are computed
         ("train", 0, 2, {"a": 1, "b": 2}),  # training epoch end
         ("train", 1, 3, {"a": 1, "b": 2}),
         ("train", 1, 4, {"a": 1, "b": 2}),
+        ("validate", 1, 4, {"a": 1, "b": 4}),  # validation epoch end: the metrics column is refreshed here
         ("validate", 1, 4, {"a": 1, "b": 4}),  # validation end
         ("train", 1, 4, {"a": 3, "b": 4}),  # training epoch end
     ]
@@ -444,6 +452,42 @@ def test_rich_progress_bar_padding():
     train_description = progress_bar._get_train_description(current_epoch=0)
     assert "Epoch 0/0" in train_description
     assert len(progress_bar.validation_description) == len(train_description)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_metrics_column_current_at_validation_end(tmp_path):
+    """The frame hiding the val bar must render the just-finished epoch's metrics, not the previous ones."""
+
+    class MarkerModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("val_epoch_marker", float(self.current_epoch), on_epoch=True, prog_bar=True)
+            return super().validation_step(batch, batch_idx)
+
+    rendered = {}
+
+    class CapturingBar(RichProgressBar):
+        def on_validation_epoch_end(self, trainer, pl_module):
+            super().on_validation_epoch_end(trainer, pl_module)
+            rendered[trainer.current_epoch] = self._metric_component._metrics.get("val_epoch_marker")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        callbacks=CapturingBar(),
+    )
+    trainer.fit(
+        MarkerModel(),
+        train_dataloaders=DataLoader(RandomDataset(32, 16), batch_size=4),
+        val_dataloaders=DataLoader(RandomDataset(32, 16), batch_size=4),
+    )
+
+    # the marker equals the epoch whose metrics are displayed: while validating epoch 1,
+    # the rendered column must show 1.0, not the sanity check's / epoch 0's value
+    assert rendered[1] == 1.0, f"stale frame: rendered {rendered[1]!r} while validating epoch 1"
 
 
 @RunIf(rich=True)
