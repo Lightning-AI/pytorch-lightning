@@ -15,13 +15,14 @@ Sometimes these warnings can be false positives, and you may want to suppress th
 -----
 
 
-*********************************
+*************************
 Suppress a single warning message
-*********************************
+*************************
 
 Suppressing an individual warning message can be done through the :mod:`warnings` module:
 
 .. code-block:: python
+    :emphasize-lines: 4
 
     import warnings
 
@@ -38,6 +39,7 @@ Suppress all instances of PossibleUserWarning
 Suppressing all warnings of the ``PossibleUserWarning`` category can be done programmatically
 
 .. code-block:: python
+    :emphasize-lines: 3-5
 
     from lightning.pytorch.utilities import disable_possible_user_warnings
 
@@ -48,6 +50,7 @@ or through the environment variable ``POSSIBLE_USER_WARNINGS``:
 
 
 .. code-block:: bash
+    :emphasize-lines: 2-3
 
     export POSSIBLE_USER_WARNINGS=off
     # or
