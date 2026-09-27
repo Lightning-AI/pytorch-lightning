@@ -19,7 +19,7 @@ def test_uses_provided_step(mock_convert):
     assert connector._logged_metrics == metrics
     mock_convert.assert_called_once_with(metrics)
     logger.log_metrics.assert_called_once_with(metrics=mock_convert.return_value, step=step)
-    logger.save.assert_called_once_with()
+    logger.save.assert_not_called()
 
 
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
@@ -37,7 +37,7 @@ def test_uses_step_metric(mock_convert):
     assert connector._logged_metrics == logged_metrics
     mock_convert.assert_called_once_with(logged_metrics)
     logger.log_metrics.assert_called_once_with(metrics=mock_convert.return_value, step=int(step))
-    logger.save.assert_called_once_with()
+    logger.save.assert_not_called()
 
 
 @patch("lightning.pytorch.trainer.connectors.logger_connector.logger_connector.convert_tensors_to_scalars")
@@ -58,5 +58,5 @@ def test_uses_batches_that_stepped(mock_convert):
     logger.log_metrics.assert_called_once_with(
         metrics=mock_convert.return_value, step=trainer.fit_loop.epoch_loop._batches_that_stepped
     )
-    logger.save.assert_called_once_with()
+    logger.save.assert_not_called()
     mock_convert.return_value.setdefault.assert_called_once_with("epoch", trainer.current_epoch)
