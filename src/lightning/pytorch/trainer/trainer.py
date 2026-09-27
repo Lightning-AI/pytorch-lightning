@@ -1806,4 +1806,3 @@ class Trainer:
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-

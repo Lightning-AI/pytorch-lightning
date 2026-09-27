@@ -279,4 +279,3 @@ def _validate_callbacks_list(callbacks: list[Callback]) -> None:
                 " HINT: The `callback.state_key` must be unique among all callbacks in the Trainer."
             )
         seen_callbacks.add(callback.state_key)
-
