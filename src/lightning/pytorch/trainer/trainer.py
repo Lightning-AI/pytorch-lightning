@@ -116,6 +116,7 @@ class Trainer:
         enable_checkpointing: Optional[bool] = None,
         enable_progress_bar: Optional[bool] = None,
         enable_model_summary: Optional[bool] = None,
+        enable_device_summary: Optional[bool] = None,
         accumulate_grad_batches: int = 1,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
@@ -237,6 +238,9 @@ class Trainer:
                 Default: ``True``.
 
             enable_model_summary: Whether to enable model summarization by default.
+                Default: ``True``.
+
+            enable_device_summary: Whether to enable device info logging by default.
                 Default: ``True``.
 
             accumulate_grad_batches: Accumulates gradients over k batches before stepping the optimizer.
@@ -364,6 +368,12 @@ class Trainer:
                     " Model summary can impact raw speed so it is disabled in barebones mode."
                 )
             enable_model_summary = False
+            if enable_device_summary:
+                raise ValueError(
+                    f"`Trainer(barebones=True, enable_device_summary={enable_device_summary!r})` was passed."
+                    " Device summary can impact raw speed so it is disabled in barebones mode."
+                )
+            enable_device_summary = False
             if num_sanity_val_steps is not None and num_sanity_val_steps != 0:
                 raise ValueError(
                     f"`Trainer(barebones=True, num_sanity_val_steps={num_sanity_val_steps!r})` was passed."
@@ -390,6 +400,7 @@ class Trainer:
                 " - Checkpointing: `Trainer(enable_checkpointing=True)`",
                 " - Progress bar: `Trainer(enable_progress_bar=True)`",
                 " - Model summary: `Trainer(enable_model_summary=True)`",
+                " - Device summary: `Trainer(enable_device_summary=True)`",
                 " - Logging: `Trainer(logger=True)`, `Trainer(log_every_n_steps>0)`,"
                 " `LightningModule.log(...)`, `LightningModule.log_dict(...)`",
                 " - Sanity checking: `Trainer(num_sanity_val_steps>0)`",
@@ -414,6 +425,8 @@ class Trainer:
                 log_every_n_steps = 50
             if enable_model_summary is None:
                 enable_model_summary = True
+            if enable_device_summary is None:
+                enable_device_summary = True
             if num_sanity_val_steps is None:
                 num_sanity_val_steps = 2
 
@@ -456,6 +469,7 @@ class Trainer:
             enable_progress_bar,
             default_root_dir,
             enable_model_summary,
+            enable_device_summary,
             max_time,
         )
 
@@ -490,8 +504,10 @@ class Trainer:
                 " is recommended only for model debugging."
             )
         self._detect_anomaly: bool = detect_anomaly
+        self._enable_device_summary: bool = enable_device_summary
 
-        setup._log_device_info(self)
+        if enable_device_summary:
+            setup._log_device_info(self)
 
         self.should_stop = False
         self.state = TrainerState()
@@ -1790,3 +1806,4 @@ class Trainer:
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
+
