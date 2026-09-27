@@ -128,7 +128,6 @@ class _LoggerConnector:
         # log actual metrics
         for logger in self.trainer.loggers:
             logger.log_metrics(metrics=scalar_metrics, step=step)
-            logger.save()
 
     """
     Evaluation metric updates
