@@ -20,6 +20,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
 
 from lightning.pytorch import LightningModule, Trainer
@@ -632,6 +633,71 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.processed == 0
     assert epoch_loop.batch_progress.current.completed == 0
+
+
+class _EpochRecordingSampler(RandomSampler):
+    """Like `DistributedSampler`, reads `self.epoch` when the permutation is drawn in `__iter__`."""
+
+    def __init__(self, data_source, log_file):
+        super().__init__(data_source)
+        self.epoch = 0
+        self.log_file = log_file
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
+
+    def __iter__(self):
+        # the sampler is iterated in the main process, but log to a file to be robust against `spawn` start methods
+        with open(self.log_file, "a") as f:
+            f.write(f"{self.epoch}\n")
+        yield from super().__iter__()
+
+
+@pytest.mark.parametrize("save_on_last_batch", [False, True])
+def test_resume_sets_sampler_epoch_before_iterator_creation(tmp_path, save_on_last_batch):
+    """Test that the first epoch of a resumed run draws its sampler permutation with the restored epoch.
+
+    A `DataLoader` with worker processes draws the first indices as soon as its iterator is created, so the sampler
+    epoch must be set before the iterator gets created in `FitLoop.setup_data` (#21938). The checkpoint is either
+    saved at the end of the epoch or on its last training batch (in which case the epoch progress is fast-forwarded on
+    resume and the sampler epoch must reflect that).
+
+    """
+    log_file = tmp_path / "sampler_epochs.log"
+    dataset = RandomDataset(32, 8)
+
+    def make_dataloader():
+        return DataLoader(dataset, sampler=_EpochRecordingSampler(dataset, str(log_file)), batch_size=4, num_workers=1)
+
+    def read_epochs():
+        epochs = [int(line) for line in log_file.read_text().split()]
+        log_file.write_text("")
+        return epochs
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    if save_on_last_batch:
+        # saved in `on_train_batch_end` of the last batch of epoch 1 (2 batches per epoch)
+        checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=4, save_top_k=-1)
+        ckpt_path = tmp_path / "epoch=1-step=4.ckpt"
+    else:
+        checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, save_last=True, save_top_k=0)
+        ckpt_path = tmp_path / "last.ckpt"
+
+    trainer = Trainer(**trainer_kwargs, max_epochs=2, callbacks=[checkpoint_callback])
+    trainer.fit(BoringModel(), make_dataloader())
+    assert read_epochs() == [0, 1]
+
+    trainer = Trainer(**trainer_kwargs, max_epochs=4, enable_checkpointing=False)
+    trainer.fit(BoringModel(), make_dataloader(), ckpt_path=ckpt_path)
+    # the sampler may be iterated more than once per epoch (the iterator is re-created), but never with a stale epoch
+    assert sorted(set(read_epochs())) == [2, 3]
 
 
 def compare_state_dicts(dict1, dict2):
