@@ -57,6 +57,7 @@ class _CallbackConnector:
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
         enable_model_summary: bool,
+        enable_device_summary: bool,
         max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
@@ -188,7 +189,7 @@ class _CallbackConnector:
 
         # if we get here, we are not using litmodels already and we aren't using litlogger with log_model enabled
         rank_zero_info(
-            "💡 Tip: For seamless cloud uploads and versioning,"
+            "馃挕 Tip: For seamless cloud uploads and versioning,"
             " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
             " which syncs automatically with the Lightning model registry."
         )
@@ -278,3 +279,4 @@ def _validate_callbacks_list(callbacks: list[Callback]) -> None:
                 " HINT: The `callback.state_key` must be unique among all callbacks in the Trainer."
             )
         seen_callbacks.add(callback.state_key)
+
