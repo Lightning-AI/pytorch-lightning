@@ -348,6 +348,16 @@ class Strategy(ABC):
             state.load_state_dict(checkpoint)
             return {}
 
+        self._load_checkpoint_into_state(state, checkpoint, strict=strict)
+        return checkpoint
+
+    def _load_checkpoint_into_state(self, state: dict[str, Any], checkpoint: dict[str, Any], strict: bool) -> None:
+        """Restores the objects in ``state`` in-place from ``checkpoint``, removing the restored entries from it.
+
+        Nested dictionaries that contain stateful objects (modules, optimizers, ...) are restored in-place as well, so
+        that references the caller holds to the nested objects remain valid.
+
+        """
         _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
             if name not in checkpoint:
@@ -357,9 +367,12 @@ class Strategy(ABC):
                     self.load_module_state_dict(module=obj, state_dict=checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
+            elif isinstance(obj, dict) and isinstance(checkpoint[name], dict) and _contains_stateful(obj):
+                self._load_checkpoint_into_state(obj, checkpoint[name], strict=strict)
+                if not checkpoint[name]:
+                    checkpoint.pop(name)
             else:
                 state[name] = checkpoint.pop(name)
-        return checkpoint
 
     def teardown(self) -> None:
         """This method is called to teardown the training process.
@@ -408,17 +421,21 @@ class Strategy(ABC):
     ) -> dict[str, Any]:
         converted_state: dict[str, Any] = {}
         for key, obj in state.items():
-            # convert the state
-            if isinstance(obj, Module):
-                converted = self.get_module_state_dict(module=obj)
-            elif isinstance(obj, Optimizer):
-                converted = self.get_optimizer_state(optimizer=obj)
-            elif isinstance(obj, _Stateful):
-                converted = obj.state_dict()
-            else:
-                converted = obj
+            converted = self._convert_stateful_object(obj)
             _apply_filter(key, filter, converted, converted_state)
         return converted_state
+
+    def _convert_stateful_object(self, obj: Any) -> Any:
+        """Converts a stateful object (module, optimizer, ...) into its state dict, recursing into nested dicts."""
+        if isinstance(obj, Module):
+            return self.get_module_state_dict(module=obj)
+        if isinstance(obj, Optimizer):
+            return self.get_optimizer_state(optimizer=obj)
+        if isinstance(obj, _Stateful):
+            return obj.state_dict()
+        if isinstance(obj, dict) and _contains_stateful(obj):
+            return {key: self._convert_stateful_object(value) for key, value in obj.items()}
+        return obj
 
 
 class _BackwardSyncControl(ABC):
@@ -450,6 +467,13 @@ class _Sharded(ABC):
         By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
 
         """
+
+
+def _contains_stateful(collection: dict[str, Any]) -> bool:
+    """Whether the (nested) dictionary contains any stateful object (module, optimizer, ...)."""
+    return any(
+        isinstance(obj, _Stateful) or (isinstance(obj, dict) and _contains_stateful(obj)) for obj in collection.values()
+    )
 
 
 def _validate_keys_for_strict_loading(

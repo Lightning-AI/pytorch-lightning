@@ -79,6 +79,23 @@ if TYPE_CHECKING:
     from torch.optim.lr_scheduler import LRScheduler
 
 
+def _copy_loaded_state_back(state: dict[str, Any], unwrapped_state: dict[str, Any]) -> None:
+    """Copies the loaded user data from the unwrapped state back into the user's (possibly nested) state dict.
+
+    Objects wrapped by Fabric (modules, optimizers, dataloaders) were restored in-place and are kept, so that the user's
+    references to them stay valid. Nested dictionaries with the same keys are updated in-place for the same reason.
+
+    """
+    for k in list(unwrapped_state.keys()):
+        obj, _ = _unwrap_compiled(state[k])
+        if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+            continue
+        if isinstance(obj, dict) and isinstance(unwrapped_state[k], dict) and obj.keys() == unwrapped_state[k].keys():
+            _copy_loaded_state_back(obj, unwrapped_state[k])
+            continue
+        state[k] = unwrapped_state[k]
+
+
 def _do_nothing(*_: Any) -> None:
     pass
 
@@ -916,11 +933,7 @@ class Fabric:
         if state is not None:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
-            for k in list(unwrapped_state.keys()):
-                obj, _ = _unwrap_compiled(state[k])
-                if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
-                    continue
-                state[k] = unwrapped_state[k]
+            _copy_loaded_state_back(state, unwrapped_state)
         return remainder
 
     def load_raw(

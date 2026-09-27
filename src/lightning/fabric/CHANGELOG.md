@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed AccumulateGrad stream mismatch warning when using DDP with Fabric ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
+- Fixed `Fabric.save` / `Fabric.load` not handling modules and optimizers nested in dictionaries: they are now converted to state dicts on save and restored in-place on load, instead of being pickled and replaced ([#20208](https://github.com/Lightning-AI/pytorch-lightning/issues/20208))
+
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
 - Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
