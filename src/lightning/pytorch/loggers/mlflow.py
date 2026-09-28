@@ -85,7 +85,8 @@ class MLFlowLogger(Logger):
         tracking_uri: Address of local or remote tracking server.
             If not provided, defaults to `MLFLOW_TRACKING_URI` environment variable if set, otherwise it falls
             back to `file:<save_dir>`.
-        tags: A dictionary tags for the experiment.
+        tags: A dictionary of tags for the run.
+        experiment_tags: A dictionary of tags for the experiment.
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlruns` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
@@ -119,6 +120,7 @@ class MLFlowLogger(Logger):
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[dict[str, Any]] = None,
+        experiment_tags: Optional[dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
@@ -140,6 +142,7 @@ class MLFlowLogger(Logger):
         self._run_name = run_name
         self._run_id = run_id
         self.tags = tags
+        self._experiment_tags = experiment_tags
         self._log_model = log_model
         self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
@@ -180,10 +183,12 @@ class MLFlowLogger(Logger):
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
             if expt is not None and expt.lifecycle_stage != "deleted":
                 self._experiment_id = expt.experiment_id
+                for key, value in self._experiment_tags.items():
+                    self._mlflow_client.set_experiment_tag(self._experiment_id, key, value)
             else:
                 log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
                 self._experiment_id = self._mlflow_client.create_experiment(
-                    name=self._experiment_name, artifact_location=self._artifact_location
+                    name=self._experiment_name, artifact_location=self._artifact_location, tags=self._experiment_tags
                 )
 
         if self._run_id is None:
