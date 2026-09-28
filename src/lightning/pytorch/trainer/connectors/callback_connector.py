@@ -52,7 +52,7 @@ class _CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks: Optional[Union[list[Callback], Callback]],
+        callbacks: Optional[Union[Sequence[Callback], Callback]],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
