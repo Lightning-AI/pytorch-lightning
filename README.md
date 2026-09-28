@@ -34,7 +34,7 @@ ______________________________________________________________________
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/pytorch-lightning/blob/master/LICENSE)
 
 <!--
-[![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/lightning)
+[![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/pytorch-lightning)
 -->
 
 </div>
