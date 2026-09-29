@@ -1267,7 +1267,8 @@ def test_fit_loop_save_and_restore_dataloaders(
         def configure_optimizers(self):
             if access_estimated_stepping_batches:
                 # sets up the train dataloader before the checkpoint's loop state is restored
-                assert self.trainer.estimated_stepping_batches
+                # (0 is a legitimate value for the "no dataloader" case, so check for `None` rather than truthiness)
+                assert self.trainer.estimated_stepping_batches is not None
             return super().configure_optimizers()
 
         def training_step(self, batch, batch_idx):
@@ -1285,6 +1286,12 @@ def test_fit_loop_save_and_restore_dataloaders(
         "enable_progress_bar": False,
         "logger": False,
         "num_sanity_val_steps": 0,
+        # a finite value is required so that `estimated_stepping_batches` doesn't take the early-exit path for
+        # infinite training (`max_epochs == -1`), and instead exercises the dataloader setup/teardown it performs
+        # to compute the estimate, which is what `access_estimated_stepping_batches` is meant to test.
+        # >= 2 because each `trainer.fit()` call below completes one epoch (`max_steps` interrupts it mid-epoch,
+        # but the fit loop still marks it processed), so the second call needs headroom to run at all.
+        "max_epochs": 2,
     }
 
     # Train for 2 steps

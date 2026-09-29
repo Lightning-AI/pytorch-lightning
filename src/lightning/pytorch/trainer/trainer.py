@@ -1807,6 +1807,7 @@ class Trainer:
             # reset data structures so checkpointed dataloader states can be restored
             if self.fit_loop._data_fetcher is not None:
                 self.fit_loop._data_fetcher.teardown()
+            self.fit_loop._data_fetcher = None
             self.fit_loop._combined_loader = None
 
             # restore states consumed during setup_data()
