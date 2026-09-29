@@ -247,7 +247,11 @@ class _ResultMetric(Metric):
         if self.is_tensor:
             value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
-                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
+                # `cumulated_batch_size` is integer-typed, and mean-syncing an integer tensor floors the
+                # result (e.g. NCCL's AVG divides integral dtypes with integer arithmetic). When ranks
+                # accumulated unequal cumulative batch sizes, the floored denominator silently inflates
+                # the returned mean, so sync in the value's floating dtype to keep the fractional part.
+                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size.to(value.dtype))
                 return value / cumulated_batch_size
             return value
         return self.value.compute()
