@@ -8,7 +8,7 @@ This method is most effective for models with very large layers, significantly e
 
 .. raw:: html
 
-    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/tensor-parallelism-supercharging-large-model-training-with-pytorch-lightning">
+    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pretrain-an-llm-with-pytorch-lightning">
       <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio" style="width: auto; max-width: none;"/>
     </a>
 

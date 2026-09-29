@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import re
+import time
+from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
+from torch.utils.data import DataLoader
+
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.trainer.trainer import Trainer
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch.utils.data import DataLoader
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -126,9 +131,118 @@ def test_val_check_interval_float_with_none_check_val_every_n_epoch():
     """Test that an exception is raised when `val_check_interval` is set to float with
     `check_val_every_n_epoch=None`"""
     with pytest.raises(
-        MisconfigurationException, match="`val_check_interval` should be an integer when `check_val_every_n_epoch=None`"
+        MisconfigurationException,
+        match=re.escape(
+            "`val_check_interval` should be an integer or a time-based duration (str 'DD:HH:MM:SS', "
+            "datetime.timedelta, or dict kwargs for timedelta) when `check_val_every_n_epoch=None`."
+        ),
     ):
         Trainer(
             val_check_interval=0.5,
             check_val_every_n_epoch=None,
         )
+
+
+@pytest.mark.parametrize(
+    "interval",
+    [
+        "00:00:00:02",
+        {"seconds": 2},
+        timedelta(seconds=2),
+    ],
+)
+def test_time_based_val_check_interval(tmp_path, interval):
+    call_count = {"count": 0}
+
+    def fake_time():
+        result = call_count["count"]
+        call_count["count"] += 2
+        return result
+
+    with patch("time.monotonic", side_effect=fake_time):
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            logger=False,
+            enable_checkpointing=False,
+            max_epochs=1,
+            max_steps=5,  # 5 steps: simulate 10s total wall-clock time
+            limit_val_batches=1,
+            val_check_interval=interval,  # every 2s
+        )
+        model = BoringModel()
+        trainer.fit(model)
+
+    # Assert 5 validations happened
+    val_runs = trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed
+    # The number of validation runs should be equal to the number of times we called fake_time
+    assert val_runs == 5, f"Expected 5 validations, got {val_runs}"
+
+
+@pytest.mark.parametrize(
+    ("check_val_every_n_epoch", "val_check_interval", "epoch_duration", "expected_val_batches", "description"),
+    [
+        (None, "00:00:00:04", 2, [0, 1, 0, 1, 0], "val_check_interval timer only, no epoch gating"),
+        (1, "00:00:00:06", 8, [1, 1, 2, 1, 1], "val_check_interval timer only, no epoch gating"),
+        (2, "00:00:00:06", 9, [0, 2, 0, 2, 0], "epoch gating, timer shorter than epoch"),
+        (2, "00:00:00:03", 9, [0, 3, 0, 3, 0], "epoch gating, timer much shorter than epoch"),
+        (2, "00:00:00:20", 9, [0, 0, 0, 1, 0], "epoch gating, timer longer than epoch"),
+    ],
+)
+def test_time_and_epoch_gated_val_check(
+    tmp_path, check_val_every_n_epoch, val_check_interval, epoch_duration, expected_val_batches, description
+):
+    call_count = {"count": 0}
+
+    # Simulate time in steps (each batch is 1 second, epoch_duration=seconds per epoch)
+    def fake_time():
+        result = call_count["count"]
+        call_count["count"] += 1
+        return result
+
+    # Custom model to record when validation happens (on what epoch)
+    class TestModel(BoringModel):
+        val_batches = []
+        val_epoch_calls = 0
+
+        def on_train_batch_end(self, *args, **kwargs):
+            if (
+                isinstance(self.trainer.check_val_every_n_epoch, int)
+                and self.trainer.check_val_every_n_epoch > 1
+                and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0
+            ):
+                time.monotonic()
+
+        def on_train_epoch_end(self, *args, **kwargs):
+            print(trainer.fit_loop.epoch_loop.val_loop.batch_progress.current.completed)
+            self.val_batches.append(trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed)
+
+        def on_validation_epoch_start(self) -> None:
+            self.val_epoch_calls += 1
+
+    max_epochs = 5
+    max_steps = max_epochs * epoch_duration
+    limit_train_batches = epoch_duration
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "logger": False,
+        "enable_checkpointing": False,
+        "max_epochs": max_epochs,
+        "max_steps": max_steps,
+        "limit_val_batches": 1,
+        "limit_train_batches": limit_train_batches,
+        "val_check_interval": val_check_interval,
+        "check_val_every_n_epoch": check_val_every_n_epoch,
+    }
+
+    with patch("time.monotonic", side_effect=fake_time):
+        model = TestModel()
+        trainer = Trainer(**trainer_kwargs)
+        trainer.fit(model)
+
+    # Validate which epochs validation happened
+    assert model.val_batches == expected_val_batches, (
+        f"\nFAILED: {description}"
+        f"\nExpected validation at batches: {expected_val_batches},"
+        f"\nGot: {model.val_batches, model.val_epoch_calls}\n"
+    )

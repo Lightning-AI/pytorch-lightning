@@ -25,16 +25,17 @@ from datetime import datetime
 
 import gymnasium as gym
 import torch
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
-from lightning.fabric.plugins.collectives import TorchCollective
-from lightning.fabric.plugins.collectives.collective import CollectibleGroup
-from lightning.fabric.strategies import DDPStrategy
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch.distributed.algorithms.join import Join
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torchmetrics import MeanMetric
+
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.fabric.plugins.collectives import TorchCollective
+from lightning.fabric.plugins.collectives.collective import CollectibleGroup
+from lightning.fabric.strategies import DDPStrategy
 
 
 @torch.no_grad()
@@ -273,7 +274,7 @@ def trainer(
         if group_rank == 0:
             metrics = {}
 
-        # Lerning rate annealing
+        # Learning rate annealing
         if args.anneal_lr:
             linear_annealing(optimizer, update, num_updates, args.learning_rate)
         if group_rank == 0:

@@ -169,7 +169,6 @@ wandb
 .forked/
 *.prof
 *.tar.gz
-.neptune/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
@@ -198,7 +197,7 @@ node_modules/
 **/events.out.tfevents.*
 examples/**/*.png
 
-# instalation artifacts
+# installation artifacts
 requirements/base.txt
 
 # CI
@@ -206,3 +205,9 @@ requirements/base.txt
 
 # sourced notebooks from tutorials
 _notebooks/.notebooks/
+
+# local markdown files
+*.local.md
+
+# standalone test artifacts
+standalone_artifacts/

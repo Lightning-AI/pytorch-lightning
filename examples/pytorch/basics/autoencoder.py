@@ -18,17 +18,18 @@ To run: python autoencoder.py --trainer.max_epochs=50
 """
 
 from os import path
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+from torch.utils.data import DataLoader, random_split
+
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer, callbacks, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNIST
 from lightning.pytorch.utilities import rank_zero_only
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from torch import nn
-from torch.utils.data import DataLoader, random_split
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -45,7 +46,7 @@ class ImageSampler(callbacks.Callback):
         nrow: int = 8,
         padding: int = 2,
         normalize: bool = True,
-        value_range: Optional[Tuple[int, int]] = None,
+        value_range: Optional[tuple[int, int]] = None,
         scale_each: bool = False,
         pad_value: int = 0,
     ) -> None:

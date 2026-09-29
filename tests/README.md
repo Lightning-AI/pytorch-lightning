@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/lightning/blob/master/src/lightning/pytorch/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ## Running tests
 
@@ -26,7 +26,7 @@ Additionally, for testing backward compatibility with older versions of PyTorch 
 bash .actions/pull_legacy_checkpoints.sh
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/lightning/blob/master/tests/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/pytorch-lightning/tree/master/tests/legacy/README.md).
 
 You can run the full test suite in your terminal via this make script:
 
@@ -39,7 +39,7 @@ Note: if your computer does not have multi-GPU or TPU these tests are skipped.
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
-**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/r/pytorchlightning/pytorch_lightning/tags?name=cuda). You can then run:
 
 ```bash
 python -m pytest src/lightning/pytorch tests/tests_pytorch -v
@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
-# or run a specific test
-./tests/run_standalone_tests.sh -k test_multi_gpu_model_ddp
+cd tests/
+wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+./tests/run_standalone_tests.sh tests_pytorch/
 ```
 
 ## Running Coverage

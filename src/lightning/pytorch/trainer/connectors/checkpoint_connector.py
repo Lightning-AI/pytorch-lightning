@@ -14,11 +14,12 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities import module_available
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -33,6 +34,10 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
+from lightning.pytorch.utilities.model_registry import (
+    _is_registry,
+    find_model_local_ckpt_path,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -44,12 +49,11 @@ class _CheckpointConnector:
         self._ckpt_path: Optional[_PATH] = None
         # flag to know if the user is changing the checkpoint path statefully. See `trainer.ckpt_path.setter`
         self._user_managed: bool = False
-        self._loaded_checkpoint: Dict[str, Any] = {}
+        self._loaded_checkpoint: dict[str, Any] = {}
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        dir_path_hpc = self.trainer.default_root_dir
-        dir_path_hpc = str(dir_path_hpc)
+        dir_path_hpc = str(self.trainer.default_root_dir)
         fs, path = url_to_fs(dir_path_hpc)
         if not _is_dir(fs, path):
             return None
@@ -60,7 +64,7 @@ class _CheckpointConnector:
             return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
         return None
 
-    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def resume_start(self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
@@ -76,7 +80,7 @@ class _CheckpointConnector:
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path, weights_only=weights_only)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
@@ -194,9 +198,16 @@ class _CheckpointConnector:
             if not self._hpc_resume_path:
                 raise ValueError(
                     f'`.{fn}(ckpt_path="hpc")` is set but no HPC checkpoint was found.'
-                    " Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                    f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                 )
             ckpt_path = self._hpc_resume_path
+
+        elif _is_registry(ckpt_path) and module_available("litmodels"):
+            ckpt_path = find_model_local_ckpt_path(
+                ckpt_path,
+                default_model_registry=self.trainer._model_registry,
+                default_root_dir=self.trainer.default_root_dir,
+            )
 
         if not ckpt_path:
             raise ValueError(
@@ -219,7 +230,7 @@ class _CheckpointConnector:
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def restore(self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -233,7 +244,7 @@ class _CheckpointConnector:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
 
         # restore module states
         self.restore_datamodule()
@@ -392,20 +403,22 @@ class _CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def _restore_modules_and_callbacks(
+        self, checkpoint_path: Optional[_PATH] = None, weights_only: Optional[bool] = None
+    ) -> None:
         # restore modules after setup
-        self.resume_start(checkpoint_path)
+        self.resume_start(checkpoint_path, weights_only=weights_only)
         self.restore_model()
         self.restore_datamodule()
-        if self.trainer.state.fn == TrainerFn.FITTING:
-            # restore callback states
-            self.restore_callbacks()
+        self.restore_callbacks()
 
-    def dump_checkpoint(self, weights_only: bool = False) -> dict:
+    def dump_checkpoint(self, weights_only: Optional[bool] = None) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
 
         Args:
-            weights_only: saving model weights only
+            weights_only: If True, only saves model and loops state_dict objects. If False,
+            additionally saves callbacks, optimizers, schedulers, and precision plugin states.
+
         Return:
             structured dictionary: {
                 'epoch':                     training epoch
@@ -436,6 +449,10 @@ class _CheckpointConnector:
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
         }
+
+        if weights_only is None:
+            weights_only = False
+            log.info("`weights_only` was not set, defaulting to `False`.")
 
         if not weights_only:
             # dump callbacks
@@ -493,10 +510,10 @@ class _CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
+    def _get_lightning_module_state_dict(self) -> dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
-    def _get_loops_state_dict(self) -> Dict[str, Any]:
+    def _get_loops_state_dict(self) -> dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),

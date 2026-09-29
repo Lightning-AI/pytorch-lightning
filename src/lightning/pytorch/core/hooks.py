@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -69,6 +69,7 @@ class ModelHooks:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
+        Learning rate scheduler will still be stepped at the end of epoch.
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
@@ -670,7 +671,7 @@ class DataHooks:
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this is
         your chance to restore this.
 
@@ -689,7 +690,7 @@ class CheckpointHooks:
 
         """
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want to
         save.
 

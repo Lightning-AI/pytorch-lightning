@@ -165,7 +165,7 @@ Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nv
 Quantization via Bitsandbytes
 *****************************
 
-`bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__ (BNB) is a library that supports quantizing :class:`torch.nn.Linear` weights.
+`bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`__ (BNB) is a library that supports quantizing :class:`torch.nn.Linear` weights.
 
 Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported.
 Specifically, we support the following modes:

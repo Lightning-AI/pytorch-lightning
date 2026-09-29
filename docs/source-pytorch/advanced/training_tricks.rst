@@ -46,27 +46,52 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
     # clip gradients' maximum magnitude to <=0.5
     trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="value")
 
-Read more about :ref:`Configuring Gradient Clipping <configure_gradient_clipping>` for advanced use-cases.
+Read more about :ref:`Configuring Gradient Clipping <configure_gradient_clipping>` for advanced use cases.
 
 ----------
 
-***************************
-Stochastic Weight Averaging
-***************************
+****************
+Weight Averaging
+****************
 
-Stochastic Weight Averaging (SWA) can make your models generalize better at virtually no additional cost.
-This can be used with both non-trained and trained models. The SWA procedure smooths the loss landscape thus making
-it harder to end up in a local minimum during optimization.
+Weight averaging methods such as Stochastic Weight Averaging (SWA) and Exponential Moving Average (EMA) can make your
+models generalize better at virtually no additional cost. Averaging smooths the loss landscape thus making it harder to
+end up in a local minimum during optimization.
 
-For a more detailed explanation of SWA and how it works,
-read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
+Lightning provides two callbacks to facilitate weight averaging. :class:`~lightning.pytorch.callbacks.WeightAveraging`
+is a generic callback that wraps the
+`AveragedModel <https://pytorch.org/docs/stable/generated/torch.optim.swa_utils.AveragedModel.html>`__ class from
+PyTorch. It allows SWA, EMA, or a custom averaging strategy to be used. By default, it updates the weights after every
+step, but it can be customized to update at specific steps or epochs by overriding the `should_update()` method.
 
-.. seealso:: The :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
+The older :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback is specific to SWA. It starts the SWA
+procedure after a certain number of epochs and always runs on every epoch. Additionally, it switches to a constant
+learning rate schedule (`SWALR <https://pytorch.org/docs/stable/generated/torch.optim.swa_utils.SWALR.html>`__) when the
+procedure starts.
+
+.. seealso::
+    For a more detailed explanation of SWA and how it works, read
+    `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
+
+.. seealso::
+    The :class:`~lightning.pytorch.callbacks.WeightAveraging` callback and
+    :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
 
 .. testcode::
 
-    # Enable Stochastic Weight Averaging using the callback
-    trainer = Trainer(callbacks=[StochasticWeightAveraging(swa_lrs=1e-2)])
+    from lightning.pytorch.callbacks import StochasticWeightAveraging, WeightAveraging
+    from torch.optim.swa_utils import get_ema_avg_fn
+
+    # Enable Exponential Moving Average after 100 steps
+    class EMAWeightAveraging(WeightAveraging):
+        def __init__(self):
+            super().__init__(avg_fn=get_ema_avg_fn())
+        def should_update(self, step_idx=None, epoch_idx=None):
+            return (step_idx is not None) and (step_idx >= 100)
+    trainer = Trainer(callbacks=EMAWeightAveraging())
+
+    # Enable Stochastic Weight Averaging after 10 epochs with learning rate 0.01
+    trainer = Trainer(callbacks=StochasticWeightAveraging(swa_epoch_start=10, swa_lrs=0.01))
 
 ----------
 

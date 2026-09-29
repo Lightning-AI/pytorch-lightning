@@ -17,9 +17,12 @@ from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
-import lightning.fabric
 import pytest
 import torch
+from torch import nn
+from torch.utils.data import DataLoader
+
+import lightning.fabric
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
@@ -27,9 +30,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
-from torch import nn
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
@@ -46,8 +46,7 @@ class WeightSharingModule(BoringModel):
     def forward(self, x):
         x = self.layer_1(x)
         x = self.layer_2(x)
-        x = self.layer_3(x)
-        return x
+        return self.layer_3(x)
 
 
 @RunIf(tpu=True, standalone=True)
@@ -148,7 +147,7 @@ class ManualOptimizationModel(BoringModel):
 
     def on_train_end(self):
         # this might fail if run in an environment with too many ranks, as the total
-        # length of the dataloader will be distrbuted among them and then each rank might not do 3 steps
+        # length of the dataloader will be distributed among them and then each rank might not do 3 steps
         assert self.called["training_step"] == 3
         assert self.called["on_train_batch_start"] == 3
         assert self.called["on_train_batch_end"] == 3
@@ -230,8 +229,7 @@ class NestedModule(BoringModel):
     def forward(self, x):
         x = self.net_a(x)
         x = self.layer_2(x)
-        x = self.net_b(x)
-        return x
+        return self.net_b(x)
 
 
 @RunIf(tpu=True)
@@ -312,7 +310,7 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 

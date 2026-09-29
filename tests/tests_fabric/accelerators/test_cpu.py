@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+
 from lightning.fabric.accelerators.cpu import CPUAccelerator, _parse_cpu_cores
 
 

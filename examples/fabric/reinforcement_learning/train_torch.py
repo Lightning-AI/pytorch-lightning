@@ -22,7 +22,6 @@ import os
 import random
 import time
 from datetime import datetime
-from typing import Dict
 
 import gymnasium as gym
 import torch
@@ -41,7 +40,7 @@ from torch.utils.tensorboard import SummaryWriter
 def train(
     agent: PPOAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, Tensor],
+    data: dict[str, Tensor],
     logger: SummaryWriter,
     global_step: int,
     args: argparse.Namespace,

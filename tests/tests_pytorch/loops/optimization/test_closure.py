@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException

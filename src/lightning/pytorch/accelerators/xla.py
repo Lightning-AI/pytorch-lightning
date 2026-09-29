@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from typing import Any
 
 from typing_extensions import override
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -29,7 +29,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     """
 
     @override
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Gets stats for the given XLA device.
 
         Args:
@@ -49,7 +49,16 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
             "avg. peak memory (MB)": peak_memory,
         }
 
+    @staticmethod
+    @override
+    def name() -> str:
+        return "tpu"
+
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__name__)
+        accelerator_registry.register(
+            cls.name(),
+            cls,
+            description=cls.__name__,
+        )

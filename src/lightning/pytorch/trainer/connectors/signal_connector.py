@@ -5,7 +5,10 @@ import signal
 import threading
 from subprocess import call
 from types import FrameType
-from typing import Any, Callable, Dict, List, Set, Union
+from typing import Any, Callable, Union
+
+import torch
+import torch.distributed as dist
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment
@@ -20,7 +23,7 @@ log = logging.getLogger(__name__)
 
 
 class _HandlersCompose:
-    def __init__(self, signal_handlers: Union[List[_HANDLER], _HANDLER]) -> None:
+    def __init__(self, signal_handlers: Union[list[_HANDLER], _HANDLER]) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
@@ -37,14 +40,14 @@ class _SignalConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.received_sigterm = False
         self.trainer = trainer
-        self._original_handlers: Dict[_SIGNUM, _HANDLER] = {}
+        self._original_handlers: dict[_SIGNUM, _HANDLER] = {}
 
     def register_signal_handlers(self) -> None:
         self.received_sigterm = False
         self._original_handlers = self._get_current_signal_handlers()
 
-        sigusr_handlers: List[_HANDLER] = []
-        sigterm_handlers: List[_HANDLER] = [self._sigterm_notifier_fn]
+        sigusr_handlers: list[_HANDLER] = []
+        sigterm_handlers: list[_HANDLER] = [self._sigterm_notifier_fn]
 
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
@@ -104,12 +107,16 @@ class _SignalConnector:
 
     def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", self.trainer.local_rank))
-        # subprocesses killing the parent process is not supported, only the parent (rank 0) does it
         if not self.received_sigterm:
-            # send the same signal to the subprocesses
             launcher = self.trainer.strategy.launcher
             if launcher is not None:
                 launcher.kill(signum)
+
+        # New broadcast logic
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
+            sigterm_tensor = torch.tensor([1], device=self.trainer.strategy.root_device)
+            dist.broadcast(sigterm_tensor, src=0)
+
         self.received_sigterm = True
 
     def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
@@ -123,7 +130,7 @@ class _SignalConnector:
         self._original_handlers = {}
 
     @staticmethod
-    def _get_current_signal_handlers() -> Dict[_SIGNUM, _HANDLER]:
+    def _get_current_signal_handlers() -> dict[_SIGNUM, _HANDLER]:
         """Collects the currently assigned signal handlers."""
         valid_signals = _SignalConnector._valid_signals()
         if not _IS_WINDOWS:
@@ -132,7 +139,7 @@ class _SignalConnector:
         return {signum: signal.getsignal(signum) for signum in valid_signals}
 
     @staticmethod
-    def _valid_signals() -> Set[signal.Signals]:
+    def _valid_signals() -> set[signal.Signals]:
         """Returns all valid signals supported on the current platform."""
         return signal.valid_signals()
 
@@ -145,7 +152,7 @@ class _SignalConnector:
         if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)  # type: ignore[arg-type]
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["_original_handlers"] = {}
         return state

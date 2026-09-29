@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import shutil
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -31,6 +30,14 @@ from lightning.fabric.strategies.model_parallel import (
     _load_checkpoint,
     _setup_device_mesh,
 )
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+)
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
@@ -38,7 +45,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -86,8 +92,6 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
         self._save_distributed_checkpoint = save_distributed_checkpoint
@@ -114,7 +118,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
@@ -237,7 +241,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> List[int]:
+    def _determine_device_ids(self) -> list[int]:
         return [self.root_device.index]
 
     @override
@@ -249,7 +253,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self.accelerator.teardown()
 
     @override
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Collects the state dict of the model.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -267,7 +271,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Any]:
         """Collects the state of the given optimizer.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -285,7 +289,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
         state_dict = get_optimizer_state_dict(self.model, optimizer, options=state_dict_options)
         if not self._save_distributed_checkpoint and self.global_rank == 0:
-            # Store the optimizer state dict in standard format
+            state_dict = _align_compiled_param_names_with_module(state_dict, self.model)
             state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
         return state_dict
 
@@ -296,7 +300,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         if storage_options is not None:
             raise TypeError(
@@ -304,14 +308,12 @@ class ModelParallelStrategy(ParallelStrategy):
                 f" `{type(self).__name__}` does not use the `CheckpointIO`."
             )
         # broadcast the path from rank 0 to ensure all the checkpoints are saved to a common path
-        path = Path(self.broadcast(filepath))
-        if path.is_dir() and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
+        path = _resolve_path(self.broadcast(filepath))
+        if _is_checkpoint_dir(path) and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         if self._save_distributed_checkpoint:
-            if path.is_file():
-                path.unlink()
-            path.mkdir(parents=True, exist_ok=True)
+            _prepare_directory_checkpoint(path)
 
             converted_state = {"state_dict": checkpoint.pop("state_dict")}
             converted_state.update({
@@ -321,16 +323,16 @@ class ModelParallelStrategy(ParallelStrategy):
             _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
-                torch.save(checkpoint, path / _METADATA_FILENAME)
+                _atomic_save(checkpoint, _checkpoint_join(path, _METADATA_FILENAME))
         else:
             if _is_sharded_checkpoint(path):
-                shutil.rmtree(path)
+                _remove_checkpoint(path)
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(checkpoint_path))
+        path = _resolve_path(self.broadcast(checkpoint_path))
         state = {
             "state_dict": self.model,
             **{f"optimizer_{idx}": optimizer for idx, optimizer in enumerate(self.optimizers)},
@@ -341,6 +343,7 @@ class ModelParallelStrategy(ParallelStrategy):
             state=state,
             strict=self.lightning_module.strict_loading,
             optimizer_states_from_list=True,
+            weights_only=weights_only,
         )
 
     def _setup_distributed(self) -> None:
@@ -349,7 +352,12 @@ class ModelParallelStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -361,3 +369,55 @@ class ModelParallelStrategy(ParallelStrategy):
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
+
+
+def _align_compiled_param_names_with_module(state_dict: dict[str, Any], module: torch.nn.Module) -> dict[str, Any]:
+    """Align optimizer state dict keys with a module that may have compiled submodules.
+
+    When ``torch.compile`` wraps a submodule, its parameters appear under ``_orig_mod``.
+    For example, ``model.0.weight`` becomes ``model._orig_mod.0.weight``.  The optimizer
+    state dict returned by ``get_optimizer_state_dict`` may not include the ``_orig_mod``
+    prefix, causing a mismatch when ``rekey_optim_state_dict`` builds its mapping from
+    ``module.named_parameters()``.
+
+    This function inserts ``._orig_mod`` into the state dict keys where necessary so that
+    they match the module's ``named_parameters()`` output.
+
+    """
+    from torch._dynamo import OptimizedModule
+
+    # Build set of compiled submodule prefixes (e.g., "model" if model is compiled)
+    compiled_prefixes: list[str] = []
+    for name, submodule in module.named_modules():
+        if isinstance(submodule, OptimizedModule):
+            compiled_prefixes.append(name)
+
+    if not compiled_prefixes:
+        return state_dict
+
+    # Sort by length descending so longer prefixes are matched first
+    compiled_prefixes.sort(key=len, reverse=True)
+
+    def _transform_key(key: str) -> str:
+        for prefix in compiled_prefixes:
+            # Check if key starts with "prefix." (the compiled module path)
+            if key == prefix or key.startswith(prefix + "."):
+                suffix = key[len(prefix) :]  # e.g., ".0.weight" or ""
+                # Insert _orig_mod between prefix and rest
+                return f"{prefix}._orig_mod{suffix}"
+        return key
+
+    # Transform keys in "state" section of the optimizer state dict
+    if "state" in state_dict:
+        new_state = {_transform_key(k): v for k, v in state_dict["state"].items()}
+        state_dict = {**state_dict, "state": new_state}
+
+    # Transform param names in "param_groups" section
+    if "param_groups" in state_dict:
+        new_param_groups = []
+        for group in state_dict["param_groups"]:
+            new_group = {**group, "params": [_transform_key(p) for p in group["params"]]}
+            new_param_groups.append(new_group)
+        state_dict = {**state_dict, "param_groups": new_param_groups}
+
+    return state_dict

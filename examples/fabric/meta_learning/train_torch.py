@@ -34,7 +34,7 @@ def fast_adapt(batch, learner, loss, adaptation_steps, shots, ways, device):
     data, labels = batch
     data, labels = data.to(device), labels.to(device)
 
-    # Separate data into adaptation/evalutation sets
+    # Separate data into adaptation/evaluation sets
     adaptation_indices = torch.zeros(data.size(0), dtype=bool)
     adaptation_indices[torch.arange(shots * ways) * 2] = True
     evaluation_indices = ~adaptation_indices

@@ -39,6 +39,14 @@ However, this setting can sometimes lead to unstable training.
 
     Trainer(precision="16-true")
 
+.. warning::
+
+    Float16 cannot represent values smaller than ~6e-5. Values like Adam's default ``eps=1e-8`` become zero, which can cause
+    NaN during training. Increase ``eps`` to 1e-4 or higher, and avoid extremely small values in your model weights and data.
+
+.. note::
+
+    BFloat16 (``"bf16-mixed"`` or ``"bf16-true"``) has better numerical stability with a wider dynamic range.
 
 ----
 

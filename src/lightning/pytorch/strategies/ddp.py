@@ -14,7 +14,7 @@
 import logging
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -71,7 +71,7 @@ class DDPStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
@@ -103,6 +103,7 @@ class DDPStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
+        self._pl_static_graph_delay_done = False
 
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
@@ -133,7 +134,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
@@ -188,9 +189,21 @@ class DDPStrategy(ParallelStrategy):
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
+        ctx: Union[torch.cuda.StreamContext, nullcontext] = nullcontext()
+
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        if device_ids is not None:
+            capturing = torch.cuda.is_current_stream_capturing()
+            if capturing:
+                # DDP must be initialized on a side-stream for CUDA graph whole-network capture.
+                # The resulting AccumulateGrad stream mismatch is intentional in this case.
+                # See: https://pytorch.org/docs/stable/notes/cuda.html#id5
+                ctx = torch.cuda.stream(torch.cuda.Stream())
+                torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
+            else:
+                # Default stream avoids AccumulateGrad stream mismatch warnings during normal training.
+                ctx = torch.cuda.stream(torch.cuda.default_stream())
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -200,7 +213,12 @@ class DDPStrategy(ParallelStrategy):
         self.set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -283,7 +301,7 @@ class DDPStrategy(ParallelStrategy):
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
-    def determine_ddp_device_ids(self) -> Optional[List[int]]:
+    def determine_ddp_device_ids(self) -> Optional[list[int]]:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
@@ -315,6 +333,27 @@ class DDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
+
+    @override
+    def post_backward(self, closure_loss: Tensor) -> None:
+        # Only for first static-graph iteration with manual optimization
+        model = self.model
+        lm = self.lightning_module
+        if not isinstance(model, DistributedDataParallel):
+            return
+        if lm is None or lm.automatic_optimization:
+            return
+        if not getattr(model, "static_graph", False):
+            return
+        if self._pl_static_graph_delay_done:
+            return
+
+        # Call DDP's own first-iter static-graph flush.
+        # This is what actually launches the bucket all-reduces.
+        reducer = model.reducer
+        reducer._delay_all_reduce()
+
+        self._pl_static_graph_delay_done = True
 
     @override
     def model_to_device(self) -> None:

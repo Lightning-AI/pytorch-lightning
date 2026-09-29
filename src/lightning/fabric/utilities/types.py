@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    DefaultDict,
-    Dict,
-    Iterator,
-    List,
     Optional,
     Protocol,
     TypeVar,
@@ -28,9 +26,6 @@ from typing import (
 
 import torch
 from torch import Tensor
-
-# TODO: Unused import, but lightning_habana imports these from here
-from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau  # noqa: F401
 from typing_extensions import TypeAlias, overload
 
 UntypedStorage: TypeAlias = torch.UntypedStorage
@@ -38,7 +33,7 @@ UntypedStorage: TypeAlias = torch.UntypedStorage
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
 _MAP_LOCATION_TYPE = Optional[
-    Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]
+    Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], dict[_DEVICE, _DEVICE]]
 ]
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
@@ -57,9 +52,9 @@ _DictKey = TypeVar("_DictKey")
 class _Stateful(Protocol[_DictKey]):
     """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
-    def state_dict(self) -> Dict[_DictKey, Any]: ...
+    def state_dict(self) -> dict[_DictKey, Any]: ...
 
-    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None: ...
+    def load_state_dict(self, state_dict: dict[_DictKey, Any]) -> None: ...
 
 
 @runtime_checkable
@@ -86,10 +81,10 @@ class Steppable(Protocol):
 class Optimizable(Steppable, Protocol):
     """To structurally type ``optimizer``"""
 
-    param_groups: List[Dict[Any, Any]]
-    defaults: Dict[Any, Any]
-    state: DefaultDict[Tensor, Any]
+    param_groups: list[dict[Any, Any]]
+    defaults: dict[Any, Any]
+    state: defaultdict[Tensor, Any]
 
-    def state_dict(self) -> Dict[str, Dict[Any, Any]]: ...
+    def state_dict(self) -> dict[str, dict[Any, Any]]: ...
 
-    def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None: ...
+    def load_state_dict(self, state_dict: dict[str, dict[Any, Any]]) -> None: ...

@@ -14,7 +14,7 @@
 import os
 import platform
 from functools import lru_cache
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -46,7 +46,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -54,7 +54,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, str, list[int]]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None
@@ -74,17 +74,22 @@ class MPSAccelerator(Accelerator):
         mps_disabled = os.getenv("DISABLE_MPS", "0") == "1"
         return not mps_disabled and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
 
+    @staticmethod
+    @override
+    def name() -> str:
+        return "mps"
+
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
-            "mps",
+            cls.name(),
             cls,
             description=cls.__name__,
         )
 
 
-def _get_all_available_mps_gpus() -> List[int]:
+def _get_all_available_mps_gpus() -> list[int]:
     """
     Returns:
         A list of all available MPS GPUs

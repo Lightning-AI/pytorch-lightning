@@ -22,6 +22,11 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.core.module import LightningModule
@@ -30,12 +35,7 @@ from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
-from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 def test__training_step__log(tmp_path):
@@ -346,7 +346,7 @@ class LoggingSyncDistModel(BoringModel):
     ("devices", "accelerator"),
     [
         (1, "cpu"),
-        (2, "cpu"),
+        pytest.param(2, "cpu", marks=_xfail_gloo_windows),
         pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
@@ -563,7 +563,7 @@ def test_log_invalid_raises(tmp_path, value):
 
 
 def test_log_tensor_and_clone_no_torch_warning(tmp_path):
-    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594."""
+    """Regression test for issue https://github.com/Lightning-AI/pytorch-lightning/issues/14594."""
 
     class TestModel(BoringModel):
         def training_step(self, *args):
@@ -741,6 +741,78 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
         call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
         call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
     ])
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+def test_trainer_default_log_key_prefix_uses_bare_generated_epoch(mock_log_metrics, tmp_path):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"foo": 0.0, "epoch": 0}, step=0)
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+@pytest.mark.parametrize("log_key_prefix", ["trainer/", "custom/"])
+def test_trainer_log_key_prefix_can_prefix_generated_epoch(mock_log_metrics, tmp_path, log_key_prefix):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+        log_key_prefix=log_key_prefix,
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"foo": 0.0, f"{log_key_prefix}epoch": 0}, step=0)
+
+
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+def test_trainer_log_key_prefix_does_not_rewrite_user_epoch_metric(mock_log_metrics, tmp_path):
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("epoch", -batch_idx, logger=True)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=TensorBoardLogger(tmp_path),
+        log_key_prefix="trainer/",
+    )
+    trainer.fit(MyModel())
+
+    mock_log_metrics.assert_any_call(metrics={"epoch": 0.0, "trainer/epoch": 0}, step=0)
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")

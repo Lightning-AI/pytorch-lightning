@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Mapping, Optional, OrderedDict
+from typing import Any, Callable, Optional
 
 import torch
 from torch import Tensor
@@ -46,7 +48,7 @@ class ClosureResult(OutputResult):
 
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor] = field(init=False, default=None)
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._clone_loss()
@@ -83,7 +85,7 @@ class ClosureResult(OutputResult):
         return cls(closure_loss, extra=extra)
 
     @override
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return {"loss": self.loss, **self.extra}
 
 
@@ -145,7 +147,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = Dict[str, Any]
+_OUTPUTS_TYPE = dict[str, Any]
 
 
 class _AutomaticOptimization(_Loop):

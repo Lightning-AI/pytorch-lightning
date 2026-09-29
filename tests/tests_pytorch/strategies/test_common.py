@@ -15,10 +15,10 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

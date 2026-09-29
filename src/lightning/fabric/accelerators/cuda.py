@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import lru_cache
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from typing_extensions import override
@@ -34,8 +34,8 @@ class CUDAAccelerator(Accelerator):
         """
         if device.type != "cuda":
             raise ValueError(f"Device should be CUDA, got {device} instead.")
-        _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
+        _check_cuda_matmul_precision(device)  # may initialize CUDA, set_device first
 
     @override
     def teardown(self) -> None:
@@ -43,7 +43,7 @@ class CUDAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+    def parse_devices(devices: Union[int, str, list[int]]) -> Optional[list[int]]:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 
@@ -51,7 +51,7 @@ class CUDAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
+    def get_parallel_devices(devices: list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
@@ -66,17 +66,22 @@ class CUDAAccelerator(Accelerator):
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
+    @staticmethod
+    @override
+    def name() -> str:
+        return "cuda"
+
     @classmethod
     @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
-            "cuda",
+            cls.name(),
             cls,
             description=cls.__name__,
         )
 
 
-def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
+def find_usable_cuda_devices(num_devices: int = -1) -> list[int]:
     """Returns a list of all available and usable CUDA GPU devices.
 
     A GPU is considered usable if we can successfully move a tensor to the device, and this is what this function
@@ -129,7 +134,7 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     return available_devices
 
 
-def _get_all_visible_cuda_devices() -> List[int]:
+def _get_all_visible_cuda_devices() -> list[int]:
     """Returns a list of all visible CUDA GPU devices.
 
     Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you

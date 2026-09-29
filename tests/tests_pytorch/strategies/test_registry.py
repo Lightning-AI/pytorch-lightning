@@ -14,10 +14,10 @@
 from unittest import mock
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 

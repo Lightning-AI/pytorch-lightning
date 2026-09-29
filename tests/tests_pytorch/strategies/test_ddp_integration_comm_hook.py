@@ -15,10 +15,10 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 if torch.distributed.is_available():

@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, ContextManager, Literal
+from contextlib import AbstractContextManager
+from typing import Any, Literal
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -33,15 +34,15 @@ class DoublePrecision(Precision):
         return module.double()
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(torch.double)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return self.tensor_init_context()
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         return self.tensor_init_context()
 
     @override

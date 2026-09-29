@@ -282,7 +282,7 @@ Next steps
 
 .. displayitem::
     :header: Pipeline Parallelism
-    :description: Coming sooon
+    :description: Coming soon
     :col_css: col-md-4
     :height: 160
     :tag: advanced

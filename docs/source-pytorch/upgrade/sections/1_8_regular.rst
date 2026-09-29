@@ -19,6 +19,6 @@
      - `PR12740`_
 
 
-.. _pr12804: https://github.com/Lightning-AI/lightning/pull/12804
-.. _pr12184: https://github.com/Lightning-AI/lightning/pull/12184
-.. _pr12740: https://github.com/Lightning-AI/lightning/pull/12740
+.. _pr12804: https://github.com/Lightning-AI/pytorch-lightning/pull/12804
+.. _pr12184: https://github.com/Lightning-AI/pytorch-lightning/pull/12184
+.. _pr12740: https://github.com/Lightning-AI/pytorch-lightning/pull/12740

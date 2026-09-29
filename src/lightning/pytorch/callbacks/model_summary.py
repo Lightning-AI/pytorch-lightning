@@ -23,7 +23,7 @@ the name, type and number of parameters for each layer.
 """
 
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 from typing_extensions import override
 
@@ -54,7 +54,7 @@ class ModelSummary(Callback):
 
     def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:
         self._max_depth: int = max_depth
-        self._summarize_kwargs: Dict[str, Any] = summarize_kwargs
+        self._summarize_kwargs: dict[str, Any] = summarize_kwargs
 
     @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -68,6 +68,9 @@ class ModelSummary(Callback):
         model_size = model_summary.model_size
         total_training_modes = model_summary.total_training_modes
 
+        # todo Add `total_flops` in DeepSpeedSummary.
+        total_flops = model_summary.total_flops if hasattr(model_summary, "total_flops") else 0
+
         if trainer.is_global_zero:
             self.summarize(
                 summary_data,
@@ -75,6 +78,7 @@ class ModelSummary(Callback):
                 trainable_parameters,
                 model_size,
                 total_training_modes,
+                total_flops=total_flops,
                 **self._summarize_kwargs,
             )
 
@@ -87,11 +91,12 @@ class ModelSummary(Callback):
 
     @staticmethod
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: list[tuple[str, list[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
-        total_training_modes: Dict[str, int],
+        total_training_modes: dict[str, int],
+        total_flops: int,
         **summarize_kwargs: Any,
     ) -> None:
         summary_table = _format_summary_table(
@@ -99,6 +104,7 @@ class ModelSummary(Callback):
             trainable_parameters,
             model_size,
             total_training_modes,
+            total_flops,
             *summary_data,
         )
         log.info("\n" + summary_table)

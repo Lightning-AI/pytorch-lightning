@@ -13,15 +13,14 @@
 # limitations under the License.
 import pickle
 from argparse import Namespace
-from contextlib import nullcontext
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
+
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -124,8 +123,7 @@ def test_multiple_loggers_pickle(tmp_path):
 
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
-        trainer2 = pickle.loads(pkl_bytes)
+    trainer2 = pickle.loads(pkl_bytes)
     for logger in trainer2.loggers:
         logger.log_metrics({"acc": 1.0}, 0)
 
@@ -255,12 +253,12 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmp_path, logger):
 @patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(_, tmp_path):
     class TestModel(BoringModel):
-        def __init__(self, hparams: Dict[str, Any]) -> None:
+        def __init__(self, hparams: dict[str, Any]) -> None:
             super().__init__()
             self.save_hyperparameters(hparams)
 
     class TestDataModule(BoringDataModule):
-        def __init__(self, hparams: Dict[str, Any]) -> None:
+        def __init__(self, hparams: dict[str, Any]) -> None:
             super().__init__()
             self.save_hyperparameters(hparams)
 

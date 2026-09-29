@@ -14,12 +14,13 @@
 import csv
 import os
 import re
-from typing import Dict, Optional
+from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
 from lightning.pytorch.callbacks import DeviceStatsMonitor
@@ -28,7 +29,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -40,7 +40,7 @@ def test_device_stats_gpu_from_torch(tmp_path):
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             fields = [
                 "allocated_bytes.all.freed",
                 "inactive_split.all.peak",
@@ -74,7 +74,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
     CPU_METRIC_KEYS = (_CPU_VM_PERCENT, _CPU_SWAP_PERCENT, _CPU_PERCENT)
 
     class DebugLogger(CSVLogger):
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             enabled = cpu_stats is not False
             for f in CPU_METRIC_KEYS:
                 has_cpu_metrics = any(f in h for h in metrics)
@@ -217,3 +217,67 @@ def test_device_stats_monitor_logs_for_different_stages(tmp_path):
     test = any(test_stage_results)
 
     assert test, "testing stage logs not found"
+
+
+@RunIf(psutil=True)
+@pytest.mark.parametrize(
+    ("filter_keys", "expected_present", "expected_absent"),
+    [
+        (
+            {_CPU_VM_PERCENT, _CPU_PERCENT},
+            [_CPU_VM_PERCENT, _CPU_PERCENT],
+            [_CPU_SWAP_PERCENT],
+        ),
+        (
+            {_CPU_PERCENT},
+            [_CPU_PERCENT],
+            [_CPU_VM_PERCENT, _CPU_SWAP_PERCENT],
+        ),
+    ],
+)
+def test_device_stats_monitor_filter_keys(tmp_path, filter_keys, expected_present, expected_absent):
+    """Test that filter_keys logs only the specified keys and omits the rest."""
+    model = BoringModel()
+
+    class AssertFilterLogger(CSVLogger):
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+            for key in expected_present:
+                assert any(key in k for k in metrics), f"Expected key {key!r} not found in metrics"
+            for key in expected_absent:
+                assert not any(key in k for k in metrics), f"Unexpected key {key!r} found in metrics"
+
+    device_stats = DeviceStatsMonitor(cpu_stats=True, filter_keys=filter_keys)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=device_stats,
+        logger=AssertFilterLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+    )
+    trainer.fit(model)
+
+
+@RunIf(psutil=True)
+def test_device_stats_monitor_filter_keys_unrecognized_warns(tmp_path):
+    """Test that filter_keys emits a warning for keys not present in device stats."""
+    model = BoringModel()
+    device_stats = DeviceStatsMonitor(cpu_stats=True, filter_keys={"nonexistent_key_xyz"})
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=device_stats,
+        logger=CSVLogger(tmp_path),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+    )
+    with pytest.warns(UserWarning, match="filter_keys contains keys not found"):
+        trainer.fit(model)

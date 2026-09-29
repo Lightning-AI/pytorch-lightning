@@ -15,9 +15,10 @@ import os
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -92,9 +93,10 @@ def test_trainer_save_checkpoint_storage_options(tmp_path, xla_available):
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
     checkpoint_mock = Mock()
-    with mock.patch.object(trainer.strategy, "save_checkpoint") as save_mock, mock.patch.object(
-        trainer._checkpoint_connector, "dump_checkpoint", return_value=checkpoint_mock
-    ) as dump_mock:
+    with (
+        mock.patch.object(trainer.strategy, "save_checkpoint") as save_mock,
+        mock.patch.object(trainer._checkpoint_connector, "dump_checkpoint", return_value=checkpoint_mock) as dump_mock,
+    ):
         trainer.save_checkpoint(instance_path, True)
         dump_mock.assert_called_with(True)
         save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=None)

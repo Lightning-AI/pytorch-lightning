@@ -3,7 +3,7 @@ import os
 import random
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import torch
 
@@ -27,7 +27,8 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: 
     Args:
         seed: the integer value seed for global random state in Lightning.
             If ``None``, it will read the seed from ``PL_GLOBAL_SEED`` env variable. If ``None`` and the
-            ``PL_GLOBAL_SEED`` env variable is not set, then the seed defaults to 0.
+            ``PL_GLOBAL_SEED`` env variable is not set, then the seed defaults to 0. If seed is
+            not in bounds or cannot be cast to int, a ValueError is raised.
         workers: if set to ``True``, will properly configure all dataloaders passed to the
             Trainer with a ``worker_init_fn``. If the user already provides such a function
             for their dataloaders, setting this argument will have no influence. See also:
@@ -39,19 +40,18 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: 
         env_seed = os.environ.get("PL_GLOBAL_SEED")
         if env_seed is None:
             seed = 0
-            rank_zero_warn(f"No seed found, seed set to {seed}")
+            if verbose:
+                rank_zero_warn(f"No seed found, seed set to {seed}")
         else:
             try:
                 seed = int(env_seed)
             except ValueError:
-                seed = 0
-                rank_zero_warn(f"Invalid seed found: {repr(env_seed)}, seed set to {seed}")
+                raise ValueError(f"Invalid seed specified via PL_GLOBAL_SEED: {repr(env_seed)}")
     elif not isinstance(seed, int):
         seed = int(seed)
 
     if not (min_seed_value <= seed <= max_seed_value):
-        rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
-        seed = 0
+        raise ValueError(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
 
     if verbose:
         log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
@@ -104,14 +104,26 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     if _NUMPY_AVAILABLE:
         import numpy as np
 
-        np.random.seed(seed_sequence[3] & 0xFFFFFFFF)  # numpy takes 32-bit seed only
+        ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
+        np_rng_seed = ss.generate_state(4)
+
+        np.random.seed(np_rng_seed)
 
 
-def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> List[int]:
-    """Generates a sequence of seeds from a base seed, worker id and rank using the linear congruential generator (LCG)
-    algorithm."""
+def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> list[int]:
+    """Generates a sequence of seeds from a base seed, worker id and rank using hash-based mixing followed by the
+    linear congruential generator (LCG) algorithm."""
     # Combine base seed, worker id and rank into a unique 64-bit number
     combined_seed = (base_seed << 32) | (worker_id << 16) | global_rank
+
+    # Apply hash-based mixing (MurmurHash3 finalizer) to distribute bits uniformly
+    # This ensures that small base seeds don't result in zeros in lower bits
+    combined_seed ^= combined_seed >> 33
+    combined_seed = (combined_seed * 0xFF51AFD7ED558CCD) & ((1 << 64) - 1)
+    combined_seed ^= combined_seed >> 33
+    combined_seed = (combined_seed * 0xC4CEB9FE1A85EC53) & ((1 << 64) - 1)
+    combined_seed ^= combined_seed >> 33
+
     seeds = []
     for _ in range(count):
         # x_(n+1) = (a * x_n + c) mod m. With c=1, m=2^64 and a is D. Knuth's constant
@@ -120,7 +132,7 @@ def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, co
     return seeds
 
 
-def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
+def _collect_rng_states(include_cuda: bool = True) -> dict[str, Any]:
     r"""Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),
@@ -135,7 +147,7 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     return states
 
 
-def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+def _set_rng_states(rng_state_dict: dict[str, Any]) -> None:
     r"""Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
     process."""
     torch.set_rng_state(rng_state_dict["torch"])

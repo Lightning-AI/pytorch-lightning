@@ -27,13 +27,12 @@ The following are loggers we support:
     :nosignatures:
     :template: classtemplate.rst
 
+    LitLogger
     CometLogger
     CSVLogger
     MLFlowLogger
-    NeptuneLogger
     TensorBoardLogger
     WandbLogger
-
 
 The above loggers will normally plot an additional chart (**global_step VS epoch**). Depending on the loggers you use, there might be some additional charts too.
 
@@ -69,7 +68,7 @@ You can also pass a custom Logger to the :class:`~lightning.pytorch.trainer.trai
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     trainer = Trainer(logger=tb_logger)
 
-Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
+Choose from any of the others such as LitLogger, MLflow, Comet, WandB, etc.
 
 .. code-block:: python
 
@@ -80,9 +79,9 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. code-block:: python
 
+    lit_logger = pl_loggers.LitLogger(save_dir="logs/")
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
-    comet_logger = pl_loggers.CometLogger(save_dir="logs/")
-    trainer = Trainer(logger=[tb_logger, comet_logger])
+    trainer = Trainer(logger=[lit_logger, tb_logger])
 
 .. note::
 
@@ -120,6 +119,10 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
 .. note::
     Everything explained below applies to both :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` methods.
 
+.. note::
+
+    When using TorchMetrics with Lightning, we recommend referring to the `TorchMetrics Lightning integration documentation <https://lightning.ai/docs/torchmetrics/stable/pages/lightning.html>`_ for logging best practices, common pitfalls, and proper usage patterns.
+
 Depending on where the :meth:`~lightning.pytorch.core.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
 :meth:`~lightning.pytorch.core.LightningModule.log` parameters.
@@ -137,7 +140,7 @@ The :meth:`~lightning.pytorch.core.LightningModule.log` method has a few options
 * ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~lightning.pytorch.trainer.trainer.Trainer` (Default: ``True``).
 * ``reduce_fx``: Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 * ``enable_graph``: If True, will not auto detach the graph.
-* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
+* ``sync_dist``: If True, averages the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 * ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.

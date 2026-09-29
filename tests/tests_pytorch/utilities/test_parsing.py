@@ -15,6 +15,8 @@ import inspect
 import threading
 
 import pytest
+from torch.jit import ScriptModule
+
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.utilities.parsing import (
     _get_init_args,
@@ -26,7 +28,6 @@ from lightning.pytorch.utilities.parsing import (
     lightning_setattr,
     parse_class_init_keys,
 )
-from torch.jit import ScriptModule
 
 unpicklable_function = lambda: None
 
@@ -103,12 +104,12 @@ def test_lightning_hasattr():
     assert lightning_hasattr(model3, "learning_rate"), "lightning_hasattr failed to find hparams dict variable"
     assert not lightning_hasattr(model4, "learning_rate"), "lightning_hasattr found variable when it should not"
     assert lightning_hasattr(model5, "batch_size"), "lightning_hasattr failed to find batch_size in datamodule"
-    assert lightning_hasattr(
-        model6, "batch_size"
-    ), "lightning_hasattr failed to find batch_size in datamodule w/ hparams present"
-    assert lightning_hasattr(
-        model7, "batch_size"
-    ), "lightning_hasattr failed to find batch_size in hparams w/ datamodule present"
+    assert lightning_hasattr(model6, "batch_size"), (
+        "lightning_hasattr failed to find batch_size in datamodule w/ hparams present"
+    )
+    assert lightning_hasattr(model7, "batch_size"), (
+        "lightning_hasattr failed to find batch_size in hparams w/ datamodule present"
+    )
     assert lightning_hasattr(model8, "batch_size")
 
     for m in models:

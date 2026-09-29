@@ -18,7 +18,7 @@ Fixes #\<issue_number>
   <summary><b>Before submitting</b></summary>
 
 - Was this **discussed/agreed** via a GitHub issue? (not for typos and docs)
-- [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/lightning/blob/master/.github/CONTRIBUTING.md), **Pull Request** section?
+- [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/pytorch-lightning/blob/master/.github/CONTRIBUTING.md), **Pull Request** section?
 - [ ] Did you make sure your **PR does only one thing**, instead of bundling different changes together?
 - Did you make sure to **update the documentation** with your changes? (if necessary)
 - Did you write any **new necessary tests**? (not for typos and docs)

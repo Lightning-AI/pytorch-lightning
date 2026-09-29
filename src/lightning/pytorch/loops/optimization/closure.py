@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -22,7 +22,7 @@ T = TypeVar("T")
 
 @dataclass
 class OutputResult:
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         raise NotImplementedError
 
 

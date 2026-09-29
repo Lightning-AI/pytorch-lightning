@@ -19,12 +19,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
+
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
-from torch.nn.parallel import DistributedDataParallel
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -58,9 +58,12 @@ def test_ddp_no_backward_sync():
     strategy = DDPStrategy()
     assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock(), True):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(Mock(), True),
+    ):
         pass
 
     module = MagicMock(spec=DistributedDataParallel)
@@ -142,6 +145,8 @@ def test_module_init_context(precision, expected_dtype):
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "0"})
 @mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 @mock.patch("torch.cuda.Stream")
+@mock.patch("torch.cuda.default_stream")
+@mock.patch("torch.cuda.is_current_stream_capturing", return_value=False)
 @mock.patch("torch.cuda.stream")
 def test_setup_with_cuda_stream(cuda_stream_mock, *_):
     model = torch.nn.Linear(2, 2)
@@ -166,5 +171,50 @@ def test_set_timeout(init_process_group_mock):
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=test_timedelta,
+        device_id=None,
+    )
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_device_id_passed_for_cuda_devices(init_process_group_mock):
+    """Test that device_id is passed to init_process_group for CUDA devices but not for CPU."""
+    # Test with CPU device - device_id should be None
+    cpu_strategy = DDPStrategy(parallel_devices=[torch.device("cpu")])
+    cpu_strategy.cluster_environment = LightningEnvironment()
+    cpu_strategy.accelerator = Mock()
+    cpu_strategy.setup_environment()
+
+    process_group_backend = cpu_strategy._get_process_group_backend()
+    global_rank = cpu_strategy.cluster_environment.global_rank()
+    world_size = cpu_strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=cpu_strategy._timeout,
+        device_id=None,
+    )
+
+    init_process_group_mock.reset_mock()
+
+    # Test with CUDA device - device_id should be the device
+    cuda_device = torch.device("cuda", 0)
+    cuda_strategy = DDPStrategy(parallel_devices=[cuda_device])
+    cuda_strategy.cluster_environment = LightningEnvironment()
+    cuda_strategy.accelerator = Mock()
+    cuda_strategy.setup_environment()
+
+    process_group_backend = cuda_strategy._get_process_group_backend()
+    global_rank = cuda_strategy.cluster_environment.global_rank()
+    world_size = cuda_strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=cuda_strategy._timeout,
+        device_id=cuda_device,
     )

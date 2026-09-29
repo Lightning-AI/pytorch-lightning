@@ -18,14 +18,14 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.fabric.strategies import DeepSpeedStrategy
 from torch.optim import Optimizer
 
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -36,7 +36,7 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
@@ -137,6 +137,7 @@ def test_deepspeed_setup_module(init_mock):
         model=model,
         model_parameters=ANY,
         optimizer=None,
+        lr_scheduler=None,
         dist_init_required=False,
     )
 
@@ -193,7 +194,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
     # Model and optimizer
     optimizer = Mock()
@@ -201,7 +204,9 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
-    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+    model.save_checkpoint.assert_called_with(
+        tmp_path, client_state={"test": "data"}, tag="checkpoint", exclude_frozen_parameters=False
+    )
 
 
 @RunIf(deepspeed=True)
@@ -216,6 +221,27 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
     # `mp_world_size` is an internal key
     with pytest.warns(UserWarning, match="Your state has keys that collide with DeepSpeed's internal"):
         strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "mp_world_size": 2})
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("exclude_frozen_parameters", [True, False])
+def test_deepspeed_save_checkpoint_exclude_frozen_parameters(exclude_frozen_parameters):
+    """Test that the DeepSpeed strategy can save checkpoints with the `exclude_frozen_parameters` argument."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy(exclude_frozen_parameters=exclude_frozen_parameters)
+    assert strategy.exclude_frozen_parameters is exclude_frozen_parameters
+
+    model = Mock(spec=DeepSpeedEngine, optimizer=None)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path="test_path", state={"model": model, "extra": "data"})
+
+    model.save_checkpoint.assert_called_with(
+        "test_path",
+        client_state={"extra": "data"},
+        tag="checkpoint",
+        exclude_frozen_parameters=exclude_frozen_parameters,
+    )
 
 
 @RunIf(deepspeed=True)
@@ -236,6 +262,55 @@ def test_deepspeed_load_checkpoint_validate_path(tmp_path):
     checkpoint_path.touch()
     with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
         strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+
+def test_validate_checkpoint_directory_remote_uri():
+    """Test that the checkpoint path validation supports remote URIs (e.g., S3, HDFS) without mangling the scheme."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    fs = Mock()
+    fs.isdir = Mock(side_effect=lambda p: p in {"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
+    fs.isfile = Mock(side_effect=lambda p: p == "s3://bucket/ckpt/checkpoint/model_states.pt")
+
+    with mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=fs):
+        # A valid remote checkpoint passes validation
+        _validate_checkpoint_directory("s3://bucket/ckpt")
+
+        # User tries to pass the subfolder as the path
+        with pytest.raises(FileNotFoundError, match="parent directory instead: s3://bucket/ckpt$"):
+            _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint")
+
+        # User tries to pass an individual file inside the checkpoint folder
+        with pytest.raises(FileNotFoundError, match="parent directory instead: s3://bucket/ckpt$"):
+            _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint/model_states.pt")
+
+    # The scheme must not get mangled (pathlib.Path would collapse "s3://" to "s3:/")
+    fs.isdir.assert_any_call("s3://bucket/ckpt")
+    fs.isdir.assert_any_call("s3://bucket/ckpt/checkpoint")
+
+
+def test_validate_checkpoint_directory_local_path(tmp_path):
+    """Test that the fsspec-based checkpoint path validation still handles local paths."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        _validate_checkpoint_directory(tmp_path)
+
+    checkpoint_dir = tmp_path / "checkpoint"
+    checkpoint_dir.mkdir()
+    _validate_checkpoint_directory(tmp_path)  # now a valid DeepSpeed checkpoint
+
+    with pytest.raises(
+        FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"
+    ):
+        _validate_checkpoint_directory(checkpoint_dir)
+
+    checkpoint_file = checkpoint_dir / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_file.touch()
+    with pytest.raises(
+        FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"
+    ):
+        _validate_checkpoint_directory(checkpoint_file)
 
 
 @RunIf(deepspeed=True)

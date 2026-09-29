@@ -20,12 +20,12 @@ import numpy as np
 import pytest
 import torch
 import yaml
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -240,7 +240,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmp_path):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
-def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmp_path):
+def test_tensorboard_with_accumulated_gradients(mock_log_metrics, tmp_path):
     """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
     class TestModel(BoringModel):

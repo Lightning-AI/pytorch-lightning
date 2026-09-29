@@ -16,9 +16,9 @@
 import inspect
 import logging
 import os
+from contextlib import AbstractContextManager
 from functools import lru_cache, partial
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor, nn
@@ -28,7 +28,6 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
@@ -65,8 +64,8 @@ class RegisterRecordFunction:
 
     def __init__(self, model: nn.Module) -> None:
         self._model = model
-        self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List[RemovableHandle]] = {}
+        self._records: dict[str, record_function] = {}
+        self._handles: dict[str, list[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
@@ -231,7 +230,7 @@ class PyTorchProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
@@ -239,7 +238,7 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
-        table_kwargs: Optional[Dict[str, Any]] = None,
+        table_kwargs: Optional[dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -281,7 +280,8 @@ class PyTorchProfiler(Profiler):
 
             table_kwargs: Dictionary with keyword arguments for the summary table.
 
-            \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
+            \**profiler_kwargs: Keyword arguments for the :class:`Pytorch profiler <torch.profiler.profile>`.
+                The exact available options depend on your PyTorch version.
 
         Raises:
             MisconfigurationException:
@@ -305,8 +305,8 @@ class PyTorchProfiler(Profiler):
         self.function_events: Optional[EventList] = None
         self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
-        self._parent_profiler: Optional[ContextManager] = None
-        self._recording_map: Dict[str, record_function] = {}
+        self._parent_profiler: Optional[AbstractContextManager] = None
+        self._recording_map: dict[str, record_function] = {}
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
@@ -400,20 +400,13 @@ class PyTorchProfiler(Profiler):
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
         return None
 
-    def _default_activities(self) -> List["ProfilerActivity"]:
-        activities: List[ProfilerActivity] = []
+    def _default_activities(self) -> list["ProfilerActivity"]:
+        activities: list[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
-        if _TORCH_GREATER_EQUAL_2_4:
-            activities.append(ProfilerActivity.CPU)
-            if is_cuda_available():
-                activities.append(ProfilerActivity.CUDA)
-        else:
-            # `use_cpu` and `use_cuda` are deprecated in PyTorch >= 2.4
-            if self._profiler_kwargs.get("use_cpu", True):
-                activities.append(ProfilerActivity.CPU)
-            if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
-                activities.append(ProfilerActivity.CUDA)
+        activities.append(ProfilerActivity.CPU)
+        if is_cuda_available():
+            activities.append(ProfilerActivity.CUDA)
         return activities
 
     @override
@@ -474,7 +467,7 @@ class PyTorchProfiler(Profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         handler = tensorboard_trace_handler(
-                            str(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
+                            os.fspath(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
                         )
                         handler(profiler)
 
@@ -530,7 +523,7 @@ class PyTorchProfiler(Profiler):
                 torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
 
-    def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
+    def _create_profiler(self, profiler: type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)

@@ -18,7 +18,8 @@ import operator
 import statistics
 from abc import ABC
 from collections import defaultdict
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Callable, Optional
 
 from typing_extensions import override
 
@@ -101,7 +102,7 @@ def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = statistics.mean,
-) -> Dict:
+) -> dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given function.
 
     Args:
@@ -137,7 +138,7 @@ def merge_dicts(  # pragma: no cover
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out: Dict = defaultdict(dict)
+    d_out: dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]

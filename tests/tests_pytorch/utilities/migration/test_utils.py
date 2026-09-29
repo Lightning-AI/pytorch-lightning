@@ -18,16 +18,16 @@ import pickle
 import sys
 from unittest.mock import ANY
 
-import lightning.pytorch as pl
 import pytest
 import torch
-from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
-from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 from packaging.version import Version
 
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     CHECKPOINT_EXTENSION,
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
@@ -75,9 +75,9 @@ def _list_sys_modules(pattern: str) -> str:
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(module_available("lightning"), reason="This test is ONLY relevant for the STANDALONE package")
 def test_test_patch_legacy_imports_standalone(pl_version):
-    assert any(
-        key.startswith("pytorch_lightning") for key in sys.modules
-    ), f"Imported PL, so it has to be in sys.modules: {_list_sys_modules('pytorch_lightning')}"
+    assert any(key.startswith("pytorch_lightning") for key in sys.modules), (
+        f"Imported PL, so it has to be in sys.modules: {_list_sys_modules('pytorch_lightning')}"
+    )
     path_legacy = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     path_ckpts = sorted(glob.glob(os.path.join(path_legacy, f"*{CHECKPOINT_EXTENSION}")))
     assert path_ckpts, f'No checkpoints found in folder "{path_legacy}"'
@@ -86,9 +86,9 @@ def test_test_patch_legacy_imports_standalone(pl_version):
     with no_warning_call(match="Redirecting import of*"), pl_legacy_patch():
         torch.load(path_ckpt, weights_only=False)
 
-    assert any(
-        key.startswith("pytorch_lightning") for key in sys.modules
-    ), f"Imported PL, so it has to be in sys.modules: {_list_sys_modules('pytorch_lightning')}"
+    assert any(key.startswith("pytorch_lightning") for key in sys.modules), (
+        f"Imported PL, so it has to be in sys.modules: {_list_sys_modules('pytorch_lightning')}"
+    )
     assert not any(key.startswith("lightning." + "pytorch") for key in sys.modules), (
         "Did not import the unified package,"
         f" so it should not be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
@@ -98,9 +98,9 @@ def test_test_patch_legacy_imports_standalone(pl_version):
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(not module_available("lightning"), reason="This test is ONLY relevant for the UNIFIED package")
 def test_patch_legacy_imports_unified(pl_version):
-    assert any(
-        key.startswith("lightning." + "pytorch") for key in sys.modules
-    ), f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
+    assert any(key.startswith("lightning." + "pytorch") for key in sys.modules), (
+        f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
+    )
     assert not any(key.startswith("pytorch_lightning") for key in sys.modules), (
         "Should not import standalone package, all imports should be redirected to the unified package;\n"
         f" environment: {_list_sys_modules('pytorch_lightning')}"
@@ -119,9 +119,9 @@ def test_patch_legacy_imports_unified(pl_version):
     with context, pl_legacy_patch():
         torch.load(path_ckpt, weights_only=False)
 
-    assert any(
-        key.startswith("lightning." + "pytorch") for key in sys.modules
-    ), f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
+    assert any(key.startswith("lightning." + "pytorch") for key in sys.modules), (
+        f"Imported unified package, so it has to be in sys.modules: {_list_sys_modules('lightning' + '.pytorch')}"
+    )
     assert not any(key.startswith("pytorch_lightning") for key in sys.modules), (
         "Should not import standalone package, all imports should be redirected to the unified package;\n"
         f" environment: {_list_sys_modules('pytorch_lightning')}"

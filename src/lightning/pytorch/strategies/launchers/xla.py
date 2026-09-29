@@ -76,7 +76,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         """
         if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
-            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            # resolving https://github.com/Lightning-AI/pytorch-lightning/issues/18775 will lift this restriction
             raise NotImplementedError(
                 "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
                 " supported. You can work around this by creating a new Trainer instance and passing the"

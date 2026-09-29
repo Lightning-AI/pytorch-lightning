@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.utilities.testing import _runif_reasons as fabric_run_if
+from lightning.fabric.utilities.testing import _runif_reasons as _fabric_run_if
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.core.module import _ONNX_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.core.module import _ONNX_AVAILABLE, _ONNXSCRIPT_AVAILABLE, _TORCH_TRT_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _RICH_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
@@ -42,11 +41,14 @@ def _runif_reasons(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
-) -> Tuple[List[str], Dict[str, bool]]:
+    linux_only: bool = False,
+    onnxscript: bool = False,
+    tensorrt: bool = False,
+) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:
-        min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
+        min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -64,10 +66,12 @@ def _runif_reasons(
         psutil: Require that psutil is installed.
         sklearn: Require that scikit-learn is installed.
         onnx: Require that onnx is installed.
+        onnxscript: Require that onnxscript is installed.
+        tensorrt: Require that torch-tensorrt is installed.
 
     """
 
-    reasons, kwargs = fabric_run_if(
+    reasons, kwargs = _fabric_run_if(
         min_cuda_gpus=min_cuda_gpus,
         min_torch=min_torch,
         max_torch=max_torch,
@@ -79,6 +83,7 @@ def _runif_reasons(
         standalone=standalone,
         deepspeed=deepspeed,
         dynamo=dynamo,
+        linux_only=linux_only,
     )
 
     if rich and not _RICH_AVAILABLE:
@@ -95,5 +100,11 @@ def _runif_reasons(
 
     if onnx and not _ONNX_AVAILABLE:
         reasons.append("onnx")
+
+    if onnxscript and not _ONNXSCRIPT_AVAILABLE:
+        reasons.append("onnxscript")
+
+    if tensorrt and not _TORCH_TRT_AVAILABLE:
+        reasons.append("torch-tensorrt")
 
     return reasons, kwargs

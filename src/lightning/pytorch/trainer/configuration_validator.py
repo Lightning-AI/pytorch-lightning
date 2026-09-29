@@ -78,14 +78,14 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             f"Support for `training_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
             " method. You can use the `on_train_epoch_end` hook instead. To access outputs, save them in-memory as"
             " instance attributes."
-            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+            " You can find migration examples in https://github.com/Lightning-AI/pytorch-lightning/pull/16520."
         )
     if callable(getattr(model, "validation_epoch_end", None)):
         raise NotImplementedError(
             f"Support for `validation_epoch_end` has been removed in v2.0.0. `{type(model).__name__}` implements this"
             " method. You can use the `on_validation_epoch_end` hook instead. To access outputs, save them in-memory as"
             " instance attributes."
-            " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+            " You can find migration examples in https://github.com/Lightning-AI/pytorch-lightning/pull/16520."
         )
 
 
@@ -112,7 +112,7 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
                 f"Support for `{epoch_end_name}` has been removed in v2.0.0. `{type(model).__name__}` implements this"
                 f" method. You can use the `on_{epoch_end_name}` hook instead. To access outputs, save them in-memory"
                 " as instance attributes."
-                " You can find migration examples in https://github.com/Lightning-AI/lightning/pull/16520."
+                " You can find migration examples in https://github.com/Lightning-AI/pytorch-lightning/pull/16520."
             )
 
 

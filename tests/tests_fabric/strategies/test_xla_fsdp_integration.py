@@ -18,10 +18,10 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.fabric import Fabric
-from lightning.fabric.strategies import XLAFSDPStrategy
 from torch.utils.data import DataLoader
 
+from lightning.fabric import Fabric
+from lightning.fabric.strategies import XLAFSDPStrategy
 from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 

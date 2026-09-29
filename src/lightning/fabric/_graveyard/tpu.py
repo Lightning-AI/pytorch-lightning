@@ -71,7 +71,7 @@ class TPUPrecision(XLAPrecision):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "The `TPUPrecision` class is deprecated. Use `lightning.fabric.plugins.precision.XLAPrecision`" " instead."
+            "The `TPUPrecision` class is deprecated. Use `lightning.fabric.plugins.precision.XLAPrecision` instead."
         )
         super().__init__(precision="32-true")
 
@@ -85,8 +85,7 @@ class XLABf16Precision(XLAPrecision):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "The `XLABf16Precision` class is deprecated. Use"
-            " `lightning.fabric.plugins.precision.XLAPrecision` instead."
+            "The `XLABf16Precision` class is deprecated. Use `lightning.fabric.plugins.precision.XLAPrecision` instead."
         )
         super().__init__(precision="bf16-true")
 
@@ -100,8 +99,7 @@ class TPUBf16Precision(XLABf16Precision):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "The `TPUBf16Precision` class is deprecated. Use"
-            " `lightning.fabric.plugins.precision.XLAPrecision` instead."
+            "The `TPUBf16Precision` class is deprecated. Use `lightning.fabric.plugins.precision.XLAPrecision` instead."
         )
         super().__init__(*args, **kwargs)
 

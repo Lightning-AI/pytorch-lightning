@@ -87,19 +87,19 @@
      - `PR9924`_
 
 
-.. _pr9175: https://github.com/Lightning-AI/lightning/pull/9175
-.. _pr9699: https://github.com/Lightning-AI/lightning/pull/9699
-.. _pr9754: https://github.com/Lightning-AI/lightning/pull/9754
-.. _pr8989: https://github.com/Lightning-AI/lightning/pull/8989
-.. _pr9366: https://github.com/Lightning-AI/lightning/pull/9366
-.. _pr9460: https://github.com/Lightning-AI/lightning/pull/9460
-.. _pr9693: https://github.com/Lightning-AI/lightning/pull/9693
-.. _pr9921: https://github.com/Lightning-AI/lightning/pull/9921
-.. _pr9616: https://github.com/Lightning-AI/lightning/pull/9616
-.. _pr8513: https://github.com/Lightning-AI/lightning/pull/8513
-.. _pr8495: https://github.com/Lightning-AI/lightning/pull/8495
-.. _pr9098: https://github.com/Lightning-AI/lightning/pull/9098
-.. _pr9260: https://github.com/Lightning-AI/lightning/pull/9260
-.. _pr9065: https://github.com/Lightning-AI/lightning/pull/9065
-.. _pr10134: https://github.com/Lightning-AI/lightning/pull/10134
-.. _pr9924: https://github.com/Lightning-AI/lightning/pull/9924
+.. _pr9175: https://github.com/Lightning-AI/pytorch-lightning/pull/9175
+.. _pr9699: https://github.com/Lightning-AI/pytorch-lightning/pull/9699
+.. _pr9754: https://github.com/Lightning-AI/pytorch-lightning/pull/9754
+.. _pr8989: https://github.com/Lightning-AI/pytorch-lightning/pull/8989
+.. _pr9366: https://github.com/Lightning-AI/pytorch-lightning/pull/9366
+.. _pr9460: https://github.com/Lightning-AI/pytorch-lightning/pull/9460
+.. _pr9693: https://github.com/Lightning-AI/pytorch-lightning/pull/9693
+.. _pr9921: https://github.com/Lightning-AI/pytorch-lightning/pull/9921
+.. _pr9616: https://github.com/Lightning-AI/pytorch-lightning/pull/9616
+.. _pr8513: https://github.com/Lightning-AI/pytorch-lightning/pull/8513
+.. _pr8495: https://github.com/Lightning-AI/pytorch-lightning/pull/8495
+.. _pr9098: https://github.com/Lightning-AI/pytorch-lightning/pull/9098
+.. _pr9260: https://github.com/Lightning-AI/pytorch-lightning/pull/9260
+.. _pr9065: https://github.com/Lightning-AI/pytorch-lightning/pull/9065
+.. _pr10134: https://github.com/Lightning-AI/pytorch-lightning/pull/10134
+.. _pr9924: https://github.com/Lightning-AI/pytorch-lightning/pull/9924

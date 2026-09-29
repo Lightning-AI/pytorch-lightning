@@ -40,9 +40,9 @@ Unsupported datatype transfer to TPUs?
 
 .. code-block::
 
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
         v = _for_each_instance_rewrite(result.__dict__[k], select_fn, fn, rwmap)
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
         result.__dict__[k] = v
     TypeError: 'mappingproxy' object does not support item assignment
 
@@ -78,7 +78,7 @@ A lot of PyTorch operations aren't lowered to XLA, which could lead to significa
 These operations are moved to the CPU memory and evaluated, and then the results are transferred back to the XLA device(s).
 By using the `xla_debug` Strategy, users could create a metrics report to diagnose issues.
 
-The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
+The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md#troubleshooting>`_):
 
 * how many times we issue XLA compilations and time spent on issuing.
 * how many times we execute and time spent on execution

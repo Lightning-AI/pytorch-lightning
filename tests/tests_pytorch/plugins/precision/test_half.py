@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins import HalfPrecision
 

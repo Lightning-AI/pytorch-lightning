@@ -14,12 +14,15 @@
 import pytest
 import torch
 import torch.nn as nn
+
 from lightning.fabric.utilities.load import (
     _lazy_load,
+    _load_distributed_checkpoint,
     _materialize_tensors,
     _move_state_into,
     _NotYetLoadedTensor,
 )
+from tests_fabric.helpers.runif import RunIf
 
 
 def test_lazy_load_module(tmp_path):
@@ -55,7 +58,7 @@ def test_lazy_load_tensor(tmp_path):
     for t0, t1 in zip(expected.values(), loaded.values()):
         assert isinstance(t1, _NotYetLoadedTensor)
         t1_materialized = _materialize_tensors(t1)
-        assert type(t0) == type(t1_materialized)
+        assert type(t0) == type(t1_materialized)  # noqa: E721
         assert torch.equal(t0, t1_materialized)
 
 
@@ -91,7 +94,7 @@ def test_materialize_tensors(tmp_path):
     loaded = _lazy_load(tmp_path / "tensor.pt")
     materialized = _materialize_tensors(loaded)
     assert torch.equal(materialized, tensor)
-    assert type(tensor) == type(materialized)
+    assert type(tensor) == type(materialized)  # noqa: E721
 
     # Collection of tensors
     collection = {
@@ -139,3 +142,31 @@ def test_move_state_into():
     assert source == {}
     assert destination["cocofruit"] == 2
     assert destination["banana"].count == 100
+
+
+@RunIf(min_torch="2.3")
+def test_load_distributed_checkpoint_remote(monkeypatch):
+    """Regression: consolidating a checkpoint on remote storage must use an fsspec-aware reader instead of the
+    local-only `FileSystemReader`."""
+
+    class FakeReader:
+        pass
+
+    captured = {}
+
+    def fake_get_reader(path):
+        captured["reader_path"] = str(path)
+        return FakeReader()
+
+    def fake_load_state_dict(checkpoint, storage_reader, planner, no_dist):
+        captured["reader_type"] = type(storage_reader)
+
+    monkeypatch.setattr("lightning.fabric.utilities.load._get_distributed_checkpoint_reader", fake_get_reader)
+    monkeypatch.setattr("torch.distributed.checkpoint.state_dict_loader._load_state_dict", fake_load_state_dict)
+
+    checkpoint = _load_distributed_checkpoint("memory:///consolidate/ckpt")
+
+    assert captured["reader_path"] == "memory:///consolidate/ckpt"
+    assert captured["reader_type"] is FakeReader
+    # No `meta.pt` file was created in the fake remote folder, so no extra metadata is merged in.
+    assert checkpoint == {}

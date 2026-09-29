@@ -15,9 +15,14 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+from torch.distributed.optim import ZeroRedundancyOptimizer
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+
+import lightning.pytorch as pl
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.pytorch import Trainer
@@ -27,11 +32,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
-from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -66,7 +66,7 @@ def test_multi_gpu_model_ddp_fit_test(tmp_path):
         assert out["test_acc"] > 0.7
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, max_torch="2.7")
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 @mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
@@ -448,3 +448,50 @@ def test_incorrect_ddp_script_spawning(tmp_path):
         RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
     ):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True)
+@pytest.mark.parametrize("automatic_optimization", [True, False])
+@pytest.mark.parametrize("static_graph", [True, False])
+def test_ddp_gradients_synced(tmp_path, automatic_optimization, static_graph):
+    """Ensure gradients are synchronized across ranks for both optimization modes and static_graph settings."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = automatic_optimization
+
+        def training_step(self, batch, batch_idx):
+            if self.automatic_optimization:
+                return super().training_step(batch, batch_idx)
+
+            # manual optimization path
+            opt = self.optimizers()
+            opt.zero_grad()
+            out = super().training_step(batch, batch_idx)
+            loss = out["loss"]
+            self.manual_backward(loss)
+            opt.step()
+            return out
+
+        def on_train_batch_end(self, *args, **kwargs):
+            # record grad sum for sync check
+            grad_sum = self.layer.bias.grad.detach().sum()
+            self.log("grad_sum_min", grad_sum, sync_dist=True, reduce_fx="min")
+            self.log("grad_sum_max", grad_sum, sync_dist=True, reduce_fx="max")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPStrategy(static_graph=static_graph),
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(TestModel(), datamodule=BoringDataModule())
+
+    # assert all ranks saw identical grads
+    gmin = trainer.callback_metrics["grad_sum_min"]
+    gmax = trainer.callback_metrics["grad_sum_max"]
+    assert torch.allclose(gmin, gmax)

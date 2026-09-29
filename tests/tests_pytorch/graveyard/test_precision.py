@@ -3,10 +3,11 @@ import pytest
 
 def test_precision_plugin_renamed_imports():
     # base class
+    from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin as PrecisionPlugin0
+
     from lightning.pytorch.plugins import PrecisionPlugin as PrecisionPlugin2
     from lightning.pytorch.plugins.precision import PrecisionPlugin as PrecisionPlugin1
     from lightning.pytorch.plugins.precision.precision import Precision
-    from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin as PrecisionPlugin0
 
     assert issubclass(PrecisionPlugin0, Precision)
     assert issubclass(PrecisionPlugin1, Precision)

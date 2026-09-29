@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -55,7 +55,7 @@ class Logger(ABC):
         return "/"
 
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
         """Records metrics. This method logs metrics as soon as it received them.
 
         Args:
@@ -66,7 +66,7 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:

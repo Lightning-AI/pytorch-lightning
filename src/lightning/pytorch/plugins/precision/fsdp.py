@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Optional
+from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
+from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -57,10 +60,10 @@ class FSDPPrecision(Precision):
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-        if scaler is not None and self.precision != "16-mixed":
+        if scaler is not None and precision != "16-mixed":
             raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
 
-        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else scaler
         self.precision = precision
 
         precision_to_type = {
@@ -71,6 +74,12 @@ class FSDPPrecision(Precision):
             "32-true": torch.float32,
         }
         self._desired_input_dtype = precision_to_type[self.precision]
+
+    @override
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_input_dtype)
+        return module
 
     @override
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
@@ -86,19 +95,18 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        if self.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
-        elif self.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self.precision == "16-true":
+        if self.precision in ("16-true", "bf16-true"):
+            rank_zero_warn(
+                f"FSDP with `{self.precision}` enables computation in lower precision. "
+                "FSDP will always retain a full-precision copy of the model parameters for sharding."
+            )
+
+        if self.precision in ("16-true", "16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif self.precision == "bf16-true":
+        elif self.precision in ("bf16-true", "bf16-mixed"):
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = torch.float32
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
 
@@ -109,15 +117,15 @@ class FSDPPrecision(Precision):
         )
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
-        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
+    def module_init_context(self) -> AbstractContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return _DtypeContextManager(self._desired_input_dtype)
@@ -166,12 +174,12 @@ class FSDPPrecision(Precision):
         return closure_result
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

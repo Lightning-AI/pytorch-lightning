@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from collections.abc import Iterable, Iterator
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
@@ -35,7 +37,7 @@ class RandomDictDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index: int) -> Dict[str, Tensor]:
+    def __getitem__(self, index: int) -> dict[str, Tensor]:
         a = self.data[index]
         b = a + 2
         return {"a": a, "b": b}
@@ -134,7 +136,7 @@ class BoringModel(LightningModule):
     def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"y": self.step(batch)}
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[LRScheduler]]:
+    def configure_optimizers(self) -> tuple[list[torch.optim.Optimizer], list[LRScheduler]]:
         optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
@@ -185,6 +187,86 @@ class BoringDataModule(LightningDataModule):
 
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.random_predict)
+
+
+class BoringDataModuleNoLen(LightningDataModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def setup(self, stage: str) -> None:
+        if stage == "fit":
+            self.random_train = RandomIterableDataset(32, 512)
+
+        if stage in ("fit", "validate"):
+            self.random_val = RandomIterableDataset(32, 128)
+
+        if stage == "test":
+            self.random_test = RandomIterableDataset(32, 256)
+
+        if stage == "predict":
+            self.random_predict = RandomIterableDataset(32, 64)
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(self.random_train)
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(self.random_val)
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(self.random_test)
+
+    def predict_dataloader(self) -> DataLoader:
+        return DataLoader(self.random_predict)
+
+
+class IterableBoringDataModule(LightningDataModule):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def setup(self, stage: str) -> None:
+        if stage == "fit":
+            self.train_datasets = [
+                RandomDataset(4, 16),
+                RandomIterableDataset(4, 16),
+            ]
+
+        if stage in ("fit", "validate"):
+            self.val_datasets = [
+                RandomDataset(4, 32),
+                RandomIterableDataset(4, 32),
+            ]
+
+        if stage == "test":
+            self.test_datasets = [
+                RandomDataset(4, 64),
+                RandomIterableDataset(4, 64),
+            ]
+
+        if stage == "predict":
+            self.predict_datasets = [
+                RandomDataset(4, 128),
+                RandomIterableDataset(4, 128),
+            ]
+
+    def train_dataloader(self) -> Iterable[DataLoader]:
+        combined_train = apply_to_collection(self.train_datasets, Dataset, lambda x: DataLoader(x))
+        return combined_train
+
+    def val_dataloader(self) -> DataLoader:
+        combined_val = apply_to_collection(self.val_datasets, Dataset, lambda x: DataLoader(x))
+        return combined_val
+
+    def test_dataloader(self) -> DataLoader:
+        combined_test = apply_to_collection(self.test_datasets, Dataset, lambda x: DataLoader(x))
+        return combined_test
+
+    def predict_dataloader(self) -> DataLoader:
+        combined_predict = apply_to_collection(self.predict_datasets, Dataset, lambda x: DataLoader(x))
+        return combined_predict
 
 
 class ManualOptimBoringModel(BoringModel):

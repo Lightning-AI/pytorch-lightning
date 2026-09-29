@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from collections.abc import Generator
 from functools import partial
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor
@@ -37,8 +38,8 @@ class Precision(FabricPrecision, CheckpointHooks):
     """
 
     def connect(
-        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[Module, List[Optimizer], List[Any]]:
+        self, model: Module, optimizers: list[Optimizer], lr_schedulers: list[Any]
+    ) -> tuple[Module, list[Optimizer], list[Any]]:
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 

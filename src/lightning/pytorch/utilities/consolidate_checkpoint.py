@@ -1,13 +1,12 @@
 import re
-from typing import Any, Dict
+from typing import Any
 
-import torch
-
+from lightning.fabric.utilities.cloud_io import _atomic_save
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
 
-def _format_checkpoint(checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+def _format_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     """Converts the special FSDP checkpoint format to the standard format the Lightning Trainer can load."""
     # Rename the model key
     checkpoint["state_dict"] = checkpoint.pop("model")
@@ -27,4 +26,4 @@ if __name__ == "__main__":
     config = _process_cli_args(args)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
     checkpoint = _format_checkpoint(checkpoint)
-    torch.save(checkpoint, config.output_file)
+    _atomic_save(checkpoint, config.output_file)

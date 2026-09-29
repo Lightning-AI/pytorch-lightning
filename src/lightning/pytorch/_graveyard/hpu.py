@@ -22,21 +22,13 @@ class HPUAccelerator:
     teardown = ...
 
     def __init__(self, *_: Any, **__: Any) -> None:
-        raise NotImplementedError(
-            "The `HPUAccelerator` class has been moved to an external package."
-            " Install the extension package as `pip install lightning-habana`"
-            " and import with `from lightning_habana import HPUAccelerator`."
-            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
-        )
+        raise NotImplementedError("The `HPUAccelerator` class has been removed. Please contact developer@lightning.ai")
 
 
 class HPUParallelStrategy:
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
-            "The `HPUParallelStrategy` class has been moved to an external package."
-            " Install the extension package as `pip install lightning-habana`"
-            " and import with `from lightning_habana import HPUParallelStrategy`."
-            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
+            "The `HPUParallelStrategy` class has been removed. Please contact developer@lightning.ai"
         )
 
     def setup(self, *_: Any, **__: Any) -> None:
@@ -49,30 +41,19 @@ class HPUParallelStrategy:
 class SingleHPUStrategy:
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
-            "The `SingleHPUStrategy` class has been moved to an external package."
-            " Install the extension package as `pip install lightning-habana`"
-            " and import with `from lightning_habana import SingleHPUStrategy`."
-            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
+            "The `SingleHPUStrategy` class has been removed. Please contact developer@lightning.ai"
         )
 
 
 class HPUCheckpointIO:
     def __init__(self, *_: Any, **__: Any) -> None:
-        raise NotImplementedError(
-            "The `HPUCheckpointIO` class has been moved to an external package."
-            " Install the extension package as `pip install lightning-habana`"
-            " and import with `from lightning_habana import HPUCheckpointIO`."
-            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
-        )
+        raise NotImplementedError("The `HPUCheckpointIO` class has been removed. Please contact developer@lightning.ai")
 
 
 class HPUPrecisionPlugin:
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
-            "The `HPUPrecisionPlugin` class has been moved to an external package."
-            " Install the extension package as `pip install lightning-habana`"
-            " and import with `from lightning_habana import HPUPrecisionPlugin`."
-            " Please see: https://github.com/Lightning-AI/lightning-Habana for more details."
+            "The `HPUPrecisionPlugin` class has been removed. Please contact developer@lightning.ai"
         )
 
 

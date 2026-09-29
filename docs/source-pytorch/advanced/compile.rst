@@ -138,6 +138,122 @@ always exclude the first call to ``forward()``/``*_step()`` from your measuremen
 
 ----
 
+**************************************
+Apply torch.compile in configure_model
+**************************************
+
+:func:`torch.compile` can also be invoked as part of the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook.
+
+This is particularly handy when :func:`torch.compile` is used in combination with :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy`.
+
+Here is an example:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
+    from torch.distributed.device_mesh import DeviceMesh
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+
+    class LanguageModel(L.LightningModule):
+        def __init__(self, vocab_size):
+            super().__init__()
+            self.vocab_size = vocab_size
+            self.model = None
+
+        def configure_model(self):
+            if self.model is not None:
+                return
+
+            with torch.device("meta"):
+                model = Transformer(
+                    vocab_size=self.vocab_size,
+                    nlayers=16,
+                    nhid=4096,
+                    ninp=1024,
+                    nhead=32,
+                )
+
+            for module in model.modules():
+                if isinstance(module, (nn.TransformerEncoderLayer, nn.TransformerDecoderLayer)):
+                    fully_shard(module, mesh=self.device_mesh)
+
+            fully_shard(model, mesh=self.device_mesh)
+
+            self.model = torch.compile(model)
+
+        def training_step(self, batch):
+            input, target = batch
+            output = self.model(input, target)
+            loss = F.nll_loss(output, target.view(-1))
+            self.log("train_loss", loss)
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-4)
+
+The advantage here is that `configure_model` is called when sharding the model,
+so :func:`torch.compile` is guaranteed to run on model shards and capture distributed operations.
+
+Also, when using other libraries like `torch ao <https://github.com/pytorch/ao>`_
+that need to be applied in a similar fashion, it's easy to reason about the sequence of calls
+needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from lightning.pytorch.strategies.model_parallel import ModelParallelStrategy
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+    from torch.distributed.device_mesh import DeviceMesh
+    from torchao.float8 import Float8LinearConfig, convert_to_float8_training
+
+    class LanguageModel(L.LightningModule):
+        def __init__(self, vocab_size):
+            super().__init__()
+            self.vocab_size = vocab_size
+            self.model = None
+
+        def configure_model(self):
+            if self.model is not None:
+                return
+
+            with torch.device("meta"):
+                model = Transformer(
+                    vocab_size=self.vocab_size,
+                    nlayers=16,
+                    nhid=4096,
+                    ninp=1024,
+                    nhead=32,
+                )
+
+            float8_config = Float8LinearConfig(
+                pad_inner_dim=True,
+            )
+
+            def module_filter_fn(mod: torch.nn.Module, fqn: str):
+                return fqn != "decoder"
+
+            convert_to_float8_training(model, config=float8_config, module_filter_fn=module_filter_fn)
+
+            for module in model.modules():
+                if isinstance(module, (nn.TransformerEncoderLayer, nn.TransformerDecoderLayer)):
+                    fully_shard(module, mesh=self.device_mesh)
+
+            fully_shard(model, mesh=self.device_mesh)
+
+            self.model = torch.compile(model)
+
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/pytorch/fp8_distributed_transformer>`_.
+
+----
 
 ******************
 Avoid graph breaks
@@ -146,7 +262,7 @@ Avoid graph breaks
 When ``torch.compile`` looks at the code in your model's ``forward()`` or ``*_step()`` method, it will try to compile as much of the code as possible.
 If there are regions in the code that it doesn't understand, it will introduce a so-called "graph break" that essentially splits the code in optimized and unoptimized parts.
 Graph breaks aren't a deal breaker, since the optimized parts should still run faster.
-But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produce the breaks.
+But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produces the breaks.
 
 You can check whether your model produces graph breaks by calling ``torch.compile`` with ``fullgraph=True``:
 
@@ -216,7 +332,7 @@ Enabling CUDA Graphs often results in a significant speedup, but sometimes also 
 
 **Shape padding:** The specific shape/size of the tensors involved in the computation of your model (input, activations, weights, gradients, etc.) can have an impact on the performance.
 With shape padding enabled, ``torch.compile`` can extend the tensors by padding to a size that gives a better memory alignment.
-Naturally, the tradoff here is that it will consume a bit more memory.
+Naturally, the tradeoff here is that it will consume a bit more memory.
 
 .. code-block:: python
 
@@ -253,8 +369,8 @@ Limitations
 
 There are a few limitations you should be aware of when using ``torch.compile`` **in conjunction with the Trainer**:
 
-* The Trainer currently does not reapply ``torch.compile`` over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
-  This limitation will be lifted in the future.
+* The Trainer currently does not reapply ``torch.compile`` over :class:`~lightning.pytorch.strategies.DDPStrategy` and :class:`~lightning.pytorch.strategies.FSDPStrategy`, meaning distributed operations can't benefit from speed ups at the moment.
+  This limitation can be avoided by using :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy`, as described in `Apply torch.compile in configure_model`_ above.
 
 * In some cases, using ``self.log()`` in your LightningModule will cause compilation errors.
   Until addressed, you can work around these issues by applying ``torch.compile`` to the submodule(s) of your LightningModule rather than to the entire LightningModule at once.
@@ -280,7 +396,7 @@ Additional Resources
 
 Here are a few resources for further reading after you complete this tutorial:
 
-- `PyTorch 2.0 Paper <https://pytorch.org/blog/pytorch-2-paper-tutorial/>`_
+- `PyTorch 2.0 Paper <https://pytorch.org/get-started/pytorch-2-x/>`_
 - `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
 - `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
 - `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_

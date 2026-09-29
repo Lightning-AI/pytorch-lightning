@@ -127,13 +127,6 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
-   :header: Train on single or multiple HPUs
-   :description: Train models faster with HPUs.
-   :col_css: col-md-12
-   :button_link: integrations/hpu/index.html
-   :height: 100
-
-.. displayitem::
    :header: Train on single or multiple TPUs
    :description: Train models faster with TPUs.
    :col_css: col-md-12

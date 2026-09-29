@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
-from tests_pytorch.helpers.runif import RunIf
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from tests_pytorch.helpers.runif import RunIf, _xfail_gloo_windows
 
 
 class AMPTestModel(BoringModel):
@@ -53,7 +53,7 @@ class AMPTestModel(BoringModel):
     [
         ("single_device", "16-mixed", 1),
         ("single_device", "bf16-mixed", 1),
-        ("ddp_spawn", "16-mixed", 2),
+        pytest.param("ddp_spawn", "16-mixed", 2, marks=_xfail_gloo_windows),
         pytest.param("ddp_spawn", "bf16-mixed", 2, marks=RunIf(skip_windows=True)),
     ],
 )
