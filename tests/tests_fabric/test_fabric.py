@@ -1135,6 +1135,35 @@ def test_load_wrapped_objects(setup, tmp_path):
     assert remainder == expected_remainder
 
 
+def test_save_load_wrapped_objects_nested(tmp_path):
+    """Test that objects nested in dictionaries are unwrapped on save and loaded in-place, keeping the user's
+    references valid."""
+    fabric = Fabric(accelerator="cpu", devices=1)
+    model, optimizer = fabric.setup(nn.Linear(2, 2), torch.optim.SGD(nn.Linear(2, 2).parameters(), lr=0.1))
+    optimizer = fabric.setup_optimizers(torch.optim.SGD(model.parameters(), lr=0.1))
+    assert isinstance(model, _FabricModule)
+    assert isinstance(optimizer, _FabricOptimizer)
+
+    nested = {"model": model, "optimizer": optimizer, "step": 3}
+    state = {"generator": nested, "epoch": 1}
+    fabric.save(tmp_path / "checkpoint.pt", state)
+    saved_weight = model.weight.detach().clone()
+
+    with torch.no_grad():
+        model.weight.fill_(42.0)
+    nested["step"] = 0
+    state["epoch"] = 0
+    remainder = fabric.load(tmp_path / "checkpoint.pt", state, strict=True)
+    assert not remainder
+    # the nested dict and the wrapped objects in it are still the same objects
+    assert state["generator"] is nested
+    assert nested["model"] is model
+    assert nested["optimizer"] is optimizer
+    assert torch.equal(model.weight, saved_weight)
+    assert nested["step"] == 3
+    assert state["epoch"] == 1
+
+
 def test_load_raw():
     """Test that `Fabric.load_raw()` unwraps the object to load and calls into the strategy."""
     fabric = Fabric(accelerator="cpu")

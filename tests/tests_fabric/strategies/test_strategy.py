@@ -172,6 +172,55 @@ def test_load_checkpoint_in_place(tmp_path):
     assert list(remainder.keys()) == ["optimizer", "int", "dict"]
 
 
+def test_save_load_checkpoint_nested_state(tmp_path):
+    """Test that modules and optimizers nested in dictionaries are converted on save and restored in-place on load."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+
+    saved_model = torch.nn.Linear(2, 2)
+    saved_optimizer = torch.optim.Adam(saved_model.parameters(), lr=0.1)
+    saved_state = {
+        "generator": {"model": saved_model, "optimizer": saved_optimizer, "step": 3},
+        "plain": {"cocofruit": 2},
+        "int": 1,
+    }
+    strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", state=saved_state)
+    # the nested module and optimizer were converted to their state dicts, so no pickled objects are in the file
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt", weights_only=True)
+    assert checkpoint["generator"].keys() == {"model", "optimizer", "step"}
+    assert torch.equal(checkpoint["generator"]["model"]["weight"], saved_model.weight)
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.3)
+    nested = {"model": model, "optimizer": optimizer, "step": 0}
+    state = {"generator": nested, "plain": {"cocofruit": 20}, "int": 10}
+    assert not torch.equal(model.weight, saved_model.weight)
+
+    remainder = strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", state)
+    # restored in-place: the same objects are still referenced
+    assert state["generator"] is nested
+    assert nested["model"] is model
+    assert nested["optimizer"] is optimizer
+    assert torch.equal(model.weight, saved_model.weight)
+    assert optimizer.state_dict() == saved_optimizer.state_dict()
+    assert nested["step"] == 3
+    assert state["plain"] == {"cocofruit": 2}
+    assert state["int"] == 1
+    assert not remainder
+
+    # partial nested load: entries that were not requested are returned in the remainder
+    model = torch.nn.Linear(2, 2)
+    state = {"generator": {"model": model}}
+    remainder = strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", state)
+    assert torch.equal(model.weight, saved_model.weight)
+    assert remainder.keys() == {"generator", "plain", "int"}
+    assert remainder["generator"].keys() == {"optimizer", "step"}
+
+    # strict loading also applies to nested keys
+    state = {"generator": {"model": torch.nn.Linear(2, 2), "missing": 0}}
+    with pytest.raises(KeyError, match="contains a key 'missing' that does not exist"):
+        strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", state, strict=True)
+
+
 def test_load_checkpoint_strict_loading(tmp_path):
     """Test that an error is raised if a key is requested to be restored but does not exist in the checkpoint."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
