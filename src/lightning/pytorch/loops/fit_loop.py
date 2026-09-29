@@ -237,7 +237,7 @@ class _FitLoop(_Loop):
             return
 
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
-        # the full rebuild below supersedes any pending reload-only shortcut
+
         self._combined_loader_pending_reload = False
 
         source = self._data_source
