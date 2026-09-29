@@ -122,10 +122,11 @@ run: |
   echo "Install package"
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
 
-  # Use find-links to prefer CUDA-specific packages from PyTorch index
+  # Prefer CUDA-specific builds from the PyTorch index.
+  # torch-tensorrt is intentionally left to PyPI: since 2.13.0 its `+cuXXX` wheels no longer
+  # bundle `libtorchtrt.so`, which silently disables the TorchScript frontend.
   uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
   uv pip list
 
   echo "Ensure only a single package is installed"

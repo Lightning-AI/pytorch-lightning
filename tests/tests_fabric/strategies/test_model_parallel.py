@@ -25,14 +25,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import ModelParallelStrategy
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.strategies.model_parallel import _ParallelBackwardSyncControl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from tests_fabric.helpers.runif import RunIf
-
-
-@mock.patch("lightning.fabric.strategies.model_parallel._TORCH_GREATER_EQUAL_2_4", False)
-def test_torch_greater_equal_2_4():
-    with pytest.raises(ImportError, match="ModelParallelStrategy requires PyTorch 2.4 or higher"):
-        ModelParallelStrategy(parallelize_fn=(lambda m, _: m))
 
 
 @RunIf(min_torch="2.4")
@@ -317,11 +310,12 @@ def test_set_timeout(init_process_group_mock, _):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
-    kwargs = {}
-    if _TORCH_GREATER_EQUAL_2_3:
-        kwargs["device_id"] = strategy.root_device if strategy.root_device.type != "cpu" else None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=test_timedelta,
+        device_id=None,
     )
 
 

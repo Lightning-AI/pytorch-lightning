@@ -28,7 +28,6 @@ from torch.utils.hooks import RemovableHandle
 import lightning.pytorch as pl
 from lightning.fabric.utilities import rank_zero_warn
 from lightning.fabric.utilities.distributed import _is_dtensor
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -352,17 +351,8 @@ class ModelSummary:
         mode.capture(model)
         model.eval()
 
-        # FlopCounterMode does not support ScriptModules before torch 2.4.0, so we use a null context
-        flop_context = (
-            contextlib.nullcontext()
-            if (
-                not _TORCH_GREATER_EQUAL_2_4
-                and any(isinstance(m, torch.jit.ScriptModule) for m in self._model.modules())
-            )
-            else self._flop_counter
-        )
-
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
+
         try:
             with torch.no_grad(), forward_context:
                 try:
