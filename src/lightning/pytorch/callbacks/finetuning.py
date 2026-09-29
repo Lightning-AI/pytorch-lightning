@@ -154,12 +154,12 @@ class BaseFinetuning(Callback):
     def filter_params(
         modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True, requires_grad: bool = True
     ) -> Generator:
-        """Yields the `requires_grad` parameters of a given module or list of modules.
+        """Yields parameters whose `requires_grad` state matches the given `requires_grad` value.
 
         Args:
             modules: A given module or an iterable of modules
-            train_bn: Whether not to train the BatchNorm module
-            requires_grad: Whether to create a generator for trainable or non-trainable parameters.
+            train_bn: If False, BatchNorm parameters are always excluded, regardless of `requires_grad`.
+            requires_grad: Whether to create a generator for trainable (True) or frozen (False) parameters.
         Returns:
             Generator
 
@@ -455,7 +455,7 @@ class BackboneFinetuning(BaseFinetuning):
 
     @override
     def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
-        self.freeze(pl_module.backbone)
+        self.freeze(pl_module.backbone, train_bn=self.train_bn)
 
     @override
     def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer) -> None:
