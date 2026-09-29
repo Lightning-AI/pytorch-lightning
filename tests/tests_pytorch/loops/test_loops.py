@@ -1308,3 +1308,62 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_estimated_stepping_batches_does_not_consume_unsized_dataloader(tmp_path):
+    """Regression test for accessing `trainer.estimated_stepping_batches` in `configure_optimizers`.
+
+    Doing so makes the trainer provisionally call `fit_loop.setup_data()` to compute the number of training
+    batches, then tears that throwaway setup down. For an unsized dataloader (no `__len__`), the data fetcher
+    prefetches a batch to detect exhaustion in advance, so this teardown must not permanently discard that
+    prefetched batch, or training would silently skip it.
+
+    """
+
+    class UnsizedIterator:
+        """A true iterator (`__iter__` returns `self`, not a fresh generator) with no `__len__`, forcing
+        `_PrefetchDataFetcher` to prefetch a batch when it's set up."""
+
+        def __init__(self):
+            self.index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            val = self.index
+            self.index += 1
+            return val
+
+    class DummyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_data = []
+            # a single persistent instance, like a cached/streaming dataloader returned from every hook call
+            self._loader = UnsizedIterator()
+
+        def configure_optimizers(self):
+            # sets up the train dataloader before it's really set up
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+        def training_step(self, batch, batch_idx):
+            self.seen_data.append(batch)
+
+        def train_dataloader(self):
+            return self._loader
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        max_steps=3,
+    )
+    model = DummyModel()
+    trainer.fit(model)
+    assert model.seen_data == [0, 1, 2]

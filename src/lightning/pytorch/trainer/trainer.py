@@ -1788,7 +1788,9 @@ class Trainer:
             # Save checkpoint loader states for restoration after estimation.
             saved_combined_loader_states = self.fit_loop._combined_loader_states_to_load.copy()
 
-            self.fit_loop.setup_data()
+            # `prefetch=False`: this throwaway setup is only used to compute `total_batches` below, so avoid
+            # prefetching a batch from the dataloader that would be lost once this fetcher is torn down
+            self.fit_loop.setup_data(prefetch=False)
             setup_data_called = True
 
         total_batches = self.num_training_batches

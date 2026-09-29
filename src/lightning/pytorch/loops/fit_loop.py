@@ -222,7 +222,7 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self) -> None:
+    def setup_data(self, prefetch: bool = True) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
             return
 
@@ -271,6 +271,12 @@ class _FitLoop(_Loop):
         self._load_combined_loader_states()
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
+        if not prefetch:
+            # for callers that only need `self.max_batches` (e.g. `Trainer.estimated_stepping_batches` peeking at
+            # the dataloader before it's really set up), avoid prefetching: for an unsized iterable, prefetching
+            # consumes a batch from it to detect exhaustion in advance, which would otherwise be permanently lost
+            # once this throwaway fetcher is torn down
+            self._data_fetcher.prefetch_batches = 0
         self._data_fetcher.setup(combined_loader)
         with trainer.profiler.profile("setup_train_dataloader"):
             iter(self._data_fetcher)  # creates the iterator inside the fetcher
