@@ -1398,3 +1398,46 @@ def test_estimated_stepping_batches_does_not_reload_train_dataloader(tmp_path):
     )
     trainer.fit(model)
     model.train_dataloader.assert_called_once()
+
+
+def test_estimated_stepping_batches_does_not_construct_dataloader_iterator_twice(tmp_path):
+    """Regression test: accessing `trainer.estimated_stepping_batches` in `configure_optimizers` must not
+    construct an iterator over the train dataloader for the provisional setup it triggers. Doing so has side
+    effects independent of whether any batches are actually consumed from it: e.g. it advances a `DataLoader`'s
+    base RNG (used to seed workers each epoch), or an iterable's own `__iter__`-side state. Constructing it again
+    for the real setup would then silently change the batches/order seen during real training, compared to not
+    having accessed the property at all.
+
+    """
+    iter_count = 0
+
+    class DummyModel(BoringModel):
+        def configure_optimizers(self):
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+        def train_dataloader(self):
+            dl = DataLoader(RandomDataset(32, 10), batch_size=2)
+            real_get_iterator = dl._get_iterator
+
+            def counted_get_iterator():
+                nonlocal iter_count
+                iter_count += 1
+                return real_get_iterator()
+
+            dl._get_iterator = counted_get_iterator
+            return dl
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+    )
+    model = DummyModel()
+    trainer.fit(model)
+    assert iter_count == 1

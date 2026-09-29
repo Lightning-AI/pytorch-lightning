@@ -1780,18 +1780,12 @@ class Trainer:
         if self.max_epochs == -1:
             return float("inf") if self.max_steps == -1 else self.max_steps
 
-        setup_data_called = False
-
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-
-            # Save checkpoint loader states for restoration after estimation.
-            saved_combined_loader_states = self.fit_loop._combined_loader_states_to_load.copy()
-
-            # `prefetch=False`: this throwaway setup is only used to compute `total_batches` below, so avoid
-            # prefetching a batch from the dataloader that would be lost once this fetcher is torn down
-            self.fit_loop.setup_data(prefetch=False)
-            setup_data_called = True
+            # sets up the dataloader (and `self.fit_loop.max_batches`) without constructing iterators over it,
+            # since only its length is needed here; see `FitLoop.setup_data` for why that distinction matters.
+            # The real, first-time fetcher setup happens later, right before training actually starts.
+            self.fit_loop.setup_data(estimate_only=True)
 
         total_batches = self.num_training_batches
 
@@ -1804,18 +1798,5 @@ class Trainer:
             max_estimated_steps = (
                 min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
             )
-
-        if setup_data_called:
-            # tear down the throwaway fetcher used only to estimate `total_batches` above, but keep the combined
-            # loader itself (and the dataloaders it wraps) so the data source (e.g. the `train_dataloader` hook)
-            # doesn't have to be re-requested a second time; the next real `setup_data()` call will reload
-            # checkpoint state into it (once available) and rebuild the fetcher
-            if self.fit_loop._data_fetcher is not None:
-                self.fit_loop._data_fetcher.teardown()
-            self.fit_loop._data_fetcher = None
-            self.fit_loop._combined_loader_pending_reload = True
-
-            # restore states consumed during setup_data()
-            self.fit_loop._combined_loader_states_to_load = saved_combined_loader_states
 
         return max_estimated_steps

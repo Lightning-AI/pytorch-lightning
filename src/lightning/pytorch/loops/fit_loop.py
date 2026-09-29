@@ -227,15 +227,15 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self, prefetch: bool = True) -> None:
+    def setup_data(self, estimate_only: bool = False) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
             if self._combined_loader_pending_reload:
                 # a provisional call already built `_combined_loader` from the data source (e.g. from
                 # `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before checkpoint state
-                # was available). Reload any now-available checkpoint state into it and rebuild the fetcher, but
-                # skip re-requesting the dataloader from its source (e.g. re-running the `train_dataloader` hook).
+                # was available). Reload any now-available checkpoint state into it and do the real, first-time
+                # fetcher setup now, skipping only the now-redundant data source request and limits computation.
                 self._combined_loader_pending_reload = False
-                self._finalize_data_setup(prefetch, self._allow_zero_length_dataloader())
+                self._finalize_data_setup(self._allow_zero_length_dataloader())
             return
 
         trainer = self.trainer
@@ -280,7 +280,21 @@ class _FitLoop(_Loop):
 
         combined_loader.limits = limits
 
-        self._finalize_data_setup(prefetch, allow_zero_length)
+        if estimate_only:
+            # the caller (e.g. `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before
+            # checkpoint state is available to load) only needs `self.max_batches`. Compute it directly from the
+            # wrapped dataloaders' lengths, without constructing iterators over them: doing so would have side
+            # effects, e.g. advancing a `DataLoader`'s base RNG (used to seed workers) or an iterable's own
+            # `__iter__`-side state, silently changing the batches seen during the real training run below.
+            max_batches = combined_loader._compute_length()
+            self.max_batches = max_batches if max_batches is not None else float("inf")
+            self._combined_loader_pending_reload = True
+            # also record this like a normal setup would, so `_should_reload_train_dl` doesn't spuriously see the
+            # default `-inf` and force an unnecessary (and hook-repeating) full rebuild on the next real call
+            self._last_train_dl_reload_epoch = trainer.current_epoch
+            return
+
+        self._finalize_data_setup(allow_zero_length)
 
     def _allow_zero_length_dataloader(self) -> bool:
         trainer = self.trainer
@@ -290,7 +304,7 @@ class _FitLoop(_Loop):
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
         return allow_zero_length
 
-    def _finalize_data_setup(self, prefetch: bool, allow_zero_length: bool) -> None:
+    def _finalize_data_setup(self, allow_zero_length: bool) -> None:
         trainer = self.trainer
         combined_loader = self._combined_loader
         assert combined_loader is not None
@@ -298,9 +312,6 @@ class _FitLoop(_Loop):
         self._load_combined_loader_states()
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
-        if not prefetch:
-            # avoid consuming a batch from unsized iterables when only determining `self.max_batches`
-            self._data_fetcher.prefetch_batches = 0
         self._data_fetcher.setup(combined_loader)
         with trainer.profiler.profile("setup_train_dataloader"):
             iter(self._data_fetcher)  # creates the iterator inside the fetcher
