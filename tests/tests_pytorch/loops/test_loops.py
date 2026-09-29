@@ -1248,15 +1248,27 @@ class StatefulIterable(NotStatefulIterable):
         ),
     ],
 )
+@pytest.mark.parametrize("access_estimated_stepping_batches", [False, True])
 def test_fit_loop_save_and_restore_dataloaders(
-    train_dataloader_factory, has_state, batches_before, batches_after, tmp_path
+    train_dataloader_factory, has_state, batches_before, batches_after, access_estimated_stepping_batches, tmp_path
 ):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders."""
+    """Test that the CheckpointConnector saves the state of stateful dataloaders.
+
+    The state must also be restored when the train dataloader was set up before the loop state got restored, which
+    happens when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers`.
+
+    """
 
     class DummyModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.seen_data = []
+
+        def configure_optimizers(self):
+            if access_estimated_stepping_batches:
+                # sets up the train dataloader before the checkpoint's loop state is restored
+                assert self.trainer.estimated_stepping_batches
+            return super().configure_optimizers()
 
         def training_step(self, batch, batch_idx):
             self.seen_data.append(batch)

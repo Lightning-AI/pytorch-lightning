@@ -1780,14 +1780,16 @@ class Trainer:
         if self.max_epochs == -1:
             return float("inf") if self.max_steps == -1 else self.max_steps
 
-        # Save the combined loader states from the checkpoint so they can be restored
-        # after the estimation, allowing stateful dataloaders to properly load their
-        # state during the actual fit loop
-        saved_combined_loader_states = self.fit_loop._combined_loader_states_to_load.copy()
+        setup_data_called = False
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
+
+            # Save checkpoint loader states for restoration after estimation.
+            saved_combined_loader_states = self.fit_loop._combined_loader_states_to_load.copy()
+
             self.fit_loop.setup_data()
+            setup_data_called = True
 
         total_batches = self.num_training_batches
 
@@ -1799,15 +1801,13 @@ class Trainer:
             max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
             max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
 
-        # Reset the data structures so that stateful dataloader states from checkpoints
-        # are properly restored during the actual fit loop. The estimation iteration
-        # may have advanced stateful dataloaders, so we need to tear down and allow
-        # setup_data() to be called fresh when fit() runs.
-        if self.fit_loop._data_fetcher is not None:
-            self.fit_loop._data_fetcher.teardown()
-        self.fit_loop._combined_loader = None
-        # Restore the combined loader states that may have been consumed during setup_data()
-        # so they can be loaded again when fit() properly initializes the data loader
-        self.fit_loop._combined_loader_states_to_load = saved_combined_loader_states
+        if setup_data_called:
+            # reset data structures so checkpointed dataloader states can be restored
+            if self.fit_loop._data_fetcher is not None:
+                self.fit_loop._data_fetcher.teardown()
+            self.fit_loop._combined_loader = None
+
+            # restore states consumed during setup_data()
+            self.fit_loop._combined_loader_states_to_load = saved_combined_loader_states
 
         return max_estimated_steps
