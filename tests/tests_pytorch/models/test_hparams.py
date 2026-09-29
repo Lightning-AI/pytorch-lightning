@@ -15,7 +15,6 @@ import copy
 import functools
 import os
 import pickle
-import sys
 from argparse import Namespace
 from dataclasses import dataclass, field
 from enum import Enum
@@ -45,8 +44,6 @@ from tests_pytorch.helpers.runif import RunIf
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
     from omegaconf.dictconfig import DictConfig
-
-_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
 
 
 class SaveHparamsModel(BoringModel):
@@ -783,14 +780,6 @@ def test_model_with_fsspec_as_parameter(tmp_path):
     trainer.test(weights_only=weights_only)
 
 
-@pytest.mark.xfail(
-    # AttributeError: 'OrphanPath' object has no attribute 'exists'
-    # Issue with `importlib_resources>=6.2.0`
-    raises=AttributeError,
-    condition=(not _PYTHON_GREATER_EQUAL_3_9_0),
-    reason="Issue with `importlib_resources`",
-    strict=False,
-)
 @pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmp_path):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""
@@ -838,7 +827,9 @@ def test_ignore_args_list_hparams(tmp_path, ignore):
 
     # test proper property assignments
     assert model.hparams.arg1 == 14
-    for arg in ignore:
+
+    ignore_args = ignore if isinstance(ignore, (list, tuple)) else [ignore]
+    for arg in ignore_args:
         assert arg not in model.hparams
 
     # verify we can train
@@ -854,7 +845,32 @@ def test_ignore_args_list_hparams(tmp_path, ignore):
     # verify that model loads correctly
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, arg2=123, arg3=100)
     assert model.hparams.arg1 == 14
-    for arg in ignore:
+    for arg in ignore_args:
+        assert arg not in model.hparams
+
+
+@pytest.mark.parametrize("ignore", ["arg2", ("arg2", "arg3")])
+def test_hparams_ignore_in_subclass_overrides_base(tmp_path, ignore):
+    """Test that hyperparameters can be ignored when `save_hyperparameters` is called in both a base class and a
+    subclass, and that ignore rules defined in the subclass override hyperparameters saved by the base class."""
+
+    class BaseBoringModel(BoringModel):
+        def __init__(self, arg1, arg2, arg3):
+            super().__init__()
+            self.save_hyperparameters(ignore="arg1")
+
+    class LocalModel(BaseBoringModel):
+        def __init__(self, arg1, arg2, arg3):
+            super().__init__(arg1=arg1, arg2=arg2, arg3=arg3)
+            self.save_hyperparameters(ignore=ignore)
+
+    model = LocalModel(arg1=14, arg2=90, arg3=50)
+
+    # `arg1` was ignored by the base class,
+    # but the subclass did not ignore it, so it should be present.
+    assert model.hparams.arg1 == 14
+    ignore_args = ignore if isinstance(ignore, (list, tuple)) else [ignore]
+    for arg in ignore_args:
         assert arg not in model.hparams
 
 

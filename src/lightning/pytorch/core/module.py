@@ -48,7 +48,6 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -62,9 +61,9 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -80,12 +79,7 @@ _TORCH_TRT_AVAILABLE = RequirementCache("torch_tensorrt")
 
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
-
-    if _TORCH_GREATER_EQUAL_2_5:
-        if _TORCH_GREATER_EQUAL_2_6:
-            from torch.onnx import ONNXProgram
-        else:
-            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
+    from torch.onnx import ONNXProgram
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -383,6 +377,7 @@ class LightningModule(
             else:
                 print(*args, **kwargs)
 
+    @torch.compiler.disable
     def log(
         self,
         name: str,
@@ -407,6 +402,12 @@ class LightningModule(
             self.log('train_loss', loss)
 
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Logging is bookkeeping
+            that does not belong in the compiled graph, and tracing the signature introspection it performs
+            fails under Dynamo on newer PyTorch versions. Disabling the compiler leaves eager behavior unchanged.
 
         Args:
             name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.
@@ -1136,11 +1137,23 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
+    @torch.compiler.disable
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
         prevent dangling gradients in multiple-optimizer setup.
 
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Mutating
+            ``requires_grad`` on parameters is not supported by Dynamo/AOTAutograd (it can change a
+            tensor's leaf-ness mid-graph), so tracing this bookkeeping helper would either fail with
+            ``Unsupported: setattr() on Tensor.requires_grad`` or produce a ``KeyError`` on the
+            internal ``param_requires_grad_state`` mapping when the traced parameter references diverge
+            from those held by ``trainer.optimizers``. Disabling the compiler on this method keeps the
+            behavior identical for eager users while making it safe to call from a compiled
+            ``training_step``.
 
         Args:
             optimizer: The optimizer to toggle.
@@ -1165,8 +1178,12 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
+    @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        See :meth:`toggle_optimizer` for details on why this method is decorated with
+        :func:`torch.compiler.disable`.
 
         Args:
             optimizer: The optimizer to untoggle.
@@ -1390,21 +1407,24 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def freeze(self) -> None:
+    def freeze(self) -> Self:
         r"""Freeze all params for inference.
 
-        Example::
+        .. code-block:: python
 
             model = MyLightningModule(...)
             model.freeze()
+
+        Returns:
+            :class:`LightningModule` with all parameters frozen.
 
         """
         for param in self.parameters():
             param.requires_grad = False
 
-        self.eval()
+        return self.eval()
 
-    def unfreeze(self) -> None:
+    def unfreeze(self) -> Self:
         """Unfreeze all parameters for training.
 
         .. code-block:: python
@@ -1412,11 +1432,14 @@ class LightningModule(
             model = MyLightningModule(...)
             model.unfreeze()
 
+        Returns:
+            :class:`LightningModule` self with all parameters unfrozen.
+
         """
         for param in self.parameters():
             param.requires_grad = True
 
-        self.train()
+        return self.train()
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
@@ -1458,10 +1481,9 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
-        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
+        if kwargs.get("dynamo", False) and not _ONNXSCRIPT_AVAILABLE:
             raise ModuleNotFoundError(
-                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
-                "requires `onnxscript` and `torch>=2.5.0` to be installed."
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."
             )
 
         mode = self.training
@@ -1492,26 +1514,30 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, dict[str, ScriptModule]]:
-        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
-        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
-        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that are
-        scripted you should override this method. In case you want to return multiple modules, we recommend using a
-        dictionary.
+        """By default compiles the whole model to a ``torch.jit.ScriptModule``. If you want to use tracing, please
+        provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is provided,
+        or the model has :attr:`example_input_array` set. If you would like to customize the modules that are scripted
+        you should override this method. In case you want to return multiple modules, we recommend using a dictionary.
+
+        .. deprecated::
+            ``LightningModule.to_torchscript`` has been deprecated in v2.7 and will be removed in v2.8.
+            TorchScript is deprecated in PyTorch. Use ``torch.export.export()`` for model exporting instead.
+            See https://pytorch.org/docs/stable/export.html for more information.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
-              :func:`torch.jit.trace` function.
+            **kwargs: Additional arguments that will be passed to the ``torch.jit.script`` or
+              ``torch.jit.trace`` function.
 
         Note:
             - Requires the implementation of the
               :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
-              to use this feature without limitations. See also the :mod:`torch.jit`
+              to use this feature without limitations. See also the ``torch.jit``
               documentation for supported features.
 
         Example::
@@ -1536,6 +1562,11 @@ class LightningModule(
             defined or not.
 
         """
+        rank_zero_deprecation(
+            "`LightningModule.to_torchscript` has been deprecated in v2.7 and will be removed in v2.8. "
+            "TorchScript is deprecated in PyTorch. Use `torch.export.export()` for model exporting instead. "
+            "See https://pytorch.org/docs/stable/export.html for more information."
+        )
         mode = self.training
 
         if method == "script":
@@ -1613,11 +1644,6 @@ class LightningModule(
             )
 
         """
-        if not _TORCH_GREATER_EQUAL_2_2:
-            raise MisconfigurationException(
-                f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."
-            )
-
         if not _TORCH_TRT_AVAILABLE:
             raise ModuleNotFoundError(
                 f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "

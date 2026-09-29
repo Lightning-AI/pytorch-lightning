@@ -48,6 +48,11 @@ The distributed checkpoint format is the default when you train with the :doc:`F
 With ``state_dict_type="sharded"``, each process/GPU will save its own file into a folder at the given path.
 This reduces memory peaks and speeds up the saving to disk.
 
+.. note::
+
+    The path can also be a remote filesystem URL supported by `fsspec <https://filesystem-spec.readthedocs.io/>`_, such as ``s3://my-bucket/checkpoint``, ``gs://my-bucket/checkpoint``, or ``abfs://my-container/checkpoint``.
+    This requires the corresponding fsspec implementation to be installed (e.g., ``s3fs``, ``gcsfs``, or ``adlfs``).
+
 .. collapse:: Full example
 
     .. code-block:: python
@@ -139,6 +144,8 @@ You can easily load a distributed checkpoint in Fabric if your script uses :doc:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Note that you can load the distributed checkpoint even if the world size has changed, i.e., you are running on a different number of GPUs than when you saved the checkpoint.
+
+As with saving, the path can point to a remote filesystem URL supported by fsspec (e.g., ``s3://``, ``gs://``, ``abfs://``), and the checkpoint will be read directly from remote storage without needing to download it first.
 
 .. collapse:: Full example
 

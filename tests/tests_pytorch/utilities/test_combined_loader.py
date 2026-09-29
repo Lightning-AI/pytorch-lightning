@@ -657,3 +657,27 @@ def test_load_state_dicts():
     cl._load_state_dicts([state1, state2])
     stateful1.load_state_dict.assert_called_with(state1)
     stateful2.load_state_dict.assert_called_with(state2)
+
+
+def test_combined_loader_reset_uses_del_not_shutdown_workers():
+    """Test that `combined_loader.reset()` uses `del` to reset the dataloader iterator instead of calling
+    `_shutdown_workers()` explicitly.
+
+    This is a regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21703
+
+    """
+    from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
+
+    dataloader = DataLoader(range(10), num_workers=2, persistent_workers=True, multiprocessing_context="spawn")
+    combined_loader = CombinedLoader([dataloader])
+
+    mock_iterator = Mock(spec=_MultiProcessingDataLoaderIter)
+    mock_iterator._shutdown_workers = Mock()
+    dataloader._iterator = mock_iterator
+
+    iterator_ref = dataloader._iterator
+
+    combined_loader.reset()
+
+    iterator_ref._shutdown_workers.assert_not_called()
+    assert dataloader._iterator is None

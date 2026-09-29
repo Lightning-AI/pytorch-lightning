@@ -52,6 +52,24 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("bf16-mixed", torch.float32),
+        ("16-mixed", torch.float32),
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.float16),
+    ],
+)
+def test_module_init_context(precision, expected_dtype):
+    plugin = FSDPPrecision(precision=precision)
+    assert torch.get_default_dtype() == torch.float32
+    with plugin.module_init_context():
+        assert torch.get_default_dtype() == expected_dtype
+    assert torch.get_default_dtype() == torch.float32
+
+
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -65,6 +83,13 @@ def test_fsdp_precision_scaler_with_bf16():
 
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
+
+
+def test_fsdp_precision_scaler_with_16_mixed():
+    # a user-provided scaler is valid for 16-mixed and must be kept
+    scaler = Mock()
+    precision = FSDPPrecision(precision="16-mixed", scaler=scaler)
+    assert precision.scaler is scaler
 
 
 @RunIf(min_cuda_gpus=1)

@@ -1,3 +1,4 @@
+import warnings
 from unittest import mock
 from unittest.mock import ANY, Mock, call
 
@@ -482,3 +483,31 @@ def test_throughput_monitor_validation_with_many_epochs(tmp_path):
                     batch_num = 1
                 if end_train_timings_idx < len(timings):
                     cur_train += timings[end_train_timings_idx] - timings[start_train_timings_idx]
+
+
+def test_throughput_monitor_warn_once():
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)
+    model = BoringModel()
+
+    trainer = Trainer(
+        devices=1,
+        logger=False,
+        callbacks=[monitor],
+        max_epochs=1,
+        limit_train_batches=2,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        trainer.fit(model)
+
+    throughput_warnings = [
+        warn
+        for warn in w
+        if "When using the `ThroughputMonitor`, you need to define a `flops_per_batch`" in warn.message.args[0]
+    ]
+
+    assert len(throughput_warnings) == 1, "Expected exactly one warning about missing `flops_per_batch`."

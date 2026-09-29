@@ -65,7 +65,7 @@ from tests_pytorch.helpers.runif import RunIf
 @pytest.mark.parametrize(
     ("accelerator", "devices"), [("tpu", "auto"), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
 )
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_accelerator_choice_tpu(accelerator, devices, tpu_available, monkeypatch):
     monkeypatch.setattr(torch, "device", DeviceMock())
     if _IS_WINDOWS:
@@ -736,7 +736,7 @@ def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_gpu_accelerator_backend_choice_mps(mps_count_1, cuda_count_0):
     trainer = Trainer(accelerator="gpu")
     assert trainer._accelerator_connector._accelerator_flag == "mps"
@@ -809,7 +809,7 @@ def test_connector_with_tpu_accelerator_instance(tpu_available, monkeypatch):
 
 
 @pytest.mark.parametrize("is_interactive", [False, True])
-@RunIf(min_python="3.9")  # mocking issue
+@RunIf(min_python="3.10")  # mocking issue
 def test_connector_auto_selection(monkeypatch, is_interactive):
     import lightning.fabric  # avoid breakage with standalone package
 

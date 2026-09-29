@@ -114,44 +114,37 @@ def comet_mock(monkeypatch):
 
 
 @pytest.fixture
-def neptune_mock(monkeypatch):
-    class RunType:  # to make isinstance checks pass
-        def get_root_object(self):
-            pass
+def litlogger_mock(monkeypatch):
+    """Mock litlogger module for unit testing LightningLogger."""
+    experiment_mock = MagicMock()
+    experiment_mock.url = "https://lightning.ai/test/experiments/test-experiment"
+    experiment_mock.name = "test-experiment"
+    experiment_mock.version = "2024-01-01T00:00:00.000Z"
+    experiment_mock.get_file.return_value = "/path/to/file"
+    experiment_mock.get_model.return_value = MagicMock()
+    experiment_mock.get_model_artifact.return_value = "/path/to/artifact"
+    experiment_mock.series_mocks = {}
 
-        def __getitem__(self, item):
-            pass
+    def get_series(key):
+        if key not in experiment_mock.series_mocks:
+            experiment_mock.series_mocks[key] = MagicMock()
+        return experiment_mock.series_mocks[key]
 
-        def __setitem__(self, key, value):
-            pass
+    experiment_mock.__getitem__.side_effect = get_series
 
-    run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
-    run_mock.get_root_object.return_value = run_mock
+    litlogger = ModuleType("litlogger")
+    litlogger.experiment = None
+    litlogger.Experiment = Mock(return_value=experiment_mock)
+    litlogger.File = Mock()
+    litlogger.Model = Mock()
+    monkeypatch.setitem(sys.modules, "litlogger", litlogger)
 
-    neptune = ModuleType("neptune")
-    neptune.init_run = Mock(return_value=run_mock)
-    neptune.Run = RunType
-    monkeypatch.setitem(sys.modules, "neptune", neptune)
+    # Create generator submodule
+    generator_module = ModuleType("litlogger.generator")
+    generator_module._create_name = Mock(return_value="generated-name")
+    monkeypatch.setitem(sys.modules, "litlogger.generator", generator_module)
 
-    neptune_handler = ModuleType("handler")
-    neptune_handler.Handler = RunType
-    monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
+    litlogger.generator = generator_module
 
-    neptune_types = ModuleType("types")
-    neptune_types.File = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.types", neptune_types)
-
-    neptune_utils = ModuleType("utils")
-    neptune_utils.stringify_unsupported = Mock()
-    monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
-
-    neptune_exceptions = ModuleType("exceptions")
-    neptune_exceptions.InactiveRunException = Exception
-    monkeypatch.setitem(sys.modules, "neptune.exceptions", neptune_exceptions)
-
-    neptune.handler = neptune_handler
-    neptune.types = neptune_types
-    neptune.utils = neptune_utils
-
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
-    return neptune
+    monkeypatch.setattr("lightning.pytorch.loggers.litlogger._LITLOGGER_AVAILABLE", True)
+    return litlogger

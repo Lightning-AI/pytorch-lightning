@@ -95,10 +95,10 @@ loggers
     :nosignatures:
 
     logger
+    litlogger
     comet
     csv_logs
     mlflow
-    neptune
     tensorboard
     wandb
 

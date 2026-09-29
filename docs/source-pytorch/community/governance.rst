@@ -38,7 +38,7 @@ Alumni
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
-- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
+- Jeff Yang (`jeffydc <https://github.com/jeffydc>`_)
 - Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
 - Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)

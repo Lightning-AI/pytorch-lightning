@@ -5,7 +5,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from pkg_resources import parse_requirements
+from packaging.requirements import Requirement
 from setuptools import find_packages
 
 _PROJECT_ROOT = "."
@@ -42,8 +42,13 @@ def _prepare_extras() -> dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt")
     }
-    for req in parse_requirements(extras["strategies"]):
-        extras[req.key] = [str(req)]
+    for req_str in extras["strategies"]:
+        # Strip comments before parsing
+        req_str_clean = req_str.split("#")[0].strip()
+        if not req_str_clean:  # Skip empty lines
+            continue
+        req = Requirement(req_str_clean)
+        extras[req.name.lower().replace("-", "_")] = [req_str]
     extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
@@ -80,7 +85,7 @@ def _setup_args() -> dict[str, Any]:
         "long_description_content_type": "text/markdown",
         "zip_safe": False,
         "keywords": ["deep learning", "pytorch", "AI"],
-        "python_requires": ">=3.9",
+        "python_requires": ">=3.10",
         "setup_requires": ["wheel"],
         # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
         # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
@@ -107,9 +112,9 @@ def _setup_args() -> dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
             "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
         ],
     }

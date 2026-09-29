@@ -199,7 +199,7 @@ class TorchCollective(Collective):
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
         if group in dist.distributed_c10d._pg_map:
-            dist.destroy_process_group(group)  # type: ignore[arg-type]
+            dist.destroy_process_group(group)
 
     @classmethod
     @override

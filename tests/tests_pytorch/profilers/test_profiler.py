@@ -23,7 +23,6 @@ import numpy as np
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -41,6 +40,19 @@ PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 skip_advanced_profiler_py312 = pytest.mark.skipif(
     sys.version_info >= (3, 12), reason="Nested profiler calls not supported."
 )
+
+
+class _CustomPath:
+    """A minimal ``os.PathLike`` that is not a ``pathlib.Path`` and whose ``__str__`` is not the path."""
+
+    def __init__(self, path):
+        self._path = str(path)
+
+    def __fspath__(self) -> str:
+        return self._path
+
+    def __str__(self) -> str:
+        return f"<_CustomPath {self._path}>"
 
 
 def _get_python_cprofile_total_duration(profile):
@@ -157,6 +169,18 @@ def test_simple_profiler_with_nonexisting_dirpath(tmp_path):
     assert (nonexisting_tmp_path / "fit-profiler.txt").exists()
 
 
+@pytest.mark.parametrize("profiler_cls", [SimpleProfiler, AdvancedProfiler])
+def test_profiler_with_pathlike_dirpath(tmp_path, profiler_cls):
+    """Ensure the profiler accepts any ``os.PathLike`` as ``dirpath``, not just ``pathlib.Path``."""
+    profiler = profiler_cls(dirpath=_CustomPath(tmp_path), filename="profiler")
+
+    with profiler.profile("test_action"):
+        pass
+    profiler.describe()
+
+    assert (tmp_path / "profiler.txt").exists()
+
+
 @RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmp_path):
     """Ensure the proper files are saved in distributed."""
@@ -194,8 +218,31 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+def test_simple_profiler_uses_math_fsum(monkeypatch):
+    profiler = SimpleProfiler()
+    profiler.recorded_durations["action"] = [1.0, 2.0, 3.0]
+    profiler.start_time = 0.0
+
+    fsum_calls: list[list[float]] = []
+
+    def _fake_fsum(values):
+        fsum_calls.append(list(values))
+        return sum(values)
+
+    monkeypatch.setattr("lightning.pytorch.profilers.simple.math.fsum", _fake_fsum)
+
+    # Test non-extended report
+    profiler._make_report()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+    # Test extended report
+    fsum_calls.clear()
+    profiler._make_report_extended()
+    assert fsum_calls == [[1.0, 2.0, 3.0]]
+
+
 @pytest.mark.parametrize("extended", [True, False])
-@patch("time.monotonic", return_value=70)
+@patch("time.perf_counter", return_value=70)
 def test_simple_profiler_summary(tmp_path, extended):
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
@@ -320,6 +367,33 @@ def test_advanced_profiler_dump_states(tmp_path):
     path = advanced_profiler.dirpath / f"{action_name}.prof"
     data = path.read_bytes()
     assert len(data) > 0
+
+
+@pytest.mark.parametrize("char", ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"])
+def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
+    """Profiler should sanitize action names to produce filesystem-safe .prof filenames.
+
+    This guards against errors when callbacks or actions include path-unsafe characters (e.g., metric names with '/').
+
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    action_name = f"before{char}after"
+    with profiler.profile(action_name):
+        pass
+
+    profiler.describe()
+
+    prof_files = [f for f in os.listdir(tmp_path) if f.endswith(".prof")]
+    assert len(prof_files) == 1
+    prof_name = prof_files[0]
+
+    # Ensure none of the path-unsafe characters are present in the produced filename
+    forbidden = ["/", "\\", ":", "*", "?", '"', "<", ">", "|", "\n", "\r", "\t"]
+    for bad in forbidden:
+        assert bad not in prof_name
+
+    # File should be non-empty
+    assert (tmp_path / prof_name).read_bytes()
 
 
 def test_advanced_profiler_value_errors(advanced_profiler):
@@ -460,8 +534,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmp_path):
 
 def test_pytorch_profiler_nested(tmp_path):
     """Ensure that the profiler handles nested context."""
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": False}
-    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None, **kwargs)
+    pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -506,14 +579,12 @@ def test_pytorch_profiler_multiple_loggers(tmp_path):
 
 def test_register_record_function(tmp_path):
     use_cuda = torch.cuda.is_available()
-    kwargs = {} if _TORCH_GREATER_EQUAL_2_4 else {"use_cuda": torch.cuda.is_available()}
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
         dirpath=tmp_path,
         filename="profiler",
         schedule=None,
         on_trace_ready=None,
-        **kwargs,
     )
 
     class TestModel(BoringModel):
@@ -681,3 +752,26 @@ def test_profiler_invalid_table_kwargs(tmp_path):
         with pytest.raises(KeyError) as exc_info:
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmp_path, filename="profile")
         assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
+
+
+def test_setup_train_dataloader_profiled_actions(tmp_path):
+    """Ensure that the 'setup_train_dataloader' action is successfully recorded in the profiler."""
+    profiler = SimpleProfiler(dirpath=tmp_path, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=profiler)
+    trainer.fit(model)
+
+    assert "setup_train_dataloader" in profiler.recorded_durations
+
+
+@pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
+def test_pytorch_profiler_chrome_export_with_pathlike_dirpath(tmp_path):
+    """Ensure the chrome trace is written under a ``dirpath`` given as a non-``Path`` ``os.PathLike``."""
+    profiler = PyTorchProfiler(dirpath=_CustomPath(tmp_path), filename="profiler", export_to_chrome=True, schedule=None)
+
+    for _ in range(2):
+        with profiler.profile("training_step"):
+            torch.randn(10, 10).sum()
+    profiler.describe()
+
+    assert any(f.name.endswith(".json") for f in tmp_path.iterdir())

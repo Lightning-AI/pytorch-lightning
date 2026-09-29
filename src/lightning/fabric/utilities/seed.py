@@ -111,10 +111,19 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> list[int]:
-    """Generates a sequence of seeds from a base seed, worker id and rank using the linear congruential generator (LCG)
-    algorithm."""
+    """Generates a sequence of seeds from a base seed, worker id and rank using hash-based mixing followed by the
+    linear congruential generator (LCG) algorithm."""
     # Combine base seed, worker id and rank into a unique 64-bit number
     combined_seed = (base_seed << 32) | (worker_id << 16) | global_rank
+
+    # Apply hash-based mixing (MurmurHash3 finalizer) to distribute bits uniformly
+    # This ensures that small base seeds don't result in zeros in lower bits
+    combined_seed ^= combined_seed >> 33
+    combined_seed = (combined_seed * 0xFF51AFD7ED558CCD) & ((1 << 64) - 1)
+    combined_seed ^= combined_seed >> 33
+    combined_seed = (combined_seed * 0xC4CEB9FE1A85EC53) & ((1 << 64) - 1)
+    combined_seed ^= combined_seed >> 33
+
     seeds = []
     for _ in range(count):
         # x_(n+1) = (a * x_n + c) mod m. With c=1, m=2^64 and a is D. Knuth's constant

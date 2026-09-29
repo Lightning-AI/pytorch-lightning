@@ -22,9 +22,9 @@ from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSOR
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
+from lightning.pytorch.loggers import CSVLogger, LitLogger, Logger, TensorBoardLogger
 from lightning.pytorch.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from lightning.pytorch.utilities.rank_zero import WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info
 
 warning_cache = WarningCache()
 
@@ -87,6 +87,16 @@ class _LoggerConnector:
         else:
             self.trainer.loggers = [logger]
 
+        if (
+            not any(isinstance(logger, LitLogger) for logger in self.trainer.loggers)
+            and self.trainer.suggest_integrations
+        ):
+            rank_zero_info(
+                "💡 Tip: For seamless cloud logging and experiment tracking,"
+                " try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger,"
+                " which logs metrics and artifacts automatically to the Lightning Experiments platform."
+            )
+
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
         metrics["step"] as a step.
@@ -112,7 +122,7 @@ class _LoggerConnector:
                 step = int(step_metric)
             else:
                 # added metrics for convenience
-                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
+                scalar_metrics.setdefault(f"{self.trainer.log_key_prefix}epoch", self.trainer.current_epoch)
                 step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics

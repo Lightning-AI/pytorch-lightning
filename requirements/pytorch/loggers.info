@@ -1,6 +1,6 @@
 # all supported loggers. this list is here as a reference, but they are not installed in CI
 
-neptune >=1.0.0
+litlogger >= 2026.03.17
 comet-ml >=3.31.0
 mlflow >=1.0.0
 wandb >=0.12.10

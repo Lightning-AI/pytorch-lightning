@@ -288,7 +288,7 @@ nitpick_ignore_regex = [
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
     ("py:class", "torch.amp.grad_scaler.GradScaler"),
-    ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     # Mocked optional packages
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),
@@ -296,6 +296,7 @@ nitpick_ignore_regex = [
     ("py:class", "bitsandbytes.*"),
     # loggers
     ('py:class', 'tensorboardX.SummaryWriter'),  # todo: this is unexpected as the imports locally works
+    ('py:class', 'litlogger.Experiment'),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -378,6 +379,7 @@ import lightning as L
 from lightning_utilities.core.imports import package_available
 from lightning import LightningModule, Trainer
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.pytorch.loggers.litlogger import _LITLOGGER_AVAILABLE
 
 _TORCHVISION_AVAILABLE = package_available("torchvision")
 """

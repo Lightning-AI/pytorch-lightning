@@ -20,8 +20,8 @@ This server mainly to get detail info for better bug reporting.
 import os
 import platform
 import sys
+from importlib.metadata import distributions
 
-import pkg_resources
 import torch
 
 sys.path += [os.path.abspath(".."), os.path.abspath("")]
@@ -52,11 +52,7 @@ def info_cuda() -> dict:
 
 def info_packages() -> dict:
     """Get name and version of all installed packages."""
-    packages = {}
-    for dist in pkg_resources.working_set:
-        package = dist.as_requirement()
-        packages[package.key] = package.specs[0][1]
-    return packages
+    return {dist.metadata["Name"]: dist.version for dist in distributions()}
 
 
 def nice_print(details: dict, level: int = 0) -> list:
