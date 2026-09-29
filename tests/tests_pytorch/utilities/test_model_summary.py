@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import types
 from collections import OrderedDict
 from typing import Any
 from unittest import mock
@@ -28,6 +29,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
     UNKNOWN_SIZE,
     ModelSummary,
+    _is_nested_tensor_flop_counter_error,
     summarize,
 )
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
@@ -628,6 +630,54 @@ def _require_jagged_nested_tensor_flop_counter_error():
         return
 
     pytest.skip("Requires FlopCounterMode to not support jagged NestedTensor.")
+
+
+def _wrap_with_module_name(inner, name: str):
+    """Returns a function that calls `inner`, but whose own frame reports `__name__` as `name` (as if it were defined
+    in that module), without relying on `exec`."""
+
+    def _call():
+        inner()
+
+    return types.FunctionType(_call.__code__, {"__name__": name}, "_call", closure=_call.__closure__)
+
+
+def _raise_through_fake_modules(*module_names: str) -> BaseException:
+    """Raises and catches a ``RuntimeError`` through a synthetic call stack whose frames' ``__name__`` match the given
+    module names (innermost last), so ``_is_nested_tensor_flop_counter_error`` can be tested against a controlled
+    traceback instead of depending on real NestedTensor/FlopCounterMode internals."""
+
+    def _raise():
+        raise RuntimeError("synthetic failure")
+
+    fn = _raise
+    for name in reversed(module_names):
+        fn = _wrap_with_module_name(fn, name)
+
+    try:
+        fn()
+    except RuntimeError as ex:
+        return ex
+    raise AssertionError("unreachable")
+
+
+@pytest.mark.parametrize(
+    ("module_names", "expected"),
+    [
+        (("torch.utils.flop_counter", "torch.nested._internal.ops"), True),
+        (("torch.nested._internal.ops", "torch.utils.flop_counter"), True),
+        (("torch.utils.flop_counter",), False),
+        (("torch.nested._internal.ops",), False),
+        (("some.other.module",), False),
+        ((), False),
+    ],
+)
+def test_is_nested_tensor_flop_counter_error_classifies_traceback(module_names, expected):
+    """Test that `_is_nested_tensor_flop_counter_error` only classifies an exception as the FLOP-counter/NestedTensor
+    incompatibility when its traceback has frames from both a `torch.utils.flop_counter` module and a `torch.nested*`
+    module."""
+    ex = _raise_through_fake_modules(*module_names)
+    assert _is_nested_tensor_flop_counter_error(ex) is expected
 
 
 def test_total_training_modes():
