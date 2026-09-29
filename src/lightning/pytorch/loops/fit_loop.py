@@ -106,10 +106,6 @@ class _FitLoop(_Loop):
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
-        # set when `_combined_loader` was built by a provisional call to `setup_data()` (e.g. from
-        # `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before the checkpoint's loop
-        # state was available to load). The next real `setup_data()` call must reload checkpoint state into it
-        # and rebuild the fetcher, but can skip re-requesting the dataloader from its source.
         self._combined_loader_pending_reload: bool = False
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
@@ -230,10 +226,7 @@ class _FitLoop(_Loop):
     def setup_data(self, estimate_only: bool = False) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
             if self._combined_loader_pending_reload:
-                # a provisional call already built `_combined_loader` from the data source (e.g. from
-                # `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before checkpoint state
-                # was available). Reload any now-available checkpoint state into it and do the real, first-time
-                # fetcher setup now, skipping only the now-redundant data source request and limits computation.
+                # Reload available checkpoint state and initialize fetchers
                 self._combined_loader_pending_reload = False
                 self._finalize_data_setup(self._allow_zero_length_dataloader())
             return
