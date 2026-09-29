@@ -1249,13 +1249,22 @@ class StatefulIterable(NotStatefulIterable):
     ],
 )
 @pytest.mark.parametrize("access_estimated_stepping_batches", [False, True])
+@pytest.mark.parametrize("max_epochs", [-1, 2])
 def test_fit_loop_save_and_restore_dataloaders(
-    train_dataloader_factory, has_state, batches_before, batches_after, access_estimated_stepping_batches, tmp_path
+    train_dataloader_factory,
+    has_state,
+    batches_before,
+    batches_after,
+    access_estimated_stepping_batches,
+    max_epochs,
+    tmp_path,
 ):
     """Test that the CheckpointConnector saves the state of stateful dataloaders.
 
     The state must also be restored when the train dataloader was set up before the loop state got restored, which
-    happens when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers`.
+    happens when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers`. `max_epochs=-1` exercises
+    the early-exit path of `estimated_stepping_batches` (infinite training), while `max_epochs=2` exercises the
+    dataloader setup/teardown it performs to compute the estimate.
 
     """
 
@@ -1286,12 +1295,10 @@ def test_fit_loop_save_and_restore_dataloaders(
         "enable_progress_bar": False,
         "logger": False,
         "num_sanity_val_steps": 0,
-        # a finite value is required so that `estimated_stepping_batches` doesn't take the early-exit path for
-        # infinite training (`max_epochs == -1`), and instead exercises the dataloader setup/teardown it performs
-        # to compute the estimate, which is what `access_estimated_stepping_batches` is meant to test.
-        # >= 2 because each `trainer.fit()` call below completes one epoch (`max_steps` interrupts it mid-epoch,
-        # but the fit loop still marks it processed), so the second call needs headroom to run at all.
-        "max_epochs": 2,
+        # when finite (2), each `trainer.fit()` call below must have headroom for a full epoch: `max_steps`
+        # interrupts mid-epoch, but the fit loop still marks that epoch as processed, so the second call needs
+        # `max_epochs >= 2` to run at all.
+        "max_epochs": max_epochs,
     }
 
     # Train for 2 steps
