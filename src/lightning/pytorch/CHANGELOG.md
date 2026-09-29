@@ -58,7 +58,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
-- Fixed the first epoch of a resumed run drawing its indices with sampler epoch 0 instead of the restored epoch when the `DataLoader` uses worker processes, by setting the sampler epoch before the training iterator is created ([#21938](https://github.com/Lightning-AI/pytorch-lightning/issues/21938))
+- Fixed the first epoch of a resumed run drawing its indices with sampler epoch 0 instead of the restored epoch when the `DataLoader` uses worker processes, by setting the sampler epoch before the training iterator is created ([#21979](https://github.com/Lightning-AI/pytorch-lightning/pull/21979))
 
 ---
 
