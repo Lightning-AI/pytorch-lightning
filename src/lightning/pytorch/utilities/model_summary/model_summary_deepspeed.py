@@ -55,10 +55,14 @@ class DeepSpeedSummary(ModelSummary):
     @override
     def summarize(self) -> dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
-        if self._model.example_input_array is not None:
-            self._forward_example_input()
-        for layer in summary.values():
-            layer.detach_hook()
+        try:
+            if self._model.example_input_array is not None:
+                self._forward_example_input(summary)
+        finally:
+            # ensure hooks are removed even if the forward pass (including a retried one) raises, so a failure
+            # doesn't leave stray hooks attached to the model
+            for layer in summary.values():
+                layer.detach_hook()
 
         if self._max_depth >= 1:
             # remove summary entries with depth > max_depth
