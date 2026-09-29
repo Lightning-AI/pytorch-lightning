@@ -14,7 +14,6 @@
 import glob
 import inspect
 import json
-import operator
 import os
 from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
@@ -26,7 +25,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
@@ -38,6 +36,7 @@ from lightning.pytorch import Callback, LightningDataModule, LightningModule, Tr
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
+    _KEEP_NONE_KWARGS,
     LightningArgumentParser,
     LightningCLI,
     LRSchedulerCallable,
@@ -138,7 +137,7 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
         save_callback[0].on_train_start(trainer, model)
 
     def on_train_start(callback, trainer, _):
-        config_dump = callback.parser.dump(callback.config, skip_none=False)
+        config_dump = callback.parser.dump(callback.config, **_KEEP_NONE_KWARGS)
         for k, v in expected_model.items():
             assert f"  {k}: {v}" in config_dump
         for k, v in expected_trainer.items():
@@ -258,9 +257,6 @@ def test_lightning_cli_args(cleandir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
-@pytest.mark.skipif(
-    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
-)
 def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
@@ -427,9 +423,6 @@ def any_model_any_data_cli():
     LightningCLI(LightningModule, LightningDataModule, subclass_mode_model=True, subclass_mode_data=True)
 
 
-@pytest.mark.skipif(
-    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
-)
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
@@ -1209,9 +1202,6 @@ def test_lightning_cli_subcommands():
             assert e in parameters
 
 
-@pytest.mark.skipif(
-    compare_version("jsonargparse", operator.lt, "4.39"), reason="incompatibilities with older jsonargparse"
-)
 def test_lightning_cli_custom_subcommand():
     class TestTrainer(Trainer):
         def foo(self, model: LightningModule, x: int, y: float = 1.0):

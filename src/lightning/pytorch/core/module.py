@@ -48,7 +48,6 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -62,7 +61,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_6, _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -80,12 +79,7 @@ _TORCH_TRT_AVAILABLE = RequirementCache("torch_tensorrt")
 
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
-
-    if _TORCH_GREATER_EQUAL_2_5:
-        if _TORCH_GREATER_EQUAL_2_6:
-            from torch.onnx import ONNXProgram
-        else:
-            from torch.onnx._internal.exporter import ONNXProgram  # type: ignore[no-redef]
+    from torch.onnx import ONNXProgram
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -383,6 +377,7 @@ class LightningModule(
             else:
                 print(*args, **kwargs)
 
+    @torch.compiler.disable
     def log(
         self,
         name: str,
@@ -407,6 +402,12 @@ class LightningModule(
             self.log('train_loss', loss)
 
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
+
+        .. note::
+            This method is decorated with :func:`torch.compiler.disable` so that it is executed as regular
+            Python when the ``LightningModule`` is wrapped with :func:`torch.compile`. Logging is bookkeeping
+            that does not belong in the compiled graph, and tracing the signature introspection it performs
+            fails under Dynamo on newer PyTorch versions. Disabling the compiler leaves eager behavior unchanged.
 
         Args:
             name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.
@@ -1480,10 +1481,9 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
-        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
+        if kwargs.get("dynamo", False) and not _ONNXSCRIPT_AVAILABLE:
             raise ModuleNotFoundError(
-                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
-                "requires `onnxscript` and `torch>=2.5.0` to be installed."
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."
             )
 
         mode = self.training
@@ -1644,11 +1644,6 @@ class LightningModule(
             )
 
         """
-        if not _TORCH_GREATER_EQUAL_2_2:
-            raise MisconfigurationException(
-                f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."
-            )
-
         if not _TORCH_TRT_AVAILABLE:
             raise ModuleNotFoundError(
                 f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "

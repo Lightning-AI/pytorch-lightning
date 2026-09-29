@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-import shutil
 from collections.abc import Generator
 from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
 
 import torch
@@ -43,6 +41,16 @@ from lightning.fabric.strategies.strategy import (
     _BackwardSyncControl,
     _validate_keys_for_strict_loading,
 )
+from lightning.fabric.utilities.cloud_io import (
+    _atomic_save,
+    _checkpoint_join,
+    _is_checkpoint_dir,
+    _is_local_file_protocol,
+    _load,
+    _prepare_directory_checkpoint,
+    _remove_checkpoint,
+    _resolve_path,
+)
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -51,9 +59,8 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
-from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _move_state_into
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
@@ -96,8 +103,6 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._parallelize_fn = parallelize_fn
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
@@ -260,7 +265,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 " so saving them is disabled."
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = Path(self.broadcast(path))
+        path = _resolve_path(self.broadcast(path))
         _save_checkpoint(
             path=path,
             state=state,
@@ -285,7 +290,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f" {type(self).__name__}.load_checkpoint(..., state={{'model': model, ...}})"
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(path))
+        path = _resolve_path(self.broadcast(path))
 
         if isinstance(state, Module):
             _load_raw_module_state_from_path(path, module=state, world_size=self.world_size, strict=strict)
@@ -303,10 +308,12 @@ class ModelParallelStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -347,13 +354,13 @@ class _FSDPNoSync(AbstractContextManager):
 
 
 def _save_checkpoint(
-    path: Path,
+    path: _PATH,
     state: dict[str, Union[Module, Optimizer, Any]],
     full_state_dict: bool,
     rank: int,
     filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
 ) -> None:
-    if path.is_dir() and full_state_dict and not _is_sharded_checkpoint(path):
+    if _is_checkpoint_dir(path) and full_state_dict and not _is_sharded_checkpoint(path):
         raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
     modules = [module for module in state.values() if _has_dtensor_modules(module)]
@@ -394,21 +401,19 @@ def _save_checkpoint(
 
     if full_state_dict:
         if _is_sharded_checkpoint(path):
-            shutil.rmtree(path)
+            _remove_checkpoint(path)
         converted_state.update(metadata)
         if rank == 0:
-            torch.save(converted_state, path)
+            _atomic_save(converted_state, path)
     else:
-        if path.is_file():
-            path.unlink()
-        path.mkdir(parents=True, exist_ok=True)
+        _prepare_directory_checkpoint(path)
         _distributed_checkpoint_save(converted_state, path)
         if rank == 0:
-            torch.save(metadata, path / _METADATA_FILENAME)
+            _atomic_save(metadata, _checkpoint_join(path, _METADATA_FILENAME))
 
 
 def _load_checkpoint(
-    path: Path,
+    path: _PATH,
     state: dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
@@ -451,7 +456,10 @@ def _load_checkpoint(
             set_optimizer_state_dict(module, optim, optim_state_dict=optim_state[optim_key], options=state_dict_options)
 
         # Load metadata (anything not a module or optimizer)
-        metadata = torch.load(path / _METADATA_FILENAME, weights_only=weights_only)
+        metadata = _load(
+            _checkpoint_join(path, _METADATA_FILENAME),
+            weights_only=False if weights_only is None else weights_only,
+        )
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
         for key in requested_metadata_keys:
@@ -463,7 +471,11 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
+        weights_only = False if weights_only is None else weights_only
+        if _is_local_file_protocol(str(path)):
+            checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
+        else:
+            checkpoint = _load(path, map_location="cpu", weights_only=weights_only)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(
@@ -529,15 +541,18 @@ def _has_dtensor_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(t, DTensor) for t in module.parameters())
 
 
-def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int, strict: bool = True) -> None:
+def _load_raw_module_state_from_path(path: _PATH, module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict from a file path into the FSDP module."""
     if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
             f" full state dict: {path}"
         )
-    # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
-    state_dict = torch.load(path, mmap=True, map_location="cpu") if _TORCH_GREATER_EQUAL_2_3 else _lazy_load(path)
+    if _is_local_file_protocol(str(path)):
+        # Use `mmap` to avoid storing a copy of the full checkpoint per rank
+        state_dict = torch.load(path, mmap=True, map_location="cpu")
+    else:
+        state_dict = _load(path, map_location="cpu")
     _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)
 
 

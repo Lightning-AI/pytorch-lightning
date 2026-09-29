@@ -175,9 +175,7 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
             incompatible_keys.missing_keys.remove(key)
 
 
-def _replace_param(
-    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[tuple] = None
-) -> torch.nn.Parameter:
+def _replace_param(param: torch.Tensor, data: torch.Tensor, quant_state: Any = None) -> torch.nn.Parameter:
     bnb = _import_bitsandbytes()
 
     # doing `param.data = weight` raises a RuntimeError if param.data was on meta-device, so
@@ -199,7 +197,7 @@ def _replace_param(
     param.data = data
     if isinstance(param, bnb.nn.Params4bit):
         param.quant_state = quant_state
-    return param
+    return cast(torch.nn.Parameter, param)
 
 
 @functools.lru_cache(maxsize=1)
@@ -224,9 +222,9 @@ def _import_bitsandbytes() -> ModuleType:
         the state dict."""
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
-            super().__init__(*args, device=device, threshold=threshold, **kwargs)
-            self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
-            self.bias: Optional[torch.nn.Parameter] = self.bias
+            kwargs.update(device=device, threshold=threshold)
+            super().__init__(*args, **kwargs)
+            self.weight = cast(bnb.nn.Int8Params, self.weight)
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -267,7 +265,8 @@ def _import_bitsandbytes() -> ModuleType:
                 setattr(int8params, "SCB", SCB)
             return int8params
 
-        def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
+        def to_empty(self, *, device: Optional[_DEVICE], recurse: bool = True) -> Self:
+            assert device is not None
             if self.weight.device.type == "meta":
                 # need custom logic if int8params is on meta device
                 raise NotImplementedError
@@ -311,9 +310,9 @@ def _import_bitsandbytes() -> ModuleType:
         state dict, meta-device initialization, and materialization."""
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
-            super().__init__(*args, device=device, **kwargs)
-            self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
-            self.bias: Optional[torch.nn.Parameter] = self.bias
+            kwargs.update(device=device)
+            super().__init__(*args, **kwargs)
+            self.weight = cast(bnb.nn.Params4bit, self.weight)
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -348,9 +347,10 @@ def _import_bitsandbytes() -> ModuleType:
                 quant_type=params4bit.quant_type,
                 quant_storage=params4bit.quant_storage,
             )
-            return _replace_param(params4bit, w_4bit, quant_state)
+            return cast(bnb.nn.Params4bit, _replace_param(params4bit, w_4bit, quant_state))
 
-        def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
+        def to_empty(self, *, device: Optional[_DEVICE], recurse: bool = True) -> Self:
+            assert device is not None
             if self.weight.dtype == torch.uint8:  # was quantized
                 # cannot init the quantized params directly
                 weight = torch.empty(self.weight.quant_state.shape, device=device, dtype=torch.half)
