@@ -1806,11 +1806,14 @@ class Trainer:
             )
 
         if setup_data_called:
-            # reset data structures so checkpointed dataloader states can be restored
+            # tear down the throwaway fetcher used only to estimate `total_batches` above, but keep the combined
+            # loader itself (and the dataloaders it wraps) so the data source (e.g. the `train_dataloader` hook)
+            # doesn't have to be re-requested a second time; the next real `setup_data()` call will reload
+            # checkpoint state into it (once available) and rebuild the fetcher
             if self.fit_loop._data_fetcher is not None:
                 self.fit_loop._data_fetcher.teardown()
             self.fit_loop._data_fetcher = None
-            self.fit_loop._combined_loader = None
+            self.fit_loop._combined_loader_pending_reload = True
 
             # restore states consumed during setup_data()
             self.fit_loop._combined_loader_states_to_load = saved_combined_loader_states

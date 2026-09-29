@@ -1367,3 +1367,34 @@ def test_estimated_stepping_batches_does_not_consume_unsized_dataloader(tmp_path
     model = DummyModel()
     trainer.fit(model)
     assert model.seen_data == [0, 1, 2]
+
+
+def test_estimated_stepping_batches_does_not_reload_train_dataloader(tmp_path):
+    """Regression test: accessing `trainer.estimated_stepping_batches` in `configure_optimizers` makes the trainer
+    provisionally set up the train dataloader before it's really set up. That provisional setup must not force the
+    `train_dataloader()` hook to be called a second time for the real setup, breaking the once-per-fit contract
+    asserted by `test_dataloaders_load_only_once` and `test_dataloaders_load_only_once_no_sanity_check`.
+
+    """
+
+    class DummyModel(BoringModel):
+        def configure_optimizers(self):
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+    model = DummyModel()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        limit_train_batches=0.3,
+    )
+    trainer.fit(model)
+    model.train_dataloader.assert_called_once()

@@ -106,6 +106,11 @@ class _FitLoop(_Loop):
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
+        # set when `_combined_loader` was built by a provisional call to `setup_data()` (e.g. from
+        # `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before the checkpoint's loop
+        # state was available to load). The next real `setup_data()` call must reload checkpoint state into it
+        # and rebuild the fetcher, but can skip re-requesting the dataloader from its source.
+        self._combined_loader_pending_reload: bool = False
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._restart_stage = RestartStage.NONE
@@ -224,6 +229,13 @@ class _FitLoop(_Loop):
 
     def setup_data(self, prefetch: bool = True) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
+            if self._combined_loader_pending_reload:
+                # a provisional call already built `_combined_loader` from the data source (e.g. from
+                # `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before checkpoint state
+                # was available). Reload any now-available checkpoint state into it and rebuild the fetcher, but
+                # skip re-requesting the dataloader from its source (e.g. re-running the `train_dataloader` hook).
+                self._combined_loader_pending_reload = False
+                self._finalize_data_setup(prefetch, self._allow_zero_length_dataloader())
             return
 
         trainer = self.trainer
@@ -232,6 +244,8 @@ class _FitLoop(_Loop):
             return
 
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
+        # a full rebuild below makes any pending reload-only shortcut (see the branch above) moot
+        self._combined_loader_pending_reload = False
 
         source = self._data_source
         train_dataloader = _request_dataloader(source)
@@ -255,9 +269,7 @@ class _FitLoop(_Loop):
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
-        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
-        if trainer.datamodule is not None:
-            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+        allow_zero_length = self._allow_zero_length_dataloader()
 
         limits = []
         for dl in combined_loader.flattened:
@@ -267,6 +279,21 @@ class _FitLoop(_Loop):
             limits.append(num_batches)
 
         combined_loader.limits = limits
+
+        self._finalize_data_setup(prefetch, allow_zero_length)
+
+    def _allow_zero_length_dataloader(self) -> bool:
+        trainer = self.trainer
+        pl_module = trainer.lightning_module
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+        return allow_zero_length
+
+    def _finalize_data_setup(self, prefetch: bool, allow_zero_length: bool) -> None:
+        trainer = self.trainer
+        combined_loader = self._combined_loader
+        assert combined_loader is not None
 
         self._load_combined_loader_states()
 
