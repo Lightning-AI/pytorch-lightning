@@ -37,6 +37,7 @@ def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
     weights_only: Optional[bool] = None,
+    storage_options: Optional[dict[str, Any]] = None,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -48,6 +49,7 @@ def _load(
             ``weights_only=False``. If loading checkpoint from an untrusted source, we recommend using
             ``weights_only=True``. For more information, please refer to the
             `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+        storage_options: Optional parameters when reading from storage.
 
     """
     if not isinstance(path_or_url, (str, Path)):
@@ -70,7 +72,7 @@ def _load(
             map_location=map_location,  # type: ignore[arg-type]
             weights_only=weights_only,
         )
-    fs = get_filesystem(path_or_url)
+    fs = get_filesystem(path_or_url, **(storage_options or {}))
     with fs.open(path_or_url, "rb") as f:
         return torch.load(
             f,
@@ -84,7 +86,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[dict[str, Any]] = None) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -93,13 +95,14 @@ def _atomic_save(checkpoint: dict[str, Any], filepath: _PATH) -> None:
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
+        storage_options: Optional parameters when saving to storage.
 
     """
     log.debug(f"Saving checkpoint: {filepath}")
 
     try:
         # We use a transaction here to avoid file corruption if the save gets interrupted
-        fs, urlpath = fsspec.core.url_to_fs(str(filepath))
+        fs, urlpath = fsspec.core.url_to_fs(str(filepath), **(storage_options or {}))
         with fs.transaction:
             if _is_object_storage(fs):
                 is_azure = False
@@ -251,23 +254,25 @@ def _remove_checkpoint(path: Union[str, Path]) -> None:
         fs.rm(str(path), recursive=True)
 
 
-def _get_distributed_checkpoint_writer(path: _PATH) -> Any:
+def _get_distributed_checkpoint_writer(path: _PATH, **kwargs: Any) -> Any:
     if _is_local_file_protocol(str(path)):
         from torch.distributed.checkpoint import FileSystemWriter
 
         # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-        return FileSystemWriter(path=path, single_file_per_rank=True)
+        kwargs.setdefault("single_file_per_rank", True)
+        return FileSystemWriter(path=path, **kwargs)
     FsspecWriter = _import_fsspec_dcp_filesystem("FsspecWriter")
-    return FsspecWriter(path=str(path), single_file_per_rank=True)
+    kwargs.setdefault("single_file_per_rank", True)
+    return FsspecWriter(path=str(path), **kwargs)
 
 
-def _get_distributed_checkpoint_reader(path: _PATH) -> Any:
+def _get_distributed_checkpoint_reader(path: _PATH, **kwargs: Any) -> Any:
     if _is_local_file_protocol(str(path)):
         from torch.distributed.checkpoint import FileSystemReader
 
-        return FileSystemReader(path=path)
+        return FileSystemReader(path=path, **kwargs)
     FsspecReader = _import_fsspec_dcp_filesystem("FsspecReader")
-    return FsspecReader(path=str(path))
+    return FsspecReader(path=str(path), **kwargs)
 
 
 def _import_fsspec_dcp_filesystem(name: str) -> Any:

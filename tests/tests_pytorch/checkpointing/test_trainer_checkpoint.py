@@ -105,13 +105,10 @@ def test_trainer_save_checkpoint_storage_options(tmp_path, xla_available):
         save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=instance_storage_options)
 
     torch_checkpoint_io = TorchCheckpointIO()
-    with pytest.raises(
-        TypeError,
-        match=r"`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
-        f" is not supported for `{torch_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
-        " to define how you'd like to use `storage_options`.",
-    ):
-        torch_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
+    with mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save") as atomic_save_mock:
+        torch_checkpoint_io.save_checkpoint({}, instance_path, storage_options={"storage_opt": 1})
+        atomic_save_mock.assert_called_once_with({}, instance_path, storage_options={"storage_opt": 1})
+
     xla_checkpoint_io = XLACheckpointIO()
     with pytest.raises(
         TypeError,
