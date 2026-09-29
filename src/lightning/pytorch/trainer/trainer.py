@@ -1781,7 +1781,7 @@ class Trainer:
             return float("inf") if self.max_steps == -1 else self.max_steps
 
         if self.train_dataloader is None:
-            rank_zero_info("Loading `train_dataloader` to estimate the number of stepping batches.")
+            rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
             # Loads the dataloader and configures `self.fit_loop.max_batches` without creating iterators,
             # since only the dataset length is needed here; see `FitLoop.setup_data` for details.
             # The first real fetcher setup occurs just before training begins.
