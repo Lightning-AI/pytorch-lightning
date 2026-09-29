@@ -344,14 +344,13 @@ class ModelParallelStrategy(ParallelStrategy):
         }
         assert self.lightning_module is not None
         opts = storage_options if storage_options is not None else self._storage_options
-        load_kwargs = {"storage_options": opts} if opts is not None else {}
         return _load_checkpoint(
             path=path,
             state=state,
             strict=self.lightning_module.strict_loading,
             optimizer_states_from_list=True,
             weights_only=weights_only,
-            **load_kwargs,
+            storage_options=opts,
         )
 
     def _setup_distributed(self) -> None:

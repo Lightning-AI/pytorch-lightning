@@ -570,14 +570,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module_key, module = list(modules.items())[0]
 
         opts = storage_options if storage_options is not None else self._storage_options
-        load_kwargs = {"storage_options": opts} if opts is not None else {}
 
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                _distributed_checkpoint_load(module_state, path, **load_kwargs)
+                _distributed_checkpoint_load(module_state, path, storage_options=opts)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 if optimizers:
@@ -603,7 +602,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             metadata = _load(
                 _checkpoint_join(path, _METADATA_FILENAME),
                 weights_only=False if weights_only is None else weights_only,
-                **load_kwargs,
+                storage_options=opts,
             )
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
@@ -619,7 +618,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             checkpoint = (
                 _lazy_load(path)
                 if _is_local_file_protocol(str(path))
-                else _load(path, weights_only=False if weights_only is None else weights_only, **load_kwargs)
+                else _load(path, weights_only=False if weights_only is None else weights_only, storage_options=opts)
             )
 
             from lightning.fabric.strategies.model_parallel import (

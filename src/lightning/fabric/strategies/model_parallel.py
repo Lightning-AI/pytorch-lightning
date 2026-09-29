@@ -446,26 +446,24 @@ def _load_checkpoint(
         )
     module_key, module = list(modules.items())[0]
 
-    load_kwargs = {"storage_options": storage_options} if storage_options is not None else {}
-
     if _is_sharded_checkpoint(path):
         state_dict_options = StateDictOptions(cpu_offload=True)
 
         module_state = {module_key: get_model_state_dict(module)}
-        _distributed_checkpoint_load(module_state, path, **load_kwargs)
+        _distributed_checkpoint_load(module_state, path, storage_options=storage_options)
         module.load_state_dict(module_state[module_key], strict=strict)
 
         # the optimizer states must be loaded separately
         for optim_key, optim in optimizers.items():
             optim_state = {optim_key: get_optimizer_state_dict(module, optim)}
-            _distributed_checkpoint_load(optim_state, path, **load_kwargs)
+            _distributed_checkpoint_load(optim_state, path, storage_options=storage_options)
             set_optimizer_state_dict(module, optim, optim_state_dict=optim_state[optim_key], options=state_dict_options)
 
         # Load metadata (anything not a module or optimizer)
         metadata = _load(
             _checkpoint_join(path, _METADATA_FILENAME),
             weights_only=False if weights_only is None else weights_only,
-            **load_kwargs,
+            storage_options=storage_options,
         )
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
@@ -482,7 +480,7 @@ def _load_checkpoint(
         if _is_local_file_protocol(str(path)):
             checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=weights_only)
         else:
-            checkpoint = _load(path, map_location="cpu", weights_only=weights_only, **load_kwargs)
+            checkpoint = _load(path, map_location="cpu", weights_only=weights_only, storage_options=storage_options)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(

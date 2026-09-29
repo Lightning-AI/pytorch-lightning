@@ -611,7 +611,6 @@ class FSDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
 
         opts = storage_options if storage_options is not None else self._storage_options
-        load_kwargs = {"storage_options": opts} if opts is not None else {}
 
         if _is_sharded_checkpoint(path):
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
@@ -620,7 +619,7 @@ class FSDPStrategy(ParallelStrategy):
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                _distributed_checkpoint_load(module_state, path, **load_kwargs)
+                _distributed_checkpoint_load(module_state, path, storage_options=opts)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
@@ -647,7 +646,7 @@ class FSDPStrategy(ParallelStrategy):
             metadata = _load(
                 _checkpoint_join(path, _METADATA_FILENAME),
                 weights_only=False if weights_only is None else weights_only,
-                **load_kwargs,
+                storage_options=opts,
             )
             return metadata
 
@@ -655,7 +654,7 @@ class FSDPStrategy(ParallelStrategy):
             checkpoint = (
                 _lazy_load(path)
                 if _is_local_file_protocol(str(path))
-                else _load(path, weights_only=False if weights_only is None else weights_only, **load_kwargs)
+                else _load(path, weights_only=False if weights_only is None else weights_only, storage_options=opts)
             )
             _load_raw_module_state(
                 checkpoint.pop("state_dict"),
