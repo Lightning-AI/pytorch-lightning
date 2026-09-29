@@ -323,6 +323,37 @@ def test_flop_counter_fallback_does_not_mix_shapes_across_forward_passes(monkeyp
     assert summary.out_sizes[0] == [2, 4]
 
 
+def test_flop_counter_fallback_leaves_no_hooks_when_retry_fails(monkeypatch):
+    """Test that hooks don't leak onto the model when the retry after a FLOP-counter failure itself raises."""
+
+    class AlwaysFails(nn.Module):
+        def forward(self, x):
+            raise RuntimeError("always fails")
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.pre = nn.Linear(4, 4)
+            self.flaky = AlwaysFails()
+            self.example_input_array = torch.rand(2, 4)
+
+        def forward(self, x):
+            return self.flaky(self.pre(x))
+
+    # Force the fallback path deterministically, independent of the real NestedTensor/FLOP-counter heuristic.
+    monkeypatch.setattr(
+        "lightning.pytorch.utilities.model_summary.model_summary._is_nested_tensor_flop_counter_error",
+        lambda ex: True,
+    )
+
+    model = Model()
+    with pytest.raises(RuntimeError, match="always fails"):
+        summarize(model)
+
+    assert not model.pre._forward_hooks
+    assert not model.flaky._forward_hooks
+
+
 @pytest.mark.parametrize("max_depth", [-1, 0])
 def test_hooks_removed_after_summarize(max_depth):
     """Test that all hooks were properly removed after summary, even ones that were not run."""
