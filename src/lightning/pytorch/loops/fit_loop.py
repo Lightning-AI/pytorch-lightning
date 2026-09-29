@@ -272,10 +272,7 @@ class _FitLoop(_Loop):
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         if not prefetch:
-            # for callers that only need `self.max_batches` (e.g. `Trainer.estimated_stepping_batches` peeking at
-            # the dataloader before it's really set up), avoid prefetching: for an unsized iterable, prefetching
-            # consumes a batch from it to detect exhaustion in advance, which would otherwise be permanently lost
-            # once this throwaway fetcher is torn down
+            # avoid consuming a batch from unsized iterables when only determining `self.max_batches`
             self._data_fetcher.prefetch_batches = 0
         self._data_fetcher.setup(combined_loader)
         with trainer.profiler.profile("setup_train_dataloader"):
