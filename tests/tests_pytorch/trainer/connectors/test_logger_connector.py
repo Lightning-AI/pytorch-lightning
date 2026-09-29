@@ -46,6 +46,7 @@ def test_uses_batches_that_stepped(mock_convert):
 
     trainer = MagicMock(spec=Trainer)
     trainer.fit_loop = MagicMock()
+    trainer.log_key_prefix = ""
     trainer.loggers = [logger := MagicMock(spec=Logger)]
     connector = _LoggerConnector(trainer)
     mock_convert.return_value.pop.return_value = None
