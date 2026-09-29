@@ -271,6 +271,58 @@ def test_model_summary_with_jagged_nested_tensor_reraises_plain_forward_error():
         summarize(JaggedNestedTensorModel(fail_after_forward=True))
 
 
+def test_flop_counter_fallback_does_not_mix_shapes_across_forward_passes(monkeypatch):
+    """Test that the retry after a FLOP-counter failure re-captures shapes for layers that already ran (and had their
+    hook removed) during the failed, FLOP-counting forward pass, instead of keeping stale shapes from that failed
+    pass."""
+
+    class ShapeChangingLayer(nn.Module):
+        """Returns a different output shape on each call, so a stale (unreset) hook is caught red-handed."""
+
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def forward(self, x):
+            self.calls += 1
+            return x[:, :1] if self.calls == 1 else x
+
+    class FlakyLayer(nn.Module):
+        """Fails on the first call, simulating a FLOP-counter incompatibility, then succeeds."""
+
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def forward(self, x):
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("simulated FLOP-counter incompatibility")
+            return x
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.pre = ShapeChangingLayer()
+            self.flaky = FlakyLayer()
+            self.example_input_array = torch.rand(2, 4)
+
+        def forward(self, x):
+            return self.flaky(self.pre(x))
+
+    # Force the fallback path deterministically, independent of the real NestedTensor/FLOP-counter heuristic.
+    monkeypatch.setattr(
+        "lightning.pytorch.utilities.model_summary.model_summary._is_nested_tensor_flop_counter_error",
+        lambda ex: True,
+    )
+
+    summary = summarize(Model())
+
+    # `pre` ran once during the failed FLOP-counting pass (out_size [2, 1]) and once during the retry
+    # (out_size [2, 4]). Its hook must have been reset so the retry's shape, not the stale one, is reported.
+    assert summary.out_sizes[0] == [2, 4]
+
+
 @pytest.mark.parametrize("max_depth", [-1, 0])
 def test_hooks_removed_after_summarize(max_depth):
     """Test that all hooks were properly removed after summary, even ones that were not run."""

@@ -122,6 +122,18 @@ class LayerSummary:
         if self._hook_handle is not None:
             self._hook_handle.remove()
 
+    def reset(self) -> None:
+        """Clears any captured shapes and re-registers the forward hook.
+
+        Used when a forward pass has to be retried, so the retry doesn't mix shapes captured from a previous, failed
+        forward pass with shapes captured from the retry.
+
+        """
+        self.detach_hook()
+        self._in_size = None
+        self._out_size = None
+        self._hook_handle = self._register_hook()
+
     @property
     def in_size(self) -> Union[str, list]:
         return self._in_size or UNKNOWN_SIZE
@@ -322,7 +334,7 @@ class ModelSummary:
     def summarize(self) -> dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
-            self._forward_example_input()
+            self._forward_example_input(summary)
         for layer in summary.values():
             layer.detach_hook()
 
@@ -333,7 +345,7 @@ class ModelSummary:
 
         return summary
 
-    def _forward_example_input(self) -> None:
+    def _forward_example_input(self, summary: dict[str, LayerSummary]) -> None:
         """Run the example input through each layer to get input- and output sizes."""
         model = self._model
         # the summary is supported without a trainer instance so we need to use the underscore property
@@ -366,6 +378,10 @@ class ModelSummary:
                         " counter. FLOP statistics will be omitted, but the example input will be forwarded without"
                         " FLOP counting so input and output sizes can still be inferred when possible."
                     )
+                    # the failed forward may have already triggered some layers' hooks; reset all of them so the
+                    # retry doesn't mix shapes captured from the failed pass with shapes from the retry
+                    for layer in summary.values():
+                        layer.reset()
                     _forward_model(model, input_)
         finally:
             mode.restore(model)
