@@ -106,6 +106,7 @@ class _FitLoop(_Loop):
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
+        self._combined_loader_pending_reload: bool = False
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._restart_stage = RestartStage.NONE
@@ -222,8 +223,12 @@ class _FitLoop(_Loop):
         self._restarting = False
         self.on_run_end()
 
-    def setup_data(self) -> None:
+    def setup_data(self, estimate_only: bool = False) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
+            if self._combined_loader_pending_reload:
+                # Reload available checkpoint state and initialize fetchers
+                self._combined_loader_pending_reload = False
+                self._finalize_data_setup(self._allow_zero_length_dataloader())
             return
 
         trainer = self.trainer
@@ -232,6 +237,8 @@ class _FitLoop(_Loop):
             return
 
         log.debug(f"{self.__class__.__name__}: resetting train dataloader")
+
+        self._combined_loader_pending_reload = False
 
         source = self._data_source
         train_dataloader = _request_dataloader(source)
@@ -255,9 +262,7 @@ class _FitLoop(_Loop):
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
 
-        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
-        if trainer.datamodule is not None:
-            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+        allow_zero_length = self._allow_zero_length_dataloader()
 
         limits = []
         for dl in combined_loader.flattened:
@@ -267,6 +272,31 @@ class _FitLoop(_Loop):
             limits.append(num_batches)
 
         combined_loader.limits = limits
+
+        if estimate_only:
+            # Compute max_batches from dataloader lengths without creating iterators, which could alter RNG or
+            # iterable state and change batches in the real training run.
+            max_batches = combined_loader._compute_length()
+            self.max_batches = max_batches if max_batches is not None else float("inf")
+            self._combined_loader_pending_reload = True
+            # Avoid an unnecessary rebuild on the next call.
+            self._last_train_dl_reload_epoch = trainer.current_epoch
+            return
+
+        self._finalize_data_setup(allow_zero_length)
+
+    def _allow_zero_length_dataloader(self) -> bool:
+        trainer = self.trainer
+        pl_module = trainer.lightning_module
+        allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+        return allow_zero_length
+
+    def _finalize_data_setup(self, allow_zero_length: bool) -> None:
+        trainer = self.trainer
+        combined_loader = self._combined_loader
+        assert combined_loader is not None
 
         self._load_combined_loader_states()
 

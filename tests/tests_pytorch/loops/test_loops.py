@@ -1248,15 +1248,28 @@ class StatefulIterable(NotStatefulIterable):
         ),
     ],
 )
+@pytest.mark.parametrize("access_estimated_stepping_batches", [False, True])
+@pytest.mark.parametrize("max_epochs", [None, 2])
 def test_fit_loop_save_and_restore_dataloaders(
-    train_dataloader_factory, has_state, batches_before, batches_after, tmp_path
+    train_dataloader_factory,
+    has_state,
+    batches_before,
+    batches_after,
+    access_estimated_stepping_batches,
+    max_epochs,
+    tmp_path,
 ):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders."""
+    """Test saving and restoring stateful dataloaders, including estimated-step setup paths."""
 
     class DummyModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.seen_data = []
+
+        def configure_optimizers(self):
+            if access_estimated_stepping_batches:
+                assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
 
         def training_step(self, batch, batch_idx):
             self.seen_data.append(batch)
@@ -1273,6 +1286,7 @@ def test_fit_loop_save_and_restore_dataloaders(
         "enable_progress_bar": False,
         "logger": False,
         "num_sanity_val_steps": 0,
+        "max_epochs": max_epochs,
     }
 
     # Train for 2 steps
@@ -1294,3 +1308,136 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_estimated_stepping_batches_does_not_consume_unsized_dataloader(tmp_path):
+    """Regression test for accessing `trainer.estimated_stepping_batches` in `configure_optimizers`.
+
+    Doing so makes the trainer provisionally call `fit_loop.setup_data()` to compute the number of training
+    batches, then tears that throwaway setup down. For an unsized dataloader (no `__len__`), the data fetcher
+    prefetches a batch to detect exhaustion in advance, so this teardown must not permanently discard that
+    prefetched batch, or training would silently skip it.
+
+    """
+
+    class UnsizedIterator:
+        """A true iterator (`__iter__` returns `self`, not a fresh generator) with no `__len__`, forcing
+        `_PrefetchDataFetcher` to prefetch a batch when it's set up."""
+
+        def __init__(self):
+            self.index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            val = self.index
+            self.index += 1
+            return val
+
+    class DummyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_data = []
+            # a single persistent instance, like a cached/streaming dataloader returned from every hook call
+            self._loader = UnsizedIterator()
+
+        def configure_optimizers(self):
+            # sets up the train dataloader before it's really set up
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+        def training_step(self, batch, batch_idx):
+            self.seen_data.append(batch)
+
+        def train_dataloader(self):
+            return self._loader
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        max_steps=3,
+    )
+    model = DummyModel()
+    trainer.fit(model)
+    assert model.seen_data == [0, 1, 2]
+
+
+def test_estimated_stepping_batches_does_not_reload_train_dataloader(tmp_path):
+    """Regression test: accessing `trainer.estimated_stepping_batches` in `configure_optimizers` makes the trainer
+    provisionally set up the train dataloader before it's really set up. That provisional setup must not force the
+    `train_dataloader()` hook to be called a second time for the real setup, breaking the once-per-fit contract
+    asserted by `test_dataloaders_load_only_once` and `test_dataloaders_load_only_once_no_sanity_check`.
+
+    """
+
+    class DummyModel(BoringModel):
+        def configure_optimizers(self):
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+    model = DummyModel()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        limit_train_batches=0.3,
+    )
+    trainer.fit(model)
+    model.train_dataloader.assert_called_once()
+
+
+def test_estimated_stepping_batches_does_not_construct_dataloader_iterator_twice(tmp_path):
+    """Regression test: accessing `trainer.estimated_stepping_batches` in `configure_optimizers` must not
+    construct an iterator over the train dataloader for the provisional setup it triggers. Doing so has side
+    effects independent of whether any batches are actually consumed from it: e.g. it advances a `DataLoader`'s
+    base RNG (used to seed workers each epoch), or an iterable's own `__iter__`-side state. Constructing it again
+    for the real setup would then silently change the batches/order seen during real training, compared to not
+    having accessed the property at all.
+
+    """
+    iter_count = 0
+
+    class DummyModel(BoringModel):
+        def configure_optimizers(self):
+            assert self.trainer.estimated_stepping_batches is not None
+            return super().configure_optimizers()
+
+        def train_dataloader(self):
+            dl = DataLoader(RandomDataset(32, 10), batch_size=2)
+            real_get_iterator = dl._get_iterator
+
+            def counted_get_iterator():
+                nonlocal iter_count
+                iter_count += 1
+                return real_get_iterator()
+
+            dl._get_iterator = counted_get_iterator
+            return dl
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+    )
+    model = DummyModel()
+    trainer.fit(model)
+    assert iter_count == 1

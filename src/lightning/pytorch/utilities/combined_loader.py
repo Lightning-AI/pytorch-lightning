@@ -358,6 +358,14 @@ class CombinedLoader(Iterable):
             raise RuntimeError("Please call `iter(combined_loader)` first.")
         return len(self._iterator)
 
+    def _compute_length(self) -> Optional[int]:
+        """Like ``len(self)`` after ``iter(self)``, but without constructing iterators over the wrapped iterables,
+        which can have side effects: e.g. spawning a `DataLoader`'s workers, or advancing an iterable's own
+        `__iter__`-side state (including the RNG stream used for shuffling)."""
+        cls = _SUPPORTED_MODES[self._mode]["iterator"]
+        mode_iterator = cls(self.flattened, self._limits)
+        return sized_len(mode_iterator)
+
     def reset(self) -> None:
         """Reset the state and shutdown any workers."""
         if self._iterator is not None:

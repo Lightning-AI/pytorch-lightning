@@ -1782,16 +1782,21 @@ class Trainer:
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            self.fit_loop.setup_data()
+            # Loads the dataloader and configures `self.fit_loop.max_batches` without creating iterators,
+            # since only the dataset length is needed here; see `FitLoop.setup_data` for details.
+            # The first real fetcher setup occurs just before training begins.
+            self.fit_loop.setup_data(estimate_only=True)
 
         total_batches = self.num_training_batches
 
         # iterable dataset
         if total_batches == float("inf"):
-            return self.max_steps
+            max_estimated_steps = self.max_steps
+        else:
+            assert self.max_epochs is not None
+            max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
+            max_estimated_steps = (
+                min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+            )
 
-        assert self.max_epochs is not None
-        max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
-
-        max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
