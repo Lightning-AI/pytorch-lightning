@@ -205,8 +205,7 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
-        # `reset` fast-forwards the epoch progress of a restored run (e.g. a checkpoint saved on the last training
-        # batch of an epoch) and must run before `setup_data`, which sets the sampler epoch for the epoch to train
+        # `reset` fast-forwards the epoch progress of a restored run, required before setting up the data
         self.reset()
         self.setup_data()
         if self.skip:
@@ -272,9 +271,7 @@ class _FitLoop(_Loop):
 
         self._load_combined_loader_states()
 
-        # A `DataLoader` with worker processes draws its first indices from the sampler as soon as its iterator is
-        # created below, so the sampler epoch has to be set before that. Otherwise, the first epoch of a resumed run
-        # would use the permutation of sampler epoch 0 instead of the restored epoch (#21938).
+        # Set the sampler epoch before creating the iterator to preserve the restored epoch on resume.
         for dl in combined_loader.flattened:
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 

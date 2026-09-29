@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
@@ -653,16 +654,10 @@ class _EpochRecordingSampler(RandomSampler):
         yield from super().__iter__()
 
 
+@pytest.mark.skipif(sys.platform in ["darwin", "win32"], reason="Skip on windows & macOS due to multiprocessing issues")
 @pytest.mark.parametrize("save_on_last_batch", [False, True])
 def test_resume_sets_sampler_epoch_before_iterator_creation(tmp_path, save_on_last_batch):
-    """Test that the first epoch of a resumed run draws its sampler permutation with the restored epoch.
-
-    A `DataLoader` with worker processes draws the first indices as soon as its iterator is created, so the sampler
-    epoch must be set before the iterator gets created in `FitLoop.setup_data` (#21938). The checkpoint is either
-    saved at the end of the epoch or on its last training batch (in which case the epoch progress is fast-forwarded on
-    resume and the sampler epoch must reflect that).
-
-    """
+    """Test that the first epoch of a resumed run draws its sampler permutation with the restored epoch."""
     log_file = tmp_path / "sampler_epochs.log"
     dataset = RandomDataset(32, 8)
 
