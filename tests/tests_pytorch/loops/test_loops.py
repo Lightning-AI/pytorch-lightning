@@ -641,7 +641,6 @@ def test_fit_loop_reset(tmp_path):
 
     with patch.object(model, "on_train_epoch_start") as on_train_epoch_start:
         fit_loop.on_advance_start()
-
         on_train_epoch_start.assert_called_once()
 
     assert current.ready == ready_before + 1
