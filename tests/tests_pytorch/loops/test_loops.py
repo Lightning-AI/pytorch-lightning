@@ -1249,7 +1249,7 @@ class StatefulIterable(NotStatefulIterable):
     ],
 )
 @pytest.mark.parametrize("access_estimated_stepping_batches", [False, True])
-@pytest.mark.parametrize("max_epochs", [-1, 2])
+@pytest.mark.parametrize("max_epochs", [None, 2])
 def test_fit_loop_save_and_restore_dataloaders(
     train_dataloader_factory,
     has_state,
@@ -1259,14 +1259,7 @@ def test_fit_loop_save_and_restore_dataloaders(
     max_epochs,
     tmp_path,
 ):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders.
-
-    The state must also be restored when the train dataloader was set up before the loop state got restored, which
-    happens when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers`. `max_epochs=-1` exercises
-    the early-exit path of `estimated_stepping_batches` (infinite training), while `max_epochs=2` exercises the
-    dataloader setup/teardown it performs to compute the estimate.
-
-    """
+    """Test saving and restoring stateful dataloaders, including estimated-step setup paths."""
 
     class DummyModel(BoringModel):
         def __init__(self):
@@ -1275,8 +1268,6 @@ def test_fit_loop_save_and_restore_dataloaders(
 
         def configure_optimizers(self):
             if access_estimated_stepping_batches:
-                # sets up the train dataloader before the checkpoint's loop state is restored
-                # (0 is a legitimate value for the "no dataloader" case, so check for `None` rather than truthiness)
                 assert self.trainer.estimated_stepping_batches is not None
             return super().configure_optimizers()
 
@@ -1295,9 +1286,6 @@ def test_fit_loop_save_and_restore_dataloaders(
         "enable_progress_bar": False,
         "logger": False,
         "num_sanity_val_steps": 0,
-        # when finite (2), each `trainer.fit()` call below must have headroom for a full epoch: `max_steps`
-        # interrupts mid-epoch, but the fit loop still marks that epoch as processed, so the second call needs
-        # `max_epochs >= 2` to run at all.
         "max_epochs": max_epochs,
     }
 
