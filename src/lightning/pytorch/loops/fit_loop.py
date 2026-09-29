@@ -281,16 +281,12 @@ class _FitLoop(_Loop):
         combined_loader.limits = limits
 
         if estimate_only:
-            # the caller (e.g. `Trainer.estimated_stepping_batches` accessed in `configure_optimizers`, before
-            # checkpoint state is available to load) only needs `self.max_batches`. Compute it directly from the
-            # wrapped dataloaders' lengths, without constructing iterators over them: doing so would have side
-            # effects, e.g. advancing a `DataLoader`'s base RNG (used to seed workers) or an iterable's own
-            # `__iter__`-side state, silently changing the batches seen during the real training run below.
+            # Compute max_batches from dataloader lengths without creating iterators, which could alter RNG or
+            # iterable state and change batches in the real training run.
             max_batches = combined_loader._compute_length()
             self.max_batches = max_batches if max_batches is not None else float("inf")
             self._combined_loader_pending_reload = True
-            # also record this like a normal setup would, so `_should_reload_train_dl` doesn't spuriously see the
-            # default `-inf` and force an unnecessary (and hook-repeating) full rebuild on the next real call
+            # Avoid an unnecessary rebuild on the next call.
             self._last_train_dl_reload_epoch = trainer.current_epoch
             return
 
