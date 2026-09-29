@@ -17,6 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
+from collections.abc import Mapping
 from typing import Any, Optional, Union
 
 import torch
@@ -345,7 +346,7 @@ class ModelSummary:
 
         return summary
 
-    def _forward_example_input(self, summary: dict[str, LayerSummary]) -> None:
+    def _forward_example_input(self, summary: Mapping[str, LayerSummary]) -> None:
         """Run the example input through each layer to get input- and output sizes."""
         model = self._model
         # the summary is supported without a trainer instance so we need to use the underscore property

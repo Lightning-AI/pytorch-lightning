@@ -56,7 +56,7 @@ class DeepSpeedSummary(ModelSummary):
     def summarize(self) -> dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
-            self._forward_example_input()
+            self._forward_example_input(summary)
         for layer in summary.values():
             layer.detach_hook()
 
