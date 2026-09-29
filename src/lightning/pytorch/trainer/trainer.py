@@ -1799,7 +1799,9 @@ class Trainer:
         else:
             assert self.max_epochs is not None
             max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
-            max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+            max_estimated_steps = (
+                min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+            )
 
         if setup_data_called:
             # reset data structures so checkpointed dataloader states can be restored
