@@ -255,11 +255,7 @@ class ModelSummary:
 
     def _make_flop_counter(self) -> FlopCounterMode:
         # The max-depth needs to be plus one because the root module is already counted as depth 0.
-        return FlopCounterMode(
-            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
-            display=False,
-            depth=self._max_depth + 1,
-        )
+        return FlopCounterMode(display=False, depth=self._max_depth + 1)
 
     @property
     def layer_names(self) -> list[str]:
@@ -352,6 +348,7 @@ class ModelSummary:
         model.eval()
 
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
+        flop_context = self._flop_counter
 
         try:
             with torch.no_grad(), forward_context:
