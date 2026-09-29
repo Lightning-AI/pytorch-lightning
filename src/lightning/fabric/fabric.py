@@ -83,7 +83,7 @@ def _do_nothing(*_: Any) -> None:
     pass
 
 
-def _recursively_update_state(old_state: Dict[str, Any], new_unwrapped_state: Dict[str, Any]) -> None:
+def _recursively_update_state(old_state: dict[str, Any], new_unwrapped_state: dict[str, Any]) -> None:
     for k in list(new_unwrapped_state.keys()):
         obj, _ = _unwrap_compiled(old_state[k])
         if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):

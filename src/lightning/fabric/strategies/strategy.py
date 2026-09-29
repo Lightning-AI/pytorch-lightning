@@ -305,7 +305,7 @@ class Strategy(ABC):
         # for optimizers that are not sharded, we return the state dict on all ranks
         return optimizer.state_dict()
 
-    def _recursively_load_state(self, state: Dict[str, Any], checkpoint: Dict[str, Any], strict: bool = True) -> None:
+    def _recursively_load_state(self, state: dict[str, Any], checkpoint: dict[str, Any], strict: bool = True) -> None:
         _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
             if name not in checkpoint:
@@ -316,7 +316,11 @@ class Strategy(ABC):
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             elif isinstance(obj, dict):
-                self._recursively_load_state(state=state[name], checkpoint=checkpoint.pop(name), strict=strict)
+                nested_checkpoint = checkpoint.pop(name)
+                self._recursively_load_state(state=state[name], checkpoint=nested_checkpoint, strict=strict)
+                if nested_checkpoint:
+                    # keep the remaining, unrequested items under the same key in the remainder
+                    checkpoint[name] = nested_checkpoint
             else:
                 state[name] = checkpoint.pop(name)
 
