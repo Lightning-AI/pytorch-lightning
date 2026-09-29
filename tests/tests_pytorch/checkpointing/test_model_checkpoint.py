@@ -46,6 +46,18 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
+def _skip_if_symlink_unsupported(tmp_path: Path) -> None:
+    target = tmp_path / "symlink_target"
+    link = tmp_path / "symlink_link"
+    target.write_text("x")
+    try:
+        os.symlink(target, link)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are not supported on this platform.")
+    else:
+        link.unlink()
+
+
 def test_model_checkpoint_state_key():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     expected_id = (
@@ -497,6 +509,8 @@ def test_model_checkpoint_file_extension(tmp_path):
 @pytest.mark.parametrize("save_last", [True, "link"])
 def test_model_checkpoint_save_last(save_last, tmp_path, monkeypatch):
     """Tests that save_last produces only one last checkpoint."""
+    if save_last == "link":
+        _skip_if_symlink_unsupported(tmp_path)
     seed_everything()
     model = LogInTwoMethods()
     epochs = 3
@@ -534,6 +548,7 @@ def test_model_checkpoint_save_last_as_link_not_local(tmp_path):
 
 def test_model_checkpoint_link_checkpoint(tmp_path):
     """Test that linking a checkpoint works and overwrites an existing link if present."""
+    _skip_if_symlink_unsupported(tmp_path)
     trainer = Mock()
 
     # link doesn't exist
@@ -591,6 +606,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
 
 def test_model_checkpoint_link_checkpoint_relative_path(tmp_path, monkeypatch):
     """Test that linking a checkpoint works with relative paths."""
+    _skip_if_symlink_unsupported(tmp_path)
     trainer = Mock()
     monkeypatch.chdir(tmp_path)
 
