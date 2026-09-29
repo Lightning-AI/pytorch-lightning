@@ -396,8 +396,8 @@ def test_model_parallel_load_checkpoint_does_not_corrupt_remote_path(monkeypatch
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
     monkeypatch.setattr(mp, "_is_sharded_checkpoint", lambda p: True)
     monkeypatch.setattr(mp, "_is_full_checkpoint", lambda p: False)
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: captured.update(path=path))
-    monkeypatch.setattr(mp, "_load", lambda path, weights_only=None: captured.update(meta=str(path)) or {})
+    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path, **kwargs: captured.update(path=path))
+    monkeypatch.setattr(mp, "_load", lambda path, weights_only=None, **kwargs: captured.update(meta=str(path)) or {})
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)
@@ -431,7 +431,7 @@ def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, t
     assert _is_sharded_checkpoint(ckpt_dir)
 
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: None)
+    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path, **kwargs: None)
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)

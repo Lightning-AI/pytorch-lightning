@@ -624,7 +624,7 @@ def test_load_full_checkpoint_remote_allows_non_tensor_objects(monkeypatch):
 
     captured = {}
 
-    def fake_load(path, weights_only=None):
+    def fake_load(path, weights_only=None, storage_options=None):
         captured["weights_only"] = weights_only
         return {"model": {"weight": torch.zeros(2)}}
 
@@ -645,7 +645,7 @@ def test_load_full_checkpoint_remote_honors_explicit_weights_only(monkeypatch):
 
     captured = {}
 
-    def fake_load(path, weights_only=None):
+    def fake_load(path, weights_only=None, storage_options=None):
         captured["weights_only"] = weights_only
         return {"model": {"weight": torch.zeros(2)}}
 
@@ -665,11 +665,13 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     monkeypatch.setattr(
         "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
     )
-    monkeypatch.setattr("lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path: None)
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path, **kwargs: None
+    )
 
     captured = {}
 
-    def fake_load(path, weights_only=None):
+    def fake_load(path, weights_only=None, storage_options=None):
         captured["weights_only"] = weights_only
         return {}
 

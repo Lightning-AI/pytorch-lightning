@@ -1060,7 +1060,7 @@ def test_save_wrapped_objects(setup, tmp_path):
     state = {"model": model, "optimizer": optimizer, "anything": anything}
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
-    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path, filter=None)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path, filter=None, storage_options=None)
 
 
 def test_save_filter(tmp_path):
@@ -1373,7 +1373,7 @@ def test_fabric_load_forwards_weights_only_to_strategy(weights_only):
 
     fabric.load("path.pt", weights_only=weights_only)
     fabric.strategy.load_checkpoint.assert_called_with(
-        path="path.pt", state=None, strict=True, weights_only=weights_only
+        path="path.pt", state=None, strict=True, weights_only=weights_only, storage_options=None
     )
 
 
