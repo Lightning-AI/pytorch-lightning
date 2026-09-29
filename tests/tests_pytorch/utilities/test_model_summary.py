@@ -613,13 +613,16 @@ def _require_jagged_nested_tensor_flop_counter_error():
 
     layer = nn.Linear(3, 2)
     nested = torch.nested.nested_tensor([torch.rand(2, 3), torch.rand(3, 3)], layout=torch.jagged)
+    # mirror `ModelSummary._forward_example_input`, which always runs the forward under `torch.no_grad()`: whether
+    # the FLOP counter fails on jagged NestedTensor ops can depend on autograd tracking being enabled or not
     try:
-        layer(nested)
+        with torch.no_grad():
+            layer(nested)
     except Exception as ex:
         pytest.skip(f"Requires Linear support for jagged NestedTensor: {ex}")
 
     try:
-        with FlopCounterMode(display=False):
+        with torch.no_grad(), FlopCounterMode(display=False):
             layer(nested)
     except (NotImplementedError, RuntimeError, TypeError):
         return
