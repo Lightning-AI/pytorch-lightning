@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Preserved stateful dataloader checkpoint state when accessing `trainer.estimated_stepping_batches` in `configure_optimizers()` ([#21980](https://github.com/Lightning-AI/pytorch-lightning/pull/21980/changes)).
+- Preserved stateful dataloader checkpoint state when accessing `trainer.estimated_stepping_batches` in `configure_optimizers()` ([#21980](https://github.com/Lightning-AI/pytorch-lightning/pull/21980)).
 
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
