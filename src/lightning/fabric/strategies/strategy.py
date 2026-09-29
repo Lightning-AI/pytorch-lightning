@@ -34,7 +34,7 @@ from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp, _Stateful
 
 if TYPE_CHECKING:
-    from torch.optim.lr_scheduler import _LRScheduler
+    from torch.optim.lr_scheduler import LRScheduler
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -148,8 +148,8 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["_LRScheduler"] = None
-    ) -> tuple[Module, list[Optimizer], Optional["_LRScheduler"]]:
+        self, module: Module, optimizers: list[Optimizer], scheduler: Optional["LRScheduler"] = None
+    ) -> tuple[Module, list[Optimizer], Optional["LRScheduler"]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will

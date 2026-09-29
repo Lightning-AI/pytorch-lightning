@@ -76,7 +76,7 @@ from lightning.fabric.wrappers import (
 )
 
 if TYPE_CHECKING:
-    from torch.optim.lr_scheduler import _LRScheduler
+    from torch.optim.lr_scheduler import LRScheduler
 
 
 def _do_nothing(*_: Any) -> None:
@@ -230,7 +230,7 @@ class Fabric:
         self,
         module: nn.Module,
         *optimizers: Optimizer,
-        scheduler: Optional["_LRScheduler"] = None,
+        scheduler: Optional["LRScheduler"] = None,
         move_to_device: bool = True,
         _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
