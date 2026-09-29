@@ -58,7 +58,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
-- Fixed `FitLoop` staying in a mid-epoch restart state after resuming from a checkpoint saved on the last training batch of an epoch, which skipped `on_train_epoch_start` and could replay the epoch on a later resume ([#21969](https://github.com/Lightning-AI/pytorch-lightning/issues/21969))
+- Fixed `FitLoop` staying in a mid-epoch restart state after resuming from a checkpoint saved on the last training batch of an epoch, which skipped `on_train_epoch_start` and could replay the epoch on a later resume ([#21969](https://github.com/Lightning-AI/pytorch-lightning/pull/21969))
 
 ---
 
