@@ -148,7 +148,8 @@ class CSVLogger(Logger):
     ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is None:
-            step = len(self.experiment.metrics)
+            # count every row logged so far, not only the ones still buffered: `save()` empties the buffer
+            step = self.experiment._num_logged
         self.experiment.log_metrics(metrics, step)
         if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
@@ -202,6 +203,7 @@ class _ExperimentWriter:
     def __init__(self, log_dir: str) -> None:
         self.metrics: list[dict[str, float]] = []
         self.metrics_keys: list[str] = []
+        self._num_logged = 0
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
@@ -219,11 +221,12 @@ class _ExperimentWriter:
             return value
 
         if step is None:
-            step = len(self.metrics)
+            step = self._num_logged
 
         metrics = {k: _handle_value(v) for k, v in metrics_dict.items()}
         metrics["step"] = step
         self.metrics.append(metrics)
+        self._num_logged += 1
 
     def save(self) -> None:
         """Save recorded metrics into files."""
