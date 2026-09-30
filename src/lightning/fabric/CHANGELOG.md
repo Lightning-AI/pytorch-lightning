@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the `scheduler` type hint on `Fabric.setup` and `Strategy.setup_module_and_optimizers` to use the public `LRScheduler` instead of the private `_LRScheduler` ([#21934](https://github.com/Lightning-AI/pytorch-lightning/pull/21934))
 
+- Fixed `CSVLogger` restarting the automatic `step` at 0 after every flush when `log_metrics` is called without a step ([#21983](https://github.com/Lightning-AI/pytorch-lightning/pull/21983))
+
 ---
 
 ## [2.6.5] - 2026-05-27
