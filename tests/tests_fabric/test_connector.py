@@ -26,7 +26,7 @@ from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
 from lightning.fabric import Fabric
-from lightning.fabric.accelerators import XLAAccelerator
+from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
@@ -846,6 +846,37 @@ def test_precision_selection_16_on_cpu_warns():
         match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
     ):
         _Connector(accelerator="cpu", precision="16-mixed")
+
+
+class _RegisteredCPUAccelerator(CPUAccelerator):
+    """Stand-in for a third-party accelerator registered by name (e.g. 'xpu', 'npu')."""
+
+
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize("accelerator", [CPUAccelerator(), "registered_cpu"])
+def test_amp_device_selection_from_accelerator(accelerator, precision, monkeypatch):
+    """Test that AMP autocasts on the accelerator's device type, not 'cuda', for accelerator instances and accelerators
+    registered by name."""
+    monkeypatch.setitem(
+        ACCELERATOR_REGISTRY,
+        "registered_cpu",
+        {"accelerator": _RegisteredCPUAccelerator, "accelerator_name": "registered_cpu", "init_params": {}},
+    )
+    warns = precision == "16-mixed"
+    with pytest.warns(UserWarning, match="AMP with fp16 is not supported on CPU") if warns else nullcontext():
+        connector = _Connector(accelerator=accelerator, devices=1, precision=precision)
+    assert isinstance(connector.precision, MixedPrecision)
+    assert connector.precision.device == "cpu"
+    assert connector.precision.precision == "bf16-mixed"
+
+
+@pytest.mark.parametrize("accelerator", ["cuda", CUDAAccelerator()])
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_amp_device_selection_cuda(_, __, accelerator):
+    connector = _Connector(accelerator=accelerator, devices=1, precision="bf16-mixed")
+    assert isinstance(connector.precision, MixedPrecision)
+    assert connector.precision.device == "cuda"
 
 
 class MyAMP(MixedPrecision):

@@ -449,6 +449,12 @@ class _Connector:
         else:
             self.strategy = self._strategy_flag
 
+    def _autocast_device_type(self) -> str:
+        """The device type for ``torch.autocast``, taken from the devices the accelerator runs on."""
+        if self._parallel_devices and isinstance(self._parallel_devices[0], torch.device):
+            return self._parallel_devices[0].type
+        return self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+
     def _check_and_init_precision(self) -> Precision:
         if isinstance(self._precision_instance, Precision):
             if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(
@@ -479,7 +485,7 @@ class _Connector:
         if self._precision_input == "transformer-engine-float16":
             return TransformerEnginePrecision(weights_dtype=torch.float16)
 
-        if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
+        if self._precision_input == "16-mixed" and self._autocast_device_type() == "cpu":
             rank_zero_warn(
                 "You passed `Fabric(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
                 "CPU. Using `precision='bf16-mixed'` instead."
@@ -492,7 +498,7 @@ class _Connector:
                 if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+            device = self._autocast_device_type()
             return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
