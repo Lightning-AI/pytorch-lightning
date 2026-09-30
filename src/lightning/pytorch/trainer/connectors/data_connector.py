@@ -244,17 +244,46 @@ def _get_distributed_sampler(
     return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
 
+def _is_simple_sampler_replaceable(sampler: Sampler) -> bool:
+    """Check if a sampler can be safely replaced with SequentialSampler for overfit batches."""
+    simple_sampler_types = (
+        RandomSampler,
+        SequentialSampler,
+        DistributedSampler,
+        DistributedSamplerWrapper,
+        UnrepeatedDistributedSamplerWrapper,
+    )
+    return isinstance(sampler, simple_sampler_types)
+
+
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
     """Resolve overfit batches by disabling shuffling.
 
     When overfit_batches > 0, this function ensures that sequential sampling is used without shuffling for consistent
     batches across epochs. Training and validation use different sets of data.
 
+    For simple samplers (RandomSampler, SequentialSampler, etc.), they are replaced with SequentialSampler. For custom
+    samplers that may use complex indexing, they are preserved but a warning is issued.
+
     """
     all_have_sequential_sampler = all(
         isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
     )
     if all_have_sequential_sampler:
+        return
+
+    # Check if any dataloaders have custom samplers that shouldn't be replaced
+    has_custom_samplers = any(
+        hasattr(dl, "sampler") and not _is_simple_sampler_replaceable(dl.sampler) for dl in combined_loader.flattened
+    )
+
+    if has_custom_samplers:
+        rank_zero_warn(
+            f"You requested to overfit but some {mode.dataloader_prefix} dataloaders use custom samplers. "
+            f"Custom samplers are preserved, but please ensure they provide deterministic, non-shuffled output "
+            f"for consistent overfitting behavior.",
+            category=PossibleUserWarning,
+        )
         return
 
     rank_zero_warn(
