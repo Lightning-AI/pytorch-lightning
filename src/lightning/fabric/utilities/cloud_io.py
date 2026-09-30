@@ -64,7 +64,7 @@ def _cache_enabled() -> bool:
         # Without an advisory lock every rank downloads the same object and they race on
         # `os.replace`, which fails on Windows while a peer still has the target open.
         return False
-    return os.environ.get(_CACHE_ENABLED_ENV, "1").strip().lower() not in ("0", "false", "off", "no")
+    return os.environ.get(_CACHE_ENABLED_ENV, "1") != "0"
 
 
 @contextlib.contextmanager
