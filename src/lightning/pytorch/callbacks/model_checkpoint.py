@@ -867,7 +867,10 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
-        last_pattern = rf"^{self.CHECKPOINT_NAME_LAST}(-(\d+))?"
+        # `CHECKPOINT_NAME_LAST` can be a template like "{epoch}-last": match any value for its format fields
+        name_parts = re.split(r"(\{[^{}]*\})", self.CHECKPOINT_NAME_LAST)
+        name_pattern = "".join(".*" if i % 2 else re.escape(part) for i, part in enumerate(name_parts))
+        last_pattern = rf"^{name_pattern}(-(\d+))?"
 
         def _is_last(path: Path) -> bool:
             return path.suffix == self.FILE_EXTENSION and bool(re.match(last_pattern, path.stem))
