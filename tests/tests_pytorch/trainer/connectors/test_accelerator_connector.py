@@ -34,7 +34,14 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.accelerators import (
+    Accelerator,
+    AcceleratorRegistry,
+    CPUAccelerator,
+    CUDAAccelerator,
+    MPSAccelerator,
+    XLAAccelerator,
+)
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
@@ -992,3 +999,32 @@ def test_mps_amp_device_selection(accelerator, precision):
     connector = _AcceleratorConnector(accelerator=accelerator, precision=precision)
     assert isinstance(connector.precision_plugin, MixedPrecision)
     assert connector.precision_plugin.device == accelerator
+
+
+class _RegisteredCPUAccelerator(CPUAccelerator):
+    """Stand-in for a third-party accelerator registered by name (e.g. 'xpu', 'npu')."""
+
+
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize("accelerator", [CPUAccelerator(), "registered_cpu"])
+def test_amp_device_selection_from_accelerator(accelerator, precision, monkeypatch):
+    """Test that AMP autocasts on the accelerator's device type, not 'cuda', for accelerator instances and accelerators
+    registered by name."""
+    monkeypatch.setitem(
+        AcceleratorRegistry,
+        "registered_cpu",
+        {"accelerator": _RegisteredCPUAccelerator, "accelerator_name": "registered_cpu", "init_params": {}},
+    )
+    warns = precision == "16-mixed"
+    with pytest.warns(UserWarning, match="AMP with fp16 is not supported on CPU") if warns else nullcontext():
+        connector = _AcceleratorConnector(accelerator=accelerator, devices=1, precision=precision)
+    assert isinstance(connector.precision_plugin, MixedPrecision)
+    assert connector.precision_plugin.device == "cpu"
+    assert connector.precision_plugin.precision == "bf16-mixed"
+
+
+@pytest.mark.parametrize("accelerator", ["cuda", CUDAAccelerator()])
+def test_amp_device_selection_cuda(accelerator, cuda_count_2, mps_count_0):
+    connector = _AcceleratorConnector(accelerator=accelerator, devices=1, precision="bf16-mixed")
+    assert isinstance(connector.precision_plugin, MixedPrecision)
+    assert connector.precision_plugin.device == "cuda"
