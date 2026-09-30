@@ -2009,6 +2009,9 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
         ("other", ".pt", {"last", "last.pt", "other.pt"}, {"other.pt"}),
         ("last", ".ckpt", {"log.txt", "last-v0.ckpt", "last-v1.ckpt"}, {"last-v0.ckpt", "last-v1.ckpt"}),
         ("other", ".pt", {"log.txt", "last-v0.ckpt", "other-v0.pt", "other-v1.pt"}, {"other-v0.pt", "other-v1.pt"}),
+        ("{epoch}-last", ".ckpt", {"epoch=1-step=4.ckpt", "epoch=1-last.ckpt"}, {"epoch=1-last.ckpt"}),
+        ("{epoch}-{step}-last", ".ckpt", {"epoch=1-step=4.ckpt", "1-4-last-v1.ckpt"}, {"1-4-last-v1.ckpt"}),
+        ("last.best", ".ckpt", {"last.best.ckpt", "last-best.ckpt"}, {"last.best.ckpt"}),
     ],
 )
 def test_find_last_checkpoints(name, extension, folder_contents, expected, tmp_path):
