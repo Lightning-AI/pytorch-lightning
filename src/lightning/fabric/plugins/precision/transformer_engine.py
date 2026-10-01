@@ -46,7 +46,7 @@ class TransformerEnginePrecision(Precision):
     Args:
         weights_dtype: The weights dtype to use.
         recipe: Recipe for the DelayedScaling
-            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
+            `configuration <https://nvidia.github.io/TransformerEngine/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
             In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
@@ -178,5 +178,5 @@ def _convert_layers(module: torch.nn.Module) -> None:
             module.__setattr__(name, replacement)
         else:
             # there are other transformer engine layers that we could convert but require fusion. full list at:
-            # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
+            # https://nvidia.github.io/TransformerEngine/api/pytorch.html
             _convert_layers(child)

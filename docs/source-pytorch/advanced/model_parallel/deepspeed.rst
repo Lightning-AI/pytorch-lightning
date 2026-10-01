@@ -8,7 +8,7 @@ DeepSpeed
 
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
 Using the DeepSpeed strategy, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the `DeepSpeed docs <https://www.deepspeed.ai/tutorials/megatron/>`__.
-DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
+DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://github.com/deepspeedai/DeepSpeed/blob/v0.17.2/docs/_tutorials/onebit-adam.md>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
 
 .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
