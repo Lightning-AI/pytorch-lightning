@@ -37,6 +37,12 @@ class Precision(FabricPrecision, CheckpointHooks):
 
     """
 
+    _optimizer_step_was_skipped: bool = False
+
+    @property
+    def optimizer_step_was_skipped(self) -> bool:
+        return self._optimizer_step_was_skipped
+
     def connect(
         self, model: Module, optimizers: list[Optimizer], lr_schedulers: list[Any]
     ) -> tuple[Module, list[Optimizer], list[Any]]:

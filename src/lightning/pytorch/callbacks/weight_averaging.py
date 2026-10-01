@@ -177,7 +177,11 @@ class WeightAveraging(Callback):
         # trainer.global_step is the number of optimizer steps taken so far, i.e. 1 after the first optimizer step. To
         # make step_idx consistent with epoch_idx, we'll pass a zero-based index.
         step_idx = trainer.global_step - 1
-        if (trainer.global_step > self._latest_update_step) and self.should_update(step_idx=step_idx):
+        if (
+            not trainer.precision_plugin.optimizer_step_was_skipped
+            and trainer.global_step > self._latest_update_step
+            and self.should_update(step_idx=step_idx)
+        ):
             assert self._average_model is not None
             self._average_model.update_parameters(pl_module)
             self._latest_update_step = trainer.global_step

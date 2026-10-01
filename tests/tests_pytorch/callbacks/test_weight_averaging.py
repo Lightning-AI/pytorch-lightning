@@ -449,3 +449,49 @@ def test_ema_weight_averaging_decay_values(tmp_path, decay):
     _train(model, dataset, tmp_path, callback)
 
     assert callback._average_model is not None
+
+
+@RunIf(min_cuda_gpus=1)
+def test_ema_does_not_update_on_grad_scaler_skip(tmp_path):
+    class NonFiniteFirstStepModel(TestModel):
+        def on_before_optimizer_step(self, optimizer) -> None:
+            if self.global_step == 0:
+                next(self.parameters()).grad.fill_(float("inf"))
+
+    class RecordingEMA(EMAWeightAveraging):
+        def __init__(self) -> None:
+            super().__init__(decay=0.5)
+            self.model_params = []
+            self.ema_params = []
+            self.n_averaged = []
+            self.latest_update_step = []
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
+            self.model_params.append([p.detach().clone() for p in pl_module.parameters()])
+            self.ema_params.append([p.detach().clone() for p in self._average_model.parameters()])
+            self.n_averaged.append(self._average_model.n_averaged.item())
+            self.latest_update_step.append(self._latest_update_step)
+
+    model = NonFiniteFirstStepModel()
+    callback = RecordingEMA()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=1,
+        precision="16-mixed",
+        max_steps=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    initial_params = [p.detach().clone() for p in model.parameters()]
+    trainer.fit(model, callbacks=callback)
+
+    assert all(torch.equal(actual, initial) for actual, initial in zip(callback.model_params[0], initial_params))
+    assert all(torch.equal(actual, initial) for actual, initial in zip(callback.ema_params[0], initial_params))
+    assert callback.n_averaged == [0, 1]
+    assert callback.latest_update_step == [0, 2]
+    assert any(not torch.equal(actual, initial) for actual, initial in zip(callback.model_params[1], initial_params))
+    assert any(not torch.equal(actual, initial) for actual, initial in zip(callback.ema_params[1], initial_params))
