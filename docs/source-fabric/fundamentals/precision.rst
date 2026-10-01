@@ -139,7 +139,7 @@ memory utilization in both training and inference. It offers improved performanc
 
 Using TE requires replacing some of the layers in your model. Fabric automatically replaces the :class:`torch.nn.Linear`
 and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives, however, TE also offers
-`fused layers <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html>`__
+`fused layers <https://nvidia.github.io/TransformerEngine/api/pytorch.html>`__
 to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
 replacement is not done.
 
@@ -162,7 +162,7 @@ the model and inputs can be kept in true full or half precision.
     fabric = Fabric(plugins=precision)
 
 
-Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.fp8_autocast>`__ with the default fp8 recipe.
+Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://nvidia.github.io/TransformerEngine/api/pytorch.html#transformer_engine.pytorch.fp8_autocast>`__ with the default fp8 recipe.
 
 .. note::
 
