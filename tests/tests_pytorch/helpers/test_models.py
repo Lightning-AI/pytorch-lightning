@@ -35,8 +35,9 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
         pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True, onnx=True)),
     ],
 )
-def test_models(tmp_path, data_class, model_class):
+def test_models(tmp_path, monkeypatch, mock_mnist_download, data_class, model_class):
     """Test simple models."""
+    monkeypatch.setattr("tests_pytorch.helpers.advanced_models._PATH_DATASETS", tmp_path)
     dm = data_class() if data_class else data_class
     model = model_class()
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
