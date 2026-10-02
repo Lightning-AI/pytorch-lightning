@@ -199,6 +199,12 @@ class TQDMProgressBar(ProgressBar):
         """Override this to customize the tqdm bar for training."""
         return Tqdm(
             desc=self.train_description,
+            initial=(
+                self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
+                if self.trainer.fit_loop.restarted_mid_epoch
+                and not self.trainer.fit_loop.epoch_loop.batch_progress.is_last_batch
+                else 0
+            ),
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
