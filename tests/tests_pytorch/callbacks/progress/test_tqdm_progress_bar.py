@@ -856,3 +856,58 @@ def test_tqdm_progress_bar_reset_behavior(tmp_path):
     assert 2 in val_bar.total_values, (
         f"validation total should be set to 2 after reset(), got total_values: {val_bar.total_values}"
     )
+
+
+@pytest.mark.parametrize("leave", [False, True])
+@pytest.mark.parametrize("checkpoint_step", [5, 10])
+def test_tqdm_progress_bar_resume_mid_epoch(tmp_path, leave, checkpoint_step):
+    """Resumed batches should not count toward the progress bar's elapsed-time estimate."""
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=checkpoint_step, save_top_k=-1)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=checkpoint_step,
+        limit_train_batches=10,
+        limit_val_batches=0,
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        callbacks=checkpoint,
+    )
+    trainer.fit(BoringModel())
+
+    initial = checkpoint_step if checkpoint_step < 10 else 0
+    resumed_epoch = checkpoint_step // 10
+    seen_batches = []
+
+    class ResumedProgressBar(TQDMProgressBar):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            seen_batches.append((trainer.current_epoch, batch_idx))
+            if trainer.current_epoch == resumed_epoch and batch_idx == initial:
+                assert self.train_progress_bar.n == initial
+                assert self.train_progress_bar.initial == initial
+            elif trainer.current_epoch == 1 and batch_idx == 0:
+                assert self.train_progress_bar.n == 0
+                assert self.train_progress_bar.initial == 0
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
+            if trainer.current_epoch == resumed_epoch and batch_idx == initial:
+                with (
+                    patch.object(self.train_progress_bar, "_time", return_value=2.0),
+                    patch.object(self.train_progress_bar, "start_t", 0),
+                ):
+                    text = str(self.train_progress_bar)
+                assert "0.50it/s" in text
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=0,
+        logger=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        callbacks=ResumedProgressBar(leave=leave),
+    )
+    trainer.fit(BoringModel(), ckpt_path=checkpoint.best_model_path)
+    assert seen_batches == [(0, i) for i in range(checkpoint_step, 10)] + [(1, i) for i in range(10)]
