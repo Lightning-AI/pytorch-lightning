@@ -17,32 +17,39 @@ import cloudpickle
 import pytest
 import torch
 
-from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
 
 
-def test_mnist(tmp_path):
-    dataset = MNIST(tmp_path, download=True)
-    assert len(dataset) == 60000
-    assert torch.bincount(dataset.targets).tolist() == [5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949]
+@pytest.mark.parametrize("train", [False, True])
+def test_mnist(tmp_path, mock_mnist_download, train):
+    dataset = MNIST(tmp_path, train=train, download=True)
+    images, targets = mock_mnist_download[dataset.TRAIN_FILE_NAME if train else dataset.TEST_FILE_NAME]
+    assert len(dataset) == len(images)
+    torch.testing.assert_close(dataset.data, images)
+    torch.testing.assert_close(dataset.targets, targets)
+    image, target = dataset[0]
+    torch.testing.assert_close(image, (images[0].float().unsqueeze(0) - 0.1307) / 0.3081)
+    assert target == targets[0].item()
 
 
-def test_trial_mnist(tmp_path):
-    dataset = TrialMNIST(tmp_path, download=True)
-    assert len(dataset) == 300
+@pytest.mark.parametrize(("train", "num_samples"), [(True, 100), (False, 10)])
+def test_trial_mnist(tmp_path, mock_mnist_download, train, num_samples):
+    dataset = TrialMNIST(tmp_path, train=train, num_samples=num_samples, download=True)
+    assert len(dataset) == 3 * num_samples
     assert set(dataset.targets.tolist()) == {0, 1, 2}
-    assert torch.bincount(dataset.targets).tolist() == [100, 100, 100]
+    assert torch.bincount(dataset.targets).tolist() == [num_samples] * 3
+    images, targets = mock_mnist_download[dataset.TRAIN_FILE_NAME if train else dataset.TEST_FILE_NAME]
+    indices = torch.cat([(targets == digit).nonzero().flatten()[:num_samples] for digit in (0, 1, 2)]).sort().values
+    torch.testing.assert_close(dataset.data, images[indices])
+    torch.testing.assert_close(dataset.targets, targets[indices])
 
 
-@pytest.mark.parametrize(
-    ("dataset_cls", "args"),
-    [(MNIST, {"root": _PATH_DATASETS}), (TrialMNIST, {"root": _PATH_DATASETS}), (AverageDataset, {})],
-)
-def test_pickling_dataset_mnist(dataset_cls, args):
+@pytest.mark.parametrize("dataset_cls", [MNIST, TrialMNIST, AverageDataset])
+@pytest.mark.parametrize("pickle_module", [pickle, cloudpickle])
+def test_pickling_dataset_mnist(tmp_path, mock_mnist_download, dataset_cls, pickle_module):
+    args = {"root": tmp_path} if issubclass(dataset_cls, MNIST) else {}
     mnist = dataset_cls(**args)
 
-    mnist_pickled = pickle.dumps(mnist)
-    pickle.loads(mnist_pickled)
-
-    mnist_pickled = cloudpickle.dumps(mnist)
-    cloudpickle.loads(mnist_pickled)
+    restored = pickle_module.loads(pickle_module.dumps(mnist))
+    assert len(restored) == len(mnist)
+    torch.testing.assert_close(restored[0], mnist[0])
