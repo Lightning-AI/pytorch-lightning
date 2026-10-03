@@ -619,6 +619,62 @@ def test_result_collection_batch_size_extraction():
     assert results["training_step.train_log"].cumulated_batch_size == 1
 
 
+@pytest.mark.parametrize("dataloader_indices", [(None, 0, None, 0), (0, None, 0, None)])
+@pytest.mark.parametrize("as_metric", [False, True])
+@pytest.mark.parametrize("log_kwargs", [{}, {"on_step": True, "on_epoch": False}, {"logger": False, "prog_bar": True}])
+def test_result_collection_single_dataloader_index_changes(dataloader_indices, as_metric, log_kwargs):
+    results = _ResultCollection(training=False)
+    metric = MeanSquaredError()
+
+    for i, dataloader_idx in enumerate(dataloader_indices):
+        results.dataloader_idx = dataloader_idx
+        value = torch.tensor(float(i + 1))
+        if as_metric:
+            metric(value, torch.tensor(0.0))
+            value = metric
+        results.log("validation_step", "loss", value, add_dataloader_idx=False, **log_kwargs)
+
+        expected = {"loss": (i + 1) ** (2 if as_metric else 1)}
+        metrics = results.metrics(on_step=log_kwargs.get("on_step", False))
+        assert metrics["log"] == (expected if log_kwargs.get("logger", True) else {})
+        assert metrics["pbar"] == (expected if log_kwargs.get("prog_bar", False) else {})
+        assert metrics["callback"] == (expected if log_kwargs.get("on_epoch", True) else {})
+        assert results["validation_step.loss"].meta.dataloader_idx == dataloader_idx
+        assert len(results) == 1
+        results.reset()
+
+
+@pytest.mark.parametrize("dataloader_indices", [(None, 0), (0, None), (0, 1), (1, 0)])
+@pytest.mark.parametrize("reset", [False, True])
+def test_result_collection_dataloader_index_mismatch(dataloader_indices, reset):
+    results = _ResultCollection(training=False)
+    results.dataloader_idx = dataloader_indices[0]
+    results.log("validation_step", "loss", torch.tensor(1.0), add_dataloader_idx=False)
+    if reset:
+        # A hook-specific reset can also happen within the same evaluation run.
+        results.reset(metrics=False, fx="validation_step")
+    results.dataloader_idx = dataloader_indices[1]
+
+    if reset and None in dataloader_indices:
+        results.log("validation_step", "loss", torch.tensor(2.0), add_dataloader_idx=False)
+    else:
+        with pytest.raises(MisconfigurationException, match="twice in `validation_step` with different arguments"):
+            results.log("validation_step", "loss", torch.tensor(2.0), add_dataloader_idx=False)
+
+
+@pytest.mark.parametrize("dataloader_indices", [(None, 0), (0, None)])
+@pytest.mark.parametrize("kwargs", [{"prog_bar": True}, {"on_step": True}, {"reduce_fx": "sum"}])
+def test_result_collection_changed_logging_arguments_after_reset(dataloader_indices, kwargs):
+    results = _ResultCollection(training=False)
+    results.dataloader_idx = dataloader_indices[0]
+    results.log("validation_step", "loss", torch.tensor(1.0), add_dataloader_idx=False)
+    results.reset()
+    results.dataloader_idx = dataloader_indices[1]
+
+    with pytest.raises(MisconfigurationException, match="twice in `validation_step` with different arguments"):
+        results.log("validation_step", "loss", torch.tensor(2.0), add_dataloader_idx=False, **kwargs)
+
+
 def test_result_collection_no_batch_size_extraction():
     results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
