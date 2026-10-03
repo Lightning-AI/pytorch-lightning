@@ -384,6 +384,7 @@ class _LRCallback(Callback):
         self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
+        self._num_steps = 0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
@@ -421,7 +422,9 @@ class _LRCallback(Callback):
         loss_tensor = outputs if isinstance(outputs, torch.Tensor) else outputs["loss"]
         assert loss_tensor is not None
         current_loss = loss_tensor.item()
-        current_step = trainer.global_step
+        # The loss history starts fresh for each search, including searches run mid-training.
+        self._num_steps += 1
+        current_step = self._num_steps
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
