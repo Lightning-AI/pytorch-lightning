@@ -551,7 +551,14 @@ class _EvaluationLoop(_Loop):
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
+        max_metric_length = max(map(len, metrics_strs))
+        max_metric_width = max_metric_length
+        if _RICH_AVAILABLE:
+            from rich.cells import cell_len
+
+            # Preserve existing combining-character layouts on older Rich versions.
+            max_metric_width = max(max_metric_length, max(map(cell_len, metrics_strs)))
+        max_length = int(min(max(max_metric_width, len(max(headers, key=len)), 25), term_size / 2))
 
         rows: list[list[Any]] = [[] for _ in metrics_paths]
 
@@ -566,7 +573,11 @@ class _EvaluationLoop(_Loop):
                     row.append(" ")
 
         # keep one column with max length for metrics
-        num_cols = int((term_size - max_length) / max_length)
+        if max_metric_width > max_metric_length:
+            # Include Rich's padding and borders when wide characters expand the columns.
+            num_cols = max(1, (term_size - max_length - 4) // (max_length + 3))
+        else:
+            num_cols = int((term_size - max_length) / max_length)
 
         for i in range(0, len(headers), num_cols):
             table_headers = headers[i : (i + num_cols)]
