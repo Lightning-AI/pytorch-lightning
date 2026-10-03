@@ -928,6 +928,61 @@ def test_rich_print_results(inputs, expected):
     assert capture.get() == expected.lstrip()
 
 
+@pytest.mark.parametrize(
+    "metric",
+    ["车道线-虚减速让行线_清晰_树荫遮挡_acc", "カテゴリ別平均適合率と平均再現率", "カテゴリ別平均適合率と再現率"],
+)
+@pytest.mark.parametrize("num_dataloaders", [1, 4])
+@pytest.mark.parametrize("width", [80, 120])
+@RunIf(rich=True)
+def test_rich_print_results_wide_metric_names(monkeypatch, metric, num_dataloaders, width):
+    from rich.console import Console
+
+    console = Console(file=StringIO(), width=width, color_system=None, legacy_windows=False)
+    monkeypatch.setattr("rich.get_console", lambda: console)
+    monkeypatch.setattr("shutil.get_terminal_size", lambda **kwargs: os.terminal_size((width, 30)))
+    results = [{metric: float(i)} for i in range(num_dataloaders)]
+    with console.capture() as capture:
+        _EvaluationLoop._print_results(results, "test")
+    output = capture.get()
+    assert "…" not in output
+    tables = output.split("┏")[1:]
+    assert tables
+    for table in tables:
+        # These names fit in the available space when measured in terminal cells.
+        assert metric in table
+
+
+@RunIf(rich=True)
+def test_rich_print_results_wide_metric_name_narrow_terminal(monkeypatch):
+    from rich.console import Console
+
+    metric = "车道线-虚减速让行线_清晰_树荫遮挡_acc"
+    console = Console(file=StringIO(), width=30, color_system=None, legacy_windows=False)
+    monkeypatch.setattr("rich.get_console", lambda: console)
+    monkeypatch.setattr("shutil.get_terminal_size", lambda **kwargs: os.terminal_size((30, 30)))
+    with console.capture() as capture:
+        _EvaluationLoop._print_results([{metric: 1.0}], "test")
+    # Preserve explicit truncation when the full metric name does not fit.
+    assert "…" in capture.get()
+
+
+@RunIf(rich=True)
+def test_rich_print_results_combining_metric_name(monkeypatch):
+    from rich.console import Console
+
+    metric = "cafe\u0301_" * 8
+    console = Console(file=StringIO(), width=120, color_system=None, legacy_windows=False)
+    monkeypatch.setattr("rich.get_console", lambda: console)
+    monkeypatch.setattr("shutil.get_terminal_size", lambda **kwargs: os.terminal_size((120, 30)))
+    with console.capture() as capture:
+        _EvaluationLoop._print_results([{metric: float(i)} for i in range(4)], "test")
+    tables = capture.get().split("┏")[1:]
+    assert tables
+    for table in tables:
+        assert metric in table
+
+
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 @pytest.mark.parametrize("num_dataloaders", [1, 2])
 def test_eval_step_logging(mock_log_metrics, tmp_path, num_dataloaders):
