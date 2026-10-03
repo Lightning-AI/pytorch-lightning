@@ -28,7 +28,7 @@ from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.tuner.lr_finder import _LRFinder
+from lightning.pytorch.tuner.lr_finder import _LRCallback, _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -901,3 +901,97 @@ def test_lr_finder_respects_weights_only(tmp_path):
 
     assert lr_finder is not None
     assert hasattr(lr_finder, "results")
+
+
+@pytest.mark.parametrize("start_step", [0, 10, 100])
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize("early_stop_threshold", [None, 4.0])
+def test_lr_callback_loss_is_relative_to_search(start_step, accumulate_grad_batches, early_stop_threshold):
+    callback = _LRCallback(num_training=4, early_stop_threshold=early_stop_threshold)
+    trainer = mock.Mock(accumulate_grad_batches=accumulate_grad_batches, should_stop=False)
+    trainer.strategy.broadcast.side_effect = lambda value: value
+    expected_losses = []
+    average_loss = 0.0
+
+    for index, loss in enumerate([1.0, 1.0, 1.0, 100.0]):
+        trainer.global_step = start_step + index + 1
+        trainer.fit_loop.batch_idx = (index + 1) * accumulate_grad_batches - 1
+        callback.on_train_batch_end(trainer, None, {"loss": torch.tensor(loss)}, None, trainer.fit_loop.batch_idx)
+        average_loss = callback.beta * average_loss + (1 - callback.beta) * loss
+        expected_losses.append(average_loss / (1 - callback.beta ** (index + 2)))
+        assert callback.losses == pytest.approx(expected_losses)
+        assert callback.best_loss == pytest.approx(expected_losses[0])
+        assert trainer.should_stop is (early_stop_threshold is not None and index == 3)
+
+
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize("mode", ["linear", "exponential"])
+def test_lr_finder_after_training_steps(tmp_path, accumulate_grad_batches, mode):
+    class StableLossModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            return 1 + 1e-4 * self.layer.weight.sum()
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
+
+    class MilestoneLearningRateFinder(LearningRateFinder):
+        def on_fit_start(self, trainer, pl_module):
+            pass
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch != 1:
+                return
+            initial_step = trainer.global_step
+            initial_epoch = trainer.current_epoch
+            initial_state = deepcopy(pl_module.state_dict())
+            initial_optimizer_state = deepcopy(trainer.optimizers[0].state_dict())
+            initial_callbacks = trainer.callbacks
+            self.lr_find(trainer, pl_module)
+            assert len(self.optimal_lr.results["lr"]) == 6
+            assert len(self.optimal_lr.results["loss"]) == 6
+            assert trainer.global_step == initial_step
+            assert trainer.current_epoch == initial_epoch
+            assert trainer.max_steps == -1
+            assert trainer.limit_val_batches == 0
+            assert trainer.callbacks is initial_callbacks
+            assert not trainer.should_stop
+            torch.testing.assert_close(pl_module.state_dict(), initial_state)
+            torch.testing.assert_close(trainer.optimizers[0].state_dict(), initial_optimizer_state)
+            starting_steps.append(initial_step)
+
+    starting_steps = []
+    callback = MilestoneLearningRateFinder(num_training_steps=6, min_lr=1e-4, max_lr=1e-2, mode=mode, update_attr=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=5,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        num_sanity_val_steps=0,
+        accumulate_grad_batches=accumulate_grad_batches,
+        callbacks=[callback],
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(StableLossModel())
+    assert starting_steps == [4 // accumulate_grad_batches]
+    assert trainer.global_step == 20 // accumulate_grad_batches
+
+
+@pytest.mark.parametrize("start_step", [0, 10])
+def test_lr_callback_skipped_loss_does_not_advance_search(start_step):
+    callback = _LRCallback(num_training=3)
+    trainer = mock.Mock(accumulate_grad_batches=1, should_stop=False, global_step=start_step + 1)
+    trainer.strategy.broadcast.side_effect = lambda value: value
+    trainer.fit_loop.batch_idx = 0
+    callback.on_train_batch_end(trainer, None, {}, None, 0)
+    assert math.isnan(callback.losses[0])
+    assert not trainer.should_stop
+
+    trainer.global_step += 1
+    trainer.fit_loop.batch_idx = 1
+    callback.on_train_batch_end(trainer, None, {"loss": torch.tensor(1.0)}, None, 1)
+    assert callback.losses[1] == pytest.approx(1 / (1 + callback.beta))
+    assert callback.best_loss == callback.losses[1]
+    assert not trainer.should_stop
