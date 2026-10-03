@@ -296,6 +296,29 @@ class ModelHooks:
 
         """
 
+    def on_before_optimizer_setup(self) -> None:
+        """Called after :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` but before
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_optimizers`.
+
+        This hook provides a safe point to modify, freeze, or inspect model parameters before optimizers are created.
+        It’s particularly useful for callbacks such as
+        :class:`~lightning.pytorch.callbacks.finetuning.BaseFinetuning`, where parameters must be frozen
+        prior to optimizer setup.
+
+        This hook runs once in fit stage, after the model
+        has been fully instantiated by ``configure_model``, but before optimizers are created by
+        ``configure_optimizers``.
+
+        Example::
+
+            class MyFinetuneCallback(Callback):
+                def on_before_optimizer_setup(self, trainer, pl_module):
+                    # freeze the backbone before optimizers are created
+                    for param in pl_module.backbone.parameters():
+                        param.requires_grad = False
+
+        """
+
     def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
         """Called before ``optimizer.step()``.
 

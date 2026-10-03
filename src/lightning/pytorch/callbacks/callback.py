@@ -277,6 +277,14 @@ class Callback:
     def on_after_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called after ``loss.backward()`` and before optimizers are stepped."""
 
+    def on_before_optimizer_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Called after :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` but before
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_optimizers`.
+
+        Useful when you need to make changes to the model before the optimizers are set up (e.g. freezing layers).
+
+        """
+
     def on_before_optimizer_step(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer
     ) -> None:

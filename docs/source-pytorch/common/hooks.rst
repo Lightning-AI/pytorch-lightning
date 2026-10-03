@@ -88,13 +88,19 @@ with the source of each hook indicated:
     │   ├── [LightningModule]
     │   ├── [LightningModule.configure_shared_model()]
     │   ├── [LightningModule.configure_model()]
+    |   |
+    │   ├── on_before_optimizer_setup()
+    │   │   ├── [Callbacks]
+    │   │   └── [LightningModule]
+    │   |
     │   ├── Strategy.restore_checkpoint_before_setup
     │   │   ├── [LightningModule.on_load_checkpoint()]
     │   │   ├── [LightningModule.load_state_dict()]
     │   │   ├── [LightningDataModule.load_state_dict()]
     │   │   ├── [Callbacks.on_load_checkpoint()]
     │   │   └── [Callbacks.load_state_dict()]
-    │   └── [Strategy]
+    |   |
+    │   └── [Strategy] (configures optimizers, lr schedulers, precision, etc.)
     │
     ├── on_fit_start()
     │   ├── [Callbacks]
