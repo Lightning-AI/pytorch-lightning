@@ -708,6 +708,104 @@ def test_logging_results_with_no_dataloader_idx(tmp_path):
     }
 
 
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+@pytest.mark.parametrize("num_sanity_val_steps", [0, 2])
+def test_logging_with_reloaded_dataloader_count(tmp_path, monkeypatch, add_dataloader_idx, num_sanity_val_steps):
+    outputs = []
+    on_run_end = _EvaluationLoop.on_run_end
+
+    def capture_outputs(loop):
+        result = on_run_end(loop)
+        if not loop.trainer.sanity_checking:
+            outputs.append(result)
+        return result
+
+    monkeypatch.setattr(_EvaluationLoop, "on_run_end", capture_outputs)
+
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            value = batch.mean() + self.current_epoch * 10
+            self.log(f"loss_{dataloader_idx}", value, add_dataloader_idx=add_dataloader_idx)
+            self.log(
+                f"both_{dataloader_idx}", value, on_step=True, on_epoch=True, add_dataloader_idx=add_dataloader_idx
+            )
+
+        def val_dataloader(self):
+            return [
+                torch.utils.data.DataLoader(torch.tensor([[1.0], [3.0]]) + idx * 100)
+                for idx in range(1 + self.current_epoch % 2)
+            ]
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=4,
+        reload_dataloaders_every_n_epochs=1,
+        limit_train_batches=1,
+        num_sanity_val_steps=num_sanity_val_steps,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(TestModel())
+
+    assert len(outputs) == 4
+    for epoch, output in enumerate(outputs):
+        count = 1 + epoch % 2
+        expected = []
+        for idx in range(count):
+            suffix = f"/dataloader_idx_{idx}" if add_dataloader_idx and count > 1 else ""
+            value = 2.0 + epoch * 10 + idx * 100
+            expected.append({f"loss_{idx}{suffix}": value, f"both_{idx}_epoch{suffix}": value})
+        assert output == expected
+
+
+@pytest.mark.parametrize("stage", ["validate", "test"])
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+def test_logging_with_changed_dataloader_count_between_runs(tmp_path, stage, add_dataloader_idx):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            self.log(f"loss_{dataloader_idx}", batch.mean(), add_dataloader_idx=add_dataloader_idx)
+
+        test_step = validation_step
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    model = TestModel()
+    for run, count in enumerate((1, 2, 1, 2)):
+        dataloaders = [
+            torch.utils.data.DataLoader(torch.tensor([[1.0], [3.0]]) + run * 10 + idx * 100) for idx in range(count)
+        ]
+        output = getattr(trainer, stage)(model, dataloaders, verbose=False)
+        expected = []
+        for idx in range(count):
+            suffix = f"/dataloader_idx_{idx}" if add_dataloader_idx and count > 1 else ""
+            expected.append({f"loss_{idx}{suffix}": 2.0 + run * 10 + idx * 100})
+        assert output == expected
+
+
+@pytest.mark.parametrize("log_in_batch_end", [False, True])
+def test_logging_same_unsuffixed_name_from_different_dataloaders(tmp_path, log_in_batch_end):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            self.log("loss", batch.mean(), add_dataloader_idx=False)
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            if log_in_batch_end:
+                # Alternating hooks triggers a tensor reset on the next loader's first batch.
+                self.log("batch_end", batch.mean())
+
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, enable_progress_bar=False)
+    dataloaders = [torch.utils.data.DataLoader(torch.ones(2, 1) * value) for value in (1, 100)]
+    with pytest.raises(MisconfigurationException, match="twice in `validation_step` with different arguments"):
+        trainer.validate(TestModel(), dataloaders)
+
+
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmp_path):
     class CustomBoringModel(BoringModel):
