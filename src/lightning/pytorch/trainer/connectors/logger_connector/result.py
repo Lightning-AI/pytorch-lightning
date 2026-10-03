@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial, wraps
 from typing import Any, Callable, Optional, Union, cast
 
@@ -406,9 +406,21 @@ class _ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
-            raise MisconfigurationException(
-                f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
-            )
+            previous = self[key]
+            # In sequential evaluation, the first dataloader has index None when alone and 0 otherwise.
+            # Preserve its unsuffixed metric names across reloads, without mixing active or different loaders.
+            if (
+                not self.training
+                and not add_dataloader_idx
+                and previous.has_reset
+                and {previous.meta.dataloader_idx, meta.dataloader_idx} == {None, 0}
+                and replace(previous.meta, dataloader_idx=meta.dataloader_idx) == meta
+            ):
+                previous.meta = meta
+            else:
+                raise MisconfigurationException(
+                    f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
+                )
         self[key].to(value.device)
 
         batch_size = self._extract_batch_size(self[key], batch_size, meta)
