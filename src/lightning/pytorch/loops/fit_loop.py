@@ -394,6 +394,16 @@ class _FitLoop(_Loop):
         assert self.trainer.model is not None
         torch.set_grad_enabled(True)
 
+        # Begin a new epoch for epoch-end checkpoints even when max_steps is set, but keep restarting
+        # through dataloader restoration and sanity-check gating first.
+        epoch_progress = self.epoch_progress.current
+        if (
+            self.restarting
+            and epoch_progress.ready == epoch_progress.started == epoch_progress.processed
+            and self.epoch_loop.batch_progress.is_last_batch
+        ):
+            _Loop.restarting.fset(self, False)
+
         self.update_restart_stage()
 
         if self.restarted_on_epoch_start:
