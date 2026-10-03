@@ -52,7 +52,7 @@ class _CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks: Optional[Union[list[Callback], Callback]],
+        callbacks: Optional[Union[Sequence[Callback], Callback]],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
@@ -65,7 +65,7 @@ class _CallbackConnector:
         # init callbacks
         if isinstance(callbacks, Callback):
             callbacks = [callbacks]
-        self.trainer.callbacks = callbacks or []
+        self.trainer.callbacks = list(callbacks) if callbacks is not None else []
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
