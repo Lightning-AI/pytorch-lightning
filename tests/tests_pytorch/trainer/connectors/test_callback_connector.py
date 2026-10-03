@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
+from collections import UserList
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -33,6 +34,30 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector, _validate_callbacks_list
+
+
+@pytest.mark.parametrize("sequence_type", [list, tuple, UserList])
+@pytest.mark.parametrize("num_callbacks", [0, 2])
+@pytest.mark.parametrize("enable_defaults", [False, True])
+def test_callback_sequences_are_copied(tmp_path, sequence_type, num_callbacks, enable_defaults):
+    callbacks = [Callback() for _ in range(num_callbacks)]
+    supplied_callbacks = sequence_type(callbacks)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=supplied_callbacks,
+        logger=False,
+        enable_checkpointing=enable_defaults,
+        enable_progress_bar=enable_defaults,
+        enable_model_summary=enable_defaults,
+    )
+
+    assert isinstance(trainer.callbacks, list)
+    assert trainer.callbacks is not supplied_callbacks
+    assert trainer.callbacks[:num_callbacks] == callbacks
+    assert list(supplied_callbacks) == callbacks
+    assert bool(trainer.checkpoint_callbacks) is enable_defaults
+    assert bool(trainer.progress_bar_callback) is enable_defaults
+    assert any(isinstance(callback, ModelSummary) for callback in trainer.callbacks) is enable_defaults
 
 
 @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
