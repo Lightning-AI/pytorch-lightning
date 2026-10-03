@@ -23,7 +23,7 @@
 import logging
 import math
 import os
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -98,7 +98,7 @@ class Trainer:
         precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
         log_key_prefix: Optional[str] = None,
-        callbacks: Optional[Union[list[Callback], Callback]] = None,
+        callbacks: Optional[Union[Sequence[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
@@ -165,7 +165,7 @@ class Trainer:
             log_key_prefix: String prefix prepended to Trainer-generated logged metric keys.
                 Default: ``None``.
 
-            callbacks: Add a callback or list of callbacks.
+            callbacks: Add a callback or sequence of callbacks.
                 Default: ``None``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
