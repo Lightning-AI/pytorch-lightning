@@ -1,5 +1,3 @@
-import pytest
-import torch
 from torch.utils.data import DataLoader, Sampler
 
 from lightning.pytorch import Trainer
@@ -38,29 +36,18 @@ class TestModel(BoringModel):
 def test_fit_loop_resume_sampler_epoch(tmp_path):
     """Test that the sampler epoch is restored before the iterator is instantiated on resume."""
     model = TestModel()
-    
+
     # Train for 1 epoch and save checkpoint
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        max_epochs=1,
-        enable_progress_bar=False,
-        logger=False
-    )
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_progress_bar=False, logger=False)
     trainer.fit(model)
-    
+
     ckpt_path = trainer.checkpoint_callback.best_model_path
-    
+
     # Resume training for epoch 2
     model2 = TestModel()
-    trainer2 = Trainer(
-        default_root_dir=tmp_path,
-        max_epochs=2,
-        enable_progress_bar=False,
-        logger=False
-    )
+    trainer2 = Trainer(default_root_dir=tmp_path, max_epochs=2, enable_progress_bar=False, logger=False)
     trainer2.fit(model2, ckpt_path=ckpt_path)
-    
+
     # The dataloader is instantiated and __iter__ is called.
     # The first observed epoch for the resumed run should be 1.
     assert model2.last_sampler.observed_epochs[0] == 1
-
