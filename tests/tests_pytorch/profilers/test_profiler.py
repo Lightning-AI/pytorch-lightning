@@ -404,6 +404,7 @@ def test_advanced_profiler_stop_unstarted_action(advanced_profiler):
     When multiple Trainer instances share the same AdvancedProfiler (e.g. during
     hyperparameter tuning), stop() may be called for actions that were never started
     on some Trainers. This should be handled gracefully.
+
     """
     action = "test"
     # Should NOT raise, just log and return
@@ -421,6 +422,7 @@ def test_advanced_profiler_multiple_trainers_shared(tmp_path):
     When running grid search / hyperparameter tuning with a shared profiler, only some
     Trainers may call .test(), but the profiler should not crash when stop() is called
     for actions that were never started.
+
     """
     profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
 
