@@ -396,14 +396,45 @@ def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
     assert (tmp_path / prof_name).read_bytes()
 
 
-def test_advanced_profiler_value_errors(advanced_profiler):
-    """Ensure errors are raised where expected."""
-    action = "test"
-    with pytest.raises(ValueError, match="Attempting to stop recording*"):
-        advanced_profiler.stop(action)
+def test_advanced_profiler_stop_unstarted_action(advanced_profiler):
+    """Ensure stopping an unstarted action does not raise an error.
 
+    See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
+    When multiple Trainer instances share the same AdvancedProfiler (e.g. during
+    hyperparameter tuning), stop() may be called for actions that were never started
+    on some Trainers. This should be handled gracefully.
+    """
+    action = "test"
+    # Should NOT raise, just log and return
+    advanced_profiler.stop(action)
+
+    # Starting and stopping should still work normally
     advanced_profiler.start(action)
     advanced_profiler.stop(action)
+
+
+def test_advanced_profiler_multiple_trainers_shared(tmp_path):
+    """Ensure AdvancedProfiler works when shared across multiple Trainers.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+    When running grid search / hyperparameter tuning with a shared profiler, only some
+    Trainers may call .test(), but the profiler should not crash when stop() is called
+    for actions that were never started.
+    """
+    profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
+
+    # Simulate first Trainer: starts and stops "run_training_epoch"
+    profiler.start("run_training_epoch")
+    profiler.stop("run_training_epoch")
+
+    # Simulate second Trainer: tries to stop "run_test_evaluation" without starting it
+    # This should NOT raise ValueError
+    profiler.stop("run_test_evaluation")
+
+    # Profiler should still be functional
+    profiler.start("another_action")
+    profiler.stop("another_action")
 
 
 def test_advanced_profiler_deepcopy(advanced_profiler):

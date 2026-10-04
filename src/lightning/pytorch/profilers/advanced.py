@@ -61,9 +61,6 @@ class AdvancedProfiler(Profiler):
 
             dump_stats: Whether to save raw profiler results. When ``True`` then ``dirpath`` must be provided.
 
-        Raises:
-            ValueError:
-                If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
         self.profiled_actions: dict[str, cProfile.Profile] = defaultdict(cProfile.Profile)
@@ -81,7 +78,11 @@ class AdvancedProfiler(Profiler):
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
+            # This can happen when multiple Trainer instances share the same profiler
+            # (e.g. during hyperparameter tuning / grid search), where only some Trainers
+            # execute certain actions like .test(). See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+            log.debug(f"Attempting to stop recording an action ({action_name}) which was never started. Skipping.")
+            return
         pr.disable()
 
     def _dump_stats(self, action_name: str, profile: cProfile.Profile) -> None:
