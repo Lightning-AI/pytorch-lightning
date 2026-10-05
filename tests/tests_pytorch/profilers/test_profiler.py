@@ -415,30 +415,30 @@ def test_advanced_profiler_stop_unstarted_action(advanced_profiler):
     advanced_profiler.stop(action)
 
 
-def test_advanced_profiler_multiple_trainers_shared(tmp_path):
-    """Ensure AdvancedProfiler works when shared across multiple Trainers.
+def test_advanced_profiler_teardown_disables_active_action(advanced_profiler):
+    """Ensure teardown stops recording and an active context exits safely.
 
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
-    When running grid search / hyperparameter tuning with a shared profiler, only some
-    Trainers may call .test(), but the profiler should not crash when stop() is called
-    for actions that were never started.
 
     """
-    profiler = AdvancedProfiler(dirpath=tmp_path, filename="profiler")
+    def tracked() -> None:
+        pass
 
-    # Simulate first Trainer: starts and stops "run_training_epoch"
-    profiler.start("run_training_epoch")
-    profiler.stop("run_training_epoch")
+    with advanced_profiler.profile("active_action"):
+        active_profile = advanced_profiler.profiled_actions["active_action"]
+        advanced_profiler.teardown(stage=None)
 
-    # Simulate second Trainer: tries to stop "run_test_evaluation" without starting it
-    # This should NOT raise ValueError
-    profiler.stop("run_test_evaluation")
+        def tracked_call_count() -> int:
+            return next(
+                (stat.callcount for stat in active_profile.getstats() if stat.code is tracked.__code__),
+                0,
+            )
 
-    # Profiler should still be functional
-    profiler.start("another_action")
-    profiler.stop("another_action")
+        before = tracked_call_count()
+        tracked()
+        assert tracked_call_count() == before
 
-
+    assert not advanced_profiler.profiled_actions
 def test_advanced_profiler_deepcopy(advanced_profiler):
     advanced_profiler.describe()
     assert deepcopy(advanced_profiler)
