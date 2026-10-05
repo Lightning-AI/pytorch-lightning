@@ -420,6 +420,7 @@ def test_advanced_profiler_teardown_disables_active_action(advanced_profiler):
     Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
 
     """
+
     def tracked() -> None:
         pass
 
