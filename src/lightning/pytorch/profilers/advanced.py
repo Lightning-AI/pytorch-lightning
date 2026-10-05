@@ -78,10 +78,13 @@ class AdvancedProfiler(Profiler):
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            # This can happen when multiple Trainer instances share the same profiler
-            # (e.g. during hyperparameter tuning / grid search), where only some Trainers
-            # execute certain actions like .test(). See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
-            log.debug(f"Attempting to stop recording an action ({action_name}) which was never started. Skipping.")
+            # The profiler can be torn down while a profiling context is active. In that case,
+            # the context's finally block calls stop() after teardown has cleared this action.
+            # See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+            log.debug(
+                "Attempting to stop recording an action (%s) which was never started. Skipping.",
+                action_name,
+            )
             return
         pr.disable()
 
@@ -116,6 +119,8 @@ class AdvancedProfiler(Profiler):
     @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
+        for pr in self.profiled_actions.values():
+            pr.disable()
         self.profiled_actions.clear()
 
     def __reduce__(self) -> tuple:
