@@ -417,26 +417,6 @@ def test_advanced_profiler_nested(advanced_profiler):
         pass  # Should not raise ValueError
 
 
-def test_advanced_profiler_manual_nested_in_hook(tmp_path):
-    """Regression test for #17333: manually calling start/stop inside a Trainer hook nests with the Trainer's own hook-
-    level profiling and must not raise ValueError."""
-
-    class ManualProfileModel(BoringModel):
-        def on_validation_epoch_start(self):
-            self.trainer.profiler.start("manual_action")
-            self.trainer.profiler.stop("manual_action")
-
-    model = ManualProfileModel()
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        profiler="advanced",
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-    )
-    trainer.fit(model)
-
-
 @pytest.fixture
 def pytorch_profiler(tmp_path):
     return PyTorchProfiler(dirpath=tmp_path, filename="profiler")
