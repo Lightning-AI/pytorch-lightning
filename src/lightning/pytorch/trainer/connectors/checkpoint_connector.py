@@ -350,6 +350,11 @@ class _CheckpointConnector:
             elif self.trainer.state.fn == TrainerFn.PREDICTING:
                 self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
+            if self.trainer.state.fn != TrainerFn.FITTING and "fit_loop" in state_dict:
+                # restore `trainer.current_epoch` for reporting purposes even outside of fit, without loading the
+                # rest of the fit loop's state (e.g. batch/optimizer progress), which does not apply here
+                fit_loop.epoch_progress.load_state_dict(state_dict["fit_loop"]["epoch_progress"])
+
         if self.trainer.state.fn != TrainerFn.FITTING:
             return
 
