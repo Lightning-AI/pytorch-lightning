@@ -401,9 +401,8 @@ def test_advanced_profiler_stop_unstarted_action(advanced_profiler):
 
     See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
 
-    When multiple Trainer instances share the same AdvancedProfiler (e.g. during
-    hyperparameter tuning), stop() may be called for actions that were never started
-    on some Trainers. This should be handled gracefully.
+    Teardown can clear an active action before its profiling context calls stop()
+    in the finally block. This should be handled gracefully.
 
     """
     action = "test"
@@ -439,6 +438,8 @@ def test_advanced_profiler_teardown_disables_active_action(advanced_profiler):
         assert tracked_call_count() == before
 
     assert not advanced_profiler.profiled_actions
+
+
 def test_advanced_profiler_deepcopy(advanced_profiler):
     advanced_profiler.describe()
     assert deepcopy(advanced_profiler)
