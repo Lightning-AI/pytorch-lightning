@@ -396,14 +396,49 @@ def test_advanced_profiler_dump_states_sanitizes_filename(tmp_path, char):
     assert (tmp_path / prof_name).read_bytes()
 
 
-def test_advanced_profiler_value_errors(advanced_profiler):
-    """Ensure errors are raised where expected."""
-    action = "test"
-    with pytest.raises(ValueError, match="Attempting to stop recording*"):
-        advanced_profiler.stop(action)
+def test_advanced_profiler_stop_unstarted_action(advanced_profiler):
+    """Ensure stopping an unstarted action does not raise an error.
 
+    See: https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
+    Teardown can clear an active action before its profiling context calls stop()
+    in the finally block. This should be handled gracefully.
+
+    """
+    action = "test"
+    # Should NOT raise, just log and return
+    advanced_profiler.stop(action)
+
+    # Starting and stopping should still work normally
     advanced_profiler.start(action)
     advanced_profiler.stop(action)
+
+
+def test_advanced_profiler_teardown_disables_active_action(advanced_profiler):
+    """Ensure teardown stops recording and an active context exits safely.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/9136
+
+    """
+
+    def tracked() -> None:
+        pass
+
+    with advanced_profiler.profile("active_action"):
+        active_profile = advanced_profiler.profiled_actions["active_action"]
+        advanced_profiler.teardown(stage=None)
+
+        def tracked_call_count() -> int:
+            return next(
+                (stat.callcount for stat in active_profile.getstats() if stat.code is tracked.__code__),
+                0,
+            )
+
+        before = tracked_call_count()
+        tracked()
+        assert tracked_call_count() == before
+
+    assert not advanced_profiler.profiled_actions
 
 
 def test_advanced_profiler_deepcopy(advanced_profiler):
