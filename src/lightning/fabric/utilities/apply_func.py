@@ -76,8 +76,9 @@ class _TransferableDataType(ABC):
 
 
 def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
-    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
-    moved and all other objects in the collection will be left untouched.
+    """Transfers a collection of data to the given device.
+
+    Any object that defines a method ``to(device)`` will be moved and all other objects in the collection will be left untouched.
 
     Args:
         batch: A tensor or collection of tensors or anything that has a method ``.to(...)``.

@@ -32,7 +32,6 @@ def _patch_comet_atexit(monkeypatch):
 @mock.patch.dict(os.environ, {})
 def test_comet_logger_online(comet_mock):
     """Test comet online with mocks."""
-
     comet_start = comet_mock.start
 
     # Test api_key given with old param "project_name"
@@ -81,7 +80,6 @@ def test_comet_logger_online(comet_mock):
 @mock.patch.dict(os.environ, {})
 def test_comet_experiment_is_still_alive_after_training_complete(comet_mock):
     """Test that the CometLogger will not end an experiment after training is complete."""
-
     logger = CometLogger()
     assert logger.experiment is not None
 

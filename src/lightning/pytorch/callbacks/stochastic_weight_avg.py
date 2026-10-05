@@ -96,7 +96,6 @@ class StochasticWeightAveraging(Callback):
                 (default: ``"cpu"``)
 
         """
-
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
         if isinstance(swa_epoch_start, int) and swa_epoch_start < 1:
             raise MisconfigurationException(err_msg)

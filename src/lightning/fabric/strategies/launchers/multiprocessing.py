@@ -226,6 +226,7 @@ def _disable_module_memory_sharing(data: Any) -> Any:
     Note: This is only required when running on CPU.
 
     """
+
     # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
     # For model weights and buffers, this is undesired and can lead to race conditions between processes.
     # Hence, we copy the tensors in the entire module to ensure it doesn't share memory with other processes.
@@ -244,18 +245,15 @@ def _check_missing_main_guard() -> None:
     if not getattr(mp.current_process(), "_inheriting", False):
         return
     message = dedent(
-        """
-        Launching multiple processes with the 'spawn' start method requires that your script guards the main
+        """Launching multiple processes with the 'spawn' start method requires that your script guards the main
         function with an `if __name__ == \"__main__\"` clause. For example:
 
-        def main():
-            # Put your code here
-            ...
+        def main():     # Put your code here     ...
 
-        if __name__ == "__main__":
-            main()
+        if __name__ == "__main__":     main()
 
         Alternatively, you can run with `strategy="ddp"` to avoid this error.
+
         """
     )
     raise RuntimeError(message)
