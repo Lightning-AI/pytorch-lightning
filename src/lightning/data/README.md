@@ -99,7 +99,8 @@ def random_images(index):
         "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
         "class": np.random.randint(10),
     }
-    return data # The data is serialized into bytes and stored into chunks by the optimize operator.
+    return data  # The data is serialized into bytes and stored into chunks by the optimize operator.
+
 
 if __name__ == "__main__":
     optimize(
@@ -107,9 +108,8 @@ if __name__ == "__main__":
         inputs=list(range(1000)),  # Provide any inputs. The fn is applied on each item.
         output_dir="my_dataset",  # The directory where the optimized data are stored.
         num_workers=4,  # The number of workers. The inputs are distributed among them.
-        chunk_bytes="64MB"  # The maximum number of bytes to write into a chunk.
+        chunk_bytes="64MB",  # The maximum number of bytes to write into a chunk.
     )
-
 ```
 
 The `optimize` operator supports any data structures and types. Serialize whatever you want.
@@ -131,15 +131,15 @@ from lightning.data import StreamingDataset
 from torch.utils.data import DataLoader
 
 # Remote path where full dataset is persistently stored
-input_dir = 's3://pl-flash-data/my_dataset'
+input_dir = "s3://pl-flash-data/my_dataset"
 
 # Create streaming dataset
 dataset = StreamingDataset(input_dir, shuffle=True)
 
 # Check any elements
 sample = dataset[50]
-img = sample['image']
-cls = sample['class']
+img = sample["image"]
+cls = sample["class"]
 
 # Create PyTorch DataLoader
 dataloader = DataLoader(dataset)
@@ -166,12 +166,10 @@ data_dir = "my_images"
 os.makedirs(data_dir, exist_ok=True)
 
 for i in range(1000):
-    width = np.random.randint(224, 320) 
-    height = np.random.randint(224, 320) 
+    width = np.random.randint(224, 320)
+    height = np.random.randint(224, 320)
     image_path = os.path.join(data_dir, f"{i}.JPEG")
-    Image.fromarray(
-        np.random.randint(0, 256, (width, height, 3), np.uint8)
-    ).save(image_path, format="JPEG", quality=90)
+    Image.fromarray(np.random.randint(0, 256, (width, height, 3), np.uint8)).save(image_path, format="JPEG", quality=90)
 ```
 
 ```bash
@@ -188,14 +186,16 @@ from PIL import Image
 input_dir = "s3://my-bucket/my_images"
 inputs = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
 
+
 def resize_image(image_path, output_dir):
-  output_image_path = os.path.join(output_dir, os.path.basename(image_path))
-  Image.open(image_path).resize((224, 224)).save(output_image_path)
-  
+    output_image_path = os.path.join(output_dir, os.path.basename(image_path))
+    Image.open(image_path).resize((224, 224)).save(output_image_path)
+
+
 if __name__ == "__main__":
     map(
         fn=resize_image,
-        inputs=inputs, 
+        inputs=inputs,
         output_dir="s3://my-bucket/my_resized_images",
         num_workers=4,
     )
@@ -257,13 +257,13 @@ from torch.utils.data import DataLoader
 train_datasets = [
     StreamingDataset(
         input_dir="s3://tinyllama-template/slimpajama/train/",
-        item_loader=TokensLoader(block_size=2048 + 1), # Optimized loader for tokens used by LLMs 
+        item_loader=TokensLoader(block_size=2048 + 1),  # Optimized loader for tokens used by LLMs
         shuffle=True,
         drop_last=True,
     ),
     StreamingDataset(
         input_dir="s3://tinyllama-template/starcoder/",
-        item_loader=TokensLoader(block_size=2048 + 1), # Optimized loader for tokens used by LLMs 
+        item_loader=TokensLoader(block_size=2048 + 1),  # Optimized loader for tokens used by LLMs
         shuffle=True,
         drop_last=True,
     ),
@@ -294,14 +294,13 @@ from lightning.data import StreamingDataset, StreamingDataLoader
 dataset = StreamingDataset("s3://my-bucket/my-data", shuffle=True)
 dataloader = StreamingDataLoader(dataset, num_workers=os.cpu_count(), batch_size=64)
 
-# Restore the dataLoader state if it exists
+# Restore the dataLoader state if it exists
 if os.path.isfile("dataloader_state.pt"):
     state_dict = torch.load("dataloader_state.pt")
     dataloader.load_state_dict(state_dict)
 
 # Iterate over the data
 for batch_idx, batch in enumerate(dataloader):
-  
     # Store the state every 1000 batches
     if batch_idx % 1000 == 0:
         torch.save(dataloader.state_dict(), "dataloader_state.pt")
@@ -328,9 +327,9 @@ from lightning.data import StreamingDataset
 
 dataset = StreamingDataset(...)
 
-print(len(dataset)) # display the length of your data
+print(len(dataset))  # display the length of your data
 
-print(dataset[42]) # show the 42th element of the dataset
+print(dataset[42])  # show the 42th element of the dataset
 ```
 
 ## Use data transforms
@@ -339,11 +338,12 @@ print(dataset[42]) # show the 42th element of the dataset
 from lightning.data import StreamingDataset, StreamingDataLoader
 import torchvision.transforms.v2.functional as F
 
-class ImagenetStreamingDataset(StreamingDataset):
 
+class ImagenetStreamingDataset(StreamingDataset):
     def __getitem__(self, index):
         image = super().__getitem__(index)
         return F.resize(image, (224, 224))
+
 
 dataset = ImagenetStreamingDataset(...)
 dataloader = StreamingDataLoader(dataset, batch_size=4)
@@ -374,6 +374,7 @@ from lightning.data import optimize
 from tokenizer import Tokenizer
 from functools import partial
 
+
 # 1. Define a function to convert the text within the parquet files into tokens
 def tokenize_fn(filepath, tokenizer=None):
     parquet_file = pq.ParquetFile(filepath)
@@ -382,13 +383,16 @@ def tokenize_fn(filepath, tokenizer=None):
         for text in batch.to_pandas()["content"]:
             yield tokenizer.encode(text, bos=False, eos=True)
 
+
 # 2. Generate the inputs
 input_dir = "/teamspace/s3_connections/tinyllama-template"
 inputs = [str(file) for file in Path(f"{input_dir}/starcoderdata").rglob("*.parquet")]
 
 # 3. Store the optimized data wherever you want under "/teamspace/datasets" or "/teamspace/s3_connections"
 outputs = optimize(
-    fn=partial(tokenize_fn, tokenizer=Tokenizer(f"{input_dir}/checkpoints/Llama-2-7b-hf")), # Note: You can use HF tokenizer or any others
+    fn=partial(
+        tokenize_fn, tokenizer=Tokenizer(f"{input_dir}/checkpoints/Llama-2-7b-hf")
+    ),  # Note: You can use HF tokenizer or any others
     inputs=inputs,
     output_dir="/teamspace/datasets/starcoderdata",
     chunk_size=(2049 * 8012),

@@ -304,15 +304,15 @@ class CometLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> comet_experiment:
-        r"""Actual Comet object. To use Comet features in your :class:`~lightning.pytorch.core.LightningModule` do the
-        following.
+        r"""Actual Comet object.
+
+        To use Comet features in your :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 
             self.logger.experiment.some_comet_function()
 
         """
-
         # if by some chance there is no experiment created yet (for example, when strategy=ddp_spawn)
         # then we will create a new one
         if not self._experiment:

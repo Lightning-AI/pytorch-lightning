@@ -57,7 +57,6 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
-
         self._ensure_setup()
 
         # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)

@@ -173,11 +173,12 @@ class TensorBoardLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "SummaryWriter":
-        """Actual tensorboard object. To use TensorBoard features anywhere in your code, do the following.
+        """Actual tensorboard object.
 
-        Example::
+        To use TensorBoard features anywhere in your code, do the following.
+                Example::
 
-            logger.experiment.some_tensorboard_function()
+                    logger.experiment.some_tensorboard_function()
 
         """
         if self._experiment is not None:
@@ -225,8 +226,9 @@ class TensorBoardLogger(Logger):
         metrics: Optional[dict[str, Any]] = None,
         step: Optional[int] = None,
     ) -> None:
-        """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        """Record hyperparameters.
+
+        TensorBoard logs with and without saved hyperparameters are incompatible, the hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:

@@ -98,8 +98,9 @@ class _LoggerConnector:
             )
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
-        """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
-        metrics["step"] as a step.
+        """Logs the metric dict passed in.
+
+        If `step` parameter is None and `step` key is presented is metrics, uses metrics["step"] as a step.
 
         Args:
             metrics: Metric values
@@ -130,9 +131,7 @@ class _LoggerConnector:
             logger.log_metrics(metrics=scalar_metrics, step=step)
             logger.save()
 
-    """
-    Evaluation metric updates
-    """
+    """Evaluation metric updates."""
 
     def _evaluation_epoch_end(self) -> None:
         results = self.trainer._results
@@ -158,13 +157,10 @@ class _LoggerConnector:
         assert self._first_loop_iter is None
         if self.trainer.sanity_checking:
             return
-
         # log all the metrics as a single dict
         self.log_metrics(metrics)
 
-    """
-    Train metric updates
-    """
+    """Train metric updates."""
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -179,13 +175,10 @@ class _LoggerConnector:
         # add the metrics to the loggers
         assert self._first_loop_iter is None
         self.log_metrics(self.metrics["log"])
-
         # reset result collection for next epoch
         self.reset_results()
 
-    """
-    Utilities and properties
-    """
+    """Utilities and properties."""
 
     def on_batch_start(self, batch: Any, dataloader_idx: Optional[int] = None) -> None:
         if self._first_loop_iter is None:

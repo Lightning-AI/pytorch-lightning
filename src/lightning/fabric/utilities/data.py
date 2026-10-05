@@ -404,7 +404,6 @@ def _replace_value_in_saved_args(
     Returns a tuple indicating success of the operation and modified saved args and kwargs
 
     """
-
     if replace_key in arg_names:
         replace_index = arg_names.index(replace_key)
         args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]

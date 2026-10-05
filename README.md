@@ -423,11 +423,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 
 ```Python
 import lightning as L
-import torch; import torchvision as tv
+import torch
+import torchvision as tv
 
-dataset = tv.datasets.CIFAR10("data", download=True,
-                              train=True,
-                              transform=tv.transforms.ToTensor())
+dataset = tv.datasets.CIFAR10("data", download=True, train=True, transform=tv.transforms.ToTensor())
 
 fabric = L.Fabric()
 fabric.launch()

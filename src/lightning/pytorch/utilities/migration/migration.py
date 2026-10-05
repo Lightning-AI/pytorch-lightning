@@ -84,8 +84,9 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
 
 
 def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Sets the `global_step` value for checkpoints before v1.6 without the progress tracking state. It will be
-    overwritten by the loop's state if it was also saved.
+    """Sets the `global_step` value for checkpoints before v1.6 without the progress tracking state.
+
+    It will be overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
     Commit: c67b075
@@ -105,8 +106,9 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
 
 
 def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Sets the `current_epoch` value for checkpoints before v1.6 without the progress tracking state. It will be
-    overwritten by the loop's state if it was also saved.
+    """Sets the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
+
+    It will be overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
     Commit: aea96e4
@@ -235,8 +237,9 @@ def _drop_apex_amp_state(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
 
 
 def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Adjusts the loop structure since it changed when the support for truncated backpropagation was removed. The
-    optimizer loop and the manual loop were previously children of the training batch loop. After its removal, they
+    """Adjusts the loop structure since it changed when the support for truncated backpropagation was removed.
+
+    The optimizer loop and the manual loop were previously children of the training batch loop. After its removal, they
     became the children of the training epoch loop.
 
     Version: 2.0.0

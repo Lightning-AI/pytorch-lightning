@@ -211,8 +211,9 @@ class ProgressBar(Callback):
 
 
 def get_standard_metrics(trainer: "pl.Trainer") -> dict[str, Union[int, str]]:
-    r"""Returns the standard metrics displayed in the progress bar. Currently, it only includes the version of the
-    experiment when using a logger.
+    r"""Returns the standard metrics displayed in the progress bar.
+
+    Currently, it only includes the version of the experiment when using a logger.
 
     .. code-block::
 

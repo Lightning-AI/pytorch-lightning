@@ -192,8 +192,8 @@ def _is_local_file_protocol(path: _PATH) -> bool:
 def _resolve_path(path: _PATH) -> Union[str, Path]:
     """Return a ``Path`` for local file paths and a plain ``str`` for remote fsspec URLs.
 
-    ``Path()`` collapses the double slash in a URL (e.g. ``gs://bucket`` -> ``gs:/bucket``),
-    corrupting it, so remote URLs must be kept as strings.
+    ``Path()`` collapses the double slash in a URL (e.g. ``gs://bucket`` -> ``gs:/bucket``), corrupting it, so remote
+    URLs must be kept as strings.
 
     """
     if _is_local_file_protocol(str(path)):
@@ -222,8 +222,8 @@ def _is_checkpoint_dir(path: Union[str, Path]) -> bool:
 def _prepare_directory_checkpoint(path: Union[str, Path]) -> None:
     """Ensure ``path`` is a directory for a sharded checkpoint.
 
-    Removes a conflicting file sitting at ``path`` and creates the directory. Creating a
-    directory is a no-op on object storage, which has no real directories.
+    Removes a conflicting file sitting at ``path`` and creates the directory. Creating a directory is a no-op on object
+    storage, which has no real directories.
 
     """
     if isinstance(path, Path):
@@ -273,8 +273,8 @@ def _get_distributed_checkpoint_reader(path: _PATH) -> Any:
 def _import_fsspec_dcp_filesystem(name: str) -> Any:
     """Import ``FsspecReader``/``FsspecWriter`` from torch's private DCP fsspec module.
 
-    These live in a private module that not every PyTorch build ships, so raise an actionable error
-    instead of letting a bare ``ImportError`` surface from deep in the call stack.
+    These live in a private module that not every PyTorch build ships, so raise an actionable error instead of letting a
+    bare ``ImportError`` surface from deep in the call stack.
 
     """
     try:

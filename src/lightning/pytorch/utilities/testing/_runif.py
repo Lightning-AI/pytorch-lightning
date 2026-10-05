@@ -70,7 +70,6 @@ def _runif_reasons(
         tensorrt: Require that torch-tensorrt is installed.
 
     """
-
     reasons, kwargs = _fabric_run_if(
         min_cuda_gpus=min_cuda_gpus,
         min_torch=min_torch,

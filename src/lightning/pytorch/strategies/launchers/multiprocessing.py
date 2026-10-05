@@ -225,8 +225,9 @@ class _MultiProcessingLauncher(_Launcher):
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def get_extra_results(self, trainer: "pl.Trainer") -> dict[str, Any]:
-        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process. To
-        avoid issues with memory sharing, we convert tensors to bytes.
+        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
+
+        To avoid issues with memory sharing, we convert tensors to bytes.
 
         Args:
             trainer: reference to the Trainer.
@@ -243,8 +244,9 @@ class _MultiProcessingLauncher(_Launcher):
         return {"callback_metrics_bytes": buffer.getvalue()}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: dict[str, Any]) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency, we
-        convert bytes back to ``torch.Tensor``.
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
+
+        To preserve consistency, we convert bytes back to ``torch.Tensor``.
 
         Args:
             trainer: reference to the Trainer.

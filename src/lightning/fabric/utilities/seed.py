@@ -18,8 +18,8 @@ min_seed_value = 0
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: bool = True) -> int:
-    r"""Function that sets the seed for pseudo-random number generators in: torch, numpy, and Python's random module.
-    In addition, sets the following environment variables:
+    r"""Function that sets the seed for pseudo-random number generators in: torch, numpy, and Python's random module. In
+    addition, sets the following environment variables:
 
     - ``PL_GLOBAL_SEED``: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
     - ``PL_SEED_WORKERS``: (optional) is set to 1 if ``workers=True``.

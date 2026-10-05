@@ -962,7 +962,6 @@ def test_devices_from_environment(*_):
 
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
-
     # Do not raise an error about collisions unless the CLI was used
     with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
         _Connector(accelerator="cuda")

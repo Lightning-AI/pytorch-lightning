@@ -606,7 +606,6 @@ def test_clip_gradients(clip_type, precision):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
-
     fabric = Fabric(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="sharded"),

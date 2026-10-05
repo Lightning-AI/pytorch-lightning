@@ -126,7 +126,6 @@ def test_setup_use_orig_params(_):
 def test_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     FullyShardedDataParallel."""
-
     strategy = FSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _FSDPBackwardSyncControl)
 
@@ -185,8 +184,8 @@ def test_activation_checkpointing():
 def test_setup_module_device_id_cpu():
     """``setup_module`` passes an explicit ``torch.device('cpu')`` (not ``device_id=None``) on CPU.
 
-    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a
-    non-CPU accelerator device" guard. Only reachable when the GPU-accelerator guard is bypassed.
+    ``root_device.index`` is ``None`` on CPU; ``device_id=None`` trips torch>=2.5's "FSDP needs a non-CPU accelerator
+    device" guard. Only reachable when the GPU-accelerator guard is bypassed.
 
     """
     captured = {}
@@ -596,8 +595,8 @@ def test_load_raw_module_state_from_path_remote(monkeypatch):
 
 
 def test_load_full_checkpoint_remote_allows_non_tensor_objects(monkeypatch):
-    """Regression: remote full-checkpoints are read with `weights_only=False` so non-tensor metadata
-    (which `torch.load` rejects by default since torch 2.6) loads just like the local `_lazy_load` path."""
+    """Regression: remote full-checkpoints are read with `weights_only=False` so non-tensor metadata (which
+    `torch.load` rejects by default since torch 2.6) loads just like the local `_lazy_load` path."""
     strategy = FSDPStrategy()
     monkeypatch.setattr(strategy, "broadcast", lambda x: x)
     monkeypatch.setattr("lightning.fabric.strategies.fsdp._has_fsdp_modules", lambda m: True)
