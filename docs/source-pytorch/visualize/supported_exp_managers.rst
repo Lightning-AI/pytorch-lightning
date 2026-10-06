@@ -18,7 +18,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 Access the litlogger logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,4
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             lit_logger = self.logger.experiment
@@ -46,7 +46,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 Access the comet logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,5
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             comet = self.logger.experiment
@@ -77,7 +77,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 Access the mlflow logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,5
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             mlf_logger = self.logger.experiment
@@ -108,7 +108,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 Access the tensorboard logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,5
     class LitModel(LightningModule):
         def any_lightning_module_function_or_hook(self):
             tensorboard_logger = self.logger.experiment
@@ -143,7 +143,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 Access the wandb logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,6,8
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             wandb_logger = self.logger.experiment
@@ -177,7 +177,7 @@ To use multiple experiment managers at the same time, pass a list to the *logger
 Access all loggers from any function (except the LightningModule *init*) to use their APIs for tracking advanced artifacts
 
 .. code-block:: python
-
+    :emphasize-lines: 3,4,8,9
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             tensorboard_logger = self.loggers.experiment[0]
