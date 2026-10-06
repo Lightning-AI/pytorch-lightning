@@ -873,7 +873,13 @@ class ModelCheckpoint(Checkpoint):
             return path.suffix == self.FILE_EXTENSION and bool(re.match(last_pattern, path.stem))
 
         if self._fs.exists(ckpt_path):
-            return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))}
+            candidates = [p for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))]
+            if _is_local_file_protocol(ckpt_path):
+                return {os.path.normpath(p) for p in candidates}
+            # `ls` returns remote paths without their protocol, and `normpath` would corrupt one
+            # ("gs://bucket" -> "gs:/bucket"). Either way the path resolves to the local filesystem,
+            # so the checkpoint is never found again.
+            return {self._fs.unstrip_protocol(p) for p in candidates}
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
