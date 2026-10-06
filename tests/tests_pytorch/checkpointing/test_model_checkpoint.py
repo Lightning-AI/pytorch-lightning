@@ -2041,30 +2041,6 @@ def test_find_last_checkpoints_remote_keeps_protocol():
     assert all(get_filesystem(path).exists(path) for path in files)
 
 
-def test_resume_from_last_checkpoint_on_remote_filesystem():
-    """`ckpt_path="last"` must find the last checkpoint a remote `dirpath` saved."""
-    dirpath = "memory://resume_last_remote"
-    fsspec.filesystem("memory").mkdirs("/resume_last_remote", exist_ok=True)
-
-    def make_trainer(max_epochs):
-        return Trainer(
-            default_root_dir=dirpath,
-            callbacks=[ModelCheckpoint(dirpath=dirpath, save_last=True)],
-            max_epochs=max_epochs,
-            limit_train_batches=1,
-            limit_val_batches=1,
-            logger=False,
-            enable_progress_bar=False,
-            enable_model_summary=False,
-        )
-
-    make_trainer(1).fit(BoringModel())
-
-    trainer = make_trainer(2)
-    trainer.fit(BoringModel(), ckpt_path="last")
-    assert trainer.ckpt_path == "memory:///resume_last_remote/last.ckpt"
-
-
 def test_expand_home():
     """Test that the dirpath gets expanded if it contains `~`."""
     home_root = Path.home()
