@@ -19,7 +19,6 @@ from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -359,9 +358,8 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
-    if _TORCH_GREATER_EQUAL_2_3:
-        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -376,9 +374,8 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
-    if _TORCH_GREATER_EQUAL_2_3:
-        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 

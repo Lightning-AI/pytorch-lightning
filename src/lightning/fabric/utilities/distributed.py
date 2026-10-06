@@ -18,7 +18,6 @@ from typing_extensions import Self, TypeGuard, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -431,8 +430,6 @@ class _InfiniteBarrier:
 
 
 def _is_dtensor(tensor: Tensor) -> TypeGuard["DTensor"]:
-    if _TORCH_GREATER_EQUAL_2_4:
-        from torch.distributed._tensor import DTensor
+    from torch.distributed._tensor import DTensor
 
-        return isinstance(tensor, DTensor)
-    return False
+    return isinstance(tensor, DTensor)
