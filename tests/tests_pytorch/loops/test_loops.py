@@ -1296,7 +1296,8 @@ def test_fit_loop_save_and_restore_dataloaders(
     assert model.seen_data == batches_after
 
 
-def test_resume_sets_sampler_epoch_before_workers_draw_indices(tmp_path):
+@pytest.mark.parametrize("checkpoint", ["end_of_fit", "last_batch"])
+def test_resume_sets_sampler_epoch_before_workers_draw_indices(tmp_path, checkpoint):
     """Test that a resumed run restores the sampler epoch before the dataloader workers start drawing indices."""
 
     class EpochRecordingSampler(torch.utils.data.RandomSampler):
@@ -1317,19 +1318,21 @@ def test_resume_sets_sampler_epoch_before_workers_draw_indices(tmp_path):
         "default_root_dir": tmp_path,
         "accelerator": "cpu",
         "limit_train_batches": 2,
-        "enable_checkpointing": False,
+        "limit_val_batches": 0,
         "enable_model_summary": False,
         "enable_progress_bar": False,
         "logger": False,
     }
     dataset = RandomDataset(32, 64)
-    trainer = Trainer(**trainer_kwargs, max_epochs=1)
+    # saved on the last batch, so the epoch is only counted as processed by `reset()` on resume
+    last_batch = ModelCheckpoint(dirpath=tmp_path, filename="last_batch", every_n_train_steps=2)
+    trainer = Trainer(**trainer_kwargs, max_epochs=1, callbacks=[last_batch])
     trainer.fit(BoringModel(), DataLoader(dataset, sampler=EpochRecordingSampler(dataset), num_workers=1))
-    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+    trainer.save_checkpoint(tmp_path / "end_of_fit.ckpt")
 
     # workers prefetch as soon as the iterator exists, so the epoch must already be restored at that point
     sampler = EpochRecordingSampler(dataset)
-    trainer = Trainer(**trainer_kwargs, max_epochs=2)
+    trainer = Trainer(**trainer_kwargs, max_epochs=2, enable_checkpointing=False)
     dataloader = DataLoader(dataset, sampler=sampler, num_workers=1)
-    trainer.fit(BoringModel(), dataloader, ckpt_path=tmp_path / "checkpoint.ckpt")
+    trainer.fit(BoringModel(), dataloader, ckpt_path=tmp_path / f"{checkpoint}.ckpt")
     assert sampler.iter_epochs == [1]

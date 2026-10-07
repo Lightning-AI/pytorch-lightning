@@ -205,10 +205,10 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
+        self.reset()
         self.setup_data()
         if self.skip:
             return
-        self.reset()
         self.on_run_start()
         while not self.done:
             try:
