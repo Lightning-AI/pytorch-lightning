@@ -42,6 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Runner images: https://github.com/actions/runner-images
         os: [macos-26, ubuntu-24.04, windows-2025]
         config:
           # Test unified "lightning" package at the oldest supported and the latest PyTorch
