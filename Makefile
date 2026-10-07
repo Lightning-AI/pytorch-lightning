@@ -99,7 +99,7 @@ standalone: _download_standalone_script
 		status=$$?; \
 		if [ $$status -ne 0 ]; then \
 			echo "\033[0;31m----- Standalone tests failed :( -----\033[0m"; \
-			exit 0; \
+			exit $$status; \
 		else \
 			echo "\033[0;32m----- Standalone tests passed! ;) -----\033[0m"; \
 			exit 0; \
