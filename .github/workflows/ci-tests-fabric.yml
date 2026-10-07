@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-14, ubuntu-22.04, windows-2022]
+        os: [macos-26, ubuntu-24.04, windows-2025]
         config:
           # Test unified "lightning" package at the oldest supported and the latest PyTorch
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
@@ -68,7 +68,7 @@ jobs:
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
       # TODO: Remove this - Enable running MPS tests on this platform
-      DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
+      DISABLE_MPS: ${{ matrix.os == 'macos-26' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
       # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
       UV_EXCLUDE_NEWER: "2 days"
