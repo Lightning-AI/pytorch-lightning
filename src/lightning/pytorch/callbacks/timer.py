@@ -145,6 +145,7 @@ class Timer(Callback):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()
+        self._end_time[RunningStage.TRAINING] = None
 
     @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -153,6 +154,7 @@ class Timer(Callback):
     @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.VALIDATING] = time.monotonic()
+        self._end_time[RunningStage.VALIDATING] = None
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -161,6 +163,7 @@ class Timer(Callback):
     @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TESTING] = time.monotonic()
+        self._end_time[RunningStage.TESTING] = None
 
     @override
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

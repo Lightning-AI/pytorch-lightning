@@ -109,6 +109,67 @@ def test_timer_time_remaining(time_mock):
     assert round(timer.time_elapsed()) == 3
 
 
+@pytest.mark.parametrize(
+    ("stage", "start_hook", "end_hook"),
+    [
+        ("train", "on_train_start", "on_train_end"),
+        ("validate", "on_validation_start", "on_validation_end"),
+        ("test", "on_test_start", "on_test_end"),
+    ],
+)
+@patch("lightning.pytorch.callbacks.timer.time")
+def test_timer_restarts_stage(time_mock, stage, start_hook, end_hook):
+    timer = Timer(duration=timedelta(seconds=10))
+    trainer, model = Mock(), Mock()
+
+    time_mock.monotonic.return_value = 10
+    getattr(timer, start_hook)(trainer, model)
+    time_mock.monotonic.return_value = 12
+    getattr(timer, end_hook)(trainer, model)
+    assert timer.time_elapsed(stage) == 2
+
+    time_mock.monotonic.return_value = 40
+    getattr(timer, start_hook)(trainer, model)
+    time_mock.monotonic.return_value = 43
+    assert timer.time_elapsed(stage) == 3
+    assert timer.time_remaining(stage) == 7
+    assert timer.end_time(stage) is None
+
+    getattr(timer, end_hook)(trainer, model)
+    time_mock.monotonic.return_value = 50
+    assert timer.time_elapsed(stage) == 3
+    assert timer.end_time(stage) == 43
+
+
+@patch("lightning.pytorch.callbacks.timer.time")
+def test_timer_repeated_validation(time_mock, tmp_path):
+    timer = Timer()
+    elapsed = []
+
+    class TimedValidationModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            time_mock.monotonic.return_value += 1
+            elapsed.append(timer.time_elapsed("validate"))
+            return super().validation_step(batch, batch_idx)
+
+    model = TimedValidationModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        callbacks=[timer],
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        limit_val_batches=2,
+    )
+    for start in (10, 40):
+        time_mock.monotonic.return_value = start
+        trainer.validate(model, verbose=False)
+
+    assert elapsed == [1, 2, 1, 2]
+
+
 def test_timer_stops_training(tmp_path, caplog):
     """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
