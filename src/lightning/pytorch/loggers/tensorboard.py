@@ -74,6 +74,11 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
+        group_metrics: If ``True``, metrics whose keys share a ``/``-separated prefix are written with
+            :meth:`~tensorboardX.SummaryWriter.add_scalars`, so that they show up as several lines on a
+            single TensorBoard chart instead of one chart per metric. For example, ``losses/a`` and
+            ``losses/b`` are grouped under ``losses``. Keys without a ``/`` are logged individually as
+            before. Defaults to ``False``, which keeps the previous one-chart-per-metric behavior.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -91,6 +96,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[_PATH] = None,
+        group_metrics: bool = False,
         **kwargs: Any,
     ):
         super().__init__(
@@ -100,6 +106,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             default_hp_metric=default_hp_metric,
             prefix=prefix,
             sub_dir=sub_dir,
+            group_metrics=group_metrics,
             **kwargs,
         )
         if log_graph and not _TENSORBOARD_AVAILABLE:

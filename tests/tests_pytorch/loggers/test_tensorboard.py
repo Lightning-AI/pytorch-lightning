@@ -157,6 +157,29 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+def test_tensorboard_log_metrics_grouping(tmp_path):
+    """`group_metrics=True` puts metrics sharing a `/` prefix on a single TensorBoard chart."""
+    logger = TensorBoardLogger(tmp_path, group_metrics=True)
+    logger._experiment = Mock()
+
+    logger.log_metrics({"losses/a": 0.1, "losses/b": 0.2, "acc": 0.9}, step=0)
+
+    logger.experiment.add_scalars.assert_any_call("losses", {"a": 0.1}, 0)
+    logger.experiment.add_scalars.assert_any_call("losses", {"b": 0.2}, 0)
+    assert logger.experiment.add_scalars.call_count == 2
+    logger.experiment.add_scalar.assert_called_once_with("acc", 0.9, 0)
+
+
+def test_tensorboard_log_metrics_grouping_disabled_by_default(tmp_path):
+    logger = TensorBoardLogger(tmp_path)
+    logger._experiment = Mock()
+
+    logger.log_metrics({"losses/a": 0.1, "losses/b": 0.2}, step=0)
+
+    logger.experiment.add_scalars.assert_not_called()
+    assert logger.experiment.add_scalar.call_count == 2
+
+
 def test_tensorboard_log_hyperparams(tmp_path):
     logger = TensorBoardLogger(tmp_path)
     hparams = {
