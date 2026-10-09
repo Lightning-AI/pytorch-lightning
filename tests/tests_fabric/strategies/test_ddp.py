@@ -22,7 +22,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
-from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, TorchElasticEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
@@ -218,3 +218,21 @@ def test_device_id_passed_for_cuda_devices(init_process_group_mock):
         timeout=cuda_strategy._timeout,
         device_id=cuda_device,
     )
+
+
+def test_ddp_distributed_sampler_kwargs_uses_world_size(monkeypatch):
+    """``num_replicas`` is the actual world size, not ``num_nodes * num_processes`` (#19898)."""
+    # e.g. torchrun over two nodes holding 2 and 1 devices: `num_nodes * num_processes` would report 4 here,
+    # while the true world size is 3.
+    monkeypatch.setenv("WORLD_SIZE", "3")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("LOCAL_RANK", "0")
+    monkeypatch.setenv("MASTER_ADDR", "127.0.0.1")
+    monkeypatch.setenv("MASTER_PORT", "12345")
+    strategy = DDPStrategy(
+        parallel_devices=[torch.device("cpu")] * 2,
+        cluster_environment=TorchElasticEnvironment(),
+    )
+    strategy.num_nodes = 2
+
+    assert strategy.distributed_sampler_kwargs == {"num_replicas": 3, "rank": 0}

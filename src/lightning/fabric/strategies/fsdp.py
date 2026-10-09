@@ -216,7 +216,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     @property
     @override
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
-        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
