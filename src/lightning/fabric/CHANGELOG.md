@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) in checkpoint consolidation (`python -m lightning.fabric.utilities.consolidate_checkpoint` and the `lightning consolidate` CLI) ([#21826](https://github.com/Lightning-AI/pytorch-lightning/pull/21826))
 
+- Added `group_metrics` parameter to `TensorBoardLogger` to write metrics sharing a `/`-separated prefix with `add_scalars`, so they appear on a single TensorBoard chart ([#21578](https://github.com/Lightning-AI/pytorch-lightning/issues/21578))
+
 ### Changed
 
 -

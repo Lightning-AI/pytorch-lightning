@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21797](https://github.com/Lightning-AI/pytorch-lightning/issues/21797))
 
+- Added `group_metrics` parameter to `TensorBoardLogger` to write metrics sharing a `/`-separated prefix with `add_scalars`, so they appear on a single TensorBoard chart ([#21578](https://github.com/Lightning-AI/pytorch-lightning/issues/21578))
+
 ### Changed
 
 - Changed the `dirpath` argument of `lightning.pytorch.profilers` profilers to accept `str | os.PathLike[str]` instead of `str | pathlib.Path` ([#21871](https://github.com/Lightning-AI/pytorch-lightning/pull/21871))

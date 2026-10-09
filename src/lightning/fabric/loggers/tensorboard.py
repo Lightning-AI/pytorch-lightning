@@ -40,6 +40,11 @@ if TYPE_CHECKING:
         from tensorboardX import SummaryWriter  # type: ignore[no-redef]
 
 
+# Separator that splits a metric key into a group name and the individual metric name when
+# `group_metrics=True`, e.g. `losses/train` -> group `losses`, metric `train`.
+_GROUP_METRICS_SEPARATOR = "/"
+
+
 class TensorBoardLogger(Logger):
     r"""Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
@@ -60,6 +65,11 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a ``sub_dir`` argument is passed
             then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
             logs are saved in ``/root_dir/name/version/``.
+        group_metrics: If ``True``, metrics whose keys share a ``/``-separated prefix are written with
+            :meth:`~tensorboardX.SummaryWriter.add_scalars`, so that they show up as several lines on a
+            single TensorBoard chart instead of one chart per metric. For example, ``losses/a`` and
+            ``losses/b`` are grouped under ``losses``. Keys without a ``/`` are logged individually as
+            before. Defaults to ``False``, which keeps the previous one-chart-per-metric behavior.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -87,6 +97,7 @@ class TensorBoardLogger(Logger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[_PATH] = None,
+        group_metrics: bool = False,
         **kwargs: Any,
     ):
         if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
@@ -103,6 +114,7 @@ class TensorBoardLogger(Logger):
 
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
+        self._group_metrics = group_metrics
         self._fs = get_filesystem(root_dir)
 
         self._experiment: Optional[SummaryWriter] = None
@@ -208,14 +220,22 @@ class TensorBoardLogger(Logger):
 
             if isinstance(v, dict):
                 self.experiment.add_scalars(k, v, step)
-            else:
-                try:
+                continue
+
+            main_tag, separator, sub_tag = k.rpartition(_GROUP_METRICS_SEPARATOR)
+            group = self._group_metrics and separator and main_tag and sub_tag
+            try:
+                if group:
+                    # Group metrics that share a prefix (e.g. `losses/a`, `losses/b`) so that TensorBoard
+                    # renders them as several lines on one chart.
+                    self.experiment.add_scalars(main_tag, {sub_tag: v}, step)
+                else:
                     self.experiment.add_scalar(k, v, step)
-                # TODO(fabric): specify the possible exception
-                except Exception as ex:
-                    raise ValueError(
-                        f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    ) from ex
+            # TODO(fabric): specify the possible exception
+            except Exception as ex:
+                raise ValueError(
+                    f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                ) from ex
 
     @override
     @rank_zero_only
