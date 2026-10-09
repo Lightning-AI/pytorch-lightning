@@ -246,6 +246,7 @@ utilities
     combined_loader
     data
     deepspeed
+    fx
     memory
     model_summary
     parsing

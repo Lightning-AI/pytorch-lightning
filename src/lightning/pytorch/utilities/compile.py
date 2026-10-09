@@ -14,6 +14,7 @@
 from typing import Union
 
 import torch
+import torch.fx
 from torch._dynamo import OptimizedModule
 
 import lightning.pytorch as pl
@@ -107,6 +108,12 @@ def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
         return from_compiled(model)
     if isinstance(model, pl.LightningModule):
         return model
+    if isinstance(model, torch.fx.GraphModule):
+        raise TypeError(
+            "`model` appears to be the result of an fx-based model conversion (e.g. PyG's `to_hetero()`). Use"
+            " `lightning.pytorch.utilities.fx.from_fx()` to transfer the converted computation onto the original"
+            " `LightningModule` before passing it to the `Trainer`."
+        )
     _check_mixed_imports(model)
     raise TypeError(
         f"`model` must be a `LightningModule` or `torch._dynamo.OptimizedModule`, got `{type(model).__qualname__}`"
