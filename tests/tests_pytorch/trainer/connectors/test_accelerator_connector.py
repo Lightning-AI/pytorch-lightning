@@ -102,18 +102,13 @@ def test_cross_namespace_strategy_choice():
     LegacyStrategy.__module__ = "pytorch_lightning.strategies.strategy"
 
     class LegacyDDPStrategy(LegacyStrategy):
-        def __init__(self):
-            self._accelerator = None
-            self._precision_plugin = None
-            self._checkpoint_io = None
-            self.cluster_environment = None
-            self.parallel_devices = None
+        pass
 
-    # Should not raise a ValueError
-    connector = _AcceleratorConnector(strategy=LegacyDDPStrategy())
-    assert connector._strategy_flag is not None
+    # Should raise a descriptive ValueError about namespace mixing
+    with pytest.raises(ValueError, match="You passed a Strategy instance from a different package namespace"):
+        _AcceleratorConnector(strategy=LegacyDDPStrategy())
 
-    # 2. Simulate a strategy from the `lightning.fabric` namespace
+    # 2. Simulate an unrelated strategy or one from `lightning.fabric`
     class FabricStrategy:
         pass
 
@@ -123,7 +118,7 @@ def test_cross_namespace_strategy_choice():
     class FabricDDPStrategy(FabricStrategy):
         pass
 
-    # Should raise ValueError because it is a Fabric strategy, not a PyTorch strategy
+    # Should raise the generic invalid strategy error, NOT the cross-namespace error
     with pytest.raises(ValueError, match="You selected an invalid strategy name"):
         _AcceleratorConnector(strategy=FabricDDPStrategy())
 
