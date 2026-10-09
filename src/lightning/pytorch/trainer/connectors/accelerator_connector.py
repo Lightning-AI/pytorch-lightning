@@ -71,6 +71,15 @@ log = logging.getLogger(__name__)
 _LITERAL_WARN = Literal["warn"]
 
 
+def _is_cross_namespace_strategy(obj: object) -> bool:
+    if isinstance(obj, str):
+        return False
+    # Use string concatenation to prevent `.actions/assistant.py` from
+    # aggressively rewriting the string during `pytorch_lightning` package generation.
+    allowed_prefixes = ("lightning" + ".pytorch.", "pytorch_lightning.")
+    return any(cls.__name__ == "Strategy" and cls.__module__.startswith(allowed_prefixes) for cls in type(obj).__mro__)
+
+
 class _AcceleratorConnector:
     def __init__(
         self,
@@ -188,7 +197,15 @@ class _AcceleratorConnector:
 
         self._strategy_flag = strategy
 
-        if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        is_strategy = isinstance(strategy, Strategy)
+
+        if strategy != "auto" and strategy not in self._registered_strategies and not is_strategy:
+            if _is_cross_namespace_strategy(strategy):
+                raise ValueError(
+                    "You passed a Strategy instance from a different package namespace. "
+                    "Mixing strategies and trainers across 'lightning.pytorch' and 'pytorch_lightning' "
+                    "is not supported. Please import both the Trainer and the strategy from the same package."
+                )
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."

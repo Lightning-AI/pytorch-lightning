@@ -93,6 +93,36 @@ def test_invalid_strategy_choice(invalid_strategy):
         _AcceleratorConnector(strategy=invalid_strategy)
 
 
+def test_cross_namespace_strategy_choice():
+    # 1. Simulate a strategy instantiated from the legacy `pytorch_lightning` namespace
+    class LegacyStrategy:
+        pass
+
+    LegacyStrategy.__name__ = "Strategy"
+    LegacyStrategy.__module__ = "pytorch_lightning.strategies.strategy"
+
+    class LegacyDDPStrategy(LegacyStrategy):
+        pass
+
+    # Should raise a descriptive ValueError about namespace mixing
+    with pytest.raises(ValueError, match="You passed a Strategy instance from a different package namespace"):
+        _AcceleratorConnector(strategy=LegacyDDPStrategy())
+
+    # 2. Simulate an unrelated strategy or one from `lightning.fabric`
+    class FabricStrategy:
+        pass
+
+    FabricStrategy.__name__ = "Strategy"
+    FabricStrategy.__module__ = "lightning.fabric.strategies.strategy"
+
+    class FabricDDPStrategy(FabricStrategy):
+        pass
+
+    # Should raise the generic invalid strategy error, NOT the cross-namespace error
+    with pytest.raises(ValueError, match="You selected an invalid strategy name"):
+        _AcceleratorConnector(strategy=FabricDDPStrategy())
+
+
 def test_precision_and_precision_plugin_raises():
     with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
         _AcceleratorConnector(precision="16-true", plugins=Precision())
