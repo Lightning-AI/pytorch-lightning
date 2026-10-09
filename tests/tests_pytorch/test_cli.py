@@ -43,6 +43,7 @@ from lightning.pytorch.cli import (
     LRSchedulerTypeTuple,
     OptimizerCallable,
     SaveConfigCallback,
+    _instantiate,
     instantiate_class,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -1142,6 +1143,18 @@ def test_lightning_cli_save_hyperparameters_merge(cleandir):
     assert set(cli.datamodule.hparams) == {"batch_size", "num_workers", "_instantiator", "_class_path"}
 
 
+def test_lightning_cli_instantiators_not_leaked():
+    with mock.patch("sys.argv", ["any.py", f"--model={__name__}.TestModelSaveHparams"]):
+        cli = LightningCLI(TestModelSaveHparams, subclass_mode_model=True, run=False, auto_configure_optimizers=False)
+    assert cli.model.hparams["_instantiator"] == "lightning.pytorch.cli.instantiate_module"
+
+    # the instantiators of a CLI are not used by other parsers
+    parser = LightningArgumentParser(exit_on_error=False)
+    parser.add_lightning_class_args(TestModelSaveHparams, "model")
+    init = _instantiate(parser, parser.parse_args([]))
+    assert "_instantiator" not in init.model.hparams
+
+
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):
@@ -1255,7 +1268,7 @@ def test_lightning_cli_run(cleandir):
 
 
 class TestModel(BoringModel):
-    def __init__(self, foo, bar=5):
+    def __init__(self, foo=None, bar=5):
         super().__init__()
         self.foo = foo
         self.bar = bar
@@ -1282,7 +1295,7 @@ def test_lightning_cli_model_short_arguments():
 
 
 class MyDataModule(BoringDataModule):
-    def __init__(self, foo, bar=5):
+    def __init__(self, foo=None, bar=5):
         super().__init__()
         self.foo = foo
         self.bar = bar
@@ -1333,7 +1346,7 @@ def test_lightning_cli_datamodule_short_arguments():
         cli = LightningCLI(BoringModel, run=False)
         # data was not passed but we are adding it automatically because there are datamodules registered
         assert "data" in cli.parser.groups
-        assert not hasattr(cli.parser.groups["data"], "group_class")
+        assert getattr(cli.parser.groups["data"], "group_class", None) is None
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, BoringDataModule, run=False)
