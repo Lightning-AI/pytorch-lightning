@@ -70,6 +70,13 @@ log = logging.getLogger(__name__)
 
 _LITERAL_WARN = Literal["warn"]
 
+def _is_custom_instance(obj: object, base_name: str) -> bool:
+    if isinstance(obj, str):
+        return False
+    return any(
+        cls.__name__ == base_name and cls.__module__.startswith(("lightning.", "pytorch_lightning."))
+        for cls in type(obj).__mro__
+    )
 
 class _AcceleratorConnector:
     def __init__(
@@ -188,7 +195,9 @@ class _AcceleratorConnector:
 
         self._strategy_flag = strategy
 
-        if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+        is_strategy = isinstance(strategy, Strategy) or _is_custom_instance(strategy, "Strategy")
+
+        if strategy != "auto" and strategy not in self._registered_strategies and not is_strategy:
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
                 " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."
@@ -267,7 +276,7 @@ class _AcceleratorConnector:
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
         # TODO: improve the error messages below
-        if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
+        if self._strategy_flag and (isinstance(self._strategy_flag, Strategy) or _is_custom_instance(self._strategy_flag, "Strategy")):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag != "auto":
                     raise MisconfigurationException(
@@ -426,7 +435,7 @@ class _AcceleratorConnector:
         choice depending on other parameters or the environment."""
         # current fallback and check logic only apply to user pass in str config and object config
         # TODO this logic should apply to both str and object config
-        strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
+        strategy_flag = "" if (isinstance(self._strategy_flag, Strategy) or _is_custom_instance(self._strategy_flag, "Strategy")) else self._strategy_flag
 
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
@@ -447,7 +456,7 @@ class _AcceleratorConnector:
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
         # The validation of `_strategy_flag` already happened earlier on in the connector
-        assert isinstance(self._strategy_flag, (str, Strategy))
+        assert isinstance(self._strategy_flag, (str, Strategy)) or _is_custom_instance(self._strategy_flag, "Strategy")
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:

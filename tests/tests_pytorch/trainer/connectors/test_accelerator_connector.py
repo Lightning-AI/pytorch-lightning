@@ -93,6 +93,21 @@ def test_invalid_strategy_choice(invalid_strategy):
         _AcceleratorConnector(strategy=invalid_strategy)
 
 
+def test_cross_namespace_strategy_choice():
+    # Simulate a strategy instantiated from the legacy `pytorch_lightning` namespace
+    class LegacyStrategy:
+        pass
+
+    LegacyStrategy.__name__ = "Strategy"
+    LegacyStrategy.__module__ = "pytorch_lightning.strategies.strategy"
+
+    class LegacyDDPStrategy(LegacyStrategy):
+        pass
+
+    # Should not raise a ValueError
+    connector = _AcceleratorConnector(strategy=LegacyDDPStrategy())
+    assert connector._strategy_flag is not None
+
 def test_precision_and_precision_plugin_raises():
     with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
         _AcceleratorConnector(precision="16-true", plugins=Precision())
