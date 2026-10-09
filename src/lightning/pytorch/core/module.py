@@ -140,6 +140,7 @@ class LightningModule(
         self._param_requires_grad_state: dict[str, bool] = {}
         self._metric_attributes: Optional[dict[int, str]] = None
         self._compiler_ctx: Optional[dict[str, Any]] = None
+        self._fx_ctx: Optional[dict[str, Any]] = None
 
         # attributes only used when using fabric
         self._fabric: Optional[lf.Fabric] = None
