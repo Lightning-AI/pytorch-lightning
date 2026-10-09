@@ -25,7 +25,7 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Adam
 
 from lightning.fabric.plugins import HalfPrecision
-from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, TorchElasticEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
@@ -685,3 +685,21 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_reader("memory:///w/ckpt")
+
+
+def test_fsdp_distributed_sampler_kwargs_uses_world_size(monkeypatch):
+    """``num_replicas`` is the actual world size, not ``num_nodes * num_processes`` (#19898)."""
+    # e.g. torchrun over two nodes holding 2 and 1 devices: `num_nodes * num_processes` would report 4 here,
+    # while the true world size is 3.
+    monkeypatch.setenv("WORLD_SIZE", "3")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("LOCAL_RANK", "0")
+    monkeypatch.setenv("MASTER_ADDR", "127.0.0.1")
+    monkeypatch.setenv("MASTER_PORT", "12345")
+    strategy = FSDPStrategy(
+        parallel_devices=[torch.device("cpu")] * 2,
+        cluster_environment=TorchElasticEnvironment(),
+    )
+    strategy.num_nodes = 2
+
+    assert strategy.distributed_sampler_kwargs == {"num_replicas": 3, "rank": 0}

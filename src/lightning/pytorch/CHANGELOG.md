@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `DDPStrategy` and `FSDPStrategy` reporting an incorrect `num_replicas` in `distributed_sampler_kwargs` when the nodes of a cluster hold a different number of devices, by using the actual world size instead of `num_nodes * num_processes` ([#19898](https://github.com/Lightning-AI/pytorch-lightning/issues/19898))
+
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
 - Fixed `RichProgressBar` showing a nonsensical negative epoch total (e.g. `Epoch 5/-2`) when `Trainer(max_epochs=-1)` (unlimited epochs) is used and training stops via another condition ([#21925](https://github.com/Lightning-AI/pytorch-lightning/issues/21925))
