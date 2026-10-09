@@ -1308,9 +1308,7 @@ def test_fit_loop_resume_from_last_batch_checkpoint_without_validation(tmp_path)
                 trainer.should_stop = True
 
     def make_trainer(stop_epoch=None):
-        callbacks = [
-            ModelCheckpoint(dirpath=tmp_path, filename="{epoch}-{step}", every_n_train_steps=2, save_top_k=-1)
-        ]
+        callbacks = [ModelCheckpoint(dirpath=tmp_path, filename="{epoch}-{step}", every_n_train_steps=2, save_top_k=-1)]
         if stop_epoch is not None:
             callbacks.append(StopAfterEpoch(stop_epoch))
         return Trainer(
