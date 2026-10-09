@@ -1294,3 +1294,44 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_fit_loop_resume_from_last_batch_checkpoint_without_validation(tmp_path):
+    """Resuming twice from step checkpoints saved on an epoch's last batch must not repeat or double-count epochs."""
+
+    class StopAfterEpoch(Callback):
+        def __init__(self, epoch):
+            self.epoch = epoch
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.current_epoch == self.epoch:
+                trainer.should_stop = True
+
+    def make_trainer(stop_epoch=None):
+        callbacks = [
+            ModelCheckpoint(dirpath=tmp_path, filename="{epoch}-{step}", every_n_train_steps=2, save_top_k=-1)
+        ]
+        if stop_epoch is not None:
+            callbacks.append(StopAfterEpoch(stop_epoch))
+        return Trainer(
+            default_root_dir=tmp_path,
+            max_epochs=3,
+            limit_train_batches=4,
+            limit_val_batches=0,
+            callbacks=callbacks,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+
+    make_trainer(stop_epoch=0).fit(BoringModel())
+
+    trainer = make_trainer(stop_epoch=1)
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=0-step=4.ckpt"))
+    assert trainer.fit_loop.epoch_progress.total.completed == 2
+
+    trainer = make_trainer()
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=1-step=8.ckpt"))
+    assert trainer.global_step == 12
+    progress = trainer.fit_loop.epoch_progress.total
+    assert progress.ready == progress.started == progress.processed == progress.completed == 3
