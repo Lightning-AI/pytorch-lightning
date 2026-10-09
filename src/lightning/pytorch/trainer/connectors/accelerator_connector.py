@@ -73,8 +73,11 @@ _LITERAL_WARN = Literal["warn"]
 def _is_custom_instance(obj: object, base_name: str) -> bool:
     if isinstance(obj, str):
         return False
+    # Use string concatenation to prevent `.actions/assistant.py` from
+    # aggressively rewriting the string during `pytorch_lightning` package generation.
+    allowed_prefixes = ("lightning" + ".pytorch.", "pytorch_lightning.")
     return any(
-        cls.__name__ == base_name and cls.__module__.startswith(("lightning.", "pytorch_lightning."))
+        cls.__name__ == base_name and cls.__module__.startswith(allowed_prefixes)
         for cls in type(obj).__mro__
     )
 
