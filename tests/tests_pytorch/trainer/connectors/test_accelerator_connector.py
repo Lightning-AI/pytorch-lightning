@@ -122,6 +122,7 @@ def test_cross_namespace_strategy_choice():
     with pytest.raises(ValueError, match="You selected an invalid strategy name"):
         _AcceleratorConnector(strategy=FabricDDPStrategy())
 
+
 def test_precision_and_precision_plugin_raises():
     with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
         _AcceleratorConnector(precision="16-true", plugins=Precision())

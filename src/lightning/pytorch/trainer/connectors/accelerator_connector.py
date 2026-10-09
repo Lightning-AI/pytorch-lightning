@@ -70,16 +70,15 @@ log = logging.getLogger(__name__)
 
 _LITERAL_WARN = Literal["warn"]
 
+
 def _is_cross_namespace_strategy(obj: object) -> bool:
     if isinstance(obj, str):
         return False
     # Use string concatenation to prevent `.actions/assistant.py` from
     # aggressively rewriting the string during `pytorch_lightning` package generation.
     allowed_prefixes = ("lightning" + ".pytorch.", "pytorch_lightning.")
-    return any(
-        cls.__name__ == "Strategy" and cls.__module__.startswith(allowed_prefixes)
-        for cls in type(obj).__mro__
-    )
+    return any(cls.__name__ == "Strategy" and cls.__module__.startswith(allowed_prefixes) for cls in type(obj).__mro__)
+
 
 class _AcceleratorConnector:
     def __init__(
