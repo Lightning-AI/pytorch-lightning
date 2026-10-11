@@ -21,6 +21,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.mlflow import (
     _MLFLOW_AVAILABLE,
+    LOCAL_FILE_URI_PREFIX,
     MLFlowLogger,
     _get_resolve_tags,
 )
@@ -427,3 +428,20 @@ def test_set_tracking_uri(mlflow_mock):
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
     mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
+
+
+def test_mlflow_logger_reads_tracking_uri_env_at_init(mlflow_mock, tmp_path, monkeypatch):
+    """`MLFLOW_TRACKING_URI` set after importing Lightning is still picked up."""
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    logger = MLFlowLogger(save_dir=str(tmp_path))
+    assert logger._tracking_uri == "http://localhost:5000"
+    mlflow_mock.tracking.MlflowClient.assert_called_with("http://localhost:5000")
+
+    # an explicit `tracking_uri` wins over the environment variable
+    logger = MLFlowLogger(tracking_uri="http://other:5000", save_dir=str(tmp_path))
+    assert logger._tracking_uri == "http://other:5000"
+
+    # without either, the logger falls back to a local file store in `save_dir`
+    monkeypatch.delenv("MLFLOW_TRACKING_URI")
+    logger = MLFlowLogger(save_dir=str(tmp_path))
+    assert logger._tracking_uri == f"{LOCAL_FILE_URI_PREFIX}{tmp_path}"
