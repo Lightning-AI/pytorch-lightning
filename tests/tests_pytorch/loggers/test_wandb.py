@@ -676,3 +676,22 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+
+def test_wandb_logger_dir_argument(wandb_mock, tmp_path):
+    """Test that the `dir` argument is respected when `save_dir` is not provided."""
+    wandb_mock.run = None
+    logger = WandbLogger(dir=tmp_path)
+    assert logger.save_dir == str(tmp_path)
+    _ = logger.experiment
+    assert wandb_mock.init.call_args.kwargs["dir"] == str(tmp_path)
+
+    # `save_dir` takes precedence over `dir`
+    wandb_mock.run = None
+    wandb_mock.init.reset_mock()
+    logger = WandbLogger(save_dir=tmp_path / "save_dir", dir=tmp_path / "dir")
+    assert logger.save_dir == str(tmp_path / "save_dir")
+
+    # defaults to the current working directory if neither is provided
+    logger = WandbLogger()
+    assert logger.save_dir == "."
