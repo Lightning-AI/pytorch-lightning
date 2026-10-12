@@ -18,7 +18,7 @@ defaults:
 
 jobs:
   build-packages:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       PKG_NAME: "lightning"
       # Supply-chain guard: skip PyPI releases newer than this (ISO 8601 duration). See https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to

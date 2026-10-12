@@ -54,7 +54,7 @@ env:
 jobs:
   docs-make:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -151,7 +151,7 @@ jobs:
   deploy-docs:
     needs: docs-make
     if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
