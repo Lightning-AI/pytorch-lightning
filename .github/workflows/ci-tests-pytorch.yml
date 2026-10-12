@@ -43,9 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         # Runner images: https://github.com/actions/runner-images
-        # TODO: move macOS to macos-26 in a follow-up; on that image gloo/spawned-process startup
-        #  takes ~35s per test with torch>=2.7, which pushes the jobs past their timeout
-        os: [macos-15, ubuntu-24.04, windows-2025]
+        os: [macos-26, ubuntu-24.04, windows-2025]
         config:
           # Test unified "lightning" package at the oldest supported and the latest PyTorch
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
@@ -75,7 +73,7 @@ jobs:
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       # TODO: Remove this - Enable running MPS tests on this platform
-      DISABLE_MPS: ${{ matrix.os == 'macos-15' && '1' || '0' }}
+      DISABLE_MPS: ${{ startsWith(matrix.os, 'macos') && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
       # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
       UV_EXCLUDE_NEWER: "2 days"
@@ -187,9 +185,12 @@ jobs:
       - name: Testing PyTorch
         working-directory: tests/tests_pytorch
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+        # On macOS 15+ runners, Local Network Privacy blocks mDNS for non-root processes, so every
+        # hostname/reverse-DNS lookup (e.g. torch's TCPStore connect) stalls ~35s; root is exempt.
+        # See https://github.com/actions/runner-images/issues/14568 and https://github.com/actions/runner-images/issues/10924
         run: |
           echo $GITHUB_RUN_ID
-          python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
+          ${{ runner.os == 'macOS' && 'sudo -E env "PATH=$PATH"' || '' }} python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
             -m pytest . -v --timeout=90 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
             --junitxml=junit.xml -o junit_family=legacy  # NOTE: for Codecov's test results
 
