@@ -360,3 +360,24 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
     dataloader = ArrayAttributeDataloader(dataset)
     _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
+
+
+@pytest.mark.parametrize("predicting", [True, False])
+def test_update_dataloader_positional_arguments(predicting):
+    """Test that positional arguments passed to DataLoader (such as batch_size, shuffle) are updated properly without
+    triggering 'TypeError: got multiple values for argument'."""
+    from lightning.fabric.utilities.data import _replace_dunder_methods
+
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        dataloader = DataLoader(range(10), 2, True)
+
+    assert dataloader.__pl_saved_args == (range(10), 2, True)
+    assert dataloader.__pl_saved_arg_names == ("dataset", "batch_size", "shuffle")
+
+    mode = RunningStage.PREDICTING if predicting else None
+    updated = _update_dataloader(dataloader, dataloader.sampler, mode=mode)
+    assert isinstance(updated, DataLoader)
+    if predicting:
+        assert isinstance(updated.batch_sampler, _IndexBatchSamplerWrapper)
+    else:
+        assert updated.batch_size == 2
