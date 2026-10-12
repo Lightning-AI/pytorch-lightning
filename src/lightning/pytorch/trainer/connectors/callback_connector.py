@@ -25,6 +25,7 @@ from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.pytorch.callbacks import (
     Callback,
     Checkpoint,
+    DeviceSummary,
     ModelCheckpoint,
     ModelSummary,
     ProgressBar,
@@ -57,6 +58,7 @@ class _CallbackConnector:
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
         enable_model_summary: bool,
+        enable_device_summary: bool,
         max_time: Optional[Union[str, timedelta, dict[str, int]]] = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
@@ -80,6 +82,9 @@ class _CallbackConnector:
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary)
+
+        # configure the DeviceSummary callback
+        self._configure_device_summary_callback(enable_device_summary)
 
         self.trainer.callbacks.extend(_load_external_callbacks("lightning.pytorch.callbacks_factory"))
         _validate_callbacks_list(self.trainer.callbacks)
@@ -128,6 +133,20 @@ class _CallbackConnector:
         model_summary: ModelSummary
         model_summary = RichModelSummary() if _RICH_AVAILABLE else ModelSummary()
         self.trainer.callbacks.append(model_summary)
+
+    def _configure_device_summary_callback(self, enable_device_summary: bool) -> None:
+        if not enable_device_summary:
+            return
+
+        device_summary_cbs = [type(cb) for cb in self.trainer.callbacks if isinstance(cb, DeviceSummary)]
+        if device_summary_cbs:
+            rank_zero_info(
+                f"Trainer already configured with device summary callbacks: {device_summary_cbs}."
+                " Skipping setting a default `DeviceSummary` callback."
+            )
+            return
+
+        self.trainer.callbacks.append(DeviceSummary())
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBar)]
