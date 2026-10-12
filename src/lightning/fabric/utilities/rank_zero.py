@@ -50,8 +50,8 @@ rank_zero_only = rank_zero_module.rank_zero_only
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)
 
 
-class LightningDeprecationWarning(DeprecationWarning):
+class LightningDeprecationWarning(FutureWarning):
     """Deprecation warnings raised by Lightning."""
 
 
-rank_zero_module.rank_zero_deprecation_category = LightningDeprecationWarning
+rank_zero_module.rank_zero_deprecation_category = LightningDeprecationWarning  # type: ignore[assignment]
