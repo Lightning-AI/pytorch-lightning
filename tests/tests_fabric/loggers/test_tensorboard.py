@@ -111,6 +111,68 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+def test_tensorboard_log_metrics_grouping_disabled_by_default(tmp_path):
+    """Without `group_metrics`, every key keeps its own chart, as before."""
+    logger = TensorBoardLogger(tmp_path)
+    logger._experiment = Mock()
+
+    logger.log_metrics({"losses/a": 0.1, "losses/b": 0.2}, step=0)
+
+    logger.experiment.add_scalars.assert_not_called()
+    logger.experiment.add_scalar.assert_any_call("losses/a", 0.1, 0)
+    logger.experiment.add_scalar.assert_any_call("losses/b", 0.2, 0)
+    assert logger.experiment.add_scalar.call_count == 2
+
+
+def test_tensorboard_log_metrics_grouping(tmp_path):
+    """With `group_metrics`, keys sharing a `/` prefix go through `add_scalars`."""
+    logger = TensorBoardLogger(tmp_path, group_metrics=True)
+    logger._experiment = Mock()
+
+    logger.log_metrics({"losses/a": 0.1, "losses/b": torch.tensor(0.5), "acc": 0.9}, step=3)
+
+    logger.experiment.add_scalars.assert_any_call("losses", {"a": 0.1}, 3)
+    logger.experiment.add_scalars.assert_any_call("losses", {"b": 0.5}, 3)
+    assert logger.experiment.add_scalars.call_count == 2
+    # a key without a separator is still logged on its own chart
+    logger.experiment.add_scalar.assert_called_once_with("acc", 0.9, 3)
+
+
+def test_tensorboard_log_metrics_grouping_uses_last_separator(tmp_path):
+    """Only the last `/` splits group and metric, so deeper hierarchies keep their sub-path."""
+    logger = TensorBoardLogger(tmp_path, group_metrics=True)
+    logger._experiment = Mock()
+
+    logger.log_metrics({"losses/train/acc": 0.5}, step=1)
+
+    logger.experiment.add_scalars.assert_called_once_with("losses/train", {"acc": 0.5}, 1)
+    logger.experiment.add_scalar.assert_not_called()
+
+
+@pytest.mark.parametrize("key", ["acc", "/acc", "acc/"])
+def test_tensorboard_log_metrics_grouping_unmatched_keys(tmp_path, key):
+    """Keys that do not split into a non-empty group and name fall back to `add_scalar`."""
+    logger = TensorBoardLogger(tmp_path, group_metrics=True)
+    logger._experiment = Mock()
+
+    logger.log_metrics({key: 0.7}, step=2)
+
+    logger.experiment.add_scalars.assert_not_called()
+    logger.experiment.add_scalar.assert_called_once_with(key, 0.7, 2)
+
+
+def test_tensorboard_log_metrics_grouping_dict_value_unchanged(tmp_path):
+    """A mapping value is still forwarded to `add_scalars` as a whole, regardless of the flag."""
+    for group_metrics in (False, True):
+        logger = TensorBoardLogger(tmp_path, group_metrics=group_metrics)
+        logger._experiment = Mock()
+
+        logger.log_metrics({"grouped": {"a": 0.1, "b": 0.2}}, step=0)
+
+        logger.experiment.add_scalars.assert_called_once_with("grouped", {"a": 0.1, "b": 0.2}, 0)
+        logger.experiment.add_scalar.assert_not_called()
+
+
 def test_tensorboard_log_hyperparams(tmp_path):
     logger = TensorBoardLogger(tmp_path)
     hparams = {
