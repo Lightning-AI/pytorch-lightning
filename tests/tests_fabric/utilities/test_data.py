@@ -704,3 +704,17 @@ def test_state():
     assert "key1" not in state
     with pytest.raises(KeyError):
         del state.key3
+
+
+def test_update_dataloader_positional_arguments():
+    """Test that positional arguments passed to DataLoader (such as batch_size, shuffle) are updated properly without
+    triggering 'TypeError: got multiple values for argument'."""
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        dataloader = DataLoader(range(10), 2, True)
+
+    assert dataloader.__pl_saved_args == (range(10), 2, True)
+    assert dataloader.__pl_saved_arg_names == ("dataset", "batch_size", "shuffle")
+
+    updated = _update_dataloader(dataloader, dataloader.sampler)
+    assert isinstance(updated, DataLoader)
+    assert updated.batch_size == 2

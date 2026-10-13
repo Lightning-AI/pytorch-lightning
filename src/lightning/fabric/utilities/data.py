@@ -128,10 +128,20 @@ def _get_dataloader_init_args_and_kwargs(
 
     dataset = dl_kwargs.get("dataset", original_dataset)
     if isinstance(dataset, IterableDataset):
-        dl_kwargs["batch_sampler"] = None
-        dl_kwargs["sampler"] = None
+        updates = {"batch_sampler": None, "sampler": None}
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler))
+        updates = _dataloader_init_kwargs_resolve_sampler(dataloader, sampler)
+
+    if was_wrapped:
+        default_kwargs = getattr(dataloader, "__pl_saved_default_kwargs", {})
+        for k, v in updates.items():
+            success, dl_args, dl_kwargs = _replace_value_in_saved_args(
+                k, v, dl_args, dl_kwargs, default_kwargs, arg_names
+            )
+            if not success:
+                dl_kwargs[k] = v
+    else:
+        dl_kwargs.update(updates)
 
     required_args = {
         p.name
