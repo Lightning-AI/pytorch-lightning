@@ -122,7 +122,7 @@ class _LoggerConnector:
                 step = int(step_metric)
             else:
                 # added metrics for convenience
-                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
+                scalar_metrics.setdefault(f"{self.trainer.log_key_prefix}epoch", self.trainer.current_epoch)
                 step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics

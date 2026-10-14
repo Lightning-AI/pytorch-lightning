@@ -20,7 +20,6 @@ import os
 import pstats
 import tempfile
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional, Union
 
 from typing_extensions import override
@@ -42,7 +41,7 @@ class AdvancedProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
         line_count_restriction: float = 1.0,
         dump_stats: bool = False,
