@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
+import threading
+from unittest.mock import Mock, patch
 
 import pytest
 import torch
@@ -196,3 +197,204 @@ def test_amp_forward_context_keeps_cache_enabled():
 
     with amp.forward_context():
         assert torch.is_autocast_cache_enabled()
+
+
+@pytest.mark.parametrize("grad_mode_fn", [lambda: torch.no_grad(), lambda: torch.inference_mode()])
+def test_amp_grad_mode_thread_isolation(grad_mode_fn):
+    """Test that unrelated background threads entering grad-disabled contexts do not trigger cache clears."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    cleared_threads = []
+    orig_clear = torch.clear_autocast_cache
+
+    def spy_clear():
+        cleared_threads.append(threading.get_ident())
+        orig_clear()
+
+    worker_started = threading.Event()
+    worker_done = threading.Event()
+    worker_error: list[Exception] = []
+    worker_tid = None
+
+    def worker():
+        nonlocal worker_tid
+        worker_tid = threading.get_ident()
+        worker_started.set()
+        try:
+            with grad_mode_fn():
+                _ = torch.ones(1)
+        except Exception as e:
+            worker_error.append(e)
+        finally:
+            worker_done.set()
+
+    with patch("torch.clear_autocast_cache", side_effect=spy_clear), amp.forward_context():
+        worker_thread = threading.Thread(target=worker, name="background-worker")
+        worker_thread.start()
+        assert worker_started.wait(timeout=5)
+        assert worker_done.wait(timeout=5)
+        worker_thread.join(timeout=5)
+        assert not worker_thread.is_alive()
+        assert not worker_error
+
+        # Main thread in AMP does clear cache on exit of grad-disabling context
+        main_cleared_before = len(cleared_threads)
+        with grad_mode_fn():
+            _ = torch.ones(1)
+        assert len(cleared_threads) > main_cleared_before
+
+    assert worker_tid is not None
+    assert worker_tid not in cleared_threads
+
+
+@pytest.mark.parametrize("ctx_factory", [lambda: torch.inference_mode(False), lambda: torch.inference_mode(mode=False)])
+def test_amp_inference_mode_false_does_not_clear_cache(ctx_factory):
+    """Test that inference_mode(mode=False) inside active AMP does not clear autocast cache."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    cleared_calls = 0
+    orig_clear = torch.clear_autocast_cache
+
+    def spy_clear():
+        nonlocal cleared_calls
+        cleared_calls += 1
+        orig_clear()
+
+    with patch("torch.clear_autocast_cache", side_effect=spy_clear), amp.forward_context():
+        with ctx_factory():
+            _ = torch.ones(1)
+        assert cleared_calls == 0
+
+
+def test_amp_forward_context_exception_cleanup():
+    """Test that an exception inside forward_context properly restores patched functions and state."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    original_no_grad = torch.no_grad
+    original_inference_mode = torch.inference_mode
+
+    with pytest.raises(RuntimeError, match="controlled test failure"), amp.forward_context():
+        assert torch.no_grad is not original_no_grad
+        raise RuntimeError("controlled test failure")
+
+    assert torch.no_grad is original_no_grad
+    assert torch.inference_mode is original_inference_mode
+
+    # Ensure subsequent no_grad calls in ordinary PyTorch work without issue
+    with torch.no_grad():
+        assert not torch.is_grad_enabled()
+
+
+def test_amp_overlapping_forward_contexts_thread_safety():
+    """Test that concurrent/overlapping AMP contexts across threads do not clobber each other's restoration."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    original_no_grad = torch.no_grad
+    original_inference_mode = torch.inference_mode
+
+    cleared_threads = []
+    orig_clear = torch.clear_autocast_cache
+
+    def spy_clear():
+        cleared_threads.append(threading.get_ident())
+        orig_clear()
+
+    t1_entered = threading.Event()
+    t2_entered = threading.Event()
+    t1_can_exit = threading.Event()
+    t2_can_exit = threading.Event()
+    t1_exited = threading.Event()
+    t2_cleared = threading.Event()
+    errors: list[Exception] = []
+
+    def run_t1():
+        try:
+            with amp.forward_context():
+                t1_entered.set()
+                assert t1_can_exit.wait(timeout=5)
+        except Exception as e:
+            errors.append(e)
+        finally:
+            t1_exited.set()
+
+    def run_t2():
+        try:
+            assert t1_entered.wait(timeout=5)
+            with amp.forward_context():
+                t2_entered.set()
+                assert t1_exited.wait(timeout=5)
+                # T1 has exited, but T2 is still in forward_context, so no_grad should still clear cache
+                before_len = len(cleared_threads)
+                with torch.no_grad():
+                    _ = torch.ones(1)
+                assert len(cleared_threads) > before_len
+                t2_cleared.set()
+                assert t2_can_exit.wait(timeout=5)
+        except Exception as e:
+            errors.append(e)
+
+    with patch("torch.clear_autocast_cache", side_effect=spy_clear):
+        th1 = threading.Thread(target=run_t1)
+        th2 = threading.Thread(target=run_t2)
+        th1.start()
+        th2.start()
+
+        assert t2_entered.wait(timeout=5)
+        t1_can_exit.set()
+        assert t1_exited.wait(timeout=5)
+        assert t2_cleared.wait(timeout=5)
+        t2_can_exit.set()
+
+        th1.join(timeout=5)
+        th2.join(timeout=5)
+        assert not th1.is_alive()
+        assert not th2.is_alive()
+        assert not errors
+
+    assert torch.no_grad is original_no_grad
+    assert torch.inference_mode is original_inference_mode
+
+
+def test_amp_decorators_with_and_without_parentheses():
+    """Test that @torch.no_grad and @torch.inference_mode work both with and without parentheses inside AMP."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+
+    with amp.forward_context():
+
+        @torch.no_grad()
+        def fn_no_grad_parens():
+            return torch.is_grad_enabled()
+
+        @torch.no_grad
+        def fn_no_grad_no_parens():
+            return torch.is_grad_enabled()
+
+        @torch.inference_mode()
+        def fn_inf_parens():
+            return torch.is_inference_mode_enabled()
+
+        @torch.inference_mode
+        def fn_inf_no_parens():
+            return torch.is_inference_mode_enabled()
+
+        assert fn_no_grad_parens() is False
+        assert fn_no_grad_no_parens() is False
+        assert fn_inf_parens() is True
+        assert fn_inf_no_parens() is True
+
+
+def test_amp_context_created_in_amp_exited_outside():
+    """Test that a context manager created inside AMP does not clear cache if executed outside."""
+    amp = MixedPrecision(precision="bf16-mixed", device="cpu")
+    cleared = []
+    orig_clear = torch.clear_autocast_cache
+
+    def spy_clear():
+        cleared.append(threading.get_ident())
+        orig_clear()
+
+    with patch("torch.clear_autocast_cache", side_effect=spy_clear):
+        with amp.forward_context():
+            ctx = torch.no_grad()
+
+        # ctx exited outside forward_context()
+        before = len(cleared)
+        with ctx:
+            _ = torch.ones(1)
+        assert len(cleared) == before
