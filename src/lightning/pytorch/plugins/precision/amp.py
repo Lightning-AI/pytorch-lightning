@@ -9,6 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import threading
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Callable, Literal, Optional, Union, cast
@@ -25,6 +26,17 @@ from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
+_thread_local = threading.local()
+_patch_lock = threading.Lock()
+_active_contexts = 0
+_original_no_grad: Optional[Any] = None
+_original_inference_mode: Optional[Any] = None
+
+
+def _is_in_amp() -> bool:
+    """Return whether the current thread is executing within an active Lightning AMP forward context."""
+    return getattr(_thread_local, "amp_depth", 0) > 0
+
 
 class _AutocastClearCacheOnExit:
     """Proxy a grad-disabling context manager and clear the autocast cache when it exits."""
@@ -38,7 +50,7 @@ class _AutocastClearCacheOnExit:
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Any:
         out = self._context_manager.__exit__(exc_type, exc, tb)
-        if self._clear_cache:
+        if self._clear_cache and _is_in_amp():
             torch.clear_autocast_cache()
         return out
 
@@ -138,13 +150,16 @@ class MixedPrecision(Precision):
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast and clear cached casts after nested grad-disabling contexts exit."""
-        original_no_grad = torch.no_grad
-        original_inference_mode = torch.inference_mode
+        global _active_contexts, _original_no_grad, _original_inference_mode
 
         def _clear_cache_on_exit(
             context_factory: Callable[..., Any], *, clear_cache: Callable[..., bool]
         ) -> Callable[..., Any]:
-            def wrapper(*args: Any, **kwargs: Any) -> _AutocastClearCacheOnExit:
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                if not _is_in_amp():
+                    return context_factory(*args, **kwargs)
+                if len(args) == 1 and callable(args[0]) and not kwargs:
+                    return context_factory(args[0])
                 return _AutocastClearCacheOnExit(
                     context_factory(*args, **kwargs),
                     clear_cache=clear_cache(*args, **kwargs),
@@ -152,24 +167,37 @@ class MixedPrecision(Precision):
 
             return wrapper
 
+        with _patch_lock:
+            if _active_contexts == 0:
+                _original_no_grad = torch.no_grad
+                _original_inference_mode = torch.inference_mode
+                torch_module = cast(Any, torch)
+                torch_module.no_grad = _clear_cache_on_exit(_original_no_grad, clear_cache=lambda *args, **kwargs: True)
+                torch_module.inference_mode = _clear_cache_on_exit(
+                    _original_inference_mode,
+                    clear_cache=lambda *args, **kwargs: bool(args[0] if args else kwargs.get("mode", True)),
+                )
+            _active_contexts += 1
+
+        _thread_local.amp_depth = getattr(_thread_local, "amp_depth", 0) + 1
         try:
             # Lightning wraps the whole step in a persistent autocast context. If a nested `no_grad` or
             # `inference_mode` block creates cached casts there, later grad-enabled forwards in the same step can
             # incorrectly reuse them. Clear the autocast cache when such nested contexts exit, while keeping the
             # default cached path for normal training.
-            torch_module = cast(Any, torch)
-            torch_module.no_grad = _clear_cache_on_exit(original_no_grad, clear_cache=lambda *args, **kwargs: True)
-            torch_module.inference_mode = _clear_cache_on_exit(
-                original_inference_mode,
-                clear_cache=lambda *args, **kwargs: bool(args[0] if args else kwargs.get("mode", True)),
-            )
             dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.half
             with torch.autocast(self.device, dtype=dtype):
                 yield
         finally:
-            torch_module = cast(Any, torch)
-            torch_module.no_grad = original_no_grad
-            torch_module.inference_mode = original_inference_mode
+            _thread_local.amp_depth = max(0, getattr(_thread_local, "amp_depth", 0) - 1)
+            with _patch_lock:
+                _active_contexts -= 1
+                if _active_contexts == 0:
+                    torch_module = cast(Any, torch)
+                    torch_module.no_grad = _original_no_grad
+                    torch_module.inference_mode = _original_inference_mode
+                    _original_no_grad = None
+                    _original_inference_mode = None
 
     @override
     def state_dict(self) -> dict[str, Any]:
