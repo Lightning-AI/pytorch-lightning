@@ -52,10 +52,10 @@ class _AcceleratorRegistry(dict):
         override: bool = False,
         **init_params: Any,
     ) -> Callable:
-        """Registers a accelerator mapped to a name and with required metadata.
+        """Registers an accelerator mapped to a name and with required metadata.
 
         Args:
-            name : the name that identifies a accelerator, e.g. "gpu"
+            name : the name that identifies an accelerator, e.g. "gpu"
             accelerator : accelerator class
             description : accelerator description
             override : overrides the registered accelerator, if True
@@ -89,7 +89,7 @@ class _AcceleratorRegistry(dict):
         """Calls the registered accelerator with the required parameters and returns the accelerator object.
 
         Args:
-            name (str): the name that identifies a accelerator, e.g. "gpu"
+            name (str): the name that identifies an accelerator, e.g. "gpu"
 
         """
         if name in self:
