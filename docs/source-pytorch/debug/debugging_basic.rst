@@ -45,7 +45,7 @@ Run all your model code once quickly
 ************************************
 If you've ever trained a model for days only to crash during validation or testing then this trainer argument is about to become your best friend.
 
-The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
+The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 1 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
 
 .. code:: python
 
