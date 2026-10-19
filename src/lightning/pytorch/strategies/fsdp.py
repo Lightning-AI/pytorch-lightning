@@ -613,7 +613,7 @@ class FSDPStrategy(ParallelStrategy):
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, strict=self.lightning_module.strict_loading)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:

@@ -446,7 +446,7 @@ def _load_checkpoint(
         state_dict_options = StateDictOptions(cpu_offload=True)
 
         module_state = {module_key: get_model_state_dict(module)}
-        _distributed_checkpoint_load(module_state, path)
+        _distributed_checkpoint_load(module_state, path, strict=strict)
         module.load_state_dict(module_state[module_key], strict=strict)
 
         # the optimizer states must be loaded separately
