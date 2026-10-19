@@ -335,6 +335,9 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
+        if trainer.ckpt_path is not None:
+            # A step checkpoint can be saved before the next optimizer step when gradients are accumulated.
+            self._last_global_step_saved = trainer.global_step
 
     @override
     def on_train_batch_end(

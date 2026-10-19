@@ -172,3 +172,58 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
     expected = val_scores[1]  # validation runs only once at epoch 2, logging index 1
     actual = float(ckpt.best_model_score)
     assert math.isclose(actual, expected, rel_tol=0, abs_tol=1e-6)
+
+
+def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(tmp_path):
+    class Model(LightningModule):
+        def __init__(self, crash_at=None):
+            super().__init__()
+            torch.manual_seed(0)
+            self.layer = torch.nn.Linear(4, 1)
+            self.crash_at = crash_at
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == self.crash_at:
+                raise RuntimeError("simulated crash")
+            return (self.layer(batch) - 3).pow(2).mean()
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.05)
+
+        def train_dataloader(self):
+            return DataLoader(torch.ones(8, 4), batch_size=1)
+
+    checkpoint_dir = tmp_path / "run"
+    checkpoint_path = checkpoint_dir / "epoch=0-step=2.ckpt"
+
+    def fit(crash_at, ckpt_path=None):
+        model = Model(crash_at)
+        trainer = Trainer(
+            accelerator="cpu",
+            max_epochs=1,
+            accumulate_grad_batches=2,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            callbacks=[
+                ModelCheckpoint(
+                    dirpath=checkpoint_dir,
+                    every_n_train_steps=2,
+                    save_top_k=-1,
+                )
+            ],
+        )
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            trainer.fit(model, ckpt_path=ckpt_path)
+
+    def checkpoint_progress():
+        checkpoint = torch.load(checkpoint_path, weights_only=False)
+        batches_completed = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_progress"]["current"]["completed"]
+        return checkpoint["global_step"], batches_completed
+
+    fit(crash_at=5)
+    checkpoint_before_resume = checkpoint_progress()
+    assert checkpoint_before_resume == (2, 3)
+
+    fit(crash_at=5, ckpt_path=checkpoint_path)
+    assert checkpoint_progress() == checkpoint_before_resume
