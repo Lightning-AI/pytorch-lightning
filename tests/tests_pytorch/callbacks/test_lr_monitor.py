@@ -122,6 +122,32 @@ def test_log_momentum_no_momentum_optimizer(tmp_path):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
+def test_log_weight_decay_no_weight_decay_optimizer(tmp_path):
+    """Test that an optimizer without weight decay logs a value of 0 with log_weight_decay=True."""
+
+    class LogWeightDecayModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = optim.Rprop(self.parameters(), lr=1e-2)
+            lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = LogWeightDecayModel()
+    lr_monitor = LearningRateMonitor(log_weight_decay=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_val_batches=2,
+        limit_train_batches=5,
+        log_every_n_steps=1,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmp_path),
+    )
+    trainer.fit(model)
+
+    assert all(v == 0 for v in lr_monitor.last_weight_decay_values.values()), "Expected weight decay to be logged"
+    assert list(lr_monitor.last_weight_decay_values) == ["lr-Rprop-weight_decay"]
+
+
 def test_lr_monitor_no_lr_scheduler_single_lr(tmp_path):
     """Test that learning rates are extracted and logged for no lr scheduler."""
 

@@ -270,7 +270,7 @@ class LearningRateMonitor(Callback):
         if not self.log_weight_decay:
             return {}
 
-        weight_decay = param_group["weight_decay"]
+        weight_decay = param_group.get("weight_decay", 0)
         self.last_weight_decay_values[name] = weight_decay
         return {name: weight_decay}
 
