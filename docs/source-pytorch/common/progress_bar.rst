@@ -31,6 +31,7 @@ For infinite datasets, the progress bar never ends.
 You can update ``refresh_rate`` (rate (number of batches) at which the progress bar get updated) for :class:`~lightning.pytorch.callbacks.TQDMProgressBar` by:
 
 .. code-block:: python
+    :emphasize-lines: 3
 
     from lightning.pytorch.callbacks import TQDMProgressBar
 
@@ -52,6 +53,7 @@ If you want to customize the default :class:`~lightning.pytorch.callbacks.TQDMPr
 specific methods of the callback class and pass your custom implementation to the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
 .. code-block:: python
+    :emphasize-lines: 4,8
 
     class LitProgressBar(TQDMProgressBar):
         def init_validation_tqdm(self):
@@ -115,6 +117,7 @@ You can customize the components used within :class:`~lightning.pytorch.callback
 :func:`~lightning.pytorch.callbacks.RichProgressBar.configure_columns` method.
 
 .. code-block:: python
+    :emphasize-lines: 6,7,8
 
     from rich.progress import TextColumn
 
