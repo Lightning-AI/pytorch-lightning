@@ -277,6 +277,20 @@ class ConvBlockParam(nn.Module):
         return self.bn(x)
 
 
+def test_filter_on_optimizer_compares_identity():
+    """Test that parameters are only excluded if they are in the optimizer, not if they merely have equal values."""
+    in_optimizer, new = nn.Linear(2, 2), nn.Linear(2, 2)
+    for module in (in_optimizer, new):
+        nn.init.zeros_(module.weight)
+        nn.init.zeros_(module.bias)
+    optimizer = SGD(in_optimizer.parameters(), lr=0.1)
+
+    assert BaseFinetuning.filter_on_optimizer(optimizer, new.parameters()) == list(new.parameters())
+
+    with pytest.warns(UserWarning, match="already exist within another group"):
+        assert BaseFinetuning.filter_on_optimizer(optimizer, in_optimizer.parameters()) == []
+
+
 def test_complex_nested_model():
     """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters."""
