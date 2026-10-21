@@ -233,9 +233,7 @@ class LearningRateMonitor(Callback):
         for pg, name in zip(param_groups, names):
             lr = self._extract_lr(pg, name)
             stats.update(lr)
-            momentum = self._extract_momentum(
-                param_group=pg, name=name.replace(name, f"{name}-momentum"), use_betas=use_betas
-            )
+            momentum = self._extract_momentum(param_group=pg, name=f"{name}-momentum", use_betas=use_betas)
             stats.update(momentum)
             weight_decay = self._extract_weight_decay(pg, f"{name}-weight_decay")
             stats.update(weight_decay)
@@ -251,10 +249,12 @@ class LearningRateMonitor(Callback):
         """This function is used the remap the keys if param groups for a given optimizer increased."""
         for group_new_names in names:
             for new_name in group_new_names:
-                old_name = new_name.replace(token, "")
-                if token in new_name and old_name in self.lrs:
-                    self.lrs[new_name] = self.lrs.pop(old_name)
-                elif new_name not in self.lrs:
+                if token in new_name:
+                    old_name = new_name.replace(token, "")
+                    if old_name in self.lrs:
+                        self.lrs[new_name] = self.lrs.pop(old_name)
+                        continue
+                if new_name not in self.lrs:
                     self.lrs[new_name] = []
 
     def _extract_momentum(self, param_group: dict[str, list[float]], name: str, use_betas: bool) -> dict[str, float]:
@@ -294,11 +294,15 @@ class LearningRateMonitor(Callback):
         return name
 
     def _duplicate_param_group_names(self, param_groups: list[dict]) -> set[str]:
-        names = [pg.get("name", f"pg{i}") for i, pg in enumerate(param_groups, start=1)]
-        unique = set(names)
-        if len(names) == len(unique):
-            return set()
-        return {n for n in names if names.count(n) > 1}
+        seen: set[str] = set()
+        duplicates: set[str] = set()
+        for i, pg in enumerate(param_groups, start=1):
+            name = pg.get("name", f"pg{i}")
+            if name in seen:
+                duplicates.add(name)
+            else:
+                seen.add(name)
+        return duplicates
 
     def _find_names_from_schedulers(
         self,
