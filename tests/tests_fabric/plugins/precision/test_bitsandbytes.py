@@ -275,3 +275,51 @@ def test_load_quantized_checkpoint(tmp_path):
     model.load_state_dict(state_dict)
     assert model.linear.weight.dtype == torch.uint8
     assert model.linear.weight.shape == (128, 1)
+
+
+def test_ignore_missing_weights_hook_and_linear8bit_guards(monkeypatch):
+    from torch.nn.modules.module import _IncompatibleKeys
+
+    from lightning.fabric.plugins.precision.bitsandbytes import _ignore_missing_weights_hook
+
+    missing_keys = ["layers.0.weight", "layers.0.bias", "layers.1.weight", "norm.bias"]
+    incompatible = _IncompatibleKeys(missing_keys, ["unexpected.key"])
+    _ignore_missing_weights_hook(torch.nn.Linear(2, 2), incompatible)
+    assert incompatible.missing_keys is missing_keys
+    assert incompatible.missing_keys == ["layers.0.bias", "norm.bias"]
+    assert incompatible.unexpected_keys == ["unexpected.key"]
+
+    module = lightning.fabric.plugins.precision.bitsandbytes
+    module._import_bitsandbytes.cache_clear()
+    monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
+    bitsandbytes_mock = Mock()
+    monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
+
+    class FakeInt8Params(torch.nn.Parameter):
+        pass
+
+    class FakeParams4bit(torch.nn.Parameter):
+        pass
+
+    class Module8bitMock(torch.nn.Linear):
+        def __init__(self, in_features, out_features, bias=True, *_, **__):
+            super().__init__(in_features, out_features, bias)
+            self.weight = FakeInt8Params(self.weight.data, requires_grad=False)
+
+    bitsandbytes_mock.nn.Linear8bitLt = Module8bitMock
+    bitsandbytes_mock.nn.Linear4bit = torch.nn.Linear
+    bitsandbytes_mock.nn.Int8Params = FakeInt8Params
+    bitsandbytes_mock.nn.Params4bit = FakeParams4bit
+
+    BitsandbytesPrecision("int8")
+    _Linear8bitLt = vars(module)["_Linear8bitLt"]
+    layer = _Linear8bitLt(4, 4, bias=False)
+    layer.weight = FakeInt8Params(torch.zeros((4, 4), dtype=torch.int8), requires_grad=False)
+
+    with pytest.raises(NotImplementedError):
+        layer.to_empty(device="cpu")
+
+    with pytest.raises(NotImplementedError):
+        layer.reset_parameters()
+
+    module._import_bitsandbytes.cache_clear()
