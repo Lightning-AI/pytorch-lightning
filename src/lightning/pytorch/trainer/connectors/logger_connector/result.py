@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, Union, cast
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.distributed import ReduceOp
 from torchmetrics import Metric
 from typing_extensions import TypedDict, override
 
@@ -51,7 +52,7 @@ class _Sync:
     fn: Optional[Callable] = None
     _should: bool = False
     rank_zero_only: bool = False
-    _op: Optional[str] = None
+    _op: Optional[Union[ReduceOp, str]] = None
     _group: Optional[Any] = None
 
     def __post_init__(self) -> None:
@@ -68,11 +69,11 @@ class _Sync:
         self._generate_sync_fn()
 
     @property
-    def op(self) -> Optional[str]:
+    def op(self) -> Optional[Union[ReduceOp, str]]:
         return self._op
 
     @op.setter
-    def op(self, op: Optional[str]) -> None:
+    def op(self, op: Optional[Union[ReduceOp, str]]) -> None:
         self._op = op
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
@@ -116,6 +117,7 @@ class _Metadata:
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
+    sync_dist_op: Optional[Union[ReduceOp, str]] = None
     _sync: Optional[_Sync] = None
 
     def __post_init__(self) -> None:
@@ -147,7 +149,7 @@ class _Metadata:
     @sync.setter
     def sync(self, sync: _Sync) -> None:
         if sync.op is None:
-            sync.op = self.reduce_fx.__name__
+            sync.op = self.reduce_fx.__name__ if self.sync_dist_op is None else self.sync_dist_op
         self._sync = sync
 
     @property
@@ -245,6 +247,10 @@ class _ResultMetric(Metric):
     @override
     def compute(self) -> Tensor:
         if self.is_tensor:
+            if self.meta.is_mean_reduction and self.meta.sync_dist_op is not None:
+                # Apply the explicit rank reduction to local epoch means, not to their
+                # numerators and denominators separately. Keep the default sample-weighted mean below.
+                return self.meta.sync(self.value / self.cumulated_batch_size)
             value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
@@ -371,6 +377,7 @@ class _ResultCollection(dict):
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
+        sync_dist_op: Optional[Union[ReduceOp, str]] = None,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -396,8 +403,14 @@ class _ResultCollection(dict):
             add_dataloader_idx=add_dataloader_idx,
             dataloader_idx=self.dataloader_idx,
             metric_attribute=metric_attribute,
+            sync_dist_op=sync_dist_op,
         )
-        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(
+            _should=sync_dist,
+            fn=sync_dist_fn,
+            _group=sync_dist_group,
+            rank_zero_only=rank_zero_only,
+        )
 
         # register logged value if it doesn't exist
         if key not in self:
