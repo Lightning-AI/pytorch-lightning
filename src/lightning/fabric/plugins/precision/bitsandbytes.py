@@ -170,9 +170,7 @@ def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_di
 def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _IncompatibleKeys) -> None:
     # since we manually loaded the weight in the `_quantize_on_load_hook` hook, we need to avoid this missing key false
     # positive
-    for key in reversed(incompatible_keys.missing_keys):
-        if key.endswith("weight"):
-            incompatible_keys.missing_keys.remove(key)
+    incompatible_keys.missing_keys[:] = [key for key in incompatible_keys.missing_keys if not key.endswith("weight")]
 
 
 def _replace_param(param: torch.Tensor, data: torch.Tensor, quant_state: Any = None) -> torch.nn.Parameter:
@@ -270,7 +268,7 @@ def _import_bitsandbytes() -> ModuleType:
             if self.weight.device.type == "meta":
                 # need custom logic if int8params is on meta device
                 raise NotImplementedError
-            if self.weight.dtype == torch.uint8:  # was quantized
+            if self.weight.dtype == torch.int8:  # was quantized
                 # need the original shape here
                 raise NotImplementedError
             device = torch.device(device)
@@ -290,8 +288,8 @@ def _import_bitsandbytes() -> ModuleType:
                 bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
                 init.uniform_(self.bias, -bound, bound)
 
-            linear_init_finished = isinstance(self.weight, bnb.nn.Params4bit)
-            if linear_init_finished and self.weight.dtype == torch.uint8:  # was quantized
+            linear_init_finished = isinstance(self.weight, bnb.nn.Int8Params)
+            if linear_init_finished and self.weight.dtype == torch.int8:  # was quantized
                 # need the original shape here
                 raise NotImplementedError
             weight = self.weight.data
