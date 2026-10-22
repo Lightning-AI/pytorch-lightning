@@ -425,9 +425,10 @@ class LightningModule(
             sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
                 communication overhead.
             sync_dist_group: the DDP group to sync across.
-            sync_dist_op: the reduction operation for values across devices. Defaults to the operation inferred from
-                ``reduce_fx`` for backward compatibility. Has no effect unless ``sync_dist`` is ``True`` and the
-                strategy is distributed.
+            sync_dist_op: the reduction operation for values across devices. For epoch metrics, an explicit operation
+                is applied to the locally reduced values (including local batch-weighted means). If omitted, the
+                operation is inferred from ``reduce_fx`` and epoch means remain globally sample-weighted.
+                Has no effect unless ``sync_dist`` is ``True`` and the strategy is distributed.
             add_dataloader_idx: if ``True``, appends the index of the current dataloader to
                 the name (when using multiple dataloaders). If False, user needs to give unique names for
                 each dataloader to not mix the values.
@@ -598,9 +599,10 @@ class LightningModule(
             sync_dist: if ``True``, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
                 communication overhead.
             sync_dist_group: the ddp group to sync across.
-            sync_dist_op: the reduction operation for values across devices. Defaults to the operation inferred from
-                ``reduce_fx`` for backward compatibility. Has no effect unless ``sync_dist`` is ``True`` and the
-                strategy is distributed.
+            sync_dist_op: the reduction operation for values across devices. For epoch metrics, an explicit operation
+                is applied to the locally reduced values (including local batch-weighted means). If omitted, the
+                operation is inferred from ``reduce_fx`` and epoch means remain globally sample-weighted.
+                Has no effect unless ``sync_dist`` is ``True`` and the strategy is distributed.
             add_dataloader_idx: if ``True``, appends the index of the current dataloader to
                 the name (when using multiple). If ``False``, user needs to give unique names for
                 each dataloader to not mix values.

@@ -341,6 +341,25 @@ class LoggingSyncDistModel(BoringModel):
             reduce_fx="max",
             sync_dist_op="sum",
         )
+        self.log(
+            "foo_13",
+            batch_idx + self.rank,
+            on_step=True,
+            on_epoch=True,
+            sync_dist=True,
+            reduce_fx="mean",
+            sync_dist_op="sum",
+            batch_size=self.rank + 1,
+        )
+        self.log_dict(
+            {"foo_14": batch_idx + self.rank},
+            on_step=False,
+            on_epoch=True,
+            sync_dist=True,
+            reduce_fx="mean",
+            sync_dist_op="mean",
+            batch_size=self.rank + 1,
+        )
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
@@ -392,6 +411,9 @@ def test_logging_sync_dist_true(tmp_path, devices, accelerator):
     assert metrics["foo_11_step"] == (2 + 3) / 2 if use_multiple_devices else fake_result * 2
     assert metrics["foo_11"] == (0 + 1 + 1 + 2 + 2 + 3) / (devices * 3) if use_multiple_devices else fake_result
     assert metrics["foo_12"] == (5 if use_multiple_devices else 2)
+    assert metrics["foo_13_step"] == (5 if use_multiple_devices else 2)
+    assert metrics["foo_13_epoch"] == (3 if use_multiple_devices else 1)
+    assert metrics["foo_14"] == (1.5 if use_multiple_devices else 1)
     assert metrics["bar"] == fake_result * 3 * devices
     assert metrics["bar_2"] == fake_result
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
