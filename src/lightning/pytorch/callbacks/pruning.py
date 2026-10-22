@@ -420,7 +420,7 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
+        map_pruned_params = {k.removesuffix("_mask") for k in state_dict if k.endswith("_mask")}
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")
@@ -459,10 +459,7 @@ class ModelPruning(Callback):
 
         if not parameters_to_prune:
             parameters_to_prune = [
-                (m, p)
-                for p in parameters
-                for m in current_modules
-                if getattr(m, p, None) is not None and isinstance(getattr(m, p, None), nn.Parameter)
+                (m, p) for p in parameters for m in current_modules if isinstance(getattr(m, p, None), nn.Parameter)
             ]
         elif (
             isinstance(parameters_to_prune, (list, tuple))
@@ -470,9 +467,10 @@ class ModelPruning(Callback):
             and all(len(p) == 2 for p in parameters_to_prune)
             and all(isinstance(a, nn.Module) and isinstance(b, str) for a, b in parameters_to_prune)
         ):
+            current_modules_set = set(current_modules)
             missing_modules, missing_parameters = [], []
             for module, name in parameters_to_prune:
-                if module not in current_modules:
+                if module not in current_modules_set:
                     missing_modules.append(module)
                     continue
                 if not hasattr(module, name):
