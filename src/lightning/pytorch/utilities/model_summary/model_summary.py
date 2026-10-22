@@ -295,7 +295,7 @@ class ModelSummary:
 
     @property
     def total_layer_params(self) -> int:
-        return sum(self.param_nums)
+        return sum(layer.num_parameters for name, layer in self._layer_summary.items() if "." not in name)
 
     @property
     def model_size(self) -> float:
