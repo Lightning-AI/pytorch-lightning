@@ -38,7 +38,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
+from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, GradientAccumulationScheduler, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.csv_logs import CSVLogger
@@ -1759,8 +1759,9 @@ class Trainer:
     def estimated_stepping_batches(self) -> Union[int, float]:
         r"""The estimated number of batches that will ``optimizer.step()`` during training.
 
-        This accounts for gradient accumulation and the current trainer configuration. This might be used when setting
-        up your training dataloader, if it hasn't been set up already.
+        This accounts for gradient accumulation, including the factors scheduled by the
+        :class:`~lightning.pytorch.callbacks.GradientAccumulationScheduler` callback, and the current trainer
+        configuration. This might be used when setting up your training dataloader, if it hasn't been set up already.
 
         .. code-block:: python
 
@@ -1769,11 +1770,6 @@ class Trainer:
                 stepping_batches = self.trainer.estimated_stepping_batches
                 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=stepping_batches)
                 return [optimizer], [scheduler]
-
-        Raises:
-            MisconfigurationException:
-                If estimated stepping batches cannot be computed due to different `accumulate_grad_batches`
-                at different epochs.
 
         """
         # infinite training
@@ -1791,7 +1787,16 @@ class Trainer:
             return self.max_steps
 
         assert self.max_epochs is not None
-        max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * max(self.max_epochs, 1)
+        num_epochs = max(self.max_epochs, 1)
+        accumulation_scheduler = next((c for c in self.callbacks if isinstance(c, GradientAccumulationScheduler)), None)
+        if accumulation_scheduler is None:
+            max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * num_epochs
+        else:
+            # the accumulation factor can change between epochs
+            max_estimated_steps = sum(
+                math.ceil(total_batches / accumulation_scheduler.get_accumulate_grad_batches(epoch))
+                for epoch in range(num_epochs)
+            )
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
