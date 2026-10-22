@@ -21,6 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.strategies import SingleDeviceXLAStrategy
 from tests_pytorch.conftest import mock_cuda_count
@@ -98,6 +99,19 @@ def test_num_stepping_batches_with_max_steps(max_steps, tmp_path):
 def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expected_steps):
     """Test the total stepping batches when accumulation grad batches is configured."""
     trainer = Trainer(max_epochs=1, accumulate_grad_batches=accumulate_grad_batches)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_stepping_batches == expected_steps
+
+
+@pytest.mark.parametrize(
+    ("scheduling", "expected_steps"),
+    [({0: 4}, 16 * 3), ({0: 1, 2: 4}, 64 * 2 + 16), ({1: 3}, 64 + 22 * 2)],
+)
+def test_num_stepping_batches_gradient_accumulation_scheduler(scheduling, expected_steps):
+    """Test the total stepping batches when the accumulation factor is set by the `GradientAccumulationScheduler`."""
+    trainer = Trainer(max_epochs=3, callbacks=GradientAccumulationScheduler(scheduling=scheduling))
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
