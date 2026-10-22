@@ -400,6 +400,11 @@ The resulting checkpoint folder will have this structure:
 
 The “sharded” checkpoint format is the most efficient to save and load in Lightning.
 
+.. note::
+
+    The checkpoint path can also be a remote filesystem URL supported by `fsspec <https://filesystem-spec.readthedocs.io/>`_, such as ``s3://my-bucket/checkpoint``, ``gs://my-bucket/checkpoint``, or ``abfs://my-container/checkpoint``.
+    This requires the corresponding fsspec implementation to be installed (e.g., ``s3fs``, ``gcsfs``, or ``adlfs``).
+
 **Which checkpoint format should I use?**
 
 - ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable. An extra step is needed to :doc:`convert the sharded checkpoint into a regular checkpoint file <../../common/checkpointing_expert>`.
@@ -426,6 +431,8 @@ You can easily :ref:`load checkpoints <checkpointing>` saved by Lightning to res
 The Trainer will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
 Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
 Read :ref:`the checkpoints guide <checkpointing>` to explore more features.
+
+As with saving, the checkpoint path can point to a remote filesystem URL supported by fsspec (e.g., ``s3://``, ``gs://``, ``abfs://``), and the checkpoint will be read directly from remote storage without needing to download it first.
 
 
 ----

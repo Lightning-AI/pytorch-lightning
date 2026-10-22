@@ -46,6 +46,10 @@ class LearningRateMonitor(Callback):
             has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
         log_weight_decay: option to also log the weight decay values of the optimizer. Defaults to
             ``False``.
+        log_key_prefix: optional string prefix to prepend to all logged metric names. Useful for
+            grouping learning rate metrics in loggers like TensorBoard. For example, setting
+            ``log_key_prefix="optim/"`` would log ``optim/lr-Adam`` instead of ``lr-Adam``.
+            Defaults to ``None`` (no prefix).
 
     Raises:
         MisconfigurationException:
@@ -96,6 +100,7 @@ class LearningRateMonitor(Callback):
         logging_interval: Optional[Literal["step", "epoch"]] = None,
         log_momentum: bool = False,
         log_weight_decay: bool = False,
+        log_key_prefix: Optional[str] = None,
     ) -> None:
         if logging_interval not in (None, "step", "epoch"):
             raise MisconfigurationException("logging_interval should be `step` or `epoch` or `None`.")
@@ -103,6 +108,7 @@ class LearningRateMonitor(Callback):
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
         self.log_weight_decay = log_weight_decay
+        self.log_key_prefix = log_key_prefix or ""
 
         self.lrs: dict[str, list[float]] = {}
         self.last_momentum_values: dict[str, Optional[list[float]]] = {}
@@ -361,4 +367,7 @@ class LearningRateMonitor(Callback):
             )
 
         name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
-        return [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
+        names = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
+        if self.log_key_prefix:
+            names = [f"{self.log_key_prefix}{n}" for n in names]
+        return names

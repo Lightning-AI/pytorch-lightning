@@ -1111,9 +1111,9 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
             super().__init__(*args, **kwargs)
             self.dataloader = dataloader
 
-        def _shutdown_workers(self):
+        def __del__(self):
             self.dataloader.shutdown_workers_epochs.append(trainer.current_epoch)
-            super()._shutdown_workers()
+            super().__del__()
 
     class TestDataLoader(DataLoader):
         def __init__(self, *args, **kwargs):
@@ -1137,8 +1137,8 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
         trainer.fit(model, train_dataloader, val_dataloader)
 
     if persistent_workers:
-        # workers get created and persist until the teardown in the final epoch
-        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+        # workers persist across epochs and are shut down exactly once via __del__.
+        expected = [trainer.current_epoch]
     elif should_fail:
         expected = [
             # <-- iter() on epoch 0, workers get created
@@ -1155,8 +1155,7 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
     assert train_dataloader.shutdown_workers_epochs == expected
 
     if persistent_workers:
-        # workers get created and persist until the teardown in the final epoch
-        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+        expected = [trainer.current_epoch]
     elif should_fail:
         expected = [
             # <-- iter() on sanity check, workers get created

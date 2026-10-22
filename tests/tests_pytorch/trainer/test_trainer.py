@@ -2138,3 +2138,23 @@ def test_expand_home_trainer():
     assert trainer.default_root_dir == str(home_root / "trainer")
     trainer = Trainer(default_root_dir=Path("~/trainer"))
     assert trainer.default_root_dir == str(home_root / "trainer")
+
+
+@pytest.mark.parametrize("suggest_integrations", [True, False])
+def test_trainer_integration_suggestions(tmp_path, caplog, suggest_integrations):
+    caplog.set_level("INFO", logger="lightning.pytorch.utilities.rank_zero")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        enable_progress_bar=False,
+        suggest_integrations=suggest_integrations,
+    )
+
+    trainer.fit(BoringModel())
+
+    messages = [r.getMessage() for r in caplog.records if r.name == "lightning.pytorch.utilities.rank_zero"]
+
+    has_suggestion = any("litmodels" in m or "litlogger" in m for m in messages)
+
+    assert has_suggestion == suggest_integrations

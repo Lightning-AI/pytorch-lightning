@@ -43,17 +43,17 @@ jobs:
             echo "CLOUDSDK_COMPUTE_ZONE=us-west4-a" >> $GITHUB_ENV
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.10"
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
-      - uses: "google-github-actions/setup-gcloud@v2"
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
 
       - name: Time-based job cleanup
         if: always()
@@ -165,7 +165,7 @@ jobs:
           gcloud compute tpus tpu-vm list
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -6,18 +6,18 @@ trigger:
 
 timeout: "60" # minutes
 machine: "L4_X_2"
-image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
+image: "nvidia/cuda:13.0.3-devel-ubuntu22.04"
 parametrize:
   matrix: {}
   include:
     # note that this also sets oldest requirements which are linked to Python == 3.10
-    - image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
+    - image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
       PACKAGE_NAME: "pytorch"
       python_version: "3.10"
+
     - PACKAGE_NAME: "pytorch"
       python_version: "3.12"
-    #- image: "nvidia/cuda:12.6.3-devel-ubuntu22.04"
-    #  PACKAGE_NAME: "pytorch"
+
     - PACKAGE_NAME: "lightning"
       python_version: "3.12"
   exclude: []
@@ -122,10 +122,11 @@ run: |
   echo "Install package"
   extra=$(python -c "print({'lightning': 'pytorch-'}.get('${PACKAGE_NAME}', ''))")
 
-  # Use find-links to prefer CUDA-specific packages from PyTorch index
+  # Prefer CUDA-specific builds from the PyTorch index.
+  # torch-tensorrt is intentionally left to PyPI: since 2.13.0 its `+cuXXX` wheels no longer
+  # bundle `libtorchtrt.so`, which silently disables the TorchScript frontend.
   uv pip install -e ".[${extra}dev,${extra}test_gpu]" --upgrade \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}" \
-    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}/torch-tensorrt"
+    --find-links="https://download.pytorch.org/whl/${UV_TORCH_BACKEND}"
   uv pip list
 
   echo "Ensure only a single package is installed"

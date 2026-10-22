@@ -83,6 +83,18 @@ Since the release of PyTorch `2.0`, Lightning strives to officially support the 
      - ``torch``
      - ``torchmetrics``
      - Python
+   * - 2.7
+     - 2.7
+     - 2.7
+     - ≥2.6 (▼ 2.13)
+     - ≥0.7.0
+     - ≥3.10 (▼ 3.13)
+   * - 2.6
+     - 2.6
+     - 2.6
+     - ≥2.1 (▼ 2.10)
+     - ≥0.7.0
+     - ≥3.10 (▼ 3.13)
    * - 2.5
      - 2.5
      - 2.5

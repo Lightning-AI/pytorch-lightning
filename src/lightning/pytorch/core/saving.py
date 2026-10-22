@@ -18,11 +18,12 @@ import csv
 import inspect
 import logging
 import os
+import sys
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union, cast
 from warnings import warn
 
 import torch
@@ -48,6 +49,12 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
+
+# instantiator import paths trusted to resolve from a checkpoint, to prevent code execution (#21822)
+_ALLOWED_INSTANTIATORS = {
+    "lightning.pytorch.cli.instantiate_module",
+    "pytorch_lightning.cli.instantiate_module",
+}
 
 
 def _load_from_checkpoint(
@@ -156,7 +163,19 @@ def _load_state(
     instantiator = None
     instantiator_path = _cls_kwargs.pop("_instantiator", None)
     if instantiator_path is not None:
-        # import custom instantiator
+        if not isinstance(instantiator_path, str) or instantiator_path not in _ALLOWED_INSTANTIATORS:
+            raise ValueError(
+                f"The instantiator {instantiator_path!r} from the checkpoint is not in the allowlist of trusted"
+                " instantiators and was blocked to prevent arbitrary code execution. If you trust this checkpoint,"
+                " add the path to `lightning.pytorch.core.saving._ALLOWED_INSTANTIATORS` before loading."
+            )
+        class_path = _cls_kwargs.get("_class_path")
+        if class_path is not None and not _is_imported_subclass(class_path, cls):
+            raise ValueError(
+                f"The class {class_path!r} requested by the checkpoint does not resolve to an already imported"
+                f" subclass of {cls.__name__} and was blocked to prevent arbitrary code execution. If you trust this"
+                " checkpoint, import the module that defines the class before loading."
+            )
         module_path, name = instantiator_path.rsplit(".", 1)
         instantiator = getattr(__import__(module_path, fromlist=[name]), name)
 
@@ -199,6 +218,19 @@ def _load_state(
             )
 
     return obj
+
+
+def _is_imported_subclass(class_path: Any, cls: type) -> bool:
+    """Check whether ``class_path`` names an already imported subclass of ``cls``.
+
+    Resolution reads ``sys.modules`` only, so validating a checkpoint never imports new code.
+
+    """
+    if not isinstance(class_path, str):
+        return False
+    module_path, _, name = class_path.rpartition(".")
+    target = getattr(sys.modules.get(module_path), name, None)
+    return isinstance(target, type) and issubclass(target, cls)
 
 
 def _convert_loaded_hparams(
@@ -313,7 +345,8 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> di
         from omegaconf.errors import UnsupportedValueType, ValidationError
 
         with contextlib.suppress(UnsupportedValueType, ValidationError):
-            return OmegaConf.create(hparams)
+            # OmegaConf containers are mapping-like but not `dict` subclasses
+            return cast("dict[str, Any]", OmegaConf.create(hparams))
     return hparams
 
 

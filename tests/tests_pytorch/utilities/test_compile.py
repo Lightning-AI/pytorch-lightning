@@ -18,14 +18,11 @@ from unittest import mock
 import pytest
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
-
-_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
 
 
 # https://github.com/pytorch/pytorch/issues/95708
@@ -157,10 +154,7 @@ def test_compile_uncompile():
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
-@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
-@pytest.mark.xfail(
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
-)
+@pytest.mark.xfail(sys.platform == "win32", strict=False, reason="RuntimeError: Failed to import")
 @RunIf(dynamo=True)
 @mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_that_logs(tmp_path):
@@ -188,10 +182,7 @@ def test_trainer_compiled_model_that_logs(tmp_path):
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
-@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
-@pytest.mark.xfail(
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
-)
+@pytest.mark.xfail(sys.platform == "win32", strict=False, reason="RuntimeError: Failed to import")
 @RunIf(dynamo=True)
 @mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_test(tmp_path):

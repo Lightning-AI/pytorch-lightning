@@ -298,6 +298,27 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmp_path):
     trainer.fit(model)
 
 
+@RunIf(dynamo=True)
+def test_toggle_untoggle_optimizer_are_compiler_disabled():
+    """Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/21513.
+
+    ``toggle_optimizer`` / ``untoggle_optimizer`` mutate ``requires_grad`` on Parameters, which
+    Dynamo/AOTAutograd does not support because it can change a tensor's leaf-ness mid-graph.
+    Tracing these helpers either graph-breaks with ``Unsupported: setattr() on Tensor.requires_grad``
+    or raises a ``KeyError`` on the internal ``param_requires_grad_state`` mapping when the traced
+    parameter references diverge from those held by ``trainer.optimizers``. Both methods are
+    decorated with ``@torch.compiler.disable`` so that Dynamo never enters them. This test verifies
+    the decorator is attached via the ``_torchdynamo_disable`` attribute the decorator installs
+    (the same assertion pattern used by ``tests/utilities/test_compile.py::test_compile_uncompile``).
+    """
+
+    def is_compiler_disabled(fn):
+        return any(el.startswith("_torchdynamo_disable") for el in dir(fn))
+
+    assert is_compiler_disabled(LightningModule.toggle_optimizer)
+    assert is_compiler_disabled(LightningModule.untoggle_optimizer)
+
+
 @pytest.mark.parametrize(
     ("accelerator", "device"),
     [
