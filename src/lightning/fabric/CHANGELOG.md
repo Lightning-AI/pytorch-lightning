@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- `Fabric.setup`, `Fabric.setup_optimizers` and `Fabric.setup_dataloaders` now declare return-type overloads, so type checkers infer the concrete wrapped type instead of `Any` ([#22009](https://github.com/Lightning-AI/pytorch-lightning/pull/22009))
 
 ### Removed
 
