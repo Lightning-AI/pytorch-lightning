@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import deque
 from collections.abc import Iterator
 from typing import Any, Optional
 
@@ -98,7 +99,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         if prefetch_batches < 0:
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
-        self.batches: list[Any] = []
+        self.batches: deque[Any] = deque()
 
     @override
     def __iter__(self) -> "_PrefetchDataFetcher":
@@ -122,7 +123,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
             # consume one
-            batch = self.batches.pop(0)
+            batch = self.batches.popleft()
             try:
                 # refill the consumed batch
                 self.batches.append(super().__next__())
@@ -140,7 +141,7 @@ class _PrefetchDataFetcher(_DataFetcher):
     @override
     def reset(self) -> None:
         super().reset()
-        self.batches = []
+        self.batches.clear()
 
 
 class _DataLoaderIterDataFetcher(_DataFetcher):
