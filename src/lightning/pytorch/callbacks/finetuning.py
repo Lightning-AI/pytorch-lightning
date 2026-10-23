@@ -237,11 +237,13 @@ class BaseFinetuning(Callback):
         removed_params = []
         # compare by identity: `torch.equal` would also match distinct parameters that merely have equal values
         existing_params = {id(p) for group in optimizer.param_groups for p in group["params"]}
+        seen = set()
         for param in params:
-            if id(param) not in existing_params:
-                out_params.append(param)
-            else:
+            if id(param) in existing_params:
                 removed_params.append(param)
+            elif id(param) not in seen:  # a parameter shared by several unfrozen modules is added once
+                seen.add(id(param))
+                out_params.append(param)
 
         if removed_params:
             rank_zero_warn(
