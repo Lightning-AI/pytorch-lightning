@@ -15,6 +15,7 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
+import numpy as np
 import pytest
 
 from lightning.pytorch import Trainer
@@ -427,3 +428,32 @@ def test_set_tracking_uri(mlflow_mock):
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
     mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
+
+
+def test_mlflow_logger_log_model(tmp_path):
+    """Test that a model can be logged to the run and registered in the MLflow model registry."""
+    if not _MLFLOW_AVAILABLE:
+        pytest.skip("test for explicit file creation requires mlflow dependency to be installed.")
+
+    import mlflow.pyfunc
+    from mlflow.tracking import MlflowClient
+
+    logger = MLFlowLogger("test", tracking_uri=f"sqlite:///{tmp_path}/mlflow.db")
+    model = BoringModel()
+
+    logger.log_model(model, "my-model", registered_model_name="test-model")
+
+    client = MlflowClient(logger._tracking_uri)
+    model_versions = client.search_model_versions("name='test-model'")
+    assert len(model_versions) == 1
+    assert model_versions[0].run_id == logger.run_id
+    assert model_versions[0].status == "READY"
+    # logging a model should not terminate the run
+    assert client.get_run(logger.run_id).info.status == "RUNNING"
+
+    # the logged model can be loaded and used for inference
+    loaded_model = mlflow.pyfunc.load_model(f"models:/test-model/{model_versions[0].version}")
+    assert loaded_model.predict(np.zeros((1, 32), dtype="float32")).shape == (1, 2)
+
+    # MLflow exports the tracking URI to the environment, which would leak out of the test
+    os.environ.pop("MLFLOW_TRACKING_URI", None)

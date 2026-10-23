@@ -16,6 +16,7 @@ MLflow Logger
 -------------
 """
 
+import inspect
 import logging
 import os
 import re
@@ -29,6 +30,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 import yaml
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from torch.nn import Module
 from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
@@ -269,6 +271,60 @@ class MLFlowLogger(Logger):
             metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
         self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list, **self._log_batch_kwargs)
+
+    @rank_zero_only
+    def log_model(
+        self,
+        model: Module,
+        artifact_path: str = "model",
+        registered_model_name: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Log a model to the MLflow run.
+
+        The model gets logged with the ``pytorch`` flavor of MLflow. This makes the model available in the MLflow UI
+        and allows registering it in the MLflow model registry.
+
+        This is unrelated to the ``log_model`` argument of the logger, which controls whether the checkpoints created
+        by the :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callback get logged as MLflow
+        artifacts.
+
+        Args:
+            model: The model to log.
+            artifact_path: The run relative path the model gets logged to.
+            registered_model_name: If given, the model gets registered in the MLflow model registry under this name.
+            **kwargs: Additional keyword arguments passed to the MLflow ``pytorch`` flavor, for example
+                ``input_example`` or ``signature``.
+
+        """
+        import mlflow.pytorch
+        from mlflow.models import Model
+
+        if (
+            "input_example" not in kwargs
+            and "serialization_format" not in kwargs
+            and "serialization_format" in inspect.signature(mlflow.pytorch.save_model).parameters
+        ):
+            # The `pt2` format requires an input example to trace the model, which cannot be inferred here.
+            # The `pickle` format supports any model.
+            kwargs["serialization_format"] = "pickle"
+
+        # `artifact_path` got deprecated in MLflow 3.0 in favor of `name`
+        if "name" in inspect.signature(Model.log).parameters:
+            kwargs["artifact_path"] = None
+            kwargs["name"] = artifact_path
+        else:
+            kwargs["artifact_path"] = artifact_path
+
+        # `mlflow.pytorch.log_model` logs the model to the currently active run, but this logger owns the run.
+        # `Model.log` allows logging the model to the run created by this logger.
+        Model.log(
+            flavor=mlflow.pytorch,
+            pytorch_model=model,
+            registered_model_name=registered_model_name,
+            run_id=self.run_id,
+            **kwargs,
+        )
 
     @override
     @rank_zero_only
