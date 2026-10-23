@@ -22,7 +22,6 @@ import logging
 from collections.abc import Generator, Iterable
 from typing import Any, Callable, Optional, Union
 
-import torch
 from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
@@ -236,11 +235,15 @@ class BaseFinetuning(Callback):
         """
         out_params = []
         removed_params = []
+        # compare by identity: `torch.equal` would also match distinct parameters that merely have equal values
+        existing_params = {id(p) for group in optimizer.param_groups for p in group["params"]}
+        seen = set()
         for param in params:
-            if not any(torch.equal(p, param) for group in optimizer.param_groups for p in group["params"]):
-                out_params.append(param)
-            else:
+            if id(param) in existing_params:
                 removed_params.append(param)
+            elif id(param) not in seen:  # a parameter shared by several unfrozen modules is added once
+                seen.add(id(param))
+                out_params.append(param)
 
         if removed_params:
             rank_zero_warn(
