@@ -143,6 +143,15 @@ class Timer(Callback):
         return None
 
     @override
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        # forget the timings of a previous ``fit`` so they are not counted against the new run. This runs before the
+        # checkpoint state is restored, so a resumed ``offset`` is still honoured.
+        if stage == "fit":
+            self._start_time[RunningStage.TRAINING] = None
+            self._end_time[RunningStage.TRAINING] = None
+            self._offset = 0
+
+    @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()
 
