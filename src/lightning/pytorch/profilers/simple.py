@@ -141,7 +141,7 @@ class SimpleProfiler(Profiler):
                         f"{duration_per:.5}",
                     )
                 output_string += sep_lines
-        else:
+        elif len(self.recorded_durations) > 0:
             max_key = max(len(k) for k in self.recorded_durations)
 
             def log_row(action: str, mean: str, total: str) -> str:
