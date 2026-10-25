@@ -634,3 +634,57 @@ def test_scale_batch_size_max_trials_modes(tmp_path, max_trials, mode, init_val,
         init_val=init_val,
     )
     assert result == expected
+
+
+@pytest.mark.parametrize("mode", ["power", "binsearch"])
+@pytest.mark.parametrize(("init_val", "max_val", "expected"), [(2, 6, 6), (16, 6, 6), (4096, 16384, 16384)])
+def test_scale_batch_size_max_val_forwarding(tmp_path, mode, init_val, max_val, expected):
+    """Test that custom `max_val` (non-power-of-two, below `init_val`, or above 8192) is respected."""
+
+    class LargeDatasetModel(BatchSizeModel):
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 32768), batch_size=self.batch_size)
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 32768), batch_size=self.batch_size)
+
+    model = LargeDatasetModel(batch_size=init_val)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner = Tuner(trainer)
+    result = tuner.scale_batch_size(
+        model,
+        mode=mode,
+        steps_per_trial=1,
+        max_trials=5,
+        init_val=init_val,
+        margin=0.0,
+        max_val=max_val,
+    )
+    assert result == expected
+    assert model.batch_size == expected
+
+
+@pytest.mark.parametrize(
+    ("mode", "max_val", "fail_at", "expected"),
+    [
+        ("power", 8, 8, 4),
+        ("power", 6, 6, 4),
+        ("binsearch", 8, 8, 7),
+    ],
+)
+def test_scale_batch_size_max_val_tested_before_stopping(tmp_path, mode, max_val, fail_at, expected):
+    """Test that reaching `max_val` still runs the trial at `max_val` and backs off if `max_val` OOMs."""
+    model = FailsAtBatchSizeBoringModel(batch_size=2, fail_at=fail_at)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=False, enable_checkpointing=False)
+    tuner = Tuner(trainer)
+    result = tuner.scale_batch_size(
+        model,
+        mode=mode,
+        steps_per_trial=1,
+        max_trials=10,
+        init_val=2,
+        margin=0.0,
+        max_val=max_val,
+    )
+    assert result == expected
+    assert model.batch_size == expected
