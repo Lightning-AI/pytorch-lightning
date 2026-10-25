@@ -87,7 +87,7 @@ def _scale_batch_size(
         trainer.progress_bar_callback.disable()
 
     try:
-        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
+        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val, max_val=max_val)
 
         if mode == "power":
             new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params, max_val)
@@ -196,20 +196,22 @@ def _run_power_scaling(
         # reset after each try
         _reset_progress(trainer)
 
-        if new_size >= max_val:
-            rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
-            break
-
         try:
             _try_loop_run(trainer, params)
             last_successful_size = new_size  # Store the current size before doubling
+
+            if new_size >= max_val:
+                rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
+                break
 
             # Check if this is the last trial before trying to double
             if i + 1 >= max_trials:
                 new_size = last_successful_size
                 break
 
-            new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
+            new_size, changed = _adjust_batch_size(
+                trainer, batch_arg_name, factor=2.0, desc="succeeded", max_val=max_val
+            )
 
             if not changed:
                 break
@@ -221,7 +223,14 @@ def _run_power_scaling(
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
-                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
+                new_size, _ = _adjust_batch_size(
+                    trainer,
+                    batch_arg_name,
+                    factor=0.5,
+                    value=last_successful_size if any_success else None,
+                    desc="failed",
+                    max_val=max_val,
+                )
                 # Force the train dataloader to reset as the batch size has changed
                 _reset_dataloaders(trainer)
                 if any_success:
@@ -258,15 +267,15 @@ def _run_binsearch_scaling(
         # reset after each try
         _reset_progress(trainer)
 
-        if new_size >= max_val:
-            rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
-            break
-
         try:
             # run loop
             _try_loop_run(trainer, params)
             last_successful_size = new_size  # Store the current size before doubling
             count += 1
+
+            if new_size >= max_val:
+                rank_zero_info(f"Reached the maximum batch size limit of {max_val}. Stopping search.")
+                break
 
             # Check if we've reached max_trials before trying to adjust batch size
             if count >= max_trials:
@@ -301,7 +310,9 @@ def _run_binsearch_scaling(
 
                 high = new_size
                 midval = (high + low) // 2
-                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
+                new_size, _ = _adjust_batch_size(
+                    trainer, batch_arg_name, value=midval, desc="failed", max_val=max_val
+                )
 
                 # Force the train dataloader to reset as the batch size has changed
                 _reset_dataloaders(trainer)
