@@ -2180,3 +2180,43 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     assert len(checkpoint_files) == expected_files, (
         f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
     )
+
+
+@pytest.mark.parametrize("save_on_train_epoch_end", [False, True])
+def test_save_last_keeps_latest_state_when_top_k_does_not_improve(tmp_path, save_on_train_epoch_end):
+    """Test that last.ckpt holds the latest state even when the monitored metric stops improving."""
+    scores = [0.1, 0.5, 0.9, 0.2, 0.1]
+
+    class PeakingModel(BoringModel):
+        def on_train_epoch_end(self):
+            if save_on_train_epoch_end:
+                self.log("score", scores[self.current_epoch])
+
+        def on_validation_epoch_end(self):
+            if not save_on_train_epoch_end:
+                self.log("score", scores[self.current_epoch])
+
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="score",
+        mode="max",
+        save_top_k=1,
+        save_last=True,
+        save_on_train_epoch_end=save_on_train_epoch_end,
+    )
+    trainer = Trainer(
+        max_epochs=len(scores),
+        callbacks=[checkpoint],
+        logger=False,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(PeakingModel())
+
+    assert checkpoint.best_model_path == str(tmp_path / "epoch=2-step=6.ckpt")
+    assert {p.name for p in tmp_path.glob("*.ckpt")} == {"epoch=2-step=6.ckpt", "last.ckpt"}
+    last = torch.load(tmp_path / "last.ckpt", weights_only=False)
+    assert last["global_step"] == trainer.global_step == 10
+    assert last["epoch"] == len(scores) - 1
