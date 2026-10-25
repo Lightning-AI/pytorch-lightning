@@ -180,8 +180,6 @@ filterwarnings = [
     # torch 2.13 renamed these collectives to their `_single` counterparts; DeepSpeed still calls the old names
     "ignore:`torch.distributed.all_gather_into_tensor` is deprecated.*:FutureWarning",
     "ignore:`torch.distributed.reduce_scatter_tensor` is deprecated.*:FutureWarning",
-    # PyTorch pytree LeafSpec deprecation triggered during doctest
-    "ignore:`isinstance\\(treespec, LeafSpec\\)` is deprecated.*:FutureWarning",
 ]
 xfail_strict = true
 junit_duration_report = "call"

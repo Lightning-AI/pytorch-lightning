@@ -2,6 +2,12 @@ from typing import Any
 
 from torch.utils._pytree import SUPPORTED_NODES, LeafSpec, PyTree, TreeSpec, _get_node_type, tree_unflatten
 
+try:
+    # constructing `LeafSpec()` directly emits a `FutureWarning` since torch 2.10
+    from torch.utils._pytree import treespec_leaf
+except ImportError:  # torch < 2.10
+    treespec_leaf = LeafSpec
+
 
 def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
     """Customized :func:`torch.utils._pytree._is_leaf` to avoid flattening containers of primitives."""
@@ -18,7 +24,7 @@ def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
 def _tree_flatten(pytree: PyTree) -> tuple[list[Any], TreeSpec]:
     """Copy of :func:`torch.utils._pytree.tree_flatten` using our custom leaf function."""
     if _is_leaf_or_primitive_container(pytree):
-        return [pytree], LeafSpec()
+        return [pytree], treespec_leaf()
 
     node_type = _get_node_type(pytree)
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn

@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -64,3 +66,12 @@ def test_flatten_unflatten_depth_2_or_more():
     assert flat == [1, 2, [3]]
     unflattened = tree_unflatten(flat, spec)
     assert unflattened == datasets
+
+
+def test_flatten_does_not_emit_leafspec_future_warning():
+    """Constructing ``LeafSpec()`` directly is deprecated in torch>=2.10 and emits a ``FutureWarning``."""
+    datasets = {"a": [0, 1, 2], "b": range(3), "c": [[0, 1], torch.tensor([1])]}
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        flat, spec = _tree_flatten(datasets)
+    assert tree_unflatten(flat, spec) == datasets
