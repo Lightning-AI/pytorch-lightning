@@ -92,3 +92,21 @@ def test_grad_norm_with_double_dtype():
     model = Model()
     norms = grad_norm(model, 2)
     assert all(torch.isfinite(torch.tensor(v)) for v in norms.values()), norms
+
+
+def test_grad_norm_preserves_device_without_item_sync():
+    """Verify grad_norm stacks 0-D norm tensors on device without calling .item() per parameter."""
+
+    class MetaModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.param0 = nn.Parameter(torch.empty(3, device="meta"))
+            self.param1 = nn.Parameter(torch.empty(2, 1, device="meta"))
+            self.param0.grad = torch.empty(3, device="meta")
+            self.param1.grad = torch.empty(2, 1, device="meta")
+
+    model = MetaModel()
+    norms = grad_norm(model, 2)
+    assert set(norms.keys()) == {"grad_2.0_norm/param0", "grad_2.0_norm/param1", "grad_2.0_norm_total"}
+    assert all(v.device.type == "meta" for v in norms.values())
+
