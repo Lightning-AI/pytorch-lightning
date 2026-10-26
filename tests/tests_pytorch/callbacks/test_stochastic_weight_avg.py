@@ -419,3 +419,77 @@ def test_swa_with_infinite_epochs_and_batchnorm(tmp_path):
 
 def _backward_patch(trainer: Trainer) -> AbstractContextManager:
     return mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)
+
+
+def test_swa_batchnorm_without_running_stats(tmp_path):
+    """Test that BatchNorm layers with track_running_stats=False do not trigger an extra BN-update epoch or crash."""
+
+    class UntrackedBNModel(SwaTestModel):
+        def __init__(self, also_tracked: bool = False):
+            super().__init__(batchnorm=False)
+            layers = [nn.Linear(32, 32), nn.BatchNorm1d(32, track_running_stats=False)]
+            if also_tracked:
+                layers.append(nn.BatchNorm1d(32, track_running_stats=True))
+            layers += [nn.ReLU(), nn.Linear(32, 2)]
+            self.layer = nn.Sequential(*layers)
+
+    # 1. Only track_running_stats=False: no extra BN epoch should be scheduled
+    model_untracked = UntrackedBNModel(also_tracked=False)
+    assert not StochasticWeightAveraging.pl_module_contains_batch_norm(model_untracked)
+    swa_untracked = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        max_epochs=4,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_untracked],
+        accumulate_grad_batches=2,
+        logger=False,
+    )
+    weights_only = False if _TORCH_GREATER_EQUAL_2_6 else None
+    with _backward_patch(trainer):
+        trainer.fit(model_untracked, weights_only=weights_only)
+    assert swa_untracked.transfer_weights_calls == 1
+
+    # 2. Mixed track_running_stats=False and track_running_stats=True: BN epoch runs without AssertionError
+    model_mixed = UntrackedBNModel(also_tracked=True)
+    assert StochasticWeightAveraging.pl_module_contains_batch_norm(model_mixed)
+    swa_mixed = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
+    trainer_mixed = Trainer(
+        default_root_dir=tmp_path,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        max_epochs=4,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_mixed],
+        accumulate_grad_batches=2,
+        logger=False,
+    )
+    with _backward_patch(trainer_mixed):
+        trainer_mixed.fit(model_mixed, weights_only=weights_only)
+    assert swa_mixed.transfer_weights_calls == 1
+    assert model_mixed.layer[1].running_mean is None
+    assert model_mixed.layer[2].running_mean is not None
+    assert model_mixed.layer[2].num_batches_tracked.item() == 5
+
+
+def test_swa_update_parameters_single_host_sync():
+    """Test that update_parameters reads n_averaged scalar once per call rather than once per parameter."""
+    model = SwaTestModel(batchnorm=False)
+    avg_model = SwaTestModel(batchnorm=False)
+    n_averaged = torch.tensor(0, dtype=torch.long)
+
+    with mock.patch.object(torch.Tensor, "item", wraps=n_averaged.item) as item_spy:
+        StochasticWeightAveraging.update_parameters(avg_model, model, n_averaged, StochasticWeightAveraging.avg_fn)
+        assert item_spy.call_count == 1
+        assert n_averaged.item() == 1
+
+    with mock.patch.object(torch.Tensor, "item", wraps=n_averaged.item) as item_spy:
+        StochasticWeightAveraging.update_parameters(avg_model, model, n_averaged, StochasticWeightAveraging.avg_fn)
+        assert item_spy.call_count == 1
+        assert n_averaged.item() == 2
+
+
