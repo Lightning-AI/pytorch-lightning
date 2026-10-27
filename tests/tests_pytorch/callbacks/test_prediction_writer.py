@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import BasePredictionWriter
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
@@ -28,6 +28,15 @@ class DummyPredictionWriter(BasePredictionWriter):
 
     def write_on_epoch_end(self, *_, **__):
         pass
+
+
+class BatchIndicesRecorder(BasePredictionWriter):
+    def __init__(self):
+        super().__init__("batch")
+        self.batch_indices = []
+
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *_):
+        self.batch_indices.append(list(batch_indices))
 
 
 def test_prediction_writer_invalid_write_interval():
@@ -122,3 +131,21 @@ def test_batch_level_batch_indices(tmp_path):
         call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
         call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
     ])
+
+
+def test_prediction_writer_batch_indices_unavailable(tmp_path):
+    """Test that a dataloader without batch indices does not receive the indices of a previous dataloader or
+    ``predict`` call."""
+    writer = BatchIndicesRecorder()
+    model = BoringModel()
+    map_dataloader = DataLoader(RandomDataset(32, 4), batch_size=2)
+    iterable_dataloader = DataLoader(RandomIterableDataset(32, 4), batch_size=2)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, callbacks=writer)
+
+    trainer.predict(model, dataloaders=[map_dataloader, iterable_dataloader], return_predictions=False)
+    assert writer.batch_indices == [[0, 1], [2, 3], [], []]
+
+    writer.batch_indices.clear()
+    trainer.predict(model, dataloaders=map_dataloader, return_predictions=False)
+    trainer.predict(model, dataloaders=iterable_dataloader, return_predictions=False)
+    assert writer.batch_indices == [[0, 1], [2, 3], [], []]
