@@ -42,5 +42,7 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
 
     """
     states = _collect_rng_states(include_cuda)
-    yield
-    _set_rng_states(states)
+    try:
+        yield
+    finally:
+        _set_rng_states(states)
