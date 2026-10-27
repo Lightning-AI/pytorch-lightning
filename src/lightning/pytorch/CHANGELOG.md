@@ -58,7 +58,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
-- Fixed `BasePredictionWriter` receiving the previous batch's indices for dataloaders whose batch indices cannot be inferred, such as an `IterableDataset` ([#22059](https://github.com/Lightning-AI/pytorch-lightning/issues/22059))
+- Fixed `BasePredictionWriter` receiving the previous batch's indices for dataloaders whose batch indices cannot be inferred, such as an `IterableDataset` ([#22065](https://github.com/Lightning-AI/pytorch-lightning/pull/22065))
 
 ---
 
