@@ -94,7 +94,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     global_rank = rank if rank is not None else rank_zero_only.rank
     process_seed = torch.initial_seed()
     # back out the base seed so we can use all the bits
-    base_seed = process_seed - worker_id
+    base_seed = (process_seed - worker_id) & ((1 << 64) - 1)
     log.debug(
         f"Initializing random number generators of process {global_rank} worker {worker_id} with base seed {base_seed}"
     )

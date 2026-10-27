@@ -38,6 +38,28 @@ def test_isolate_rng(with_torch_cuda):
     assert random.random() == generated[0]
 
 
+def test_isolate_rng_restores_on_exception():
+    """Test that `isolate_rng` restores the RNG states even if an exception is raised inside the block."""
+    torch.manual_seed(42)
+    np.random.seed(42)
+    random.seed(42)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        with isolate_rng():
+            expected_torch = torch.rand(2)
+            expected_np = np.random.rand(2)
+            expected_py = random.random()
+            for _ in range(5):
+                torch.rand(2)
+                np.random.rand(2)
+                random.random()
+            raise RuntimeError("boom")
+
+    assert torch.equal(torch.rand(2), expected_torch)
+    assert np.equal(np.random.rand(2), expected_np).all()
+    assert random.random() == expected_py
+
+
 @mock.patch("torch.cuda.set_rng_state_all")
 @mock.patch("torch.cuda.get_rng_state_all")
 def test_isolate_rng_cuda(get_cuda_rng, set_cuda_rng):
