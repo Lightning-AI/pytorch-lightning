@@ -107,7 +107,13 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
 
 @pytest.mark.parametrize(
     ("scheduling", "expected_steps"),
-    [({0: 4}, 16 * 3), ({0: 1, 2: 4}, 64 * 2 + 16), ({1: 3}, 64 + 22 * 2)],
+    [
+        ({0: 4}, 16 * 3),
+        ({0: 1, 2: 4}, 64 * 2 + 16),
+        ({1: 3}, 64 + 22 * 2),
+        ({2: 2, 1: 3}, 64 + 22 + 32),  # unsorted keys
+        ({0: 2, 5: 4}, 32 * 3),  # keys beyond `max_epochs` are ignored
+    ],
 )
 def test_num_stepping_batches_gradient_accumulation_scheduler(scheduling, expected_steps):
     """Test the total stepping batches when the accumulation factor is set by the `GradientAccumulationScheduler`."""
@@ -116,6 +122,43 @@ def test_num_stepping_batches_gradient_accumulation_scheduler(scheduling, expect
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
     assert trainer.estimated_stepping_batches == expected_steps
+
+
+def test_num_stepping_batches_gradient_accumulation_scheduler_large_max_epochs():
+    """Test that the estimate does not iterate over every epoch when `max_epochs` is very large."""
+    for max_steps, expected_steps in ((100, 100), (-1, 16 * 2 + 32 * (10**12 - 2))):
+        scheduler = GradientAccumulationScheduler(scheduling={0: 4, 2: 2})
+        trainer = Trainer(max_epochs=10**12, max_steps=max_steps, callbacks=scheduler)
+        model = BoringModel()
+        trainer._data_connector.attach_data(model)
+        trainer.strategy.connect(model)
+        assert trainer.estimated_stepping_batches == expected_steps
+
+
+@pytest.mark.parametrize("limit_train_batches", [0.5, 7])
+def test_num_stepping_batches_gradient_accumulation_scheduler_matches_fit(limit_train_batches, tmp_path):
+    """Test that the estimate matches the number of optimizer steps taken, including incomplete accumulation windows at
+    the end of an epoch."""
+
+    class Model(BoringModel):
+        def configure_optimizers(self):
+            self.estimated = self.trainer.estimated_stepping_batches
+            return super().configure_optimizers()
+
+    model = Model()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=4,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        callbacks=GradientAccumulationScheduler(scheduling={0: 3, 2: 1}),
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert model.estimated == trainer.global_step
 
 
 @RunIf(mps=False)

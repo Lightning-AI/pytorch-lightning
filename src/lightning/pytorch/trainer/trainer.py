@@ -1792,10 +1792,13 @@ class Trainer:
         if accumulation_scheduler is None:
             max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * num_epochs
         else:
-            # the accumulation factor can change between epochs
+            # the accumulation factor is constant between consecutive schedule keys, so sum over those segments
+            # instead of iterating over every epoch (`max_epochs` can be very large when `max_steps` is the limit)
+            starts = sorted({0, *(epoch for epoch in accumulation_scheduler.epochs if epoch < num_epochs)})
+            ends = starts[1:] + [num_epochs]
             max_estimated_steps = sum(
-                math.ceil(total_batches / accumulation_scheduler.get_accumulate_grad_batches(epoch))
-                for epoch in range(num_epochs)
+                math.ceil(total_batches / accumulation_scheduler.get_accumulate_grad_batches(start)) * (end - start)
+                for start, end in zip(starts, ends)
             )
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
