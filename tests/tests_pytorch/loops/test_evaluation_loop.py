@@ -489,3 +489,33 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmp_path):
 
     trainer.test(model)
     assert model.test_step_called
+
+
+def test_evaluation_loop_find_value_and_print_results_edge_cases(monkeypatch, capsys):
+    import os
+    from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
+
+    # Mixed scalar and nested dict under the same top-level key across dataloaders
+    dl0 = {"val_metric": {"sub": torch.tensor(1.5)}}
+    dl1 = {"val_metric": torch.tensor(2.5)}
+
+    assert _EvaluationLoop._find_value(dl0, ("val_metric", "sub")) == torch.tensor(1.5)
+    assert _EvaluationLoop._find_value(dl0, ("val_metric",)) is None
+    assert _EvaluationLoop._find_value(dl1, ("val_metric", "sub")) is None
+    assert _EvaluationLoop._find_value(dl1, ("val_metric",)) == torch.tensor(2.5)
+
+    _EvaluationLoop._print_results([dl0, dl1], stage="test")
+    captured = capsys.readouterr()
+    assert "1.5" in captured.out
+    assert "2.5" in captured.out
+    assert "{'sub'" not in captured.out
+
+    # Narrow terminal size (e.g., columns=1) should not raise ZeroDivisionError or ValueError
+    monkeypatch.setattr(
+        "lightning.pytorch.loops.evaluation_loop.shutil.get_terminal_size",
+        lambda fallback=(120, 30): os.terminal_size((1, 30)),
+    )
+    _EvaluationLoop._print_results([dl0, dl1], stage="test")
+    narrow_captured = capsys.readouterr()
+    assert narrow_captured.out.strip() != ""
+
