@@ -91,6 +91,21 @@ def test_hpc_restore_attempt(_, tmp_path):
         trainer.fit(model, ckpt_path="not existing")
 
 
+def test_hpc_ckpt_version_ignores_unrelated_files(tmp_path):
+    """Test that files in the root dir that don't follow the ``hpc_ckpt_{version}.ckpt`` scheme are ignored."""
+    connector = Trainer(default_root_dir=tmp_path)._checkpoint_connector
+    for name in ("model_ckpt_best.pt", "my_ckpt_100.ckpt", "ckpt_7.ckpt", "hpc_ckpt_best.ckpt", "hpc_ckpt_4.ckpt.tmp9"):
+        (tmp_path / name).touch()
+
+    assert connector._CheckpointConnector__max_ckpt_version_in_folder(tmp_path) is None
+    assert connector.hpc_save_path(tmp_path) == os.path.join(tmp_path, "hpc_ckpt_1.ckpt")
+    assert connector._hpc_resume_path is None
+
+    (tmp_path / "hpc_ckpt_2.ckpt").touch()
+    assert connector.hpc_save_path(tmp_path) == os.path.join(tmp_path, "hpc_ckpt_3.ckpt")
+    assert connector._hpc_resume_path == str(tmp_path / "hpc_ckpt_2.ckpt")
+
+
 def test_hpc_max_ckpt_version(tmp_path):
     """Test that the _CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
