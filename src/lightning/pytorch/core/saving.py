@@ -270,7 +270,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
             continue
 
         # recurse if dictionary
-        if isinstance(v, dict):
+        if isinstance(v, dict) and isinstance(hparams[k], dict):
             update_hparams(hparams[k], updates[k])
         else:
             # update the value
@@ -296,7 +296,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> dict[str, Any]:
 
     with fs.open(tags_csv, "r", newline="") as fp:
         csv_reader = csv.reader(fp, delimiter=",")
-        return {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
+        return {row[0]: convert(row[1]) for row in list(csv_reader)[1:] if len(row) >= 2}
 
 
 def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
@@ -339,6 +339,9 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> di
 
     with fs.open(config_yaml, "r") as fp:
         hparams = yaml.full_load(fp)
+
+    if not hparams:
+        return {}
 
     if _OMEGACONF_AVAILABLE and use_omegaconf:
         from omegaconf import OmegaConf
@@ -396,7 +399,6 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
             yaml.dump(v)
         except (TypeError, ValueError):
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
-            hparams[k] = type(v).__name__
         else:
             hparams_allowed[k] = v
 
