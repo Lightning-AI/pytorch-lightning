@@ -522,14 +522,14 @@ class _CheckpointConnector:
         }
 
     @staticmethod
-    def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
-        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
+    def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "hpc_ckpt_") -> Optional[int]:
+        """List up files in `dir_path` named ``{name_key}{version}.ckpt``, then yield the maximum version.
 
         Args:
-            dir_path: path of directory which may contain files whose name include `name_key`
+            dir_path: path of directory which may contain files named ``{name_key}{version}.ckpt``
             name_key: file name prefix
         Returns:
-            None if no-corresponding-file else maximum suffix number
+            None if no-corresponding-file else maximum version number
 
         """
         # check directory existence
@@ -537,20 +537,15 @@ class _CheckpointConnector:
         if not fs.exists(dir_path):
             return None
 
-        # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(uri)]
-        files = [x for x in files if name_key in x]
-        if len(files) == 0:
-            return None
-
-        # extract suffix number
+        # extract the version of the files that strictly match the naming scheme, ignoring everything else
+        pattern = re.compile(rf"{re.escape(name_key)}(\d+)\.ckpt")
         ckpt_vs = []
-        for name in files:
-            name = name.split(name_key)[-1]
-            name = re.sub("[^0-9]", "", name)
-            ckpt_vs.append(int(name))
+        for f in fs.listdir(uri):
+            match = pattern.fullmatch(os.path.basename(f["name"]))
+            if match is not None:
+                ckpt_vs.append(int(match.group(1)))
 
-        return max(ckpt_vs)
+        return max(ckpt_vs) if ckpt_vs else None
 
     @staticmethod
     def __get_max_ckpt_path_from_folder(folder_path: _PATH) -> str:
