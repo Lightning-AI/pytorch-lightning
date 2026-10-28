@@ -2220,3 +2220,46 @@ def test_save_last_keeps_latest_state_when_top_k_does_not_improve(tmp_path, save
     last = torch.load(tmp_path / "last.ckpt", weights_only=False)
     assert last["global_step"] == trainer.global_step == 10
     assert last["epoch"] == len(scores) - 1
+
+
+@pytest.mark.parametrize(
+    ("ckpt_kwargs", "expected_steps"),
+    [
+        # `last` follows the epoch schedule even when no top-k checkpoint is saved
+        ({"save_top_k": 0}, [2, 4, 6, 8]),
+        ({"monitor": "score", "mode": "max", "save_top_k": 1}, [2, 4, 6, 8]),
+        ({"monitor": "score", "mode": "max", "save_top_k": 1, "every_n_epochs": 2}, [4, 8]),
+        # step/time based schedules must not write `last` at every epoch end (#20245)
+        ({"train_time_interval": timedelta(hours=1)}, [8]),
+    ],
+)
+def test_save_last_follows_checkpoint_schedule(tmp_path, ckpt_kwargs, expected_steps):
+    """Test at which steps `last.ckpt` is written for different checkpointing schedules."""
+    scores = [0.9, 0.1, 0.1, 0.1]
+
+    class Model(BoringModel):
+        def on_validation_epoch_end(self):
+            self.log("score", scores[self.current_epoch])
+
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, save_last=True, **ckpt_kwargs)
+    trainer = Trainer(
+        max_epochs=len(scores),
+        callbacks=[checkpoint],
+        logger=False,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    saved_steps = []
+    original = checkpoint._save_last_checkpoint
+
+    def record(trainer, monitor_candidates):
+        saved_steps.append(trainer.global_step)
+        original(trainer, monitor_candidates)
+
+    with patch.object(checkpoint, "_save_last_checkpoint", side_effect=record):
+        trainer.fit(Model())
+
+    assert saved_steps == expected_steps
+    assert torch.load(tmp_path / "last.ckpt", weights_only=False)["global_step"] == expected_steps[-1]
