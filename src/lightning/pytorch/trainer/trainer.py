@@ -1763,6 +1763,12 @@ class Trainer:
         :class:`~lightning.pytorch.callbacks.GradientAccumulationScheduler` callback, and the current trainer
         configuration. This might be used when setting up your training dataloader, if it hasn't been set up already.
 
+        .. note::
+            With a :class:`~lightning.pytorch.callbacks.GradientAccumulationScheduler`, the factor for each epoch is
+            assumed to come from its ``get_accumulate_grad_batches`` method. If you set
+            ``trainer.accumulate_grad_batches`` in another way, for example by overriding ``on_train_epoch_start``,
+            the estimate won't account for it.
+
         .. code-block:: python
 
             def configure_optimizers(self):
