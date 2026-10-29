@@ -182,6 +182,51 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
     assert math.isclose(actual, expected, rel_tol=0, abs_tol=1e-6)
 
 
+class CrashAtBatchModule(LightningModule):
+    """Raises in ``training_step`` at batch ``crash_at`` to simulate a crash, and logs ``val_loss`` in validation."""
+
+    def __init__(self, crash_at=None):
+        super().__init__()
+        torch.manual_seed(0)
+        self.layer = nn.Linear(4, 1)
+        self.crash_at = crash_at
+
+    def training_step(self, batch, batch_idx):
+        if batch_idx == self.crash_at:
+            raise RuntimeError("simulated crash")
+        return (self.layer(batch) - 3).pow(2).mean()
+
+    def validation_step(self, batch, batch_idx):
+        self.log("val_loss", self.layer(batch).sum())
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.parameters(), lr=0.05)
+
+    def train_dataloader(self):
+        return DataLoader(torch.ones(8, 4), batch_size=1)
+
+    def val_dataloader(self):
+        return DataLoader(torch.ones(2, 4), batch_size=1)
+
+
+def _fit(model, ckpt_path=None, **trainer_kwargs):
+    trainer = Trainer(
+        accelerator="cpu",
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        **trainer_kwargs,
+    )
+    if model.crash_at is None:
+        trainer.fit(model, ckpt_path=ckpt_path)
+    else:
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            trainer.fit(model, ckpt_path=ckpt_path)
+    return model
+
+
 @pytest.mark.parametrize(
     ("accumulate_grad_batches", "every_n_train_steps", "crash_at", "resume_step"),
     [
@@ -192,105 +237,55 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
         (1, 2, 5, 2),
     ],
 )
-@pytest.mark.parametrize("legacy_checkpoint", [False, True])
+@pytest.mark.parametrize("resume_variant", ["same_dirpath", "legacy_checkpoint", "new_dirpath"])
 def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(
-    tmp_path, accumulate_grad_batches, every_n_train_steps, crash_at, resume_step, legacy_checkpoint
+    tmp_path, accumulate_grad_batches, every_n_train_steps, crash_at, resume_step, resume_variant
 ):
-    """Test that resuming gradient-accumulated training doesn't overwrite the step checkpoint it resumed from with the
+    """Test that resuming gradient-accumulated training doesn't save the step checkpoint it resumed from again with the
     progress of batches whose gradients were not applied yet, which would skip them on the next resume."""
 
-    class Model(LightningModule):
-        def __init__(self, crash_at=None):
-            super().__init__()
-            torch.manual_seed(0)
-            self.layer = torch.nn.Linear(4, 1)
-            self.crash_at = crash_at
-
-        def training_step(self, batch, batch_idx):
-            if batch_idx == self.crash_at:
-                raise RuntimeError("simulated crash")
-            return (self.layer(batch) - 3).pow(2).mean()
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.05)
-
-        def train_dataloader(self):
-            return DataLoader(torch.ones(8, 4), batch_size=1)
-
     def fit(dirpath, crash_at=None, ckpt_path=None):
-        model = Model(crash_at)
-        trainer = Trainer(
-            accelerator="cpu",
-            max_epochs=1,
+        return _fit(
+            CrashAtBatchModule(crash_at),
+            ckpt_path=ckpt_path,
             accumulate_grad_batches=accumulate_grad_batches,
-            logger=False,
-            enable_progress_bar=False,
-            enable_model_summary=False,
+            limit_val_batches=0,
             callbacks=[ModelCheckpoint(dirpath=dirpath, every_n_train_steps=every_n_train_steps, save_top_k=-1)],
         )
-        if crash_at is None:
-            trainer.fit(model, ckpt_path=ckpt_path)
-        else:
-            with pytest.raises(RuntimeError, match="simulated crash"):
-                trainer.fit(model, ckpt_path=ckpt_path)
-        return model
 
     uninterrupted = fit(tmp_path / "uninterrupted")
 
-    checkpoint_path = tmp_path / "run" / f"epoch=0-step={resume_step}.ckpt"
+    checkpoint_name = f"epoch=0-step={resume_step}.ckpt"
+    checkpoint_path = tmp_path / "run" / checkpoint_name
     fit(tmp_path / "run", crash_at=crash_at)
-    if legacy_checkpoint:
+    if resume_variant == "legacy_checkpoint":
         _make_legacy_checkpoint(checkpoint_path)
     checkpoint_before_resume = checkpoint_path.read_bytes()
+    resume_dirpath = tmp_path / ("resumed" if resume_variant == "new_dirpath" else "run")
 
-    # crash again before the next optimizer step: the checkpoint we resumed from must not be saved again
-    fit(tmp_path / "run", crash_at=crash_at, ckpt_path=checkpoint_path)
+    # crash again before the next optimizer step: the restored step must not be saved again
+    fit(resume_dirpath, crash_at=crash_at, ckpt_path=checkpoint_path)
     assert checkpoint_path.read_bytes() == checkpoint_before_resume
+    if resume_variant == "new_dirpath":
+        assert not (resume_dirpath / checkpoint_name).exists()
 
     # resuming from it once more must not skip any batch
-    resumed = fit(tmp_path / "run", ckpt_path=checkpoint_path)
+    resumed = fit(resume_dirpath, ckpt_path=checkpoint_path)
     torch.testing.assert_close(resumed.layer.weight, uninterrupted.layer.weight)
     torch.testing.assert_close(resumed.layer.bias, uninterrupted.layer.bias)
 
 
 @pytest.mark.parametrize("legacy_checkpoint", [False, True])
 def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_path, legacy_checkpoint):
-    """Test that the resume guard against saving the restored step again doesn't skip a validation checkpoint at that
-    step, which the uninterrupted run would have saved."""
-
-    class Model(LightningModule):
-        def __init__(self, crash_at=None):
-            super().__init__()
-            self.layer = torch.nn.Linear(4, 1)
-            self.crash_at = crash_at
-
-        def training_step(self, batch, batch_idx):
-            if batch_idx == self.crash_at:
-                raise RuntimeError("simulated crash")
-            return self.layer(batch).sum()
-
-        def validation_step(self, batch, batch_idx):
-            self.log("val_loss", self.layer(batch).sum())
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.1)
-
-        def train_dataloader(self):
-            return DataLoader(torch.ones(8, 4), batch_size=1)
-
-        def val_dataloader(self):
-            return DataLoader(torch.ones(2, 4), batch_size=1)
+    """Test that the guard against saving the restored step again doesn't skip a validation checkpoint at that step,
+    which the uninterrupted run would have saved."""
 
     def fit(crash_at=None, ckpt_path=None):
-        trainer = Trainer(
-            accelerator="cpu",
-            max_epochs=1,
+        _fit(
+            CrashAtBatchModule(crash_at),
+            ckpt_path=ckpt_path,
             accumulate_grad_batches=2,
             val_check_interval=5,  # validation runs after batch 4, before the optimizer step at batch 5
-            num_sanity_val_steps=0,
-            logger=False,
-            enable_progress_bar=False,
-            enable_model_summary=False,
             callbacks=[
                 ModelCheckpoint(dirpath=tmp_path / "backup", every_n_train_steps=2, save_top_k=-1),
                 ModelCheckpoint(
@@ -298,11 +293,6 @@ def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_
                 ),
             ],
         )
-        if crash_at is None:
-            trainer.fit(Model(), ckpt_path=ckpt_path)
-        else:
-            with pytest.raises(RuntimeError, match="simulated crash"):
-                trainer.fit(Model(crash_at))
 
     # crash after the step 2 backup is saved, but before validation runs
     fit(crash_at=4)
@@ -315,43 +305,16 @@ def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_
 
 
 @pytest.mark.parametrize("legacy_checkpoint", [False, True])
-def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path, legacy_checkpoint):
-    """Test that a callback which already saved the restored step doesn't save it again at validation end, after
-    deferring its step save because the monitored validation metric is missing right after resuming."""
-
-    class Model(LightningModule):
-        def __init__(self, crash_at=None):
-            super().__init__()
-            self.layer = torch.nn.Linear(4, 1)
-            self.crash_at = crash_at
-
-        def training_step(self, batch, batch_idx):
-            if batch_idx == self.crash_at:
-                raise RuntimeError("simulated crash")
-            return self.layer(batch).sum()
-
-        def validation_step(self, batch, batch_idx):
-            self.log("val_loss", self.layer(batch).sum())
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.1)
-
-        def train_dataloader(self):
-            return DataLoader(torch.ones(8, 4), batch_size=1)
-
-        def val_dataloader(self):
-            return DataLoader(torch.ones(2, 4), batch_size=1)
+def test_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path, legacy_checkpoint):
+    """Test that a monitoring callback which already saved the restored step doesn't save it again at a validation that
+    runs right after resuming, before the next optimizer step."""
 
     def fit(crash_at, ckpt_path=None):
-        trainer = Trainer(
-            accelerator="cpu",
-            max_epochs=1,
+        _fit(
+            CrashAtBatchModule(crash_at),
+            ckpt_path=ckpt_path,
             accumulate_grad_batches=4,
             val_check_interval=2,  # validation also runs after batch 5, before the optimizer step at batch 7
-            num_sanity_val_steps=0,
-            logger=False,
-            enable_progress_bar=False,
-            enable_model_summary=False,
             callbacks=[
                 ModelCheckpoint(
                     dirpath=tmp_path,
@@ -363,8 +326,6 @@ def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path
                 )
             ],
         )
-        with pytest.raises(RuntimeError, match="simulated crash"):
-            trainer.fit(Model(crash_at), ckpt_path=ckpt_path)
 
     # step 1 is saved after batch 3 with the metric of the validation after batch 1
     fit(crash_at=4)
@@ -381,36 +342,18 @@ def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path
 def test_exception_checkpoint_is_saved_after_failed_save(tmp_path):
     """Test that a failed save doesn't mark the step as saved, which would skip the checkpoint on exception."""
 
-    class Model(LightningModule):
+    class Model(CrashAtBatchModule):
         def __init__(self):
             super().__init__()
-            self.layer = torch.nn.Linear(4, 1)
             self.failed = False
-
-        def training_step(self, batch, batch_idx):
-            return self.layer(batch).sum()
 
         def on_save_checkpoint(self, checkpoint):
             if not self.failed:
                 self.failed = True
                 raise RuntimeError("failed save")
 
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.1)
-
-        def train_dataloader(self):
-            return DataLoader(torch.ones(4, 4), batch_size=1)
-
     checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=1, save_on_exception=True)
-    trainer = Trainer(
-        accelerator="cpu",
-        max_epochs=1,
-        logger=False,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        callbacks=[checkpoint],
-    )
     with pytest.raises(RuntimeError, match="failed save"):
-        trainer.fit(Model())
+        _fit(Model(), limit_train_batches=4, limit_val_batches=0, callbacks=[checkpoint])
     assert checkpoint._last_global_step_saved == 1
     assert [p.name for p in tmp_path.iterdir()] == ["epoch=0-step=1.ckpt"]
