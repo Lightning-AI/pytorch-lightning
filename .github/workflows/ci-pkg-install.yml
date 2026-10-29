@@ -74,7 +74,7 @@ jobs:
         working-directory: .actions/
         run: |
           pip install -q pytest -r requirements.txt
-          python -m pytest assistant.py
+          python -m pytest assistant.py test_docs.py
 
       - name: Adjust code for standalone
         if: contains(fromJSON('["fabric", "pytorch"]'), matrix.pkg-name)

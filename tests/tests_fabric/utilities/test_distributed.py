@@ -1,5 +1,7 @@
 import functools
+import multiprocessing
 import os
+import time
 from functools import partial
 from pathlib import Path
 from unittest import mock
@@ -50,7 +52,19 @@ def spawn_launch(fn, parallel_devices):
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
-    return launcher.launch(wrapped, strategy)
+    existing_processes = set(multiprocessing.active_children())
+    try:
+        return launcher.launch(wrapped, strategy)
+    finally:
+        # A test timeout can interrupt joining the workers before the launcher cleans them up.
+        processes = set(multiprocessing.active_children()) - existing_processes
+        for process in processes:
+            process.terminate()
+        for process in processes:
+            process.join(timeout=5)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=5)
 
 
 def _test_all_gather_uneven_tensors(strategy):
@@ -126,6 +140,32 @@ def _test_all_reduce(strategy):
 )
 def test_collective_operations(devices, process):
     spawn_launch(process, devices)
+
+
+@pytest.mark.parametrize("error", [RuntimeError, KeyboardInterrupt, pytest.fail.Exception])
+def test_spawn_launch_cleans_up_after_interruption(monkeypatch, error):
+    context = multiprocessing.get_context("spawn")
+    existing_process = context.Process(target=time.sleep, args=(60,))
+    process = context.Process(target=time.sleep, args=(60,))
+
+    def interrupted_launch(*args, **kwargs):
+        process.start()
+        raise error("Interrupted launch")
+
+    monkeypatch.setattr(_MultiProcessingLauncher, "launch", interrupted_launch)
+    try:
+        existing_process.start()
+        with pytest.raises(error, match="Interrupted launch"):
+            spawn_launch(Mock(), [torch.device("cpu"), torch.device("cpu")])
+        assert not process.is_alive()
+        assert existing_process.is_alive()
+    finally:
+        # Ensure the regression test itself cannot leave a child behind when it fails.
+        for child in (process, existing_process):
+            if child.is_alive():
+                child.kill()
+            child.join(timeout=5)
+            child.close()
 
 
 @pytest.mark.skipif(
