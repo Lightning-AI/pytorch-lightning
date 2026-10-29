@@ -282,6 +282,36 @@ def test_log_hyperparams_key_collision(_, tmp_path):
     # the lightning module and data module
     trainer.fit(model)
 
+    # Multi-element Tensor and numpy ndarray with equal values in both module and datamodule
+    array_params = {"tensor": torch.tensor([1.0, 2.0, 3.0]), "array": np.array([4.0, 5.0])}
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=TensorBoardLogger(tmp_path),
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(TestModel(array_params), TestDataModule(deepcopy(array_params)))
+
+    diff_ndarray_params = {"array": np.array([4.0, 6.0])}
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=TensorBoardLogger(tmp_path),
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(RuntimeError, match="Error while merging hparams"):
+        trainer.fit(TestModel({"array": np.array([4.0, 5.0])}), TestDataModule(diff_ndarray_params))
+
     obj_params = deepcopy(same_params)
     obj_params["test"] = _Test()
     model = TestModel(same_params)

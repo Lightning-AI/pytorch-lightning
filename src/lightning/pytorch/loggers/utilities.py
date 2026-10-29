@@ -16,9 +16,11 @@
 from pathlib import Path
 from typing import Any, Union
 
+import torch
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.pytorch.callbacks import Checkpoint
 
 
@@ -56,6 +58,24 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     return checkpoints
 
 
+def _hparam_values_differ(lm_val: Any, dm_val: Any) -> bool:
+    if type(lm_val) != type(dm_val):  # noqa: E721
+        return True
+    if isinstance(lm_val, Tensor):
+        return (
+            lm_val.shape != dm_val.shape
+            or lm_val.dtype != dm_val.dtype
+            or lm_val.device != dm_val.device
+            or not torch.equal(lm_val, dm_val)
+        )
+    if _NUMPY_AVAILABLE:
+        import numpy as np
+
+        if isinstance(lm_val, np.ndarray):
+            return lm_val.shape != dm_val.shape or lm_val.dtype != dm_val.dtype or not np.array_equal(lm_val, dm_val)
+    return bool(lm_val != dm_val)
+
+
 def _log_hyperparams(trainer: "pl.Trainer") -> None:
     if not trainer.loggers:
         return
@@ -73,11 +93,7 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
                 # Skip LightningCLI's internal hparam
                 continue
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-            if (
-                type(lm_val) != type(dm_val)  # noqa: E721
-                or (isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val))
-                or lm_val != dm_val
-            ):
+            if _hparam_values_differ(lm_val, dm_val):
                 inconsistent_keys.append(key)
         if inconsistent_keys:
             raise RuntimeError(
