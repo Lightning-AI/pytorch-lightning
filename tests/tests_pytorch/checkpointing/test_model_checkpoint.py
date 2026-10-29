@@ -2263,3 +2263,35 @@ def test_save_last_follows_checkpoint_schedule(tmp_path, ckpt_kwargs, expected_s
 
     assert saved_steps == expected_steps
     assert torch.load(tmp_path / "last.ckpt", weights_only=False)["global_step"] == expected_steps[-1]
+
+
+@pytest.mark.parametrize("last_name", ["last", "last-{epoch}"])
+def test_save_last_link_after_resume_when_top_k_does_not_improve(tmp_path, last_name):
+    """Test that `save_last="link"` leaves a valid last checkpoint with the latest state after resuming, when the
+    monitored metric does not improve anymore."""
+    scores = [0.1, 0.9, 0.2, 0.1, 0.05]
+
+    class Model(BoringModel):
+        def on_validation_epoch_end(self):
+            self.log("score", scores[self.current_epoch])
+
+    def fit(max_epochs, ckpt_path=None):
+        checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="score", mode="max", save_top_k=1, save_last="link")
+        checkpoint.CHECKPOINT_NAME_LAST = last_name
+        trainer = Trainer(
+            max_epochs=max_epochs,
+            callbacks=[checkpoint],
+            logger=False,
+            limit_train_batches=2,
+            limit_val_batches=1,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(Model(), ckpt_path=ckpt_path)
+        return trainer, checkpoint
+
+    _, checkpoint = fit(max_epochs=2)
+    trainer, checkpoint = fit(max_epochs=len(scores), ckpt_path=checkpoint.last_model_path)
+
+    assert os.path.exists(checkpoint.last_model_path)
+    assert torch.load(checkpoint.last_model_path, weights_only=False)["global_step"] == trainer.global_step == 10

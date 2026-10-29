@@ -60,7 +60,7 @@ When
 Which
 =====
 
-- You can save the last checkpoint when training ends using ``save_last`` argument.
+- You can always keep a ``last.ckpt`` with the latest training state using the ``save_last`` argument, e.g. to resume training with ``ckpt_path="last"``.
 - You can save top-K and last-K checkpoints by configuring the ``monitor`` and ``save_top_k`` argument.
 
 |
