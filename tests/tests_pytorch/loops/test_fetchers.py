@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Counter, deque
+from collections import Counter
 from collections.abc import Iterator
 from typing import Any
 
@@ -51,7 +51,6 @@ class SizedDataset(Dataset):
 def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     assert fetcher.prefetch_batches == prefetch_batches
-    assert isinstance(fetcher.batches, deque)
 
     if multiple_iterables:
         loader = CombinedLoader([DataLoader(dataset_cls()), DataLoader(dataset_cls())])
@@ -78,6 +77,10 @@ def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     # validate reset works properly.
     assert generate() == expected
     assert fetcher.fetched == 3
+    iter(fetcher)
+    assert len(fetcher.batches) == (0 if dataset_cls is SizedDataset else min(prefetch_batches, 3))
+    fetcher.reset()
+    assert not fetcher.batches
 
 
 @pytest.mark.parametrize("multiple_iterables", [False, True])
