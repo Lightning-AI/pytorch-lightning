@@ -298,3 +298,64 @@ def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_
 
     fit(ckpt_path=tmp_path / "backup" / "epoch=0-step=2.ckpt")
     assert sorted(p.name for p in (tmp_path / "val").iterdir()) == ["epoch=0-step=2.ckpt"]
+
+
+def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path):
+    """Test that a callback which already saved the restored step doesn't save it again at validation end, after
+    deferring its step save because the monitored validation metric is missing right after resuming."""
+
+    class Model(LightningModule):
+        def __init__(self, crash_at=None):
+            super().__init__()
+            self.layer = torch.nn.Linear(4, 1)
+            self.crash_at = crash_at
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == self.crash_at:
+                raise RuntimeError("simulated crash")
+            return self.layer(batch).sum()
+
+        def validation_step(self, batch, batch_idx):
+            self.log("val_loss", self.layer(batch).sum())
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return DataLoader(torch.ones(8, 4), batch_size=1)
+
+        def val_dataloader(self):
+            return DataLoader(torch.ones(2, 4), batch_size=1)
+
+    def fit(crash_at, ckpt_path=None):
+        trainer = Trainer(
+            accelerator="cpu",
+            max_epochs=1,
+            accumulate_grad_batches=4,
+            val_check_interval=2,  # validation also runs after batch 5, before the optimizer step at batch 7
+            num_sanity_val_steps=0,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            callbacks=[
+                ModelCheckpoint(
+                    dirpath=tmp_path,
+                    monitor="val_loss",
+                    every_n_train_steps=1,
+                    save_top_k=-1,
+                    save_last=True,
+                    save_on_train_epoch_end=False,
+                )
+            ],
+        )
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            trainer.fit(Model(crash_at), ckpt_path=ckpt_path)
+
+    # step 1 is saved after batch 3 with the metric of the validation after batch 1
+    fit(crash_at=4)
+    last_before_resume = (tmp_path / "last.ckpt").read_bytes()
+
+    # crash after the validation that follows batch 5
+    fit(crash_at=6, ckpt_path=tmp_path / "last.ckpt")
+    assert (tmp_path / "last.ckpt").read_bytes() == last_before_resume
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["epoch=0-step=1.ckpt", "last.ckpt"]

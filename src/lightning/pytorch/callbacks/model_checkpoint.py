@@ -289,7 +289,6 @@ class ModelCheckpoint(Checkpoint):
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
         self._last_global_step_saved = 0  # no need to save when no steps were taken
-        self._restored_global_step: Optional[int] = None
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
         self.best_k_models: dict[str, Tensor] = {}
@@ -336,9 +335,6 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
-        # the step we resumed from is already checkpointed. With gradient accumulation, the batches before the next
-        # optimizer step would save it again on train batch end, including progress of not yet applied gradients
-        self._restored_global_step = trainer.global_step if trainer.ckpt_path is not None else None
 
     @override
     def on_train_batch_end(
@@ -429,9 +425,7 @@ class ModelCheckpoint(Checkpoint):
             return
 
         # Original logic for automatic optimization
-        skip_due_to_state = (
-            self._should_skip_saving_checkpoint(trainer) or self._restored_global_step == trainer.global_step
-        )
+        skip_due_to_state = self._should_skip_saving_checkpoint(trainer)
         skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
         train_time_interval = self._train_time_interval
@@ -449,6 +443,9 @@ class ModelCheckpoint(Checkpoint):
             return
         if not skip_time:
             self._last_time_checked = now
+        # don't defer a save to validation end either if this step was already saved
+        if skip_due_to_state:
+            return
 
         monitor_candidates = self._monitor_candidates(trainer)
         # If monitoring a metric that is not yet available (e.g., validation-only),
@@ -482,10 +479,6 @@ class ModelCheckpoint(Checkpoint):
             if will_run_val:
                 self._defer_save_until_validation = True
                 return
-
-        # Only proceed to save if not skipping due to trainer/callback state
-        if skip_due_to_state:
-            return
 
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
@@ -556,6 +549,7 @@ class ModelCheckpoint(Checkpoint):
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
             "last_model_path": self.last_model_path,
+            "last_global_step_saved": self._last_global_step_saved,
         }
 
     @override
@@ -568,6 +562,9 @@ class ModelCheckpoint(Checkpoint):
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+            # with gradient accumulation, the batches after resuming would otherwise save the restored step again,
+            # including the progress of not yet applied gradients
+            self._last_global_step_saved = state_dict.get("last_global_step_saved", self._last_global_step_saved)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
@@ -603,8 +600,9 @@ class ModelCheckpoint(Checkpoint):
         the optimizer step, so we can use that state directly.
 
         """
-        trainer.save_checkpoint(filepath, self.save_weights_only)
+        # set before saving so the checkpoint includes it
         self._last_global_step_saved = trainer.global_step
+        trainer.save_checkpoint(filepath, self.save_weights_only)
         self._last_checkpoint_saved = filepath
 
         # notify loggers
