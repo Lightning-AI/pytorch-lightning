@@ -184,6 +184,47 @@ def test_throughput():
         throughput.update(time=0, batches=2, samples=2, lengths=1)
 
 
+def test_throughput_failed_update_does_not_partially_mutate_state():
+    """Failed update() calls must leave all internal windows unchanged."""
+    throughput = Throughput(window_size=2)
+    throughput.update(time=1.0, batches=1, samples=2, lengths=4, flops=10)
+
+    # 1. samples < batches
+    with pytest.raises(ValueError, match=r"samples.*to be greater or equal than batches"):
+        throughput.update(time=2.0, batches=5, samples=4, lengths=8, flops=10)
+    # 2. lengths < samples
+    with pytest.raises(ValueError, match=r"lengths.*to be greater or equal than samples"):
+        throughput.update(time=2.0, batches=2, samples=6, lengths=5, flops=10)
+    # 3. non-monotonic samples after valid time and batches
+    with pytest.raises(ValueError, match="Expected the value to increase"):
+        throughput.update(time=2.0, batches=2, samples=2, lengths=8, flops=10)
+    # 4. non-monotonic lengths after valid time, batches, and samples
+    with pytest.raises(ValueError, match="Expected the value to increase"):
+        throughput.update(time=2.0, batches=2, samples=4, lengths=4, flops=10)
+    # 5. omitted lengths after lengths were previously tracked
+    with pytest.raises(RuntimeError, match="same number of samples"):
+        throughput.update(time=2.0, batches=2, samples=4)
+
+    assert list(throughput._time) == [1.0]
+    assert list(throughput._batches) == [1]
+    assert list(throughput._samples) == [2]
+    assert list(throughput._lengths) == [4]
+    assert list(throughput._flops) == [10]
+
+    # Subsequent valid update at time=2.0 succeeds and computes accurate rolling metrics
+    throughput.update(time=2.0, batches=2, samples=4, lengths=8, flops=10)
+    assert throughput.compute() == {
+        "time": 2.0,
+        "batches": 2,
+        "samples": 4,
+        "lengths": 8,
+        "device/batches_per_sec": 1.0,
+        "device/samples_per_sec": 2.0,
+        "device/items_per_sec": 4.0,
+        "device/flops_per_sec": 10.0,
+    }
+
+
 def test_throughput_sparse_model_scaling():
     """``using_sparse_model`` scales ``available_flops`` by the acceleration factor."""
     # explicit False — available_flops untouched (also avoids the unset-flag warning)
