@@ -289,6 +289,7 @@ class ModelCheckpoint(Checkpoint):
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
         self._last_global_step_saved = 0  # no need to save when no steps were taken
+        self._restored_without_global_step_saved = False
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
         self.best_k_models: dict[str, Tensor] = {}
@@ -335,6 +336,12 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
+        if self._restored_without_global_step_saved:
+            # checkpoints saved before `last_global_step_saved` was part of the state: if this callback saved the
+            # checkpoint we resumed from, it already saved the restored step
+            self._restored_without_global_step_saved = False
+            if trainer.ckpt_path is not None and self._is_own_checkpoint(trainer.ckpt_path):
+                self._last_global_step_saved = trainer.global_step
 
     @override
     def on_train_batch_end(
@@ -564,7 +571,10 @@ class ModelCheckpoint(Checkpoint):
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
             # with gradient accumulation, the batches after resuming would otherwise save the restored step again,
             # including the progress of not yet applied gradients
-            self._last_global_step_saved = state_dict.get("last_global_step_saved", self._last_global_step_saved)
+            if "last_global_step_saved" in state_dict:
+                self._last_global_step_saved = state_dict["last_global_step_saved"]
+            else:
+                self._restored_without_global_step_saved = True
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
@@ -600,9 +610,13 @@ class ModelCheckpoint(Checkpoint):
         the optimizer step, so we can use that state directly.
 
         """
-        # set before saving so the checkpoint includes it
-        self._last_global_step_saved = trainer.global_step
-        trainer.save_checkpoint(filepath, self.save_weights_only)
+        # set before saving so the checkpoint includes it, but roll it back if saving fails
+        previous_global_step_saved, self._last_global_step_saved = self._last_global_step_saved, trainer.global_step
+        try:
+            trainer.save_checkpoint(filepath, self.save_weights_only)
+        except BaseException:
+            self._last_global_step_saved = previous_global_step_saved
+            raise
         self._last_checkpoint_saved = filepath
 
         # notify loggers
@@ -1007,6 +1021,14 @@ class ModelCheckpoint(Checkpoint):
         local_decision = self._fs.exists(filepath) if trainer.is_global_zero else False
         # Reduce the decision across ranks using an "any"-style reduction to decide if the file exists anywhere
         return trainer.strategy.reduce_boolean_decision(local_decision, all=False)
+
+    def _is_own_checkpoint(self, filepath: _PATH) -> bool:
+        """Checks if the given checkpoint is one that this callback saved."""
+        own_paths = {self.best_model_path, self.last_model_path, *self.best_k_models}
+        if not _is_local_file_protocol(filepath):
+            return str(filepath) in own_paths
+        filepath = Path(filepath).absolute()
+        return any(Path(p).absolute() == filepath for p in own_paths if p and _is_local_file_protocol(p))
 
     def _should_remove_checkpoint(self, trainer: "pl.Trainer", previous: str, current: str) -> bool:
         """Checks if the previous checkpoint should be deleted.

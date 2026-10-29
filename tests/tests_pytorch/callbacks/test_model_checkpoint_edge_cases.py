@@ -30,6 +30,14 @@ def _make_loaders(n=8, batch_size=2):
     return train_loader, val_loader
 
 
+def _make_legacy_checkpoint(path):
+    """Removes the state that checkpoints saved before `last_global_step_saved` was added don't have."""
+    checkpoint = torch.load(path, weights_only=False)
+    for state in checkpoint["callbacks"].values():
+        state.pop("last_global_step_saved", None)
+    torch.save(checkpoint, path)
+
+
 class MultiValPerEpochModule(LightningModule):
     """Logs a validation metric on every validation run, even if validation is run multiple times per epoch."""
 
@@ -184,8 +192,9 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
         (1, 2, 5, 2),
     ],
 )
+@pytest.mark.parametrize("legacy_checkpoint", [False, True])
 def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(
-    tmp_path, accumulate_grad_batches, every_n_train_steps, crash_at, resume_step
+    tmp_path, accumulate_grad_batches, every_n_train_steps, crash_at, resume_step, legacy_checkpoint
 ):
     """Test that resuming gradient-accumulated training doesn't overwrite the step checkpoint it resumed from with the
     progress of batches whose gradients were not applied yet, which would skip them on the next resume."""
@@ -230,6 +239,8 @@ def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(
 
     checkpoint_path = tmp_path / "run" / f"epoch=0-step={resume_step}.ckpt"
     fit(tmp_path / "run", crash_at=crash_at)
+    if legacy_checkpoint:
+        _make_legacy_checkpoint(checkpoint_path)
     checkpoint_before_resume = checkpoint_path.read_bytes()
 
     # crash again before the next optimizer step: the checkpoint we resumed from must not be saved again
@@ -242,7 +253,8 @@ def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(
     torch.testing.assert_close(resumed.layer.bias, uninterrupted.layer.bias)
 
 
-def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_path):
+@pytest.mark.parametrize("legacy_checkpoint", [False, True])
+def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_path, legacy_checkpoint):
     """Test that the resume guard against saving the restored step again doesn't skip a validation checkpoint at that
     step, which the uninterrupted run would have saved."""
 
@@ -295,12 +307,15 @@ def test_validation_checkpoint_is_saved_when_resuming_before_optimizer_step(tmp_
     # crash after the step 2 backup is saved, but before validation runs
     fit(crash_at=4)
     assert not (tmp_path / "val").exists()
+    if legacy_checkpoint:
+        _make_legacy_checkpoint(tmp_path / "backup" / "epoch=0-step=2.ckpt")
 
     fit(ckpt_path=tmp_path / "backup" / "epoch=0-step=2.ckpt")
     assert sorted(p.name for p in (tmp_path / "val").iterdir()) == ["epoch=0-step=2.ckpt"]
 
 
-def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path):
+@pytest.mark.parametrize("legacy_checkpoint", [False, True])
+def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path, legacy_checkpoint):
     """Test that a callback which already saved the restored step doesn't save it again at validation end, after
     deferring its step save because the monitored validation metric is missing right after resuming."""
 
@@ -353,9 +368,49 @@ def test_deferred_validation_save_does_not_overwrite_resumed_checkpoint(tmp_path
 
     # step 1 is saved after batch 3 with the metric of the validation after batch 1
     fit(crash_at=4)
+    if legacy_checkpoint:
+        _make_legacy_checkpoint(tmp_path / "last.ckpt")
     last_before_resume = (tmp_path / "last.ckpt").read_bytes()
 
     # crash after the validation that follows batch 5
     fit(crash_at=6, ckpt_path=tmp_path / "last.ckpt")
     assert (tmp_path / "last.ckpt").read_bytes() == last_before_resume
     assert sorted(p.name for p in tmp_path.iterdir()) == ["epoch=0-step=1.ckpt", "last.ckpt"]
+
+
+def test_exception_checkpoint_is_saved_after_failed_save(tmp_path):
+    """Test that a failed save doesn't mark the step as saved, which would skip the checkpoint on exception."""
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(4, 1)
+            self.failed = False
+
+        def training_step(self, batch, batch_idx):
+            return self.layer(batch).sum()
+
+        def on_save_checkpoint(self, checkpoint):
+            if not self.failed:
+                self.failed = True
+                raise RuntimeError("failed save")
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return DataLoader(torch.ones(4, 4), batch_size=1)
+
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=1, save_on_exception=True)
+    trainer = Trainer(
+        accelerator="cpu",
+        max_epochs=1,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        callbacks=[checkpoint],
+    )
+    with pytest.raises(RuntimeError, match="failed save"):
+        trainer.fit(Model())
+    assert checkpoint._last_global_step_saved == 1
+    assert [p.name for p in tmp_path.iterdir()] == ["epoch=0-step=1.ckpt"]
