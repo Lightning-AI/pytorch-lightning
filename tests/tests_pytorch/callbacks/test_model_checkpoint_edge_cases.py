@@ -174,7 +174,22 @@ def test_time_interval_defers_across_epoch_until_first_validation(tmp_path, val_
     assert math.isclose(actual, expected, rel_tol=0, abs_tol=1e-6)
 
 
-def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(tmp_path):
+@pytest.mark.parametrize(
+    ("accumulate_grad_batches", "every_n_train_steps", "crash_at", "resume_step"),
+    [
+        (2, 2, 5, 2),
+        (2, 1, 3, 1),
+        (3, 1, 4, 1),
+        # without accumulation, every batch is an optimizer step, so the checkpoint can't be saved twice
+        (1, 2, 5, 2),
+    ],
+)
+def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(
+    tmp_path, accumulate_grad_batches, every_n_train_steps, crash_at, resume_step
+):
+    """Test that resuming gradient-accumulated training doesn't overwrite the step checkpoint it resumed from with the
+    progress of batches whose gradients were not applied yet, which would skip them on the next resume."""
+
     class Model(LightningModule):
         def __init__(self, crash_at=None):
             super().__init__()
@@ -193,37 +208,35 @@ def test_checkpoint_is_not_overwritten_when_resuming_before_optimizer_step(tmp_p
         def train_dataloader(self):
             return DataLoader(torch.ones(8, 4), batch_size=1)
 
-    checkpoint_dir = tmp_path / "run"
-    checkpoint_path = checkpoint_dir / "epoch=0-step=2.ckpt"
-
-    def fit(crash_at, ckpt_path=None):
+    def fit(dirpath, crash_at=None, ckpt_path=None):
         model = Model(crash_at)
         trainer = Trainer(
             accelerator="cpu",
             max_epochs=1,
-            accumulate_grad_batches=2,
+            accumulate_grad_batches=accumulate_grad_batches,
             logger=False,
             enable_progress_bar=False,
             enable_model_summary=False,
-            callbacks=[
-                ModelCheckpoint(
-                    dirpath=checkpoint_dir,
-                    every_n_train_steps=2,
-                    save_top_k=-1,
-                )
-            ],
+            callbacks=[ModelCheckpoint(dirpath=dirpath, every_n_train_steps=every_n_train_steps, save_top_k=-1)],
         )
-        with pytest.raises(RuntimeError, match="simulated crash"):
+        if crash_at is None:
             trainer.fit(model, ckpt_path=ckpt_path)
+        else:
+            with pytest.raises(RuntimeError, match="simulated crash"):
+                trainer.fit(model, ckpt_path=ckpt_path)
+        return model
 
-    def checkpoint_progress():
-        checkpoint = torch.load(checkpoint_path, weights_only=False)
-        batches_completed = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_progress"]["current"]["completed"]
-        return checkpoint["global_step"], batches_completed
+    uninterrupted = fit(tmp_path / "uninterrupted")
 
-    fit(crash_at=5)
-    checkpoint_before_resume = checkpoint_progress()
-    assert checkpoint_before_resume == (2, 3)
+    checkpoint_path = tmp_path / "run" / f"epoch=0-step={resume_step}.ckpt"
+    fit(tmp_path / "run", crash_at=crash_at)
+    checkpoint_before_resume = checkpoint_path.read_bytes()
 
-    fit(crash_at=5, ckpt_path=checkpoint_path)
-    assert checkpoint_progress() == checkpoint_before_resume
+    # crash again before the next optimizer step: the checkpoint we resumed from must not be saved again
+    fit(tmp_path / "run", crash_at=crash_at, ckpt_path=checkpoint_path)
+    assert checkpoint_path.read_bytes() == checkpoint_before_resume
+
+    # resuming from it once more must not skip any batch
+    resumed = fit(tmp_path / "run", ckpt_path=checkpoint_path)
+    torch.testing.assert_close(resumed.layer.weight, uninterrupted.layer.weight)
+    torch.testing.assert_close(resumed.layer.bias, uninterrupted.layer.bias)
