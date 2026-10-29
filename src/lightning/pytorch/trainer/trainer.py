@@ -1788,9 +1788,24 @@ class Trainer:
 
         assert self.max_epochs is not None
         num_epochs = max(self.max_epochs, 1)
-        accumulation_scheduler = next((c for c in self.callbacks if isinstance(c, GradientAccumulationScheduler)), None)
+        # if there are several, the last one sets the factor at epoch start
+        accumulation_scheduler = next(
+            (c for c in reversed(self.callbacks) if isinstance(c, GradientAccumulationScheduler)), None
+        )
         if accumulation_scheduler is None:
             max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * num_epochs
+        elif (
+            type(accumulation_scheduler).get_accumulate_grad_batches
+            is not GradientAccumulationScheduler.get_accumulate_grad_batches
+        ):
+            # a subclass can change the factor at any epoch, so ask for every epoch
+            max_estimated_steps = 0
+            for epoch in range(num_epochs):
+                max_estimated_steps += math.ceil(
+                    total_batches / accumulation_scheduler.get_accumulate_grad_batches(epoch)
+                )
+                if self.max_steps != -1 and max_estimated_steps >= self.max_steps:
+                    break
         else:
             # the accumulation factor is constant between consecutive schedule keys, so sum over those segments
             # instead of iterating over every epoch (`max_epochs` can be very large when `max_steps` is the limit)

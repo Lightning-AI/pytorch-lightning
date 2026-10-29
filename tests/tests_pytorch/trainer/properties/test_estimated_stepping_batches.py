@@ -124,15 +124,15 @@ def test_num_stepping_batches_gradient_accumulation_scheduler(scheduling, expect
     assert trainer.estimated_stepping_batches == expected_steps
 
 
-def test_num_stepping_batches_gradient_accumulation_scheduler_large_max_epochs():
+@pytest.mark.parametrize(("max_steps", "expected_steps"), [(100, 100), (-1, 16 * 2 + 32 * (10**12 - 2))])
+def test_num_stepping_batches_gradient_accumulation_scheduler_large_max_epochs(max_steps, expected_steps):
     """Test that the estimate does not iterate over every epoch when `max_epochs` is very large."""
-    for max_steps, expected_steps in ((100, 100), (-1, 16 * 2 + 32 * (10**12 - 2))):
-        scheduler = GradientAccumulationScheduler(scheduling={0: 4, 2: 2})
-        trainer = Trainer(max_epochs=10**12, max_steps=max_steps, callbacks=scheduler)
-        model = BoringModel()
-        trainer._data_connector.attach_data(model)
-        trainer.strategy.connect(model)
-        assert trainer.estimated_stepping_batches == expected_steps
+    scheduler = GradientAccumulationScheduler(scheduling={0: 4, 2: 2})
+    trainer = Trainer(max_epochs=10**12, max_steps=max_steps, callbacks=scheduler)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_stepping_batches == expected_steps
 
 
 @pytest.mark.parametrize("limit_train_batches", [0.5, 7])
@@ -159,6 +159,63 @@ def test_num_stepping_batches_gradient_accumulation_scheduler_matches_fit(limit_
     )
     trainer.fit(model)
     assert model.estimated == trainer.global_step
+
+
+class _AlternatingAccumulationScheduler(GradientAccumulationScheduler):
+    def get_accumulate_grad_batches(self, epoch: int) -> int:
+        return 2 if epoch % 2 else 4
+
+
+@pytest.mark.parametrize(
+    ("trainer_callbacks", "model_callbacks"),
+    [
+        # attached by the trainer before `configure_optimizers` is called
+        ([], [GradientAccumulationScheduler(scheduling={0: 3, 2: 1})]),
+        # the last scheduler sets the factor at epoch start
+        (
+            [GradientAccumulationScheduler(scheduling={0: 1}), GradientAccumulationScheduler(scheduling={0: 3, 2: 1})],
+            [],
+        ),
+        # the factor changes at epochs that aren't schedule keys
+        ([_AlternatingAccumulationScheduler(scheduling={0: 4})], []),
+    ],
+)
+def test_num_stepping_batches_gradient_accumulation_scheduler_setups_match_fit(
+    trainer_callbacks, model_callbacks, tmp_path
+):
+    """Test that the estimate matches the number of optimizer steps taken for other ways to set up the scheduler."""
+
+    class Model(BoringModel):
+        def configure_callbacks(self):
+            return model_callbacks
+
+        def configure_optimizers(self):
+            self.estimated = self.trainer.estimated_stepping_batches
+            return super().configure_optimizers()
+
+    model = Model()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=4,
+        limit_train_batches=7,
+        limit_val_batches=0,
+        callbacks=trainer_callbacks,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert model.estimated == trainer.global_step
+
+
+def test_num_stepping_batches_gradient_accumulation_scheduler_subclass_large_max_epochs():
+    """Test that the per-epoch estimate for a scheduler subclass stops once `max_steps` is reached."""
+    trainer = Trainer(max_epochs=10**12, max_steps=100, callbacks=_AlternatingAccumulationScheduler(scheduling={0: 4}))
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_stepping_batches == 100
 
 
 @RunIf(mps=False)
