@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `ModelCheckpoint(save_last=True)` no longer updating `last.ckpt` at epoch end when the monitored metric does not reach the top k, a regression in 2.6.0 that made resuming from `ckpt_path="last"` lose progress ([#22060](https://github.com/Lightning-AI/pytorch-lightning/pull/22060))
+
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
 - Fixed `RichProgressBar` showing a nonsensical negative epoch total (e.g. `Epoch 5/-2`) when `Trainer(max_epochs=-1)` (unlimited epochs) is used and training stops via another condition ([#21925](https://github.com/Lightning-AI/pytorch-lightning/issues/21925))

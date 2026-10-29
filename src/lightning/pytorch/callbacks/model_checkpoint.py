@@ -114,9 +114,11 @@ class ModelCheckpoint(Checkpoint):
             the number of finished epoch and optimizer steps respectively.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, saves a `last.ckpt` copy whenever a checkpoint file gets saved. Can be set to
-            ``'link'`` on a local filesystem to create a symbolic link. This allows accessing the latest checkpoint
-            in a deterministic manner. Default: ``None``.
+        save_last: When ``True``, saves a `last.ckpt` copy whenever a checkpoint file gets saved and at every scheduled
+            checkpoint (e.g. every ``every_n_epochs``), even if the monitored metric did not reach the top k, so it
+            always holds the latest state. Can be set to ``'link'`` on a local filesystem to instead create a symbolic
+            link to the latest saved checkpoint. This allows accessing the latest checkpoint in a deterministic manner.
+            Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
             If ``save_top_k == 0``, no models are saved.
@@ -489,13 +491,7 @@ class ModelCheckpoint(Checkpoint):
         """Save a checkpoint at the end of the training epoch."""
         if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
-            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
-            if self._last_global_step_saved == trainer.global_step or (
-                self.save_last == "link" and self._last_checkpoint_saved
-            ):
-                self._save_last_checkpoint(trainer, monitor_candidates)
+            self._save_epoch_end_checkpoints(trainer, monitor_candidates)
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -510,13 +506,7 @@ class ModelCheckpoint(Checkpoint):
                 self._defer_save_until_validation = False
                 return
 
-            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
-            if self._last_global_step_saved == trainer.global_step or (
-                self.save_last == "link" and self._last_checkpoint_saved
-            ):
-                self._save_last_checkpoint(trainer, monitor_candidates)
+            self._save_epoch_end_checkpoints(trainer, monitor_candidates)
 
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
@@ -589,6 +579,20 @@ class ModelCheckpoint(Checkpoint):
             self._save_monitor_checkpoint(trainer, monitor_candidates)
         else:
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
+
+    def _save_epoch_end_checkpoints(self, trainer: "pl.Trainer", monitor_candidates: dict[str, Tensor]) -> None:
+        is_checkpoint_epoch = self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
+        if is_checkpoint_epoch:
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+        # With `save_last=True`, `last` follows the checkpointing schedule, not the top-k result: it must hold the
+        # latest state even when the monitored metric did not improve. With `save_last="link"`, `last` points to the
+        # latest saved checkpoint, so it is only updated when one exists.
+        if (
+            (is_checkpoint_epoch and self.save_last is True)
+            or self._last_global_step_saved == trainer.global_step
+            or (self.save_last == "link" and self._last_checkpoint_saved)
+        ):
+            self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Save the checkpoint to the given filepath.

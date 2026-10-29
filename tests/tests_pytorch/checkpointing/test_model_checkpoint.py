@@ -2180,3 +2180,118 @@ def test_save_last_only_when_checkpoint_saved(tmp_path):
     assert len(checkpoint_files) == expected_files, (
         f"Expected {expected_files} files, got {len(checkpoint_files)}: {checkpoint_names}"
     )
+
+
+@pytest.mark.parametrize("save_on_train_epoch_end", [False, True])
+def test_save_last_keeps_latest_state_when_top_k_does_not_improve(tmp_path, save_on_train_epoch_end):
+    """Test that last.ckpt holds the latest state even when the monitored metric stops improving."""
+    scores = [0.1, 0.5, 0.9, 0.2, 0.1]
+
+    class PeakingModel(BoringModel):
+        def on_train_epoch_end(self):
+            if save_on_train_epoch_end:
+                self.log("score", scores[self.current_epoch])
+
+        def on_validation_epoch_end(self):
+            if not save_on_train_epoch_end:
+                self.log("score", scores[self.current_epoch])
+
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="score",
+        mode="max",
+        save_top_k=1,
+        save_last=True,
+        save_on_train_epoch_end=save_on_train_epoch_end,
+    )
+    trainer = Trainer(
+        max_epochs=len(scores),
+        callbacks=[checkpoint],
+        logger=False,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(PeakingModel())
+
+    assert checkpoint.best_model_path == str(tmp_path / "epoch=2-step=6.ckpt")
+    assert {p.name for p in tmp_path.glob("*.ckpt")} == {"epoch=2-step=6.ckpt", "last.ckpt"}
+    last = torch.load(tmp_path / "last.ckpt", weights_only=False)
+    assert last["global_step"] == trainer.global_step == 10
+    assert last["epoch"] == len(scores) - 1
+
+
+@pytest.mark.parametrize(
+    ("ckpt_kwargs", "expected_steps"),
+    [
+        # `last` follows the epoch schedule even when no top-k checkpoint is saved
+        ({"save_top_k": 0}, [2, 4, 6, 8]),
+        ({"monitor": "score", "mode": "max", "save_top_k": 1}, [2, 4, 6, 8]),
+        ({"monitor": "score", "mode": "max", "save_top_k": 1, "every_n_epochs": 2}, [4, 8]),
+        # step/time based schedules must not write `last` at every epoch end
+        ({"train_time_interval": timedelta(hours=1)}, [8]),
+    ],
+)
+def test_save_last_follows_checkpoint_schedule(tmp_path, ckpt_kwargs, expected_steps):
+    """Test at which steps `last.ckpt` is written for different checkpointing schedules."""
+    scores = [0.9, 0.1, 0.1, 0.1]
+
+    class Model(BoringModel):
+        def on_validation_epoch_end(self):
+            self.log("score", scores[self.current_epoch])
+
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, save_last=True, **ckpt_kwargs)
+    trainer = Trainer(
+        max_epochs=len(scores),
+        callbacks=[checkpoint],
+        logger=False,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    saved_steps = []
+    original = checkpoint._save_last_checkpoint
+
+    def record(trainer, monitor_candidates):
+        saved_steps.append(trainer.global_step)
+        original(trainer, monitor_candidates)
+
+    with patch.object(checkpoint, "_save_last_checkpoint", side_effect=record):
+        trainer.fit(Model())
+
+    assert saved_steps == expected_steps
+    assert torch.load(tmp_path / "last.ckpt", weights_only=False)["global_step"] == expected_steps[-1]
+
+
+@pytest.mark.parametrize("last_name", ["last", "last-{epoch}"])
+def test_save_last_link_after_resume_when_top_k_does_not_improve(tmp_path, last_name):
+    """Test that `save_last="link"` leaves a valid last checkpoint with the latest state after resuming, when the
+    monitored metric does not improve anymore."""
+    scores = [0.1, 0.9, 0.2, 0.1, 0.05]
+
+    class Model(BoringModel):
+        def on_validation_epoch_end(self):
+            self.log("score", scores[self.current_epoch])
+
+    def fit(max_epochs, ckpt_path=None):
+        checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="score", mode="max", save_top_k=1, save_last="link")
+        checkpoint.CHECKPOINT_NAME_LAST = last_name
+        trainer = Trainer(
+            max_epochs=max_epochs,
+            callbacks=[checkpoint],
+            logger=False,
+            limit_train_batches=2,
+            limit_val_batches=1,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(Model(), ckpt_path=ckpt_path)
+        return trainer, checkpoint
+
+    _, checkpoint = fit(max_epochs=2)
+    trainer, checkpoint = fit(max_epochs=len(scores), ckpt_path=checkpoint.last_model_path)
+
+    assert os.path.exists(checkpoint.last_model_path)
+    assert torch.load(checkpoint.last_model_path, weights_only=False)["global_step"] == trainer.global_step == 10
