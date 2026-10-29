@@ -559,7 +559,10 @@ class _FitLoop(_Loop):
         return self.trainer.max_steps != -1
 
     def _load_combined_loader_states(self) -> None:
-        if not self.restarting or not self._combined_loader_states_to_load or self._combined_loader is None:
+        # Note: unlike the loop progress, the dataloader states must be restored even when the checkpoint was
+        # saved at the end of an epoch (``self.restarting == False``), since stateful dataloaders need their
+        # state to continue seamlessly on the next epoch
+        if not self._combined_loader_states_to_load or self._combined_loader is None:
             return
         self._combined_loader._load_state_dicts(self._combined_loader_states_to_load)
         self._combined_loader_states_to_load = []  # release memory
