@@ -219,5 +219,5 @@ This is true for both academic and corporate settings where data cleaning and ad
 of iterating through ideas.
 
 - Check out the example notebooks to get your hands dirty:
-- :doc:`Introduction to PyTorch Lightning <../notebooks/lightning_examples/mnist-hello-world>`
-- :doc:`Introduction to DataModules <../notebooks/lightning_examples/datamodules>`
+- `Introduction to PyTorch Lightning <https://github.com/Lightning-AI/tutorials/blob/publication/.notebooks/lightning_examples/mnist-hello-world.ipynb>`_
+- `Introduction to DataModules <https://github.com/Lightning-AI/tutorials/blob/publication/.notebooks/lightning_examples/datamodules.ipynb>`_
