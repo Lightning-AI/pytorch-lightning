@@ -104,7 +104,7 @@ if _FETCH_S3_ASSETS:
     )
 
 if _PIN_RELEASE_VERSIONS:
-    from lightning_utilities.docs import adjust_linked_external_docs
+    adjust_linked_external_docs = assist_local.adjust_linked_external_docs
 
     adjust_linked_external_docs(
         "https://numpy.org/doc/stable/", "https://numpy.org/doc/{numpy.__version__}/", _PATH_ROOT

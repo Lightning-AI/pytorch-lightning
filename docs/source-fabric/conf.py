@@ -13,6 +13,7 @@
 import inspect
 import os
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 import lai_sphinx_theme
 
@@ -51,7 +52,10 @@ if _FETCH_S3_ASSETS:
     )
 
 if _PIN_RELEASE_VERSIONS:
-    from lightning_utilities.docs import adjust_linked_external_docs
+    spec = spec_from_file_location("assistant", os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
+    assist_local = module_from_spec(spec)
+    spec.loader.exec_module(assist_local)
+    adjust_linked_external_docs = assist_local.adjust_linked_external_docs
 
     adjust_linked_external_docs(
         "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT

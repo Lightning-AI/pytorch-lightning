@@ -192,6 +192,36 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # text = _parse_for_badge(text, github_release_url)
 
 
+def adjust_linked_external_docs(
+    source_link: str,
+    target_link: str,
+    browse_folder: str | Iterable[str],
+    file_extensions: Iterable[str] = (".rst", ".py"),
+    version_digits: int = 2,
+) -> None:
+    """Pin external documentation links only when the resolved version is available.
+
+    Keep the original links if the versioned documentation root returns an HTTP error or cannot be reached. Individual
+    pages are still validated by Sphinx's linkcheck builder.
+
+    """
+    import requests
+    from lightning_utilities.docs import adjust_linked_external_docs as rewrite_links
+    from lightning_utilities.docs.formatting import _update_link_based_imported_package
+
+    for package_version in re.findall(r"{(.+)}", target_link):
+        target_link = _update_link_based_imported_package(target_link, package_version, version_digits)
+
+    try:
+        with requests.get(target_link, timeout=10, stream=True) as response:
+            response.raise_for_status()
+    except requests.RequestException as ex:
+        logging.warning("Keeping documentation links at %s because %s is unavailable: %s", source_link, target_link, ex)
+        return
+
+    rewrite_links(source_link, target_link, browse_folder, file_extensions, version_digits)
+
+
 def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
     """Copy the global version to all packages."""
     ls_ver = glob.glob(os.path.join(src_folder, "*", "__version__.py"))
