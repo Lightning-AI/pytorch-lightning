@@ -289,6 +289,7 @@ class ModelCheckpoint(Checkpoint):
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
         self._last_global_step_saved = 0  # no need to save when no steps were taken
+        self._restored_global_step: Optional[int] = None
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
         self.best_k_models: dict[str, Tensor] = {}
@@ -335,9 +336,9 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
-        if trainer.ckpt_path is not None:
-            # A step checkpoint can be saved before the next optimizer step when gradients are accumulated.
-            self._last_global_step_saved = trainer.global_step
+        # the step we resumed from is already checkpointed. With gradient accumulation, the batches before the next
+        # optimizer step would save it again on train batch end, including progress of not yet applied gradients
+        self._restored_global_step = trainer.global_step if trainer.ckpt_path is not None else None
 
     @override
     def on_train_batch_end(
@@ -428,7 +429,9 @@ class ModelCheckpoint(Checkpoint):
             return
 
         # Original logic for automatic optimization
-        skip_due_to_state = self._should_skip_saving_checkpoint(trainer)
+        skip_due_to_state = (
+            self._should_skip_saving_checkpoint(trainer) or self._restored_global_step == trainer.global_step
+        )
         skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
         train_time_interval = self._train_time_interval
