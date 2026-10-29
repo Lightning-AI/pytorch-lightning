@@ -2229,7 +2229,7 @@ def test_save_last_keeps_latest_state_when_top_k_does_not_improve(tmp_path, save
         ({"save_top_k": 0}, [2, 4, 6, 8]),
         ({"monitor": "score", "mode": "max", "save_top_k": 1}, [2, 4, 6, 8]),
         ({"monitor": "score", "mode": "max", "save_top_k": 1, "every_n_epochs": 2}, [4, 8]),
-        # step/time based schedules must not write `last` at every epoch end (#20245)
+        # step/time based schedules must not write `last` at every epoch end
         ({"train_time_interval": timedelta(hours=1)}, [8]),
     ],
 )
