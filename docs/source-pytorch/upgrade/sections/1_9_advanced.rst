@@ -259,9 +259,9 @@
      - `PR16389`_
 
 
-.. _Fabric: https://lightning.ai/docs/fabric/
+.. _Fabric: https://lightning.ai/docs/fabric/stable/
 .. _lightning-Horovod: https://github.com/Lightning-AI/lightning-Horovod
-.. _lightning-ColossalAI: https://lightning.ai/docs/pytorch/2.1.0/integrations/strategies/colossalai.html
+.. _lightning-ColossalAI: https://github.com/Lightning-Universe/lightning-ColossalAI
 .. _lightning-Fairscale: https://github.com/Lightning-Sandbox/lightning-Fairscale
 
 .. _pr15953: https://github.com/Lightning-AI/pytorch-lightning/pull/15953
