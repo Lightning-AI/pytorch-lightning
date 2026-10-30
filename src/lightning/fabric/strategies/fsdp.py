@@ -527,7 +527,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strict: bool = True,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects."""
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``strict=False`` applies to module and metadata state loading. Loading sharded optimizer state
+            remains strict and requires the model parameters to match the checkpoint.
+
+        """
         if not state:
             raise ValueError(
                 f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "

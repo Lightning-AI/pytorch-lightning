@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
 
+- Fixed `FSDPStrategy.load_checkpoint` and `ModelParallelStrategy.load_checkpoint` ignoring `strict=False` when loading sharded (distributed) checkpoints ([#22028](https://github.com/Lightning-AI/pytorch-lightning/pull/22028))
+
 - Fixed the `scheduler` type hint on `Fabric.setup` and `Strategy.setup_module_and_optimizers` to use the public `LRScheduler` instead of the private `_LRScheduler` ([#21934](https://github.com/Lightning-AI/pytorch-lightning/pull/21934))
 
 ---

@@ -598,6 +598,13 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``LightningModule.strict_loading=False`` applies to module state loading. Loading sharded optimizer
+            state remains strict and requires the model parameters to match the checkpoint.
+
+        """
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = _resolve_path(self.broadcast(checkpoint_path))
 

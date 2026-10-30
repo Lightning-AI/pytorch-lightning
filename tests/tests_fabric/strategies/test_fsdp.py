@@ -647,11 +647,12 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     monkeypatch.setattr(
         "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
     )
-    monkeypatch.setattr(
-        "lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path, strict=True: None
-    )
 
     captured = {}
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._distributed_checkpoint_load",
+        lambda state, path, strict=True: captured.update(strict=strict),
+    )
 
     def fake_load(path, weights_only=None):
         captured["weights_only"] = weights_only
@@ -662,9 +663,11 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     model = nn.Linear(2, 2)
     strategy.load_checkpoint("memory:///x/sharded", state={"model": model})
     assert captured["weights_only"] is False
+    assert captured["strict"] is True
 
-    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True)
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True, strict=False)
     assert captured["weights_only"] is True
+    assert captured["strict"] is False
 
 
 def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):

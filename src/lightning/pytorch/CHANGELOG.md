@@ -56,6 +56,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed `FSDPStrategy.load_checkpoint` ignoring `LightningModule.strict_loading=False` when loading sharded (distributed) checkpoints ([#22028](https://github.com/Lightning-AI/pytorch-lightning/pull/22028))
+
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
 ---
