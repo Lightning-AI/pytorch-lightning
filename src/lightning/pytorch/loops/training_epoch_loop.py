@@ -190,6 +190,18 @@ class _TrainingEpochLoop(loops._Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
+        fit_loop = self.trainer.fit_loop
+        if (
+            self.restarted_on_last
+            and not fit_loop.restarted_mid_epoch
+            and not fit_loop.restarted_on_epoch_end
+            and self._num_ready_batches_reached()
+        ):
+            # the checkpoint was saved after the previous epoch had fully finished (e.g. `max_steps` was reached on
+            # its last batch) and the fit loop is starting a new epoch, so this is not a restart of the epoch loop
+            self.restarting = False
+            self.reset_restart_stage()
+
         if (
             self.restarting
             and not self._should_accumulate()
