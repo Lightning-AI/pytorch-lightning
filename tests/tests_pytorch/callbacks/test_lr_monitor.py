@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+
 import pytest
 import torch
 from torch import optim
@@ -211,14 +213,32 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmp_path):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_lr_monitor_no_logger(tmp_path):
+@pytest.mark.parametrize("logging_interval", ["step", "epoch"])
+def test_lr_monitor_no_logger(tmp_path, caplog, logging_interval):
+    """Test that learning rates are tracked and added to callback metrics when the Trainer has no logger."""
     model = BoringModel()
 
-    lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, callbacks=[lr_monitor], logger=False)
-
-    with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
+    lr_monitor = LearningRateMonitor(logging_interval=logging_interval, log_momentum=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        callbacks=[lr_monitor],
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch"):
         trainer.fit(model)
+    assert "available in `trainer.callback_metrics`" in caplog.text
+
+    expected_number_logged = 4 * 2 if logging_interval == "step" else 2
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
+    assert len(lr_monitor.lrs["lr-SGD"]) == expected_number_logged
+    assert "lr-SGD" in trainer.callback_metrics
+    assert "lr-SGD-momentum" in trainer.callback_metrics
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
