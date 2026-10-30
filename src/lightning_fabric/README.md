@@ -249,7 +249,7 @@ pip install -U lightning
 1. Create the `Fabric` object at the beginning of your training code.
 
    ```
-   import Lightning as L
+   import lightning as L
 
    fabric = L.Fabric()
    ```
