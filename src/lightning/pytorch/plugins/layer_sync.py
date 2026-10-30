@@ -83,6 +83,7 @@ class TorchSyncBatchNorm(LayerSync):
             converted_module.running_mean = model.running_mean
             converted_module.running_var = model.running_var
             converted_module.num_batches_tracked = model.num_batches_tracked
+            converted_module.training = model.training
             if hasattr(model, "qconfig"):
                 converted_module.qconfig = model.qconfig
         for name, child in model.named_children():
