@@ -647,9 +647,12 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     monkeypatch.setattr(
         "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
     )
-    monkeypatch.setattr("lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path: None)
 
     captured = {}
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._distributed_checkpoint_load",
+        lambda state, path, strict=True: captured.update(strict=strict),
+    )
 
     def fake_load(path, weights_only=None):
         captured["weights_only"] = weights_only
@@ -660,9 +663,11 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     model = nn.Linear(2, 2)
     strategy.load_checkpoint("memory:///x/sharded", state={"model": model})
     assert captured["weights_only"] is False
+    assert captured["strict"] is True
 
-    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True)
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True, strict=False)
     assert captured["weights_only"] is True
+    assert captured["strict"] is False
 
 
 def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
@@ -685,3 +690,21 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_reader("memory:///w/ckpt")
+
+
+def test_distributed_checkpoint_load_strict(tmp_path):
+    """`strict=False` must allow keys that are missing from the sharded checkpoint, `strict=True` must not."""
+    from torch.distributed.checkpoint import save
+    from torch.distributed.checkpoint.api import CheckpointException
+
+    from lightning.fabric.strategies.fsdp import _distributed_checkpoint_load
+
+    save({"model": {"weight": torch.ones(2)}}, checkpoint_id=tmp_path)
+
+    module_state = {"model": {"weight": torch.zeros(2), "extra": torch.zeros(2)}}
+    with pytest.raises(CheckpointException):
+        _distributed_checkpoint_load(module_state, tmp_path)
+
+    _distributed_checkpoint_load(module_state, tmp_path, strict=False)
+    assert torch.equal(module_state["model"]["weight"], torch.ones(2))
+    assert torch.equal(module_state["model"]["extra"], torch.zeros(2))

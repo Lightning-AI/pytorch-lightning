@@ -282,7 +282,13 @@ class ModelParallelStrategy(ParallelStrategy):
         strict: bool = True,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects."""
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``strict=False`` applies to module and metadata state loading. Loading sharded optimizer state
+            remains strict and requires the model parameters to match the checkpoint.
+
+        """
         if not state:
             raise ValueError(
                 f"Got {type(self).__name__}.load_checkpoint(..., state={state!r}) but a state with at least "
@@ -446,7 +452,7 @@ def _load_checkpoint(
         state_dict_options = StateDictOptions(cpu_offload=True)
 
         module_state = {module_key: get_model_state_dict(module)}
-        _distributed_checkpoint_load(module_state, path)
+        _distributed_checkpoint_load(module_state, path, strict=strict)
         module.load_state_dict(module_state[module_key], strict=strict)
 
         # the optimizer states must be loaded separately

@@ -527,7 +527,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strict: bool = True,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects."""
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``strict=False`` applies to module and metadata state loading. Loading sharded optimizer state
+            remains strict and requires the model parameters to match the checkpoint.
+
+        """
         if not state:
             raise ValueError(
                 f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
@@ -572,7 +578,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, strict=strict)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 if optimizers:
@@ -958,7 +964,8 @@ def _distributed_checkpoint_save(converted_state: dict[str, Any], path: _PATH) -
     save(converted_state, checkpoint_id=path)
 
 
-def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH) -> None:
+def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH, strict: bool = True) -> None:
     from torch.distributed.checkpoint import load
+    from torch.distributed.checkpoint.default_planner import DefaultLoadPlanner
 
-    load(module_state, checkpoint_id=path)
+    load(module_state, checkpoint_id=path, planner=DefaultLoadPlanner(allow_partial_load=not strict))

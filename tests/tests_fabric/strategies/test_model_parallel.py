@@ -385,13 +385,16 @@ def test_model_parallel_load_checkpoint_does_not_corrupt_remote_path(monkeypatch
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
     monkeypatch.setattr(mp, "_is_sharded_checkpoint", lambda p: True)
     monkeypatch.setattr(mp, "_is_full_checkpoint", lambda p: False)
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: captured.update(path=path))
+    monkeypatch.setattr(
+        mp, "_distributed_checkpoint_load", lambda state, path, strict=True: captured.update(path=path, strict=strict)
+    )
     monkeypatch.setattr(mp, "_load", lambda path, weights_only=None: captured.update(meta=str(path)) or {})
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)
     mp._load_checkpoint(path="gs://bucket/run/ckpt", state={"model": model}, strict=False)
     assert captured["path"] == "gs://bucket/run/ckpt"
+    assert captured["strict"] is False
     assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
 
 
@@ -419,12 +422,16 @@ def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, t
     _atomic_save({"user_meta": _NonTensorMeta(42)}, ckpt_dir / _METADATA_FILENAME)
     assert _is_sharded_checkpoint(ckpt_dir)
 
+    captured = {}
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: None)
+    monkeypatch.setattr(
+        mp, "_distributed_checkpoint_load", lambda state, path, strict=True: captured.update(strict=strict)
+    )
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)
     state = {"model": model, "user_meta": None}
     mp._load_checkpoint(path=ckpt_dir, state=state, strict=False)
+    assert captured["strict"] is False
     assert isinstance(state["user_meta"], _NonTensorMeta)
     assert state["user_meta"].value == 42
