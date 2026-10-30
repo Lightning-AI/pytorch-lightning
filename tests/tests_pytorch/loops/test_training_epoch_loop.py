@@ -228,3 +228,56 @@ def test_resume_mid_epoch_warning(tmp_path):
 
     # Resume mid-epoch, stateful dataloader -> no warning
     train_and_resume(dataloader=StatefulIterable(), resume_step=1, expected_warning=False)
+
+
+@pytest.mark.parametrize("stop_epochs", [1, 2])
+def test_resume_from_max_steps_on_epoch_boundary(tmp_path, stop_epochs):
+    """Test that resuming from a checkpoint saved when ``max_steps`` was reached on the last batch of an epoch starts
+    the next epoch from its first batch, like an uninterrupted run."""
+    num_batches = 4
+
+    class RecordingModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen.append((self.trainer.current_epoch, batch_idx, batch[0].item()))
+            return super().training_step(batch.float().expand(1, 32), batch_idx)
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(torch.arange(num_batches), batch_size=1)
+
+        def val_dataloader(self):
+            return None
+
+    trainer_kwargs = {
+        "limit_val_batches": 0,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    stop_steps = stop_epochs * num_batches
+    total_steps = stop_steps + num_batches
+
+    # uninterrupted run
+    model = RecordingModel()
+    trainer = Trainer(max_steps=total_steps, **trainer_kwargs)
+    trainer.fit(model)
+    expected = model.seen[stop_steps:]
+    expected_epoch = trainer.current_epoch
+
+    # stop on the epoch boundary and resume with a higher `max_steps`
+    trainer = Trainer(max_steps=stop_steps, **trainer_kwargs)
+    trainer.fit(RecordingModel())
+    ckpt_path = tmp_path / "max_steps.ckpt"
+    trainer.save_checkpoint(ckpt_path)
+
+    model = RecordingModel()
+    trainer = Trainer(max_steps=total_steps, **trainer_kwargs)
+    with no_warning_call(PossibleUserWarning, match="resuming from a checkpoint that ended before"):
+        trainer.fit(model, ckpt_path=ckpt_path)
+    assert model.seen == expected == [(stop_epochs, i, i) for i in range(num_batches)]
+    assert trainer.current_epoch == expected_epoch
+    assert trainer.global_step == total_steps
