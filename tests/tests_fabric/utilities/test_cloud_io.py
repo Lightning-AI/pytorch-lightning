@@ -28,6 +28,7 @@ from lightning.fabric.utilities.cloud_io import (
     _checkpoint_join,
     _is_checkpoint_dir,
     _is_dir,
+    _load,
     _prepare_directory_checkpoint,
     _remove_checkpoint,
     _resolve_path,
@@ -333,3 +334,29 @@ def test_atomic_save_local_interrupted_save_creates_no_partial_file(tmp_path):
 
     assert not filepath.exists()
     assert os.listdir(tmp_path) == []
+
+
+def test_load_local_path_starting_with_http(tmp_path, monkeypatch):
+    """Relative local paths starting with 'http' (e.g. 'http_runs/last.ckpt') must not be treated as HTTP URLs."""
+    monkeypatch.chdir(tmp_path)
+    ckpt_dir = Path("http_runs")
+    ckpt_dir.mkdir()
+    ckpt_file = ckpt_dir / "last.ckpt"
+    expected = {"epoch": 3, "weight": torch.tensor([1.0, 2.0])}
+    torch.save(expected, ckpt_file)
+
+    with mock.patch("torch.hub.load_state_dict_from_url") as mock_url_load:
+        loaded_str = _load("http_runs/last.ckpt", weights_only=True)
+        loaded_path = _load(ckpt_file, weights_only=True)
+
+    mock_url_load.assert_not_called()
+    assert loaded_str["epoch"] == 3
+    torch.testing.assert_close(loaded_str["weight"], expected["weight"])
+    assert loaded_path["epoch"] == 3
+    torch.testing.assert_close(loaded_path["weight"], expected["weight"])
+
+    with mock.patch("torch.hub.load_state_dict_from_url", return_value=expected) as mock_url_load:
+        _load("http://example.com/model.ckpt", weights_only=True)
+        _load("https://example.com/model.ckpt", weights_only=True)
+    assert mock_url_load.call_count == 2
+
