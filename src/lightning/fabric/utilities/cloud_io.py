@@ -57,7 +57,7 @@ def _load(
             map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
             weights_only=weights_only,
         )
-    if str(path_or_url).startswith("http"):
+    if str(path_or_url).startswith(("http://", "https://")):
         if weights_only is None:
             weights_only = False
             log.debug(
