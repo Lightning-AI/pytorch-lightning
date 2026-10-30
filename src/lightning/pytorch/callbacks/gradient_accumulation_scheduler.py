@@ -47,10 +47,10 @@ class GradientAccumulationScheduler(Callback):
 
     Raises:
         TypeError:
-            If ``scheduling`` is an empty ``dict``,
-            or not all keys and values of ``scheduling`` are integers.
-        IndexError:
-            If ``minimal_epoch`` is less than 0.
+            If ``scheduling`` is an empty ``dict``.
+        MisconfigurationException:
+            If not all keys and values of ``scheduling`` are integers, or if any key is less than 0
+            or any value is less than 1.
 
     Example::
 
@@ -82,8 +82,6 @@ class GradientAccumulationScheduler(Callback):
 
         scheduling = dict(scheduling)
         minimal_epoch = min(scheduling.keys())
-        if minimal_epoch < 0:
-            raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
         if minimal_epoch != 0:  # if user didn't define first epoch accumulation factor
             scheduling.update({0: 1})
 
