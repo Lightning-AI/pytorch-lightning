@@ -70,6 +70,8 @@ def test_trainer_accumulate_grad_batches_with_callback(tmp_path, accumulate_grad
     [
         {1: 2, -3: 4},
         {0: 2, "2": 1},
+        {True: 2},
+        {False: 2},
     ],
 )
 def test_invalid_keys_for_grad_accum_scheduler(scheduling):
@@ -82,11 +84,20 @@ def test_invalid_keys_for_grad_accum_scheduler(scheduling):
     [
         {1: 0, 3: 4},
         {0: 2, 2: "2"},
+        {0: True},
+        {1: False},
     ],
 )
 def test_invalid_values_for_grad_accum_scheduler(scheduling):
     with pytest.raises(MisconfigurationException, match="Accumulation factor should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
+
+
+def test_grad_accum_scheduler_does_not_mutate_input_dict():
+    user_schedule = {2: 4}
+    scheduler = GradientAccumulationScheduler(scheduling=user_schedule)
+    assert user_schedule == {2: 4}
+    assert scheduler.scheduling == {0: 1, 2: 4}
 
 
 @pytest.mark.parametrize("strategy_class", [DeepSpeedStrategy])
