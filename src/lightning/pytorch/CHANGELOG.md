@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `AsyncCheckpointIO` retaining live NumPy arrays during asynchronous checkpoint writes ([#22087](https://github.com/Lightning-AI/pytorch-lightning/pull/22087))
+- Fixed `AsyncCheckpointIO` retaining live numerical NumPy arrays during asynchronous checkpoint writes ([#22087](https://github.com/Lightning-AI/pytorch-lightning/pull/22087))
 
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 

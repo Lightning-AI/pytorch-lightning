@@ -99,8 +99,15 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             raise self._error
 
 
-# Snapshot numerical checkpoint state on the caller thread before training can mutate it.
+# snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
 def _clone_tensor_or_array(value: Any) -> Any:
+    """Clones a tensor or NumPy array on the caller thread.
+
+    Numerical arrays are copied by value. Object arrays are copied shallowly, so their elements still reference the
+    live Python objects.
+
+    """
     if isinstance(value, torch.Tensor):
+        # detach to avoid autograd history and clone to take a point-in-time copy
         return value.detach().clone()
     return value.copy()
