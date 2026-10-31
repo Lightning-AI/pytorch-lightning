@@ -143,6 +143,16 @@ def collect_init_args(
     return path_args
 
 
+def _safe_is_equal(a: Any, b: Any) -> bool:
+    if a is b:
+        return True
+    try:
+        res = a == b
+    except (ValueError, RuntimeError, TypeError):
+        return False
+    return res if isinstance(res, bool) else False
+
+
 def save_hyperparameters(
     obj: Any,
     *args: Any,
@@ -196,7 +206,9 @@ def save_hyperparameters(
         isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
         if len(isx_non_str) == 1:
             hp = args[isx_non_str[0]]
-            cand_names = [k for k, v in init_args.items() if v == hp]
+            cand_names = [k for k, v in init_args.items() if v is hp]
+            if not cand_names:
+                cand_names = [k for k, v in init_args.items() if _safe_is_equal(v, hp)]
             obj._hparams_name = cand_names[0] if cand_names else None
         else:
             hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}

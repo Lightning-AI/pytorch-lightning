@@ -235,3 +235,37 @@ def test_collect_init_args():
     my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
     assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
+
+
+def test_save_hyperparameters_single_container_with_array_and_duplicate_init_args():
+    import numpy as np
+    import torch
+
+    class ArrayAndConfigModel(LightningModule):
+        def __init__(self, arr, tensor, cfg):
+            super().__init__()
+            self.save_hyperparameters(cfg)
+
+    cfg = {"lr": 1e-3, "layers": 2}
+    model = ArrayAndConfigModel(np.ones((2, 2)), torch.ones(2), cfg)
+    assert model._hparams_name == "cfg"
+    assert dict(model.hparams) == cfg
+
+    class CopiedConfigModel(LightningModule):
+        def __init__(self, arr, tensor, cfg):
+            super().__init__()
+            self.save_hyperparameters(dict(cfg))
+
+    model_copied = CopiedConfigModel(np.ones((2, 2)), torch.ones(2), cfg)
+    assert model_copied._hparams_name == "cfg"
+    assert dict(model_copied.hparams) == cfg
+
+    class DuplicateConfigModel(LightningModule):
+        def __init__(self, default_cfg, active_cfg):
+            super().__init__()
+            self.save_hyperparameters(active_cfg)
+
+    default_cfg = {"lr": 1e-3}
+    active_cfg = {"lr": 1e-3}
+    dup_model = DuplicateConfigModel(default_cfg, active_cfg)
+    assert dup_model._hparams_name == "active_cfg"
