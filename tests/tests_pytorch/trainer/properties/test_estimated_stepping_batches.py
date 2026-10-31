@@ -218,6 +218,16 @@ def test_num_stepping_batches_gradient_accumulation_scheduler_subclass_large_max
     assert trainer.estimated_stepping_batches == 100
 
 
+def test_num_stepping_batches_gradient_accumulation_scheduler_instance_override(monkeypatch):
+    scheduler = GradientAccumulationScheduler(scheduling={0: 4})
+    monkeypatch.setattr(scheduler, "get_accumulate_grad_batches", lambda epoch: 2 if epoch % 2 else 4)
+    trainer = Trainer(max_epochs=4, limit_train_batches=7, callbacks=scheduler)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_stepping_batches == 2 + 4 + 2 + 4
+
+
 @RunIf(mps=False)
 @pytest.mark.parametrize(
     ("trainer_kwargs", "estimated_steps"),

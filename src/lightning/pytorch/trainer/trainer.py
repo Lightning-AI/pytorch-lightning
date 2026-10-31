@@ -1765,9 +1765,9 @@ class Trainer:
 
         .. note::
             With a :class:`~lightning.pytorch.callbacks.GradientAccumulationScheduler`, the factor for each epoch is
-            assumed to come from its ``get_accumulate_grad_batches`` method. If you set
-            ``trainer.accumulate_grad_batches`` in another way, for example by overriding ``on_train_epoch_start``,
-            the estimate won't account for it.
+            assumed to come from its ``get_accumulate_grad_batches`` method, including subclass and instance overrides.
+            If you set ``trainer.accumulate_grad_batches`` in another way, for example by overriding
+            ``on_train_epoch_start``, the estimate won't account for it.
 
         .. code-block:: python
 
@@ -1801,10 +1801,10 @@ class Trainer:
         if accumulation_scheduler is None:
             max_estimated_steps = math.ceil(total_batches / self.accumulate_grad_batches) * num_epochs
         elif (
-            type(accumulation_scheduler).get_accumulate_grad_batches
+            getattr(accumulation_scheduler.get_accumulate_grad_batches, "__func__", None)
             is not GradientAccumulationScheduler.get_accumulate_grad_batches
         ):
-            # a subclass can change the factor at any epoch, so ask for every epoch
+            # an overridden getter can change the factor at any epoch, so ask for every epoch
             max_estimated_steps = 0
             for epoch in range(num_epochs):
                 max_estimated_steps += math.ceil(

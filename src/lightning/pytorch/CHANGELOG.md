@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `Trainer.estimated_stepping_batches` ignoring the accumulation factors set by the `GradientAccumulationScheduler` callback ([#22049](https://github.com/Lightning-AI/pytorch-lightning/pull/22049))
+- Fixed `Trainer.estimated_stepping_batches` ignoring the accumulation factors set by the `GradientAccumulationScheduler` callback, including instance-level getter overrides ([#22049](https://github.com/Lightning-AI/pytorch-lightning/pull/22049))
 
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
