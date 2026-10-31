@@ -58,11 +58,12 @@ def test_async_checkpoint_should_snapshot_values_before_mutation():
 
 class _MutableCheckpointState:
     def __init__(self) -> None:
-        self.values = [1]
+        self.tensor = torch.tensor([1.0], requires_grad=True) * 2
 
 
 @pytest.mark.parametrize("keyword", [False, True])
-def test_async_checkpoint_snapshots_mutable_state(tmp_path, keyword):
+@pytest.mark.parametrize("dtype", [np.float64, np.int64])
+def test_async_checkpoint_snapshots_numpy_state(tmp_path, keyword, dtype):
     started = Event()
     release = Event()
 
@@ -74,9 +75,8 @@ def test_async_checkpoint_snapshots_mutable_state(tmp_path, keyword):
 
     checkpoint_io = AsyncCheckpointIO(BlockingCheckpointIO())
     tensor = torch.tensor([1.0], requires_grad=True) * 2
-    array = np.array([3.0])
-    state = _MutableCheckpointState()
-    checkpoint = {"weights": tensor, "callbacks": {"array": array, "state": state}, "same_weights": tensor}
+    array = np.array([3, 4, 5], dtype=dtype)[::2]
+    checkpoint = {"weights": tensor, "callbacks": {"array": array}, "same_array": array, "view": tensor[:1]}
     path = tmp_path / "snapshot.ckpt"
     try:
         if keyword:
@@ -87,14 +87,25 @@ def test_async_checkpoint_snapshots_mutable_state(tmp_path, keyword):
         with torch.no_grad():
             tensor.add_(10)
         array += 10
-        state.values.append(2)
     finally:
         release.set()
         checkpoint_io.teardown()
 
     saved = torch.load(path, weights_only=False)
     torch.testing.assert_close(saved["weights"], torch.tensor([2.0]))
-    np.testing.assert_array_equal(saved["callbacks"]["array"], [3.0])
-    assert saved["callbacks"]["state"].values == [1]
-    assert saved["same_weights"] is saved["weights"]
+    torch.testing.assert_close(saved["view"], torch.tensor([2.0]))
+    np.testing.assert_array_equal(saved["callbacks"]["array"], [3, 5])
+    np.testing.assert_array_equal(saved["same_array"], [3, 5])
+    assert saved["callbacks"]["array"].dtype == dtype
     assert not saved["weights"].requires_grad
+
+
+def test_async_checkpoint_custom_state_with_nonleaf_tensor(tmp_path):
+    checkpoint_io = AsyncCheckpointIO(TorchCheckpointIO())
+    path = tmp_path / "custom.ckpt"
+    try:
+        checkpoint_io.save_checkpoint({"custom": _MutableCheckpointState()}, path)
+    finally:
+        checkpoint_io.teardown()
+    saved = torch.load(path, weights_only=False)
+    torch.testing.assert_close(saved["custom"].tensor, torch.tensor([2.0]), check_device=False)
