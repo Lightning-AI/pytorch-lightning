@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Optional
 
 import torch
@@ -62,9 +63,9 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
         # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)
         if "checkpoint" in kwargs:
-            kwargs = {**kwargs, "checkpoint": apply_to_collection(kwargs["checkpoint"], torch.Tensor, _clone_tensor)}
+            kwargs = {**kwargs, "checkpoint": _clone_checkpoint(kwargs["checkpoint"])}
         elif len(args) >= 1:
-            args = (apply_to_collection(args[0], torch.Tensor, _clone_tensor), *args[1:])
+            args = (_clone_checkpoint(args[0]), *args[1:])
 
         def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
             try:
@@ -93,8 +94,15 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             raise self._error
 
 
-# snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
-def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
-    """Clones a tensor on the caller thread."""
-    # detach to avoid autograd history and clone to take a point-in-time copy
-    return t.detach().clone()
+def _clone_checkpoint(checkpoint: Any) -> Any:
+    """Snapshots checkpoint state on the caller thread before training can mutate it."""
+    memo: dict[int, Any] = {}
+
+    def _clone_tensor(tensor: torch.Tensor) -> torch.Tensor:
+        # Non-leaf tensors cannot be deep-copied. Clone them once and reuse the copies below.
+        if id(tensor) not in memo:
+            memo[id(tensor)] = tensor.detach().clone()
+        return memo[id(tensor)]
+
+    apply_to_collection(checkpoint, torch.Tensor, _clone_tensor)
+    return deepcopy(checkpoint, memo)
