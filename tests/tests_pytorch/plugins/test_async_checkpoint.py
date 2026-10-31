@@ -1,10 +1,13 @@
 import time
+from threading import Event
 from typing import Any, Optional
 
+import numpy as np
 import pytest
 import torch
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
+from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 
 
@@ -51,3 +54,58 @@ def test_async_checkpoint_should_snapshot_values_before_mutation():
         "AsyncCheckpointIO must snapshot the checkpoint (clone tensors) on the main thread "
         "to avoid races with parameter mutation; got mutated value instead"
     )
+
+
+class _MutableCheckpointState:
+    def __init__(self) -> None:
+        self.tensor = torch.tensor([1.0], requires_grad=True) * 2
+
+
+@pytest.mark.parametrize("keyword", [False, True])
+@pytest.mark.parametrize("dtype", [np.float64, np.int64])
+def test_async_checkpoint_snapshots_numpy_state(tmp_path, keyword, dtype):
+    started = Event()
+    release = Event()
+
+    class BlockingCheckpointIO(TorchCheckpointIO):
+        def save_checkpoint(self, checkpoint, path, storage_options=None):
+            started.set()
+            assert release.wait(timeout=10)
+            super().save_checkpoint(checkpoint, path, storage_options)
+
+    checkpoint_io = AsyncCheckpointIO(BlockingCheckpointIO())
+    tensor = torch.tensor([1.0], requires_grad=True) * 2
+    array = np.array([3, 4, 5], dtype=dtype)[::2]
+    checkpoint = {"weights": tensor, "callbacks": {"array": array}, "same_array": array, "view": tensor[:1]}
+    path = tmp_path / "snapshot.ckpt"
+    try:
+        if keyword:
+            checkpoint_io.save_checkpoint(checkpoint=checkpoint, path=path)
+        else:
+            checkpoint_io.save_checkpoint(checkpoint, path)
+        assert started.wait(timeout=10)
+        with torch.no_grad():
+            tensor.add_(10)
+        array += 10
+    finally:
+        release.set()
+        checkpoint_io.teardown()
+
+    saved = torch.load(path, weights_only=False)
+    torch.testing.assert_close(saved["weights"], torch.tensor([2.0]))
+    torch.testing.assert_close(saved["view"], torch.tensor([2.0]))
+    np.testing.assert_array_equal(saved["callbacks"]["array"], [3, 5])
+    np.testing.assert_array_equal(saved["same_array"], [3, 5])
+    assert saved["callbacks"]["array"].dtype == dtype
+    assert not saved["weights"].requires_grad
+
+
+def test_async_checkpoint_custom_state_with_nonleaf_tensor(tmp_path):
+    checkpoint_io = AsyncCheckpointIO(TorchCheckpointIO())
+    path = tmp_path / "custom.ckpt"
+    try:
+        checkpoint_io.save_checkpoint({"custom": _MutableCheckpointState()}, path)
+    finally:
+        checkpoint_io.teardown()
+    saved = torch.load(path, weights_only=False)
+    torch.testing.assert_close(saved["custom"].tensor, torch.tensor([2.0]), check_device=False)
