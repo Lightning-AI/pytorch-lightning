@@ -65,7 +65,9 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         if "checkpoint" in kwargs:
             kwargs = {
                 **kwargs,
-                "checkpoint": apply_to_collection(kwargs["checkpoint"], (torch.Tensor, np.ndarray), _clone_tensor_or_array),
+                "checkpoint": apply_to_collection(
+                    kwargs["checkpoint"], (torch.Tensor, np.ndarray), _clone_tensor_or_array
+                ),
             }
         elif len(args) >= 1:
             args = (apply_to_collection(args[0], (torch.Tensor, np.ndarray), _clone_tensor_or_array), *args[1:])
