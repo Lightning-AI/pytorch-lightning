@@ -97,6 +97,14 @@ def test_fabric_module_method_lookup():
             self(None)
             return 102
 
+        def method_with_conditional_submodule_invocation(self, invoke: bool):
+            if invoke:
+                self.submodule(torch.rand(2, 2))
+            return 103
+
+        def method_raising_exception(self):
+            raise ValueError("boom")
+
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
             super().__init__()
@@ -125,6 +133,23 @@ def test_fabric_module_method_lookup():
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
     ):
         assert fabric_module.method_with_self_invocation() == 102
+    with pytest.raises(ValueError, match="boom"):
+        fabric_module.method_raising_exception()
+
+    # Forward hooks registered by the call tracker must always be cleaned up on error
+    assert len(original_module._forward_hooks) == 0
+    assert len(original_module.submodule._forward_hooks) == 0
+
+    # Reusing a bound method reference after a failed call must reset `module_called`
+    conditional_method = fabric_module.method_with_conditional_submodule_invocation
+    with pytest.raises(
+        RuntimeError,
+        match=r"You are calling the method `OriginalModule.method_with_conditional_submodule_invocation\(\)` from",
+    ):
+        conditional_method(True)
+    assert conditional_method(False) == 103
+    assert len(original_module._forward_hooks) == 0
+    assert len(original_module.submodule._forward_hooks) == 0
 
     # No error if explicitly marked as forward method
     fabric_module.mark_forward_method("method_with_self_invocation")
