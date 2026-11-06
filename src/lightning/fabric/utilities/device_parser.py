@@ -19,7 +19,6 @@ import torch
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
-
 def _determine_root_gpu_device(gpus: list[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
@@ -210,6 +209,7 @@ def _select_auto_accelerator() -> str:
     """Choose the accelerator type (str) based on availability."""
     from lightning.fabric.accelerators.cuda import CUDAAccelerator
     from lightning.fabric.accelerators.mps import MPSAccelerator
+    from lightning.pytorch.accelerators.npu import NPUAccelerator
     from lightning.fabric.accelerators.xla import XLAAccelerator
 
     if XLAAccelerator.is_available():
@@ -218,4 +218,6 @@ def _select_auto_accelerator() -> str:
         return "mps"
     if CUDAAccelerator.is_available():
         return "cuda"
+    if NPUAccelerator.is_available():
+        return "npu"
     return "cpu"

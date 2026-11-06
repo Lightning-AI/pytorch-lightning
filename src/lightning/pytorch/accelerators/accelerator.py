@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
+from contextlib import nullcontext
 from typing import Any
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.accelerator import Accelerator as _Accelerator
 from lightning.fabric.utilities.types import _DEVICE
-
 
 class Accelerator(_Accelerator, ABC):
     """The Accelerator base class for Lightning PyTorch.
@@ -44,4 +44,10 @@ class Accelerator(_Accelerator, ABC):
             Dictionary of device stats
 
         """
-        raise NotImplementedError
+        raise NotImplementedErrori
+
+    def get_distribute_name(self) -> str:
+        return "gloo"
+
+    def get_stream_context(self, device_id: Any) -> Any:
+        return nullcontext()
