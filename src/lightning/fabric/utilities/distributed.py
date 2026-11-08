@@ -283,7 +283,6 @@ def _init_dist_connection(
 
     # Always destroy the process group at exit: PyTorch >= 2.4 warns about undestroyed NCCL
     # groups, and leaving a gloo group alive can SIGABRT spawn workers on interpreter shutdown
-    # (https://github.com/Lightning-AI/pytorch-lightning/issues/22124).
     atexit.register(_destroy_dist_connection)
 
     # On rank=0 let everyone know training is starting
