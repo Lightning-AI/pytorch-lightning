@@ -400,3 +400,23 @@ class AnotherConflictingCallback(Callback):
 def test_raising_error_validate_callbacks_list_function(callbacks: list, match_msg: str):
     with pytest.raises(RuntimeError, match=match_msg):
         _validate_callbacks_list(callbacks)
+
+
+def test_trainer_init_does_not_mutate_caller_callbacks_list():
+    """Ensure passing a callbacks list to Trainer does not mutate the caller's list in-place."""
+    user_cb = EarlyStopping(monitor="val_loss")
+    user_callbacks = [user_cb]
+
+    trainer1 = Trainer(callbacks=user_callbacks, max_time={"minutes": 5})
+    assert user_callbacks == [user_cb]
+    assert len(trainer1.callbacks) > 1
+
+    # Reusing the same callbacks list on a second Trainer with checkpointing/progress bar disabled must succeed
+    trainer2 = Trainer(
+        callbacks=user_callbacks,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    assert user_callbacks == [user_cb]
+    assert trainer2.callbacks == [user_cb]

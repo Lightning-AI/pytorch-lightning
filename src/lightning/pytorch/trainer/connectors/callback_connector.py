@@ -65,7 +65,7 @@ class _CallbackConnector:
         # init callbacks
         if isinstance(callbacks, Callback):
             callbacks = [callbacks]
-        self.trainer.callbacks = callbacks or []
+        self.trainer.callbacks = list(callbacks) if callbacks else []
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
