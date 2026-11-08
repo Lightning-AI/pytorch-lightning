@@ -3,9 +3,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-import torch
-
-from lightning.fabric.utilities.cloud_io import _checkpoint_join, _resolve_path, get_filesystem
+from lightning.fabric.utilities.cloud_io import _atomic_save, _checkpoint_join, _resolve_path, get_filesystem
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
@@ -78,6 +76,4 @@ if __name__ == "__main__":
     args = _parse_cli_args()
     config = _process_cli_args(args)
     checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
-    # TODO: replace `torch.save` with `_atomic_save` once #21799 lands.
-    # `_atomic_save` can silently succeed without writing anything on permission errors.
-    torch.save(checkpoint, config.output_file)
+    _atomic_save(checkpoint, config.output_file)

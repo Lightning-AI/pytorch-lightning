@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import runpy
 from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
 import pytest
+import torch
 
 from lightning.fabric.utilities.cloud_io import _resolve_path, get_filesystem
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
@@ -132,3 +134,24 @@ def test_process_cli_args_remote(caplog):
         )
     assert "path for the converted checkpoint already exists" in caplog.text
     caplog.clear()
+
+
+def test_consolidate_main_remote(monkeypatch):
+    """Running the module as a script writes the consolidated checkpoint to remote (fsspec) storage."""
+    fs = get_filesystem("memory:///consolidate-main/ckpt")
+    fs.makedirs("/consolidate-main/ckpt", exist_ok=True)
+    with fs.open(f"memory:///consolidate-main/ckpt/{_METADATA_FILENAME}", "wb") as f:
+        f.write(b"fake")
+
+    monkeypatch.setattr(
+        "lightning.fabric.utilities.load._load_distributed_checkpoint", lambda _: {"weights": torch.arange(3)}
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["any.py", "memory:///consolidate-main/ckpt", "--output_file", "memory:///consolidate-main/out.ckpt"],
+    )
+    runpy.run_module("lightning.fabric.utilities.consolidate_checkpoint", run_name="__main__")
+
+    with fs.open("memory:///consolidate-main/out.ckpt", "rb") as f:
+        checkpoint = torch.load(f)
+    assert torch.equal(checkpoint["weights"], torch.arange(3))
