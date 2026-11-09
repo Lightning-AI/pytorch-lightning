@@ -130,9 +130,7 @@ class LearningRateMonitor(Callback):
             )
 
         def _check_no_key(key: str) -> bool:
-            if trainer.lr_scheduler_configs:
-                return any(key not in config.scheduler.optimizer.defaults for config in trainer.lr_scheduler_configs)
-
+            # Optimizers without a scheduler are logged too, so check all of them
             return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
 
         if self.log_momentum and _check_no_key("momentum") and _check_no_key("betas"):
@@ -142,8 +140,7 @@ class LearningRateMonitor(Callback):
                 category=RuntimeWarning,
             )
 
-        # Weight decay is logged for optimizers without a scheduler too, so check all of them
-        if self.log_weight_decay and any("weight_decay" not in optimizer.defaults for optimizer in trainer.optimizers):
+        if self.log_weight_decay and _check_no_key("weight_decay"):
             rank_zero_warn(
                 "You have set log_weight_decay=True, but some optimizers do not"
                 " have weight decay. Weight decay will not be logged for them.",
