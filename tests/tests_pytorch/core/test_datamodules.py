@@ -620,3 +620,27 @@ def test_datamodule_string_iterable():
     output = str(dm)
 
     assert output == expected_output
+
+
+def test_datamodule_string_dict_and_empty():
+    class DictAndEmptyDataModule(LightningDataModule):
+        def train_dataloader(self):
+            return {
+                "a": torch.utils.data.DataLoader(range(16)),
+                "b": torch.utils.data.DataLoader(range(32)),
+            }
+
+        def val_dataloader(self):
+            return []
+
+        def test_dataloader(self):
+            return None
+
+    dm = DictAndEmptyDataModule()
+    expected_output = (
+        f"{{Train dataloader: a. size=16 ; b. size=32}}{os.linesep}"
+        f"{{Validation dataloader: None}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
+    )
+    assert str(dm) == expected_output
