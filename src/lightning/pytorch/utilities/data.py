@@ -289,7 +289,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             except TypeError as ex:
                 import re
 
-                match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
+                match = re.match(r".*__init__\(\) (got multiple values|missing \d+ required)", str(ex))
                 if not match:
                     # an unexpected `TypeError`, continue failure
                     raise
