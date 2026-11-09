@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import nullcontext
+#from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
@@ -31,7 +31,7 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
-    _get_default_process_group_backend_for_device,
+ #   _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
@@ -199,7 +199,9 @@ class DDPStrategy(ParallelStrategy):
                 # DDP must be initialized on a side-stream for CUDA graph whole-network capture.
                 # The resulting AccumulateGrad stream mismatch is intentional in this case.
                 # See: https://pytorch.org/docs/stable/notes/cuda.html#id5
-                ctx = torch.cuda.stream(torch.cuda.Stream())
+               # ctx = torch.cuda.stream(torch.cuda.Stream())
+                assert self.accelerator is not None
+                ctx = self.accelerator.get_stream_context(device_ids)
                 torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
             else:
                 # Default stream avoids AccumulateGrad stream mismatch warnings during normal training.
@@ -221,8 +223,9 @@ class DDPStrategy(ParallelStrategy):
         )
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
-
+        #return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
+        assert self.accelerator is not None
+        return self._process_group_backend or self.accelerator.get_distribute_name()
     def set_world_ranks(self) -> None:
         if self.cluster_environment is not None:
             self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
