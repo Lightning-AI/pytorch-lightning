@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed the `dirpath` argument of `lightning.pytorch.profilers` profilers to accept `str | os.PathLike[str]` instead of `str | pathlib.Path` ([#21871](https://github.com/Lightning-AI/pytorch-lightning/pull/21871))
 
+- Reduced manual multi-optimizer step overhead by avoiding redundant parameter mutations in `LightningModule.toggle_optimizer` / `untoggle_optimizer` ([#22143](https://github.com/Lightning-AI/pytorch-lightning/issues/22143))
+
 ### Removed
 
 - Removed dead code paths for PyTorch below 2.6 ([#21870](https://github.com/Lightning-AI/pytorch-lightning/pull/21870))

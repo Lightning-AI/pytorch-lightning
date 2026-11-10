@@ -135,6 +135,33 @@ def test_optimizer_toggle_model_context_manager():
     assert not model._param_requires_grad_state
 
 
+def test_toggle_optimizer_only_mutates_exclusive_parameters():
+    model = LightningModule()
+    model.optimizer_param = nn.Parameter(torch.ones(()))
+    model.other_param = nn.Parameter(torch.ones(()))
+    model.shared_param = nn.Parameter(torch.ones(()))
+    optimizer = SGD([model.optimizer_param, model.shared_param], lr=0.1)
+    other_optimizer = Adam([model.other_param, model.shared_param], lr=0.1)
+    model.trainer = Mock(optimizers=[optimizer, other_optimizer])
+
+    model.toggle_optimizer(optimizer)
+
+    assert model.optimizer_param.requires_grad
+    assert model.shared_param.requires_grad
+    assert not model.other_param.requires_grad
+    assert len(model._toggled_optimizer_params) == 1
+    assert model._toggled_optimizer_params[0] is model.other_param
+
+    model.optimizer_param.requires_grad = False
+    model.untoggle_optimizer(optimizer)
+
+    assert not model.optimizer_param.requires_grad
+    assert model.shared_param.requires_grad
+    assert model.other_param.requires_grad
+    assert not model._param_requires_grad_state
+    assert not model._toggled_optimizer_params
+
+
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
     class TestModel(BoringModel):
         def __init__(self):

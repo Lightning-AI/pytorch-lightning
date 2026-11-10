@@ -137,7 +137,8 @@ class LightningModule(
 
         # attributes used internally
         self._current_fx_name: Optional[str] = None
-        self._param_requires_grad_state: dict[str, bool] = {}
+        self._param_requires_grad_state: dict[Tensor, bool] = {}
+        self._toggled_optimizer_params: list[Tensor] = []
         self._metric_attributes: Optional[dict[int, str]] = None
         self._compiler_ctx: Optional[dict[str, Any]] = None
 
@@ -1159,24 +1160,26 @@ class LightningModule(
             optimizer: The optimizer to toggle.
 
         """
-        # Iterate over all optimizer parameters to preserve their `requires_grad` information
-        # in case these are pre-defined during `configure_optimizers`
+        optimizer = optimizer.optimizer if isinstance(optimizer, LightningOptimizer) else optimizer
         param_requires_grad_state = {}
+        for group in optimizer.param_groups:
+            for param in group["params"]:
+                param_requires_grad_state[param] = param.requires_grad
+
+        toggled_optimizer_params = []
         for opt in self.trainer.optimizers:
+            if opt is optimizer:
+                continue
             for group in opt.param_groups:
                 for param in group["params"]:
-                    # If a param already appear in param_requires_grad_state, continue
                     if param in param_requires_grad_state:
                         continue
                     param_requires_grad_state[param] = param.requires_grad
                     param.requires_grad = False
+                    toggled_optimizer_params.append(param)
 
-        # Then iterate over the current optimizer's parameters and set its `requires_grad`
-        # properties accordingly
-        for group in optimizer.param_groups:
-            for param in group["params"]:
-                param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
+        self._toggled_optimizer_params = toggled_optimizer_params
 
     @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
@@ -1189,14 +1192,11 @@ class LightningModule(
             optimizer: The optimizer to untoggle.
 
         """
-        for opt in self.trainer.optimizers:
-            if not (opt is optimizer or (isinstance(optimizer, LightningOptimizer) and opt is optimizer.optimizer)):
-                for group in opt.param_groups:
-                    for param in group["params"]:
-                        if param in self._param_requires_grad_state:
-                            param.requires_grad = self._param_requires_grad_state[param]
+        for param in self._toggled_optimizer_params:
+            param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         self._param_requires_grad_state = {}
+        self._toggled_optimizer_params = []
 
     @contextmanager
     def toggled_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> Generator:
