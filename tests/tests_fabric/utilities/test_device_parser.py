@@ -49,8 +49,11 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
         ("0", None),
         ("3", [0, 1, 2]),
         ("1, 3", [1, 3]),
+        ("1, 3, ", [1, 3]),
         ("2,", [2]),
+        ("2, ", [2]),
         pytest.param("-1", list(range(_PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
+        pytest.param(" -1 ", list(range(_PRETEND_N_OF_GPUS)), id="' -1 ' - use all gpus with whitespace"),
     ],
 )
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
@@ -58,11 +61,20 @@ def test_parse_gpu_ids(_, devices, expected_gpu_ids):
     assert device_parser._parse_gpu_ids(devices, include_cuda=True) == expected_gpu_ids
 
 
-@pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
+@pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0], ","])
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_fail_on_unsupported_inputs(_, devices):
     with pytest.raises((TypeError, MisconfigurationException)):
         device_parser._parse_gpu_ids(devices, include_cuda=True)
+
+
+@mock.patch("torch.distributed.is_available", return_value=True)
+@mock.patch("torch.distributed.is_torchelastic_launched", return_value=True)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
+def test_parse_gpu_torchelastic_rejects_duplicate_ids(*_):
+    assert device_parser._parse_gpu_ids([0, 1], include_cuda=True) == [0, 1]
+    with pytest.raises(MisconfigurationException, match="must be unique"):
+        device_parser._parse_gpu_ids([0, 0], include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [[1, 2, 19], -1, "-1"])
