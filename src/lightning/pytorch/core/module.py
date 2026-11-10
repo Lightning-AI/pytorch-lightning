@@ -138,7 +138,7 @@ class LightningModule(
         # attributes used internally
         self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: dict[Tensor, bool] = {}
-        self._toggled_optimizer_params: list[Tensor] = []
+        self._inactive_optimizer_params: list[Tensor] = []
         self._metric_attributes: Optional[dict[int, str]] = None
         self._compiler_ctx: Optional[dict[str, Any]] = None
 
@@ -1166,20 +1166,19 @@ class LightningModule(
             for param in group["params"]:
                 param_requires_grad_state[param] = param.requires_grad
 
-        toggled_optimizer_params = []
+        inactive_optimizer_params = []
         for opt in self.trainer.optimizers:
             if opt is optimizer:
                 continue
             for group in opt.param_groups:
                 for param in group["params"]:
-                    if param in param_requires_grad_state:
-                        continue
-                    param_requires_grad_state[param] = param.requires_grad
-                    param.requires_grad = False
-                    toggled_optimizer_params.append(param)
+                    if param not in param_requires_grad_state:
+                        param_requires_grad_state[param] = param.requires_grad
+                        param.requires_grad = False
+                    inactive_optimizer_params.append(param)
 
         self._param_requires_grad_state = param_requires_grad_state
-        self._toggled_optimizer_params = toggled_optimizer_params
+        self._inactive_optimizer_params = inactive_optimizer_params
 
     @torch.compiler.disable
     def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
@@ -1192,11 +1191,11 @@ class LightningModule(
             optimizer: The optimizer to untoggle.
 
         """
-        for param in self._toggled_optimizer_params:
+        for param in self._inactive_optimizer_params:
             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         self._param_requires_grad_state = {}
-        self._toggled_optimizer_params = []
+        self._inactive_optimizer_params = []
 
     @contextmanager
     def toggled_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> Generator:

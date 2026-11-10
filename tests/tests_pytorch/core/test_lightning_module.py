@@ -135,7 +135,7 @@ def test_optimizer_toggle_model_context_manager():
     assert not model._param_requires_grad_state
 
 
-def test_toggle_optimizer_only_mutates_exclusive_parameters():
+def test_toggle_optimizer_only_disables_inactive_parameters():
     model = LightningModule()
     model.optimizer_param = nn.Parameter(torch.ones(()))
     model.other_param = nn.Parameter(torch.ones(()))
@@ -149,17 +149,17 @@ def test_toggle_optimizer_only_mutates_exclusive_parameters():
     assert model.optimizer_param.requires_grad
     assert model.shared_param.requires_grad
     assert not model.other_param.requires_grad
-    assert len(model._toggled_optimizer_params) == 1
-    assert model._toggled_optimizer_params[0] is model.other_param
 
     model.optimizer_param.requires_grad = False
+    model.shared_param.requires_grad = False
     model.untoggle_optimizer(optimizer)
 
+    # parameters of the other optimizers are restored, shared ones included
     assert not model.optimizer_param.requires_grad
     assert model.shared_param.requires_grad
     assert model.other_param.requires_grad
     assert not model._param_requires_grad_state
-    assert not model._toggled_optimizer_params
+    assert not model._inactive_optimizer_params
 
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
