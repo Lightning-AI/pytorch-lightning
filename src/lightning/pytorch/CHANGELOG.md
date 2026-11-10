@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed a step-interval LR scheduler's `frequency` being silently ignored under gradient accumulation (`accumulate_grad_batches > 1`), by counting real optimizer steps instead of raw batches
+- Fixed a step-interval LR scheduler's `frequency` being silently ignored under gradient accumulation (`accumulate_grad_batches > 1`), by counting real optimizer steps instead of raw batches ([#22145](https://github.com/Lightning-AI/pytorch-lightning/pull/22145))
 
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
