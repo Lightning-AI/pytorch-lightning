@@ -242,6 +242,19 @@ def test_optimizer_return_options(tmp_path):
     assert opt == [opt_a, opt_b]
     assert lr_sched == [ref_lr_sched, ref_lr_sched]
 
+    # opt list of dictionaries with ReduceLROnPlateau and top-level monitor key
+    plateau_scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt_a)
+    model.automatic_optimization = True
+    model.configure_optimizers = lambda: [
+        {"optimizer": opt_a, "lr_scheduler": plateau_scheduler, "monitor": "val_loss"}
+    ]
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
+    assert opt == [opt_a]
+    assert len(lr_sched) == 1
+    assert lr_sched[0].scheduler is plateau_scheduler
+    assert lr_sched[0].reduce_on_plateau is True
+    assert lr_sched[0].monitor == "val_loss"
+
 
 def test_none_optimizer(tmp_path):
     model = BoringModel()
