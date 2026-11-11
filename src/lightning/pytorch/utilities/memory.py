@@ -55,6 +55,7 @@ def is_cuda_out_of_memory(exception: BaseException) -> bool:
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
+        and isinstance(exception.args[0], str)
         and "CUDA" in exception.args[0]
         and "out of memory" in exception.args[0]
     )
@@ -66,6 +67,7 @@ def is_cudnn_snafu(exception: BaseException) -> bool:
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
+        and isinstance(exception.args[0], str)
         and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
     )
 
@@ -75,6 +77,7 @@ def is_out_of_cpu_memory(exception: BaseException) -> bool:
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
+        and isinstance(exception.args[0], str)
         and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
     )
 
