@@ -250,6 +250,10 @@ The :class:`~lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecisi
     model = fabric.setup(model)
 
 
+To skip layers by name across repeated blocks, pass a regular expression string as ``ignore_modules``.
+For example, ``ignore_modules=r"\.adapter_attn\.conv_[AB]$"`` skips Linear layers with those suffixes.
+A set such as ``{"lm_head"}`` matches literal prefixes.
+
 You can also directly initialize the model with the quantized layers if you are not setting any ``ignore_modules=...`` by
 initializing your model under the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager.
 

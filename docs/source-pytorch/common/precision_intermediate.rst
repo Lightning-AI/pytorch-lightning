@@ -204,6 +204,10 @@ The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecis
             self.model = MyModel()
 
 
+To skip layers by name across repeated blocks, pass a regular expression string as ``ignore_modules``.
+In a LightningCLI configuration, use a single-quoted YAML scalar for patterns containing backslashes,
+for example ``ignore_modules: '\.adapter_attn\.conv_[AB]$'``. A YAML list of strings matches literal prefixes.
+
 .. note::
 
     Only supports CUDA devices and the Linux operating system. Windows users should use
