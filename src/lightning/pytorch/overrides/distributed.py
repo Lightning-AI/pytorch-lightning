@@ -237,13 +237,12 @@ class _IndexBatchSamplerWrapper:
 
     def __init__(self, batch_sampler: _SizedIterable) -> None:
         # do not call super().__init__() on purpose
-        self.seen_batch_indices: list[list[int]] = []
-
         self.__dict__ = {
             k: v
             for k, v in batch_sampler.__dict__.items()
             if k not in ("__next__", "__iter__", "__len__", "__getstate__")
         }
+        self.seen_batch_indices: list[list[int]] = []
         self._batch_sampler = batch_sampler
         self._iterator: Optional[Iterator[list[int]]] = None
 
