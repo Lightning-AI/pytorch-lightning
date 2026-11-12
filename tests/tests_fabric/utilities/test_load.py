@@ -45,6 +45,10 @@ class ATensor(torch.Tensor):
     pass
 
 
+class TensorWithState(torch.Tensor):
+    pass
+
+
 def test_lazy_load_tensor(tmp_path):
     """Test that lazy load can handle different classes of tensors."""
     expected = {
@@ -129,6 +133,32 @@ def test_materialize_tensors(tmp_path):
     )
     assert torch.equal(materialized_shared["view_head"], base[:4])
     assert torch.equal(materialized_shared["view_tail"], base[4:])
+
+    # Tensor subclass with nested tensor attributes in state (including shared tensor identity)
+    sub = torch.Tensor._make_subclass(TensorWithState, torch.arange(4, dtype=torch.float32))
+    sub.extra = shared
+    sub.nested = {"aux": base[:4]}
+    subclass_collection = {"sub": sub, "shared": shared, "view": base[4:]}
+    torch.save(subclass_collection, tmp_path / "subclass_collection.pt")
+    loaded_sub = _lazy_load(tmp_path / "subclass_collection.pt")
+    materialized_sub = _materialize_tensors(loaded_sub)
+    assert isinstance(materialized_sub["sub"], TensorWithState)
+    assert not isinstance(materialized_sub["sub"].extra, _NotYetLoadedTensor)
+    assert not isinstance(materialized_sub["sub"].nested["aux"], _NotYetLoadedTensor)
+    assert materialized_sub["sub"].extra is materialized_sub["shared"]
+    assert (
+        materialized_sub["sub"].nested["aux"].untyped_storage().data_ptr()
+        == materialized_sub["view"].untyped_storage().data_ptr()
+    )
+
+    # Generator yielding transient _NotYetLoadedTensor instances must not alias via reused id()
+    t0 = torch.tensor([10.0, 20.0])
+    t1 = torch.tensor([30.0, 40.0])
+    torch.save(t0, tmp_path / "t0.pt")
+    torch.save(t1, tmp_path / "t1.pt")
+    materialized_gen = list(_materialize_tensors(_lazy_load(tmp_path / name) for name in ("t0.pt", "t1.pt")))
+    assert torch.equal(materialized_gen[0], t0)
+    assert torch.equal(materialized_gen[1], t1)
 
 
 def test_move_state_into():

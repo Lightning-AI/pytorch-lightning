@@ -71,7 +71,11 @@ class _NotYetLoadedTensor:
 
             def _load_tensor(**kwargs: Any) -> Any:
                 t = old_lt(**kwargs)
-                return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), state)
+                load_fn = kwargs.get("load_tensor_fn") or (lambda x: x._load_tensor(**kwargs))
+                materialized_state = (
+                    apply_to_collection(state, dtype=_NotYetLoadedTensor, function=load_fn) if state else state
+                )
+                return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), materialized_state)
 
             ret._load_tensor = _load_tensor  # type: ignore[method-assign]
             return ret
@@ -118,7 +122,9 @@ class _NotYetLoadedTensor:
         return _NotYetLoadedTensor(metatensor, archiveinfo, storageinfo, rebuild_args)
 
     def _load_tensor(
-        self, storage_cache: Optional[dict[tuple[int, Any], "UntypedStorage"]] = None
+        self,
+        storage_cache: Optional[dict[tuple[int, Any], "UntypedStorage"]] = None,
+        load_tensor_fn: Optional[Callable[["_NotYetLoadedTensor"], Tensor]] = None,
     ) -> Tensor:
         from torch.storage import TypedStorage, UntypedStorage
 
@@ -225,14 +231,17 @@ def _lazy_load(filename: _PATH) -> Any:
 
 
 def _materialize_tensors(collection: Any) -> Any:
-    loaded_tensors: dict[int, Tensor] = {}
+    loaded_tensors: dict[int, tuple[_NotYetLoadedTensor, Tensor]] = {}
     storage_cache: dict[tuple[int, Any], "UntypedStorage"] = {}
 
     def _load_tensor(t: _NotYetLoadedTensor) -> Tensor:
         tensor_id = id(t)
         if tensor_id not in loaded_tensors:
-            loaded_tensors[tensor_id] = t._load_tensor(storage_cache=storage_cache)
-        return loaded_tensors[tensor_id]
+            loaded_tensors[tensor_id] = (
+                t,
+                t._load_tensor(storage_cache=storage_cache, load_tensor_fn=_load_tensor),
+            )
+        return loaded_tensors[tensor_id][1]
 
     return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)
 
