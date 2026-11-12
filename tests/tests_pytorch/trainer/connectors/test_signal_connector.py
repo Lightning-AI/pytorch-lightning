@@ -23,7 +23,7 @@ from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from lightning.pytorch.trainer.connectors.signal_connector import _HandlersCompose, _SignalConnector
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -189,3 +189,36 @@ def test_sigterm_notifier_fn():
     launcher.reset_mock()
     connector._sigterm_notifier_fn(signal.SIGTERM, Mock())
     launcher.kill.assert_not_called()
+
+
+@RunIf(skip_windows=True)
+def test_handlers_compose_ignores_signal_handlers_enum():
+    """Test that _HandlersCompose does not treat signal.Handlers (SIG_IGN=1, SIG_DFL=0) as signal numbers."""
+    sighup_mock = Mock()
+    sigterm_mock = Mock()
+    prev_sighup = signal.getsignal(signal.SIGHUP)
+    prev_sigterm = signal.getsignal(signal.SIGTERM)
+    try:
+        # SIGHUP is signal number 1 on POSIX, matching int(signal.SIG_IGN) == 1.
+        signal.signal(signal.SIGHUP, sighup_mock)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+
+        trainer = Trainer()
+        connector = _SignalConnector(trainer)
+        connector.register_signal_handlers()
+
+        composed = signal.getsignal(signal.SIGTERM)
+        assert isinstance(composed, _HandlersCompose)
+        frame = Mock()
+        composed(signal.SIGTERM, frame)
+        sighup_mock.assert_not_called()
+
+        # SIG_DFL has int value 0, which would raise ValueError in signal.getsignal(0) if treated as a signum.
+        composed_dfl = _HandlersCompose([signal.SIG_DFL, signal.SIG_IGN, sigterm_mock])
+        composed_dfl(signal.SIGTERM, frame)
+        sigterm_mock.assert_called_once_with(signal.SIGTERM, frame)
+        sighup_mock.assert_not_called()
+        connector.teardown()
+    finally:
+        signal.signal(signal.SIGHUP, prev_sighup)
+        signal.signal(signal.SIGTERM, prev_sigterm)
