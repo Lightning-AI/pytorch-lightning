@@ -68,6 +68,14 @@ class _MaxSizeCycle(_ModeIterator):
     def __init__(self, iterables: list[Iterable], limits: Optional[list[Union[int, float]]] = None) -> None:
         super().__init__(iterables, limits)
         self._consumed: list[bool] = []
+        self._counts: list[int] = []
+
+    def _next_batch(self, iterator_index: int) -> Any:
+        if self.limits is not None and self._counts[iterator_index] >= self.limits[iterator_index]:
+            raise StopIteration
+        batch = next(self.iterators[iterator_index])
+        self._counts[iterator_index] += 1
+        return batch
 
     @override
     def __next__(self) -> _ITERATOR_RETURN:
@@ -75,14 +83,15 @@ class _MaxSizeCycle(_ModeIterator):
         out = [None] * n  # values per iterator
         for i in range(n):
             try:
-                out[i] = next(self.iterators[i])
+                out[i] = self._next_batch(i)
             except StopIteration:
                 self._consumed[i] = True
                 if all(self._consumed):
                     raise
                 # reset the consumed dataloader
                 self.iterators[i] = iter(self.iterables[i])
-                out[i] = next(self.iterators[i])
+                self._counts[i] = 0
+                out[i] = self._next_batch(i)
         index = self._idx
         self._idx += 1
         return out, index, 0
@@ -91,6 +100,7 @@ class _MaxSizeCycle(_ModeIterator):
     def __iter__(self) -> Self:
         super().__iter__()
         self._consumed = [False] * len(self.iterables)
+        self._counts = [0] * len(self.iterables)
         return self
 
     @override
@@ -104,11 +114,14 @@ class _MaxSizeCycle(_ModeIterator):
     def reset(self) -> None:
         super().reset()
         self._consumed = []
+        self._counts = []
 
 
 class _MinSize(_ModeIterator):
     @override
     def __next__(self) -> _ITERATOR_RETURN:
+        if self.limits is not None and any(self._idx >= limit for limit in self.limits):
+            raise StopIteration
         out = [next(it) for it in self.iterators]
         index = self._idx
         self._idx += 1
@@ -188,6 +201,8 @@ class _MaxSize(_ModeIterator):
         out = [None] * n
         all_exhausted = True
         for i in range(n):
+            if self.limits is not None and self._idx >= self.limits[i]:
+                continue
             with contextlib.suppress(StopIteration):
                 out[i] = next(self.iterators[i])
                 all_exhausted = False
