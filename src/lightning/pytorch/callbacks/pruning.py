@@ -419,8 +419,13 @@ class ModelPruning(Callback):
     def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> dict[str, Any]:
         state_dict = pl_module.state_dict()
 
-        # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
+        # Identify pruning masks by their hooks, not by the names of unrelated model buffers.
+        map_pruned_params = {
+            f"{module_name}.{hook._tensor_name}" if module_name else hook._tensor_name
+            for module_name, module in pl_module.named_modules(remove_duplicate=False)
+            for hook in module._forward_pre_hooks.values()
+            if isinstance(hook, pytorch_prune.BasePruningMethod)
+        }
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")
