@@ -51,13 +51,15 @@ class _TwoOptimizerModel(LightningModule):
             def invalid_forward():
                 return self.first(batch[0].new_ones(1, 3)).sum()
 
-            with pytest.raises(RuntimeError, match="mat1 and mat2"):
-                with first.toggle_model(sync_grad=self.sync_grad):
-                    assert not self.second.weight.requires_grad
-                    if self.failure == "closure":
-                        first.step(closure=invalid_forward)
-                    else:
-                        invalid_forward()
+            with (
+                pytest.raises(RuntimeError, match="mat1 and mat2"),
+                first.toggle_model(sync_grad=self.sync_grad),
+            ):
+                assert not self.second.weight.requires_grad
+                if self.failure == "closure":
+                    first.step(closure=invalid_forward)
+                else:
+                    invalid_forward()
             assert all(p.requires_grad == flag for p, flag in original_flags.items())
             assert self._param_requires_grad_state == {}
 
@@ -134,10 +136,9 @@ def test_optimizer_context_rethrows_the_same_exception_and_clears_flags(tmp_path
         def on_train_start(self):
             optimizer, _ = self.optimizers()
             flags = {p: p.requires_grad for p in self.parameters()}
-            with pytest.raises(error_cls) as caught:
-                with optimizer.toggle_model(sync_grad=sync_grad):
-                    assert not self.second.weight.requires_grad
-                    raise error
+            with pytest.raises(error_cls) as caught, optimizer.toggle_model(sync_grad=sync_grad):
+                assert not self.second.weight.requires_grad
+                raise error
             assert caught.value is error
             assert all(p.requires_grad == flag for p, flag in flags.items())
             assert self._param_requires_grad_state == {}
