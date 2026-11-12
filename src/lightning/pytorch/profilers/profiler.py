@@ -66,8 +66,8 @@ class Profiler(ABC):
         stop once you exit the code block.
 
         """
+        self.start(action_name)
         try:
-            self.start(action_name)
             yield action_name
         finally:
             self.stop(action_name)
@@ -149,12 +149,12 @@ class Profiler(ABC):
 
         """
         self._write_stream = None
-        if self._output_file is not None:
+        if getattr(self, "_output_file", None) is not None:
             self._output_file.close()
             self._output_file = None  # can't pickle TextIOWrapper
 
     def __del__(self) -> None:
-        self.teardown(stage=self._stage)
+        self.teardown(stage=getattr(self, "_stage", None))
 
     @property
     def local_rank(self) -> int:
