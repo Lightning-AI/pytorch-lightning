@@ -120,8 +120,8 @@ class EMATestCallback(WeightAveraging):
         # => Using two processes we have 2 optimizer steps per epoch.
         steps_per_epoch = 4 // self.devices
         assert self._average_model.n_averaged == trainer.max_epochs * steps_per_epoch
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
-        assert self.copy_calls == 1
+        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2 + 1
+        assert self.copy_calls == 0
 
 
 class SWATestCallback(WeightAveraging):
@@ -172,8 +172,8 @@ class SWATestCallback(WeightAveraging):
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
-        assert self.copy_calls == 1
+        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2 + 1
+        assert self.copy_calls == 0
 
 
 def test_weight_averaging_deepcopy(tmp_path):
