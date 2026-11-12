@@ -71,13 +71,11 @@ class _TwoOptimizerModel(LightningModule):
                     loss = loss + 0.1 * self.shared.square().sum()
                 self.manual_backward(loss)
                 self.losses.append(loss.detach().clone())
-                self.gradients.append(
-                    [
-                        None if p.grad is None else p.grad.detach().clone()
-                        for group in optimizer.param_groups
-                        for p in group["params"]
-                    ]
-                )
+                self.gradients.append([
+                    None if p.grad is None else p.grad.detach().clone()
+                    for group in optimizer.param_groups
+                    for p in group["params"]
+                ])
                 optimizer.step()
             assert all(p.requires_grad == flag for p, flag in original_flags.items())
 
