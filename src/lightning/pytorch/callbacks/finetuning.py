@@ -272,6 +272,14 @@ class BaseFinetuning(Callback):
             train_bn: Whether to train the BatchNormalization layers.
 
         """
+
+        def make_reusable(items: Union[Module, Iterable]) -> Union[Module, list]:
+            if isinstance(items, Module):
+                return items
+            return [make_reusable(item) for item in items]
+
+        # Both passes must see the same modules, including nested one-shot iterables.
+        modules = make_reusable(modules)
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]["lr"] if lr is None else float(lr)
         denom_lr = initial_denom_lr if lr is None else 1.0
