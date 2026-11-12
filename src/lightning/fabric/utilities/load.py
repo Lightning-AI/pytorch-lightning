@@ -38,7 +38,7 @@ _METADATA_FILENAME = "meta.pt"
 
 
 if TYPE_CHECKING:
-    from torch.storage import TypedStorage
+    from torch.storage import TypedStorage, UntypedStorage
 
 
 # Modified from https://github.com/lernapparat/torchhacks by Thomas Viehmann
@@ -69,9 +69,13 @@ class _NotYetLoadedTensor:
         if isinstance(ret, _NotYetLoadedTensor):
             old_lt = ret._load_tensor
 
-            def _load_tensor() -> Any:
-                t = old_lt()
-                return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), state)
+            def _load_tensor(**kwargs: Any) -> Any:
+                t = old_lt(**kwargs)
+                load_fn = kwargs.get("load_tensor_fn") or (lambda x: x._load_tensor(**kwargs))
+                materialized_state = (
+                    apply_to_collection(state, dtype=_NotYetLoadedTensor, function=load_fn) if state else state
+                )
+                return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), materialized_state)
 
             ret._load_tensor = _load_tensor  # type: ignore[method-assign]
             return ret
@@ -89,8 +93,8 @@ class _NotYetLoadedTensor:
         if isinstance(data, _NotYetLoadedTensor):
             old_lt = data._load_tensor
 
-            def _load_tensor() -> Parameter:
-                t = old_lt()
+            def _load_tensor(**kwargs: Any) -> Parameter:
+                t = old_lt(**kwargs)
                 return torch._utils._rebuild_parameter(t, requires_grad, backward_hooks)
 
             data._load_tensor = _load_tensor  # type: ignore[method-assign]
@@ -117,16 +121,25 @@ class _NotYetLoadedTensor:
         storageinfo = storage.archiveinfo
         return _NotYetLoadedTensor(metatensor, archiveinfo, storageinfo, rebuild_args)
 
-    def _load_tensor(self) -> Tensor:
+    def _load_tensor(
+        self,
+        storage_cache: Optional[dict[tuple[int, Any], "UntypedStorage"]] = None,
+        load_tensor_fn: Optional[Callable[["_NotYetLoadedTensor"], Tensor]] = None,
+    ) -> Tensor:
         from torch.storage import TypedStorage, UntypedStorage
 
         _, _, fn, _, size = self.storageinfo
         dtype = self.metatensor.dtype
-
-        storage = self.archiveinfo.file_reader.get_storage_from_record(
-            f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
-        )
-        uts = storage._typed_storage()._untyped_storage
+        cache_key = (id(self.archiveinfo), fn)
+        if storage_cache is not None and cache_key in storage_cache:
+            uts = storage_cache[cache_key]
+        else:
+            storage = self.archiveinfo.file_reader.get_storage_from_record(
+                f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
+            )
+            uts = storage._typed_storage()._untyped_storage
+            if storage_cache is not None:
+                storage_cache[cache_key] = uts
 
         with warnings.catch_warnings():
             # The TypedStorage APIs have heavy deprecations in torch, suppress all these warnings for now
@@ -218,8 +231,17 @@ def _lazy_load(filename: _PATH) -> Any:
 
 
 def _materialize_tensors(collection: Any) -> Any:
+    loaded_tensors: dict[int, tuple[_NotYetLoadedTensor, Tensor]] = {}
+    storage_cache: dict[tuple[int, Any], "UntypedStorage"] = {}
+
     def _load_tensor(t: _NotYetLoadedTensor) -> Tensor:
-        return t._load_tensor()
+        tensor_id = id(t)
+        if tensor_id not in loaded_tensors:
+            loaded_tensors[tensor_id] = (
+                t,
+                t._load_tensor(storage_cache=storage_cache, load_tensor_fn=_load_tensor),
+            )
+        return loaded_tensors[tensor_id][1]
 
     return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)
 
