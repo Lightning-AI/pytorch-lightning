@@ -610,6 +610,76 @@ def test_register_record_function(tmp_path):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
+def test_register_record_function_reentrant_and_exception_cleanup(monkeypatch):
+    events: list[tuple[str, str, int]] = []
+
+    class DummyRecordFunction:
+        _next_id = 0
+
+        def __init__(self, name: str) -> None:
+            self.name = name
+            self.id = DummyRecordFunction._next_id
+            DummyRecordFunction._next_id += 1
+
+        def __enter__(self):
+            events.append(("enter", self.name, self.id))
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            events.append(("exit", self.name, self.id))
+
+    monkeypatch.setattr("lightning.pytorch.profilers.pytorch.record_function", DummyRecordFunction)
+
+    class RecursiveLeaf(torch.nn.Module):
+        def forward(self, x: torch.Tensor, depth: int = 0) -> torch.Tensor:
+            if depth < 1:
+                x = self(x, depth + 1)
+            return x + 1
+
+    class ParentModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.leaf = RecursiveLeaf()
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.leaf(x)
+
+    model = ParentModel()
+    ctx = RegisterRecordFunction(model)
+    with ctx:
+        model(torch.ones(1))
+
+    assert ctx._records == {}
+    # Outer call (id=0) enters, inner recursive call (id=1) enters and exits first, then outer (id=0) exits
+    assert [ev[0] for ev in events] == ["enter", "enter", "exit", "exit"]
+    assert [ev[2] for ev in events] == [0, 1, 1, 0]
+
+    events.clear()
+    DummyRecordFunction._next_id = 0
+
+    class FailingChild(torch.nn.Module):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            raise RuntimeError("boom")
+
+    class FailingParent(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.child = FailingChild()
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.child(x)
+
+    failing_model = FailingParent()
+    failing_ctx = RegisterRecordFunction(failing_model)
+    with pytest.raises(RuntimeError, match="boom"), failing_ctx:
+        failing_model(torch.ones(1))
+
+    assert failing_ctx._records == {}
+    assert failing_ctx._handles == {}
+    assert [ev[0] for ev in events] == ["enter", "exit"]
+    assert [ev[2] for ev in events] == [0, 0]
+
+
 @pytest.mark.parametrize(
     "cls",
     [
