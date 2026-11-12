@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import nullcontext
 from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
+import pytest
 import torch
 from torch.optim import SGD, Adam, Optimizer
 
@@ -121,6 +123,21 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmp_p
 
     assert sgd["zero_grad"].call_count == 4
     assert adam["zero_grad"].call_count == 8
+
+
+def test_toggle_model_untoggles_on_exception():
+    """Regression for #22164: toggle_model must untoggle even when the body raises."""
+    optimizer = SGD(torch.nn.Linear(1, 1).parameters(), lr=0.1)
+    lightning_optimizer = LightningOptimizer(optimizer)
+    lightning_module = Mock()
+    lightning_optimizer._strategy = Mock(lightning_module=lightning_module)
+
+    with patch("lightning.pytorch.loops.utilities._block_parallel_sync_behavior", return_value=nullcontext()):
+        with pytest.raises(RuntimeError, match="boom"), lightning_optimizer.toggle_model():
+            raise RuntimeError("boom")
+
+    lightning_module.toggle_optimizer.assert_called_once_with(lightning_optimizer)
+    lightning_module.untoggle_optimizer.assert_called_once_with(lightning_optimizer)
 
 
 def test_state():
