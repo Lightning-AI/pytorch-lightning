@@ -1269,7 +1269,7 @@ class Trainer:
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):
-                device_ids.append(device.index or idx)
+                device_ids.append(device.index if device.index is not None else idx)
             elif isinstance(device, int):
                 device_ids.append(device)
         return device_ids
