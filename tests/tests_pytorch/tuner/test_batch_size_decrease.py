@@ -77,6 +77,8 @@ class _SmallDataModule(LightningDataModule):
     def train_dataloader(self):
         return DataLoader(_data(), batch_size=self.batch_size)
 
+    val_dataloader = train_dataloader
+
 
 def _trainer(tmp_path, method="fit"):
     return Trainer(
@@ -141,7 +143,8 @@ def test_smaller_initial_value_is_used_for_each_tuner_entrypoint(tmp_path, mode,
     trainer = _trainer(tmp_path, method)
 
     assert _tune(trainer, model, mode, method=method) == 4
-    assert model.seen[method] == [(2, 2), (4, 4)]
+    expected = [(2, 2)] * 4 + [(4, 4)] * 2 if method == "predict" else [(2, 2), (4, 4)]
+    assert model.seen[method] == expected
 
 
 @pytest.mark.parametrize("mode", ["power", "binsearch"])
