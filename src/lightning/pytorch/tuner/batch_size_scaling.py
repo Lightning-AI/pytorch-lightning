@@ -87,7 +87,9 @@ def _scale_batch_size(
         trainer.progress_bar_callback.disable()
 
     try:
-        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
+        new_size, changed = _adjust_batch_size(trainer, batch_arg_name, value=init_val)
+        if changed:
+            _reset_dataloaders(trainer)
 
         if mode == "power":
             new_size = _run_power_scaling(trainer, new_size, batch_arg_name, max_trials, params, max_val)
@@ -354,6 +356,7 @@ def _adjust_batch_size(
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     assert batch_size is not None
+    new_size = value if value is not None else int(batch_size * factor)
 
     loop = trainer._active_loop
     assert loop is not None
@@ -362,7 +365,7 @@ def _adjust_batch_size(
     assert combined_loader is not None
     try:
         combined_dataset_length = combined_loader._dataset_length()
-        if batch_size >= combined_dataset_length:
+        if batch_size >= combined_dataset_length and new_size >= batch_size:
             rank_zero_info(
                 f"The batch size {batch_size} is greater or equal than"
                 f" the length of your dataset: {combined_dataset_length}."
@@ -371,8 +374,6 @@ def _adjust_batch_size(
     except NotImplementedError:
         # all datasets are iterable style
         pass
-
-    new_size = value if value is not None else int(batch_size * factor)
 
     # Apply max_val limit if provided
     if new_size > max_val:
