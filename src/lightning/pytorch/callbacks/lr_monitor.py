@@ -243,7 +243,7 @@ class LearningRateMonitor(Callback):
         return stats
 
     def _extract_lr(self, param_group: dict[str, Any], name: str) -> dict[str, Any]:
-        lr = param_group["lr"]
+        lr = float(param_group["lr"])
         self.lrs[name].append(lr)
         return {name: lr}
 
