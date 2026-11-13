@@ -79,8 +79,10 @@ class LightningOptimizer:
         assert lightning_module is not None
         with _block_parallel_sync_behavior(self._strategy, block=(not sync_grad)):
             lightning_module.toggle_optimizer(self)
-            yield
-            lightning_module.untoggle_optimizer(self)
+            try:
+                yield
+            finally:
+                lightning_module.untoggle_optimizer(self)
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
