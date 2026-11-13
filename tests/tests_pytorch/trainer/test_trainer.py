@@ -2028,6 +2028,9 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "2,"}, [2]),
         ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
+        ({"accelerator": "cuda", "devices": [2, 0]}, [2, 0]),
+        ({"accelerator": "cuda", "devices": "1, 0"}, [1, 0]),
+        ({"accelerator": "cuda", "devices": [3, 1, 0]}, [3, 1, 0]),
         ({"accelerator": "mps", "devices": 1}, [0]),
     ],
 )
