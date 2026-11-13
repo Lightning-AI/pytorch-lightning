@@ -19,16 +19,16 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
-from torch.optim.lr_scheduler import LRScheduler
-from typing_extensions import override
-
-import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
+from lightning_utilities.core.imports import RequirementCache
+from torch.optim.lr_scheduler import LRScheduler
+from typing_extensions import override
+
+import lightning.pytorch as pl
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -392,7 +392,7 @@ class _LRCallback(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         """Called before each training batch, logs the lr that will be used."""
-        if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if trainer.fit_loop._should_accumulate():
             return
 
         if self.progress_bar_refresh_rate and self.progress_bar is None:
@@ -405,7 +405,7 @@ class _LRCallback(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         """Called when the training batch ends, logs the calculated loss."""
-        if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if trainer.fit_loop._should_accumulate():
             return
 
         # _AutomaticOptimization.run turns None STEP_OUTPUT into an empty dict
