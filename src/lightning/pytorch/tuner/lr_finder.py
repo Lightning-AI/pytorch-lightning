@@ -19,16 +19,16 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 from lightning_utilities.core.imports import RequirementCache
 from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
+from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
