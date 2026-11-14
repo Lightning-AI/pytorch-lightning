@@ -138,9 +138,9 @@ class LightningModule(
         # attributes used internally
         self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: dict[str, bool] = {}
+        self._disabled_params: list[torch.Tensor] = []
         self._metric_attributes: Optional[dict[int, str]] = None
         self._compiler_ctx: Optional[dict[str, Any]] = None
-
         # attributes only used when using fabric
         self._fabric: Optional[lf.Fabric] = None
         self._fabric_optimizers: list[_FabricOptimizer] = []
@@ -1159,23 +1159,25 @@ class LightningModule(
             optimizer: The optimizer to toggle.
 
         """
-        # Iterate over all optimizer parameters to preserve their `requires_grad` information
-        # in case these are pre-defined during `configure_optimizers`
+        # Collect parameters belonging to the active optimizer to avoid redundant mutations
+        active_opt = optimizer.optimizer if isinstance(optimizer, LightningOptimizer) else optimizer
+        active_param_ids = {id(p) for group in active_opt.param_groups for p in group["params"]}
+
         param_requires_grad_state = {}
+        disabled_params = []
+
         for opt in self.trainer.optimizers:
+            is_active = opt is active_opt
             for group in opt.param_groups:
                 for param in group["params"]:
-                    # If a param already appear in param_requires_grad_state, continue
                     if param in param_requires_grad_state:
                         continue
                     param_requires_grad_state[param] = param.requires_grad
-                    param.requires_grad = False
+                    if not is_active and id(param) not in active_param_ids and param.requires_grad:
+                        param.requires_grad = False
+                        disabled_params.append(param)
 
-        # Then iterate over the current optimizer's parameters and set its `requires_grad`
-        # properties accordingly
-        for group in optimizer.param_groups:
-            for param in group["params"]:
-                param.requires_grad = param_requires_grad_state[param]
+        self._disabled_params = disabled_params
         self._param_requires_grad_state = param_requires_grad_state
 
     @torch.compiler.disable
@@ -1189,13 +1191,9 @@ class LightningModule(
             optimizer: The optimizer to untoggle.
 
         """
-        for opt in self.trainer.optimizers:
-            if not (opt is optimizer or (isinstance(optimizer, LightningOptimizer) and opt is optimizer.optimizer)):
-                for group in opt.param_groups:
-                    for param in group["params"]:
-                        if param in self._param_requires_grad_state:
-                            param.requires_grad = self._param_requires_grad_state[param]
-        # save memory
+        for param in getattr(self, "_disabled_params", []):
+            param.requires_grad = True
+        self._disabled_params = []
         self._param_requires_grad_state = {}
 
     @contextmanager

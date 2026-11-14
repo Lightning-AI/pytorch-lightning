@@ -319,6 +319,49 @@ def test_toggle_untoggle_optimizer_are_compiler_disabled():
     assert is_compiler_disabled(LightningModule.untoggle_optimizer)
 
 
+def test_toggle_optimizer_only_disables_inactive_parameters():
+    """Verify toggle_optimizer avoids redundant mutations on active parameters."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+
+    p_active = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
+    p_inactive = torch.nn.Parameter(torch.tensor([2.0]), requires_grad=True)
+    p_frozen = torch.nn.Parameter(torch.tensor([3.0]), requires_grad=False)
+    p_shared = torch.nn.Parameter(torch.tensor([4.0]), requires_grad=True)
+
+    opt1 = torch.optim.SGD([p_active, p_shared], lr=0.1)
+    opt2 = torch.optim.SGD([p_inactive, p_frozen, p_shared], lr=0.1)
+    trainer.optimizers = [opt1, opt2]
+
+    model.toggle_optimizer(opt1)
+    assert model._disabled_params == [p_inactive]
+    assert p_active.requires_grad is True
+    assert p_shared.requires_grad is True
+    assert p_inactive.requires_grad is False
+    assert p_frozen.requires_grad is False
+
+    model.untoggle_optimizer(opt1)
+    assert model._disabled_params == []
+    assert p_active.requires_grad is True
+    assert p_shared.requires_grad is True
+    assert p_inactive.requires_grad is True
+    assert p_frozen.requires_grad is False
+
+    model.toggle_optimizer(opt2)
+    assert model._disabled_params == [p_active]
+    assert p_active.requires_grad is False
+    assert p_shared.requires_grad is True
+    assert p_inactive.requires_grad is True
+    assert p_frozen.requires_grad is False
+
+    model.untoggle_optimizer(opt2)
+    assert model._disabled_params == []
+    assert p_active.requires_grad is True
+    assert p_shared.requires_grad is True
+    assert p_inactive.requires_grad is True
+    assert p_frozen.requires_grad is False
+
 @pytest.mark.parametrize(
     ("accelerator", "device"),
     [
