@@ -265,6 +265,21 @@ def test_swa(tmp_path):
     _train(model, dataset, tmp_path, SWATestCallback())
 
 
+@pytest.mark.parametrize("crash_on_epoch", [2, 4, 6])
+def test_swa_resume(tmp_path, crash_on_epoch):
+    dataset = RandomDataset(32, 32)
+    model1 = TestModel()
+    model2 = deepcopy(model1)
+
+    _train(model1, dataset, tmp_path, SWATestCallback())
+
+    model2.crash_on_epoch = crash_on_epoch
+    model2 = _train_and_resume(model2, dataset, tmp_path, callback_cls=SWATestCallback)
+
+    for param1, param2 in zip(model1.parameters(), model2.parameters()):
+        assert torch.allclose(param1, param2)
+
+
 @pytest.mark.parametrize(
     ("strategy", "accelerator", "devices"),
     [
@@ -317,8 +332,16 @@ def _train(
     assert trainer.lightning_module == model
 
 
-def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices: int = 1, **kwargs) -> TestModel:
-    _train(model, dataset, tmp_path, EMATestCallback(devices=devices), devices=devices, will_crash=True, **kwargs)
+def _train_and_resume(
+    model: TestModel,
+    dataset: Dataset,
+    tmp_path: str,
+    devices: int = 1,
+    callback_cls: type[WeightAveraging] = EMATestCallback,
+    **kwargs,
+) -> TestModel:
+    callback_kwargs = {"devices": devices} if callback_cls is EMATestCallback else {}
+    _train(model, dataset, tmp_path, callback_cls(**callback_kwargs), devices=devices, will_crash=True, **kwargs)
 
     checkpoint_dir = Path(tmp_path) / "checkpoints"
     checkpoint_names = os.listdir(checkpoint_dir)
@@ -326,7 +349,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     checkpoint_path = str(checkpoint_dir / checkpoint_names[0])
 
     model = TestModel.load_from_checkpoint(checkpoint_path)
-    callback = EMATestCallback(devices=devices)
+    callback = callback_cls(**callback_kwargs)
     _train(model, dataset, tmp_path, callback, devices=devices, checkpoint_path=checkpoint_path, **kwargs)
     return model
 

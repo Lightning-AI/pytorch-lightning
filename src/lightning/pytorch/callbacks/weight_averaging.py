@@ -250,7 +250,10 @@ class WeightAveraging(Callback):
             A dictionary containing the callback state.
 
         """
-        return {"latest_update_step": self._latest_update_step}
+        return {
+            "latest_update_step": self._latest_update_step,
+            "latest_update_epoch": self._latest_update_epoch,
+        }
 
     @override
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
@@ -263,6 +266,7 @@ class WeightAveraging(Callback):
 
         """
         self._latest_update_step = state_dict["latest_update_step"]
+        self._latest_update_epoch = state_dict.get("latest_update_epoch", -1)
 
     @override
     def on_save_checkpoint(
