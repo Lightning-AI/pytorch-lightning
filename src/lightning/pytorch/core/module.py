@@ -1191,7 +1191,7 @@ class LightningModule(
             optimizer: The optimizer to untoggle.
 
         """
-        for param in getattr(self, "_disabled_params", []):
+        for param in self._disabled_params:
             param.requires_grad = True
         self._disabled_params = []
         self._param_requires_grad_state = {}
