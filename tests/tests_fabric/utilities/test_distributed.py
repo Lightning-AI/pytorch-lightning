@@ -333,3 +333,25 @@ def test_distributed_sampler_wrapper_set_epoch():
     wrapper.set_epoch(5)  # Should not raise
     assert wrapper.epoch == 5
     assert sampler_non_callable.set_epoch == "not a method"  # Should remain unchanged
+
+
+@pytest.mark.parametrize("reduce_op", ["mean", "MEAN", "Mean", "avg", "AVG", "Avg"])
+@pytest.mark.parametrize("backend", ["gloo", "nccl"])
+def test_sync_ddp_case_insensitive_mean_and_avg(reduce_op, backend):
+    tensor = torch.tensor(6.0)
+    with (
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed.get_backend", return_value=backend),
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed.barrier"),
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed.all_reduce") as all_reduce_mock,
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed.get_world_size", return_value=2),
+    ):
+        result = _sync_ddp(tensor, reduce_op=reduce_op)
+
+    expected_op = torch.distributed.ReduceOp.SUM if backend == "gloo" else torch.distributed.ReduceOp.AVG
+    all_reduce_mock.assert_called_once_with(
+        tensor, op=expected_op, group=torch.distributed.group.WORLD, async_op=False
+    )
+    if backend == "gloo":
+        assert torch.equal(result, torch.tensor(3.0))
+    else:
+        assert torch.equal(result, torch.tensor(6.0))
