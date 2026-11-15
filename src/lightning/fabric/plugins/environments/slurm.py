@@ -182,8 +182,8 @@ class SLURMEnvironment(ClusterEnvironment):
         - the range notation with brackets, e.g., 'host[5-9]' yields 'host5' as the root
 
         """
-        nodes = re.sub(r"\[(.*?)[,-].*\]", "\\1", nodes)  # Take the first node of every node range
-        nodes = re.sub(r"\[(.*?)\]", "\\1", nodes)  # handle special case where node range is single number
+        nodes = re.sub(r"\[([^\],-]*)[,-][^\]]*\]", "\\1", nodes)  # Take the first node of every node range
+        nodes = re.sub(r"\[([^\]]*)\]", "\\1", nodes)  # handle special case where node range is single number
         return nodes.split(" ")[0].split(",")[0]
 
     @staticmethod
