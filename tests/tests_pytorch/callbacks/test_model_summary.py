@@ -74,3 +74,40 @@ def test_custom_model_summary_callback_summarize(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, callbacks=CustomModelSummary(), max_steps=1)
 
     trainer.fit(model)
+
+
+def test_model_summary_callback_max_depth_zero(tmp_path):
+    """Test that max_depth=0 bypasses model summary generation."""
+    called = False
+
+    class DepthZeroModelSummary(ModelSummary):
+        @staticmethod
+        def summarize(*args: Any, **kwargs: Any) -> None:
+            nonlocal called
+            called = True
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=DepthZeroModelSummary(max_depth=0), max_steps=1)
+    trainer.fit(model)
+
+    assert not called
+
+
+def test_model_summary_callback_summarize_kwargs_forwarding(tmp_path):
+    """Test that extra summarize_kwargs are forwarded to the summarize method."""
+    received_kwargs = {}
+
+    class KwargsModelSummary(ModelSummary):
+        @staticmethod
+        def summarize(*args: Any, **kwargs: Any) -> None:
+            nonlocal received_kwargs
+            received_kwargs = kwargs
+
+    model = BoringModel()
+    cb = KwargsModelSummary(max_depth=1, custom_option="test_value", another_flag=42)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=cb, max_steps=1)
+    trainer.fit(model)
+
+    assert received_kwargs.get("custom_option") == "test_value"
+    assert received_kwargs.get("another_flag") == 42
+
