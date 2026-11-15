@@ -70,6 +70,7 @@ def test_trainer_accumulate_grad_batches_with_callback(tmp_path, accumulate_grad
     [
         {1: 2, -3: 4},
         {0: 2, "2": 1},
+        {1.5: 2},
     ],
 )
 def test_invalid_keys_for_grad_accum_scheduler(scheduling):
@@ -82,6 +83,8 @@ def test_invalid_keys_for_grad_accum_scheduler(scheduling):
     [
         {1: 0, 3: 4},
         {0: 2, 2: "2"},
+        {0: 2.5},
+        {0: -1},
     ],
 )
 def test_invalid_values_for_grad_accum_scheduler(scheduling):
@@ -140,3 +143,41 @@ def test_raises_when_accumulate_grad_batches_with_callback(tmp_path):
     )
     with pytest.raises(ValueError, match="`accumulate_grad_batches` and are using the `GradientAccumulationScheduler`"):
         trainer.fit(BoringModel())
+
+
+def test_empty_dict_for_grad_accum_scheduler():
+    """Test that initializing with an empty dictionary raises TypeError."""
+    with pytest.raises(TypeError, match="Empty dict cannot be interpreted correct"):
+        _ = GradientAccumulationScheduler(scheduling={})
+
+
+@pytest.mark.parametrize(
+    ("scheduling", "expected_factors"),
+    [
+        ({0: 1, 2: 2, 4: 4}, {0: 1, 1: 1, 2: 2, 3: 2, 4: 4, 5: 4, 10: 4}),
+        ({3: 4}, {0: 1, 1: 1, 2: 1, 3: 4, 4: 4, 10: 4}),
+        ({0: 2}, {0: 2, 1: 2, 5: 2}),
+    ],
+)
+def test_gradient_accumulation_scheduler_get_accumulate_grad_batches(scheduling, expected_factors):
+    """Test get_accumulate_grad_batches returns the expected accumulation factor for each epoch."""
+    scheduler = GradientAccumulationScheduler(scheduling=scheduling)
+    for epoch, expected in expected_factors.items():
+        assert scheduler.get_accumulate_grad_batches(epoch) == expected
+
+
+@pytest.mark.parametrize(
+    ("scheduling", "expected"),
+    [
+        ({0: 1}, False),
+        ({0: 1, 2: 1}, False),
+        ({0: 1, 2: 2}, True),
+        ({3: 2}, True),
+        ({0: 4}, True),
+    ],
+)
+def test_gradient_accumulation_scheduler_going_to_accumulate(scheduling, expected):
+    """Test going_to_accumulate_grad_batches correctly identifies whether accumulation occurs."""
+    scheduler = GradientAccumulationScheduler(scheduling=scheduling)
+    assert scheduler.going_to_accumulate_grad_batches() is expected
+
