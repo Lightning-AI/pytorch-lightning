@@ -322,8 +322,10 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
             elif store_explicit_arg in kwargs:
                 object.__setattr__(obj, f"__{store_explicit_arg}", kwargs[store_explicit_arg])
 
-        init(obj, *args, **kwargs)
-        object.__setattr__(obj, "__pl_inside_init", old_inside_init)
+        try:
+            init(obj, *args, **kwargs)
+        finally:
+            object.__setattr__(obj, "__pl_inside_init", old_inside_init)
 
     return wrapper
 
@@ -343,14 +345,16 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
         object.__setattr__(obj, "__pl_current_call", (name, tag))
 
         # call original method
-        method(obj, *args)
-        if first_call and not getattr(obj, "__pl_inside_init", True):
-            # and save the value it was called with to the internal list,
-            # if we're outside of __init__ and the original call did not fail and we're the first call
-            attrs_record = getattr(obj, "__pl_attrs_record", [])
-            attrs_record.append((args, tag))
-            object.__setattr__(obj, "__pl_attrs_record", attrs_record)
-        object.__setattr__(obj, "__pl_current_call", (prev_call_name, prev_call_method))
+        try:
+            method(obj, *args)
+            if first_call and not getattr(obj, "__pl_inside_init", True):
+                # and save the value it was called with to the internal list,
+                # if we're outside of __init__ and the original call did not fail and we're the first call
+                attrs_record = getattr(obj, "__pl_attrs_record", [])
+                attrs_record.append((args, tag))
+                object.__setattr__(obj, "__pl_attrs_record", attrs_record)
+        finally:
+            object.__setattr__(obj, "__pl_current_call", (prev_call_name, prev_call_method))
 
     return wrapper
 
@@ -363,32 +367,34 @@ def _replace_dunder_methods(base_cls: type, store_explicit_arg: Optional[str] = 
 
     """
     classes = get_all_subclasses(base_cls) | {base_cls}
-    for cls in classes:
-        # Check that __init__ belongs to the class
-        # https://stackoverflow.com/a/5253424
-        if "__init__" in cls.__dict__:
-            cls.__old__init__ = cls.__init__  # type: ignore[misc]
-            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)  # type: ignore[misc]
-
-        # we want at least one setattr/delattr in the chain to be patched and it can happen, that none of the subclasses
-        # implement `__setattr__`/`__delattr__`. Therefore, we are always patching the `base_cls`
-        for patch_fn_name, tag in (("__setattr__", _WrapAttrTag.SET), ("__delattr__", _WrapAttrTag.DEL)):
-            if patch_fn_name in cls.__dict__ or cls is base_cls:
-                saved_name = f"__old{patch_fn_name}"
-                setattr(cls, saved_name, getattr(cls, patch_fn_name))
-                setattr(cls, patch_fn_name, _wrap_attr_method(getattr(cls, patch_fn_name), tag))
-    yield
-    for cls in classes:
-        for patched_name in ("__setattr__", "__delattr__", "__init__"):
-            # Check that __old__{init,setattr,delattr} belongs to the class
+    try:
+        for cls in classes:
+            # Check that __init__ belongs to the class
             # https://stackoverflow.com/a/5253424
-            old_name = f"__old{patched_name}"
-            if old_name in cls.__dict__:
-                try:
-                    setattr(cls, patched_name, getattr(cls, old_name))
-                    delattr(cls, old_name)
-                except AttributeError:
-                    pass
+            if "__init__" in cls.__dict__:
+                cls.__old__init__ = cls.__init__  # type: ignore[misc]
+                cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)  # type: ignore[misc]
+
+            # we want at least one setattr/delattr in the chain to be patched and it can happen, that none of the subclasses
+            # implement `__setattr__`/`__delattr__`. Therefore, we are always patching the `base_cls`
+            for patch_fn_name, tag in (("__setattr__", _WrapAttrTag.SET), ("__delattr__", _WrapAttrTag.DEL)):
+                if patch_fn_name in cls.__dict__ or cls is base_cls:
+                    saved_name = f"__old{patch_fn_name}"
+                    setattr(cls, saved_name, getattr(cls, patch_fn_name))
+                    setattr(cls, patch_fn_name, _wrap_attr_method(getattr(cls, patch_fn_name), tag))
+        yield
+    finally:
+        for cls in classes:
+            for patched_name in ("__setattr__", "__delattr__", "__init__"):
+                # Check that __old__{init,setattr,delattr} belongs to the class
+                # https://stackoverflow.com/a/5253424
+                old_name = f"__old{patched_name}"
+                if old_name in cls.__dict__:
+                    try:
+                        setattr(cls, patched_name, getattr(cls, old_name))
+                        delattr(cls, old_name)
+                    except AttributeError:
+                        pass
 
 
 def _replace_value_in_saved_args(
