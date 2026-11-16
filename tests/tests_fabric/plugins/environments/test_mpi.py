@@ -128,3 +128,50 @@ def test_setters(monkeypatch, caplog):
     with caplog.at_level(logging.DEBUG, logger="lightning.fabric.plugins.environments"):
         env.set_world_size(100)
     assert "setting world size is not allowed" in caplog.text
+
+
+def test_instance_level_rank_and_size_caching(monkeypatch):
+    import gc
+    import weakref
+
+    monkeypatch.setattr(lightning.fabric.plugins.environments.mpi, "_MPI4PY_AVAILABLE", True)
+    mpi4py_mock = MagicMock()
+
+    with mock.patch.dict("sys.modules", {"mpi4py": mpi4py_mock}):
+        env1 = MPIEnvironment()
+        env2 = MPIEnvironment()
+
+    env1._comm_world = MagicMock()
+    env1._comm_world.Get_size.return_value = 4
+    env1._comm_world.Get_rank.return_value = 1
+    env1._comm_local = MagicMock()
+    env1._comm_local.Get_rank.return_value = 1
+
+    env2._comm_world = MagicMock()
+    env2._comm_world.Get_size.return_value = 8
+    env2._comm_world.Get_rank.return_value = 5
+    env2._comm_local = MagicMock()
+    env2._comm_local.Get_rank.return_value = 2
+
+    # Interleaved calls across two instances must not evict each other's cache
+    for _ in range(3):
+        assert env1.world_size() == 4
+        assert env2.world_size() == 8
+        assert env1.global_rank() == 1
+        assert env2.global_rank() == 5
+        assert env1.local_rank() == 1
+        assert env2.local_rank() == 2
+
+    env1._comm_world.Get_size.assert_called_once()
+    env2._comm_world.Get_size.assert_called_once()
+    env1._comm_world.Get_rank.assert_called_once()
+    env2._comm_world.Get_rank.assert_called_once()
+    env1._comm_local.Get_rank.assert_called_once()
+    env2._comm_local.Get_rank.assert_called_once()
+
+    # Instance must not be retained by a class-level lru_cache after deletion
+    ref = weakref.ref(env2)
+    del env2
+    gc.collect()
+    assert ref() is None
+
