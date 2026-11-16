@@ -494,10 +494,12 @@ class _FitLoop(_Loop):
 
         trainer._logger_connector.on_epoch_end()
 
-        if not self.restarting and self.epoch_loop._num_ready_batches_reached():
-            # since metric-based schedulers require access to metrics and those are not currently saved in the
-            # checkpoint, the plateau schedulers shouldn't be updated
-            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)
+        if self.epoch_loop._num_ready_batches_reached():
+            # metrics are not saved in the checkpoint, so after restarting, the plateau schedulers are only updated if
+            # their monitored metric was logged again in this run (e.g. the epoch was resumed mid-way)
+            self.epoch_loop.update_lr_schedulers(
+                "epoch", update_plateau_schedulers=True, skip_missing_monitor=self.restarting
+            )
 
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished
