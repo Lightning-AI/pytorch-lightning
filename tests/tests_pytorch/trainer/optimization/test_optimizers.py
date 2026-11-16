@@ -165,6 +165,62 @@ def test_reducelronplateau_scheduling(tmp_path):
     )
 
 
+class _NonImprovingPlateauModel(BoringModel):
+    def validation_step(self, batch, batch_idx):
+        self.log("val_metric", 1.0)  # never improves, so the lr halves at the end of every epoch but the first
+
+    def configure_optimizers(self):
+        optimizer = optim.SGD(self.parameters(), lr=1.0)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=0)
+        return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": "val_metric"}}
+
+
+@pytest.mark.parametrize("val_check_interval", [1.0, 0.5])
+def test_reducelronplateau_steps_after_mid_epoch_resume(tmp_path, val_check_interval):
+    """The epoch's validation runs again after resuming mid-epoch, so the plateau scheduler should step at its end."""
+
+    def fit(callbacks=(), ckpt_path=None):
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            max_epochs=4,
+            limit_train_batches=8,
+            limit_val_batches=2,
+            val_check_interval=val_check_interval,
+            num_sanity_val_steps=0,
+            callbacks=list(callbacks),
+            enable_checkpointing=bool(callbacks),
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(_NonImprovingPlateauModel(), ckpt_path=ckpt_path)
+        return trainer.optimizers[0].param_groups[0]["lr"]
+
+    assert fit() == 0.125
+    # saved halfway through epoch 1, before that epoch's plateau step
+    fit(callbacks=[ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=12, save_top_k=-1)])
+    assert fit(ckpt_path=tmp_path / "epoch=1-step=12.ckpt") == 0.125
+
+
+def test_reducelronplateau_resume_from_validation_end_checkpoint_does_not_raise(tmp_path):
+    """Metrics are not saved in the checkpoint, so resuming after the epoch's validation skips the plateau step instead
+    of raising for the missing ``strict`` monitor."""
+    kwargs = {
+        "default_root_dir": tmp_path,
+        "max_epochs": 3,
+        "limit_train_batches": 4,
+        "limit_val_batches": 2,
+        "num_sanity_val_steps": 0,
+        "logger": False,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+    }
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor="val_metric", save_top_k=-1, save_on_train_epoch_end=False)
+    Trainer(callbacks=[checkpoint], **kwargs).fit(_NonImprovingPlateauModel())
+    trainer = Trainer(enable_checkpointing=False, **kwargs)
+    trainer.fit(_NonImprovingPlateauModel(), ckpt_path=tmp_path / "epoch=1-step=8.ckpt")
+
+
 def test_optimizer_return_options(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path)
     model = BoringModel()

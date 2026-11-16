@@ -58,6 +58,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
+- Fixed `ReduceLROnPlateau` schedulers with `interval="epoch"` not stepping at the end of an epoch resumed from a mid-epoch checkpoint ([#22193](https://github.com/Lightning-AI/pytorch-lightning/pull/22193))
+
 ---
 
 ## [2.6.6] - 2026-09-10

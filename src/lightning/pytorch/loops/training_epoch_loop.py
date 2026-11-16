@@ -453,13 +453,21 @@ class _TrainingEpochLoop(loops._Loop):
         strategy_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
         return not accumulation_done and strategy_accumulates_on_final_batch
 
-    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
+    def update_lr_schedulers(
+        self, interval: str, update_plateau_schedulers: bool, skip_missing_monitor: bool = False
+    ) -> None:
         """Updates the lr schedulers based on the given interval."""
         if interval == "step" and self._should_accumulate():
             return
-        self._update_learning_rates(interval=interval, update_plateau_schedulers=update_plateau_schedulers)
+        self._update_learning_rates(
+            interval=interval,
+            update_plateau_schedulers=update_plateau_schedulers,
+            skip_missing_monitor=skip_missing_monitor,
+        )
 
-    def _update_learning_rates(self, interval: str, update_plateau_schedulers: bool) -> None:
+    def _update_learning_rates(
+        self, interval: str, update_plateau_schedulers: bool, skip_missing_monitor: bool = False
+    ) -> None:
         """Update learning rates.
 
         Args:
@@ -468,6 +476,9 @@ class _TrainingEpochLoop(loops._Loop):
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
+            skip_missing_monitor: skip ``ReduceLROnPlateau`` schedulers whose monitored metric is not available
+                instead of raising or warning. This is used after restarting, since metrics are not saved in the
+                checkpoint.
 
         """
         trainer = self.trainer
@@ -490,6 +501,8 @@ class _TrainingEpochLoop(loops._Loop):
                     assert monitor_key is not None
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
+                        if skip_missing_monitor:
+                            continue
                         if config.strict:
                             avail_metrics = list(trainer.callback_metrics)
                             raise MisconfigurationException(
