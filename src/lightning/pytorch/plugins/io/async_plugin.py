@@ -78,8 +78,10 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
         # if an error was raised between the previous time `save_checkpoint`` was called and now,
         # because `executor.submit` is not blocking
-        if self._error:
-            raise self._error
+        if self._error is not None:
+            error = self._error
+            self._error = None
+            raise error
 
     @override
     def teardown(self) -> None:
@@ -89,8 +91,10 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             self._executor = None
 
         # if an error was raised anytime in any of the `executor.submit` calls
-        if self._error:
-            raise self._error
+        if self._error is not None:
+            error = self._error
+            self._error = None
+            raise error
 
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
