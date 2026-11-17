@@ -57,6 +57,12 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
+        # if an error was raised between the previous time `save_checkpoint` was called and now,
+        # because `executor.submit` is not blocking
+        if self._error is not None:
+            error = self._error
+            self._error = None
+            raise error
 
         self._ensure_setup()
 
@@ -76,11 +82,6 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         assert self._executor is not None
         self._executor.submit(_save_checkpoint, *args, **kwargs)
 
-        # if an error was raised between the previous time `save_checkpoint`` was called and now,
-        # because `executor.submit` is not blocking
-        if self._error:
-            raise self._error
-
     @override
     def teardown(self) -> None:
         """This method is called to close the threads."""
@@ -89,8 +90,10 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             self._executor = None
 
         # if an error was raised anytime in any of the `executor.submit` calls
-        if self._error:
-            raise self._error
+        if self._error is not None:
+            error = self._error
+            self._error = None
+            raise error
 
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
