@@ -110,7 +110,7 @@ class BasePredictionWriter(Callback):
     def __init__(self, write_interval: Literal["batch", "epoch", "batch_and_epoch"] = "batch") -> None:
         if write_interval not in list(WriteInterval):
             raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
-        self.interval = WriteInterval(write_interval)
+        self.interval = WriteInterval.from_str(write_interval)
 
     @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
