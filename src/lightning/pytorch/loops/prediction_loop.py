@@ -188,6 +188,7 @@ class _PredictionLoop(_Loop):
         self._data_fetcher = data_fetcher
 
         num_dataloaders = self.num_dataloaders
+        self.current_batch_indices = []
         self.epoch_batch_indices = [[] for _ in range(num_dataloaders)]
         self._predictions = [[] for _ in range(num_dataloaders)]
 
@@ -322,6 +323,8 @@ class _PredictionLoop(_Loop):
             if not batch_indices:
                 # this is only available with `_IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is
                 # reached, it's likely because a non-DataLoader was passed
+                if any_on_batch:
+                    self.current_batch_indices = []
                 return any_on_epoch
             batch_indices = batch_indices[batch_idx]
             if any_on_epoch:
@@ -377,6 +380,7 @@ class _PredictionLoop(_Loop):
         """Resets previous gradient status and calls ``on_predict_end`` hook."""
         if not self.return_predictions:
             self._predictions = []
+        self.current_batch_indices = []
         self.epoch_batch_indices = []
 
         trainer = self.trainer
