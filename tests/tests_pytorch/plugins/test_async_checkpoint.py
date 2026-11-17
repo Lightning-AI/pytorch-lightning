@@ -93,7 +93,8 @@ def test_async_checkpoint_clears_error_after_raising():
     async_io.teardown()
     assert saved_paths == ["ok_1.ckpt"]
 
-    # 2. Error raised on a subsequent save_checkpoint() should clear _error so teardown() does not re-raise it.
+    # 2. Error raised on a subsequent save_checkpoint() should clear _error before dispatching a new task,
+    # so teardown() does not re-raise even if the failure condition persists.
     fail_next = True
     allow_worker_to_proceed.clear()
     async_io.save_checkpoint({"w": torch.tensor([3.0])}, path="fail_2.ckpt")
@@ -103,12 +104,17 @@ def test_async_checkpoint_clears_error_after_raising():
     async_io._executor.submit(lambda: None).result()
     assert async_io._error is not None
 
-    fail_next = False
     with pytest.raises(RuntimeError, match="disk full"):
-        async_io.save_checkpoint({"w": torch.tensor([4.0])}, path="ok_2.ckpt")
+        async_io.save_checkpoint({"w": torch.tensor([4.0])}, path="unscheduled.ckpt")
     assert async_io._error is None
 
-    # teardown() should cleanly wait for ok_2.ckpt and not re-raise the already-propagated error
+    # teardown() should not re-raise because unscheduled.ckpt was never dispatched
+    async_io.teardown()
+    assert saved_paths == ["ok_1.ckpt"]
+
+    # Subsequent save + teardown after recovery should succeed
+    fail_next = False
+    async_io.save_checkpoint({"w": torch.tensor([5.0])}, path="ok_2.ckpt")
     async_io.teardown()
     assert saved_paths == ["ok_1.ckpt", "ok_2.ckpt"]
 
