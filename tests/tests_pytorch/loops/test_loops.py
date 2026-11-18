@@ -1287,6 +1287,17 @@ class StatefulIterable(NotStatefulIterable):
         self.index = state_dict["index"] + 1
 
 
+class StatefulIterableWithoutLen(StatefulIterable):
+    """Without a length, the fit loop pre-fetches one batch ahead of the one it trains on."""
+
+    __len__ = None
+
+    def __iter__(self):
+        for i in range(self.index, 10):
+            self.index = i
+            yield self.index
+
+
 @pytest.mark.parametrize(
     ("train_dataloader_factory", "has_state", "batches_before", "batches_after"),
     [
@@ -1298,8 +1309,17 @@ class StatefulIterable(NotStatefulIterable):
         (lambda: CombinedLoader(NotStatefulIterable()), False, [0, 1], [0, 1]),
         # Single stateful DataLoader
         (lambda: CombinedLoader(StatefulIterable()), True, [0, 1], [2, 3]),
+        # Single stateful DataLoader without length
+        (lambda: StatefulIterableWithoutLen(), True, [0, 1], [2, 3]),
         # Multiple stateful DataLoaders
         (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), True, [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
+        # Multiple stateful DataLoaders without length
+        (
+            lambda: CombinedLoader([StatefulIterableWithoutLen(3), StatefulIterableWithoutLen(1)]),
+            True,
+            [[3, 1], [4, 2]],
+            [[5, 3], [6, 4]],
+        ),
         # Mix of stateful and not stateful DataLoaders
         (
             lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]),
@@ -1394,3 +1414,43 @@ def test_fit_loop_resume_from_last_batch_checkpoint_without_validation(tmp_path)
     assert trainer.global_step == 12
     progress = trainer.fit_loop.epoch_progress.total
     assert progress.ready == progress.started == progress.processed == progress.completed == 3
+
+
+@pytest.mark.parametrize("ckpt_step", [1, 5, 9])
+def test_fit_loop_save_and_restore_dataloader_without_len_mid_epoch(ckpt_step, tmp_path):
+    """Test that a mid-epoch checkpoint does not skip the batch that the fit loop pre-fetched from a stateful
+    dataloader without length."""
+
+    class DummyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_data = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen_data.append(batch)
+
+        def train_dataloader(self):
+            return StatefulIterableWithoutLen()
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "max_epochs": 1,
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+
+    model = DummyModel()
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, filename="{step}", every_n_train_steps=1, save_top_k=-1)
+    trainer = Trainer(**trainer_kwargs, callbacks=checkpoint)
+    trainer.fit(model)
+    assert model.seen_data == list(range(10))
+
+    # resume after `ckpt_step` batches and train on the rest of the epoch
+    model = DummyModel()
+    trainer = Trainer(**trainer_kwargs, enable_checkpointing=False)
+    trainer.fit(model, ckpt_path=tmp_path / f"step={ckpt_step}.ckpt")
+    assert model.seen_data == list(range(ckpt_step, 10))
+    assert trainer.global_step == 10
