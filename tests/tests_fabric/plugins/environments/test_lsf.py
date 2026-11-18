@@ -100,6 +100,51 @@ def test_node_rank(tmp_path):
         assert env.node_rank() == 2
 
 
+def test_rankfile_blank_lines_and_fqdn_matching(tmp_path):
+    rankfile = tmp_path / "lsb_djob_rankfile"
+    rankfile.write_text("\n\nbatch\n\ncompute0.cluster.local\ncompute1\n\n")
+    environ = {
+        "LSB_DJOB_RANKFILE": str(rankfile),
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "2",
+        "JSM_NAMESPACE_RANK": "1",
+        "JSM_NAMESPACE_LOCAL_RANK": "0",
+    }
+    with mock.patch.dict(os.environ, environ), mock.patch("socket.gethostname", return_value="compute0"):
+        env = LSFEnvironment()
+        assert env.main_address == "compute0.cluster.local"
+        assert env.node_rank() == 0
+
+    with (
+        mock.patch.dict(os.environ, environ),
+        mock.patch("socket.gethostname", return_value="compute1.cluster.local"),
+    ):
+        env = LSFEnvironment()
+        assert env.node_rank() == 1
+
+    with (
+        mock.patch.dict(os.environ, environ),
+        mock.patch("socket.gethostname", return_value="unknown_host"),
+        pytest.raises(ValueError, match="Could not find current hostname `unknown_host`"),
+    ):
+        LSFEnvironment()
+
+
+def test_rankfile_without_compute_hosts(tmp_path):
+    rankfile = tmp_path / "lsb_djob_rankfile"
+    rankfile.write_text("batch\n\n")
+    environ = {
+        "LSB_DJOB_RANKFILE": str(rankfile),
+        "LSB_JOBID": "1234",
+    }
+    with (
+        mock.patch.dict(os.environ, environ),
+        pytest.raises(ValueError, match="Could not find any compute hosts in `LSB_DJOB_RANKFILE`"),
+    ):
+        LSFEnvironment()
+
+
+
 def test_detect():
     """Test the detection of a LSF environment configuration."""
     with mock.patch.dict(os.environ, {}, clear=True):
