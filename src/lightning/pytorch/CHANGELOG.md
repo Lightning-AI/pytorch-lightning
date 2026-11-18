@@ -58,6 +58,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
+- Fixed resuming from a mid-epoch checkpoint skipping a batch when the stateful train dataloader has no length, because the saved dataloader state included the batch that the fit loop had pre-fetched ([#22197](https://github.com/Lightning-AI/pytorch-lightning/pull/22197))
+
 ---
 
 ## [2.6.6] - 2026-09-10

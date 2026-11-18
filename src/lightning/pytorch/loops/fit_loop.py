@@ -107,6 +107,8 @@ class _FitLoop(_Loop):
         self._combined_loader: Optional[CombinedLoader] = None
         self._combined_loader_states_to_load: list[dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
+        # `_data_fetcher.consumed_state_dicts`, kept after the fetcher is torn down for checkpoints saved after `fit`
+        self._consumed_combined_loader_states: Optional[list[dict[str, Any]]] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._restart_stage = RestartStage.NONE
 
@@ -254,6 +256,7 @@ class _FitLoop(_Loop):
             dataloaders.append(dl)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
+        self._consumed_combined_loader_states = None
 
         allow_zero_length = pl_module.allow_zero_length_dataloader_with_multiple_devices
         if trainer.datamodule is not None:
@@ -522,6 +525,7 @@ class _FitLoop(_Loop):
 
     def teardown(self) -> None:
         if self._data_fetcher is not None:
+            self._consumed_combined_loader_states = self._data_fetcher.consumed_state_dicts
             self._data_fetcher.teardown()
             self._data_fetcher = None
         self.epoch_loop.teardown()
@@ -529,8 +533,15 @@ class _FitLoop(_Loop):
     @override
     def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
-        if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
-            state_dict["combined_loader"] = loader_states
+        if self._combined_loader is not None:
+            # pre-fetching can move the loaders past the last trained batch, and resuming from their current states
+            # would then skip the pre-fetched batches, so save their states from right after the last trained batch
+            fetcher = self._data_fetcher
+            loader_states = self._consumed_combined_loader_states if fetcher is None else fetcher.consumed_state_dicts
+            if loader_states is None:
+                loader_states = self._combined_loader._state_dicts()
+            if loader_states:
+                state_dict["combined_loader"] = loader_states
         return state_dict
 
     @override

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Iterator
+from copy import deepcopy
 from typing import Any, Optional
 
 from typing_extensions import override
@@ -46,6 +47,12 @@ class _DataFetcher(Iterator):
 
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
+
+    @property
+    def consumed_state_dicts(self) -> Optional[list[dict[str, Any]]]:
+        """The states of the stateful iterables right after the last batch returned by ``__next__``, or ``None`` when
+        their current states already match it."""
+        return None
 
     @override
     def __iter__(self) -> "_DataFetcher":
@@ -99,6 +106,8 @@ class _PrefetchDataFetcher(_DataFetcher):
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
         self.batches: list[Any] = []
+        # the states of the stateful iterables right before each pre-fetched batch was fetched
+        self.batch_state_dicts: list[list[dict[str, Any]]] = []
 
     @override
     def __iter__(self) -> "_PrefetchDataFetcher":
@@ -109,8 +118,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         # prefetch batches to know when the iterator will be exhausted in advance
         for _ in range(self.prefetch_batches):
             try:
-                batch = super().__next__()
-                self.batches.append(batch)
+                self._prefetch()
             except StopIteration:
                 # this would only happen when prefetch_batches > the number of batches available and makes
                 # `__next__` jump directly to the empty iterator case without trying to fetch again
@@ -123,9 +131,10 @@ class _PrefetchDataFetcher(_DataFetcher):
             # there are pre-fetched batches already from a previous `prefetching` call.
             # consume one
             batch = self.batches.pop(0)
+            self.batch_state_dicts.pop(0)
             try:
                 # refill the consumed batch
-                self.batches.append(super().__next__())
+                self._prefetch()
             except StopIteration:
                 # no more batches to fetch. we are done only if all pre-fetched batches were returned
                 self.done = not self.batches
@@ -141,6 +150,20 @@ class _PrefetchDataFetcher(_DataFetcher):
     def reset(self) -> None:
         super().reset()
         self.batches = []
+        self.batch_state_dicts = []
+
+    @property
+    @override
+    def consumed_state_dicts(self) -> Optional[list[dict[str, Any]]]:
+        # pre-fetching moves the iterables past the returned batches, so their current states would skip a batch on
+        # restore. The states saved before fetching the oldest pending batch are the ones to checkpoint instead
+        return self.batch_state_dicts[0] if self.batch_state_dicts else None
+
+    def _prefetch(self) -> None:
+        # copy, since an iterable could return a reference to its live state
+        state_dicts = deepcopy(self.combined_loader._state_dicts())
+        self.batches.append(super().__next__())
+        self.batch_state_dicts.append(state_dicts)
 
 
 class _DataLoaderIterDataFetcher(_DataFetcher):

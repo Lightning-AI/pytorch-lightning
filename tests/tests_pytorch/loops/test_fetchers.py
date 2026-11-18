@@ -79,6 +79,36 @@ def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     assert fetcher.fetched == 3
 
 
+@pytest.mark.parametrize("prefetch_batches", [0, 1, 2])
+def test_prefetch_iterator_consumed_state_dicts(prefetch_batches):
+    """Test that the states to checkpoint match the batches returned so far, not the ones pre-fetched."""
+
+    class StatefulIterable:
+        def __init__(self):
+            self.yielded = 0
+
+        def __iter__(self):
+            for i in range(3):
+                self.yielded = i + 1
+                yield i
+
+        def state_dict(self):
+            return {"yielded": self.yielded}
+
+        def load_state_dict(self, state_dict):
+            self.yielded = state_dict["yielded"]
+
+    loader = CombinedLoader(StatefulIterable())
+    fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
+    fetcher.setup(loader)
+    iter(fetcher)
+    for returned in range(4):
+        states = fetcher.consumed_state_dicts
+        assert (loader._state_dicts() if states is None else states) == [{"yielded": returned}]
+        if returned < 3:
+            next(fetcher)
+
+
 @pytest.mark.parametrize("multiple_iterables", [False, True])
 def test_profiler_closing(multiple_iterables):
     """Tests if the profiler terminates upon raising a StopIteration on an iterable dataset."""
