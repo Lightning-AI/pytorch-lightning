@@ -34,12 +34,12 @@ def test_extract_batch_size():
 
     def _check_warning_raised(data, expected):
         with pytest.warns(UserWarning, match=f"Trying to infer the `batch_size` .* we found is {expected}."):
-            assert extract_batch_size(batch) == expected
+            assert extract_batch_size(data) == expected
         warning_cache.clear()
 
     def _check_error_raised(data):
         with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
-            extract_batch_size(batch)
+            extract_batch_size(data)
 
     @dataclass
     class CustomDataclass:
@@ -62,7 +62,20 @@ def test_extract_batch_size():
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
 
+    # Non-tensor leaves (yielding None) after or before tensor leaves should not trigger an ambiguous warning
+    batch = (torch.zeros(11, 10), "sample_id", None, 42)
+    _check_warning_not_raised(batch, 11)
+
+    batch = ("sample_id", None, 42, torch.zeros(11, 10))
+    _check_warning_not_raised(batch, 11)
+
+    batch = {"x": torch.zeros(11, 10), "meta": "sample_id", "optional": None, "y": torch.zeros(11, 5)}
+    _check_warning_not_raised(batch, 11)
+
     # Warning raised
+    batch = {"x": torch.zeros(11, 10), "meta": "sample_id", "y": torch.zeros(10, 5)}
+    _check_warning_raised(batch, 11)
+
     batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
     _check_warning_raised(batch, 1)
 

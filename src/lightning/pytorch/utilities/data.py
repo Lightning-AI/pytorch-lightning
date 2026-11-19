@@ -73,6 +73,8 @@ def extract_batch_size(batch: BType) -> int:
     batch_size = None
     try:
         for bs in _extract_batch_size(batch):
+            if bs is None:
+                continue
             if batch_size is None:
                 batch_size = bs
             elif batch_size != bs:
