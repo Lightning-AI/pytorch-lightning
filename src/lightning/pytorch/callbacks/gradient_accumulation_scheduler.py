@@ -134,6 +134,9 @@ class GradientAccumulationScheduler(Callback):
                 " callback. Either remove `accumulate_grad_batches` from the Trainer or remove the callback."
             )
 
+        # `on_train_epoch_start` is skipped when resuming mid-epoch, so set the factor for the current epoch here too
+        trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
+
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
