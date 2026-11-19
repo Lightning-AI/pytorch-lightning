@@ -200,9 +200,10 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
         return re.sub(", 'save_on_train_epoch_end': (None|True|False)", "", old_key)
 
     num_keys = len(checkpoint["callbacks"])
-    # Note: only iterate over keys that are strings. The legacy state key was the type of the callback.
+    # Note: only transform keys that are strings. The legacy state key was the type of the callback.
     new_callback_states = {
-        new_key(old_key): state for old_key, state in checkpoint["callbacks"].items() if isinstance(old_key, str)
+        (new_key(old_key) if isinstance(old_key, str) else old_key): state
+        for old_key, state in checkpoint["callbacks"].items()
     }
     if len(new_callback_states) < num_keys:
         rank_zero_warn(

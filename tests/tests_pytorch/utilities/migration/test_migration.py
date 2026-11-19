@@ -150,6 +150,32 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
 
 
+def test_migrate_model_checkpoint_save_on_train_epoch_end_default_preserves_legacy_type_keys():
+    """Test that legacy class-type callback keys do not trigger false collision warnings or prevent migration."""
+    legacy_state_key = (
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+    )
+    new_state_key = (
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None}"
+    )
+    old_checkpoint = {
+        "callbacks": {
+            EarlyStopping: {"wait_count": 2, "patience": 4},
+            legacy_state_key: {"dummy": 0},
+        },
+        "global_step": 0,
+        "epoch": 1,
+    }
+    _set_version(old_checkpoint, "1.8.9")
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.9.0")
+    assert updated_checkpoint["callbacks"] == {
+        EarlyStopping: {"wait_count": 2, "patience": 4},
+        new_state_key: {"dummy": 0},
+    }
+
+
 def test_migrate_dropped_apex_amp_state(monkeypatch):
     """Test that the migration warns about collisions that would occur if the keys were modified."""
     monkeypatch.setattr(pl, "__version__", "2.0.0")  # pretend this version of Lightning is >= 2.0.0
