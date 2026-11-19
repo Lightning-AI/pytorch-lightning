@@ -13,6 +13,8 @@
 # limitations under the License.
 """Custom dataloaders for testing."""
 
+import torch
+
 
 class CustomInfDataloader:
     def __init__(self, dataloader):
@@ -50,3 +52,26 @@ class CustomNotImplementedErrorDataloader(CustomInfDataloader):
         except StopIteration:
             self.iter = iter(self.dataloader)
             return next(self.iter)
+
+
+class ResumableIterable:
+    """Yields a fixed sequence of batches and can resume from the middle of an epoch."""
+
+    def __init__(self, num_batches=4):
+        self.batches = torch.randn(num_batches, 1, 32, generator=torch.Generator().manual_seed(0))
+        self.start = self.index = 0
+
+    def __iter__(self):
+        start, self.start = self.start, 0
+        for i in range(start, len(self)):
+            self.index = i
+            yield self.batches[i]
+
+    def __len__(self):
+        return len(self.batches)
+
+    def state_dict(self):
+        return {"index": self.index}
+
+    def load_state_dict(self, state_dict):
+        self.start = state_dict["index"] + 1

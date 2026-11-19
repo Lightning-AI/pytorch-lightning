@@ -27,11 +27,12 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_6
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import StochasticWeightAveraging
+from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from tests_pytorch.helpers.dataloaders import ResumableIterable
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -415,6 +416,57 @@ def test_swa_with_infinite_epochs_and_batchnorm(tmp_path):
     # SWA starts at epoch 2, so with 6 epochs (0-5), we should have 4 updates (epochs 2, 3, 4, 5)
     assert swa_callback.n_averaged is not None
     assert swa_callback.n_averaged > 0, "SWA should have updated parameters"
+
+
+def test_swa_resume_training_from_mid_epoch_checkpoint(tmp_path):
+    """Test that resuming from a checkpoint saved mid-epoch inside the SWA window continues the same run, also when
+    resuming again from a checkpoint saved during the rest of that epoch."""
+
+    class LrModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.lrs = {}
+
+        def training_step(self, batch, batch_idx):
+            self.lrs[(self.current_epoch, batch_idx)] = self.trainer.optimizers[0].param_groups[0]["lr"]
+            return super().training_step(batch, batch_idx)
+
+        def train_dataloader(self):
+            return ResumableIterable()
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)]
+
+    def fit(ckpt_path=None, save_dir=None):
+        model = LrModel()
+        swa = StochasticWeightAveraging(swa_lrs=0.01, swa_epoch_start=2, annealing_epochs=3)
+        callbacks = [swa]
+        if save_dir:
+            callbacks.append(ModelCheckpoint(dirpath=save_dir, filename="{step}", every_n_train_steps=1, save_top_k=-1))
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            accelerator="cpu",
+            max_epochs=5,
+            limit_val_batches=0,
+            callbacks=callbacks,
+            enable_checkpointing=bool(save_dir),
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
+        trainer.fit(model, ckpt_path=ckpt_path, weights_only=False)
+        return model, swa
+
+    # 4 steps per epoch and SWA starts at epoch 1. Step 6 is saved after 2 of its 4 batches, step 7 after 3
+    model, swa = fit(save_dir=tmp_path / "first")
+    resumed = fit(ckpt_path=tmp_path / "first" / "step=6.ckpt", save_dir=tmp_path / "second")
+    resumed_again = fit(ckpt_path=tmp_path / "second" / "step=7.ckpt")
+
+    for (resumed_model, resumed_swa), first_batch in ((resumed, (1, 2)), (resumed_again, (1, 3))):
+        assert resumed_model.lrs == {key: lr for key, lr in model.lrs.items() if key >= first_batch}
+        assert resumed_swa.n_averaged == swa.n_averaged == 4
+        torch.testing.assert_close(resumed_model.state_dict(), model.state_dict())
 
 
 def _backward_patch(trainer: Trainer) -> AbstractContextManager:
