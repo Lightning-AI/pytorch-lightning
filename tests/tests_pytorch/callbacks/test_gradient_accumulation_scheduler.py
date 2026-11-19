@@ -15,12 +15,14 @@ import math
 from unittest.mock import Mock, patch
 
 import pytest
+import torch
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import GradientAccumulationScheduler
+from lightning.pytorch.callbacks import GradientAccumulationScheduler, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from tests_pytorch.helpers.dataloaders import ResumableIterable
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
@@ -140,3 +142,46 @@ def test_raises_when_accumulate_grad_batches_with_callback(tmp_path):
     )
     with pytest.raises(ValueError, match="`accumulate_grad_batches` and are using the `GradientAccumulationScheduler`"):
         trainer.fit(BoringModel())
+
+
+def test_mid_epoch_resume_keeps_scheduled_accumulation(tmp_path):
+    """Test that resuming from a mid-epoch checkpoint accumulates with the factor scheduled for that epoch."""
+
+    class AccumulationModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.accumulation = {}
+
+        def training_step(self, batch, batch_idx):
+            self.accumulation[(self.current_epoch, batch_idx)] = self.trainer.accumulate_grad_batches
+            return super().training_step(batch, batch_idx)
+
+        def train_dataloader(self):
+            return ResumableIterable()
+
+    def fit(ckpt_path=None, callbacks=()):
+        model = AccumulationModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            accelerator="cpu",
+            max_epochs=3,
+            limit_val_batches=0,
+            callbacks=[GradientAccumulationScheduler({1: 2}), *callbacks],
+            enable_checkpointing=bool(callbacks),
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
+        trainer.fit(model, ckpt_path=ckpt_path)
+        return trainer, model
+
+    # 4 steps in epoch 0, then 2 per epoch. Step 5 is saved after 2 of the 4 batches of epoch 1
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, filename="{step}", every_n_train_steps=5, save_top_k=-1)
+    trainer, model = fit(callbacks=[checkpoint])
+    assert trainer.global_step == 8
+
+    resumed_trainer, resumed_model = fit(ckpt_path=tmp_path / "step=5.ckpt")
+    expected = {key: value for key, value in model.accumulation.items() if key >= (1, 2)}
+    assert resumed_model.accumulation == expected
+    assert resumed_trainer.global_step == 8
+    torch.testing.assert_close(resumed_model.state_dict(), model.state_dict())
