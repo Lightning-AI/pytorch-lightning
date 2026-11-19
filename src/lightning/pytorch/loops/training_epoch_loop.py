@@ -17,9 +17,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-from urllib import response
 
-from src.lightning.pytorch import trainer
 import torch
 from typing_extensions import override
 
