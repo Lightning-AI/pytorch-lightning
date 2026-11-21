@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -428,3 +429,61 @@ def test_unsupported_strategies(tmp_path):
     trainer = Trainer(accelerator="cpu", strategy="deepspeed", callbacks=[callback])
     with pytest.raises(NotImplementedError, match="does not support running with the DeepSpeed strategy"):
         callback.setup(trainer, model, stage=None)
+
+
+class FreezeBackboneAtEpoch1(BaseFinetuning):
+    def freeze_before_training(self, pl_module):
+        pass
+
+    def finetune_function(self, pl_module, epoch, optimizer):
+        if epoch == 1:
+            self.freeze(pl_module.backbone)
+
+
+class DDPBackboneBoringModel(BackboneBoringModel):
+    def __init__(self, automatic_optimization):
+        super().__init__()
+        self.automatic_optimization = automatic_optimization
+
+    def training_step(self, batch, batch_idx):
+        if self.automatic_optimization:
+            return super().training_step(batch, batch_idx)
+        optimizer = self.optimizers()
+        optimizer.zero_grad()
+        self.manual_backward(self.step(batch))
+        optimizer.step()
+        return None
+
+    def configure_optimizers(self):
+        return SGD(filter(lambda p: p.requires_grad, self.parameters()), lr=0.1)
+
+    def on_train_epoch_end(self):
+        # the replicas have to stay identical, also after the callback froze or unfroze parameters
+        for param in self.parameters():
+            gathered = self.all_gather(param.detach())
+            torch.testing.assert_close(gathered[0], gathered[1], rtol=0, atol=0)
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize(
+    ("unfreeze", "automatic_optimization", "static_graph"),
+    [(True, True, False), (False, True, False), (True, False, True)],
+)
+def test_finetuning_ddp_rewraps_model(tmp_path, unfreeze, automatic_optimization, static_graph):
+    """Test that the DDP replicas stay identical when the callback unfreezes or freezes parameters during training."""
+    callback = BackboneFinetuning(unfreeze_backbone_at_epoch=1) if unfreeze else FreezeBackboneAtEpoch1()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy=DDPStrategy(start_method="spawn", static_graph=static_graph),
+        max_epochs=3,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        callbacks=callback,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(DDPBackboneBoringModel(automatic_optimization))

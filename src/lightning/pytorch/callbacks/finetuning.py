@@ -25,6 +25,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 from typing_extensions import override
 
@@ -323,11 +324,25 @@ class BaseFinetuning(Callback):
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
+        requires_grad = [p.requires_grad for p in pl_module.parameters()]
         for opt_idx, optimizer in enumerate(trainer.optimizers):
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer)
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
+
+        from lightning.pytorch.strategies import DDPStrategy
+
+        strategy = trainer.strategy
+        if (
+            isinstance(strategy, DDPStrategy)
+            and isinstance(strategy.model, DistributedDataParallel)
+            and requires_grad != [p.requires_grad for p in pl_module.parameters()]
+        ):
+            # DDP only reduces the gradients of the parameters that required grad when it wrapped the model. The
+            # replicas are still identical here, so the broadcast from rank 0 when wrapping again changes nothing
+            strategy.model = pl_module
+            strategy.configure_ddp()
 
     def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer) -> None:
         """Override to add your unfreeze logic."""
