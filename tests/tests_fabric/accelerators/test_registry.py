@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any
 
+import pytest
 import torch
 
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, Accelerator
@@ -183,3 +184,14 @@ def test_registry_without_parameters():
 
     instance = test_registry.get("simple")
     assert isinstance(instance, SimpleAccelerator)
+
+
+def test_accelerator_registry_rejects_none_name_and_supports_none_default():
+    test_registry = _AcceleratorRegistry()
+    with pytest.raises(TypeError, match="`name` must be a str"):
+        test_registry.register(None, TestAccelerator)  # type: ignore[arg-type]
+
+    assert test_registry.get("missing", None) is None
+    assert test_registry.get("missing", default=None) is None
+    with pytest.raises(KeyError, match="'missing' not found in registry"):
+        test_registry.get("missing")

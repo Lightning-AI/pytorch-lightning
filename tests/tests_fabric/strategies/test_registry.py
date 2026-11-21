@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.strategies.registry import _StrategyRegistry
 
 
 def test_strategy_registry_with_new_strategy():
@@ -63,3 +66,14 @@ def test_available_strategies_in_registry():
         "fsdp_cpu_offload",
     }
     assert set(STRATEGY_REGISTRY.available_strategies()) == expected
+
+
+def test_strategy_registry_rejects_none_name_and_supports_none_default():
+    registry = _StrategyRegistry()
+    with pytest.raises(TypeError, match="`name` must be a str"):
+        registry.register(None, lambda: None)  # type: ignore[arg-type]
+
+    assert registry.get("missing", None) is None
+    assert registry.get("missing", default=None) is None
+    with pytest.raises(KeyError, match="'missing' not found in registry"):
+        registry.get("missing")

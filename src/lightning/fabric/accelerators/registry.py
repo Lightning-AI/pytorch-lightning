@@ -18,6 +18,8 @@ from typing_extensions import override
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.registry import _register_classes
 
+_MISSING = object()
+
 
 class _AcceleratorRegistry(dict):
     """This class is a Registry that stores information about the Accelerators.
@@ -62,7 +64,7 @@ class _AcceleratorRegistry(dict):
             init_params: parameters to initialize the accelerator
 
         """
-        if not (name is None or isinstance(name, str)):
+        if not isinstance(name, str):
             raise TypeError(f"`name` must be a str, found {name}")
 
         if name in self and not override:
@@ -85,7 +87,7 @@ class _AcceleratorRegistry(dict):
         return do_register
 
     @override
-    def get(self, name: str, default: Optional[Any] = None) -> Any:
+    def get(self, name: str, default: Optional[Any] = _MISSING) -> Any:
         """Calls the registered accelerator with the required parameters and returns the accelerator object.
 
         Args:
@@ -96,7 +98,7 @@ class _AcceleratorRegistry(dict):
             data = self[name]
             return data["accelerator"](**data["init_params"])
 
-        if default is not None:
+        if default is not _MISSING:
             return default
 
         err_msg = "'{}' not found in registry. Available names: {}"
