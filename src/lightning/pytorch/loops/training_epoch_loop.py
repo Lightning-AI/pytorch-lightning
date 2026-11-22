@@ -546,7 +546,8 @@ class _TrainingEpochLoop(loops._Loop):
         if interval is not None:
             now = time.monotonic()
             # if time’s up → tell Trainer to validate
-            return now - self.trainer._last_val_time >= interval
+            time_is_up = now - self.trainer._last_val_time >= interval
+            return bool(self.trainer.strategy.broadcast(time_is_up))
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:

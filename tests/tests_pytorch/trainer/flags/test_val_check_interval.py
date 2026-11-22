@@ -246,3 +246,25 @@ def test_time_and_epoch_gated_val_check(
         f"\nExpected validation at batches: {expected_val_batches},"
         f"\nGot: {model.val_batches, model.val_epoch_calls}\n"
     )
+
+
+@pytest.mark.parametrize("rank_zero_decision", [False, True])
+def test_time_based_val_check_follows_rank_zero_decision(tmp_path, rank_zero_decision):
+    """Test that the time-based validation decision is broadcast from rank 0 instead of using the local clock, so that
+    all ranks run validation on the same batch."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+        val_check_interval=timedelta(seconds=0),
+    )
+    with patch.object(trainer.strategy, "broadcast", return_value=rank_zero_decision) as mock_broadcast:
+        trainer.fit(BoringModel())
+
+    mock_broadcast.assert_any_call(True)
+    expected_val_runs = 3 if rank_zero_decision else 0
+    assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed == expected_val_runs
