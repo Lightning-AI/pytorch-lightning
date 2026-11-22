@@ -618,6 +618,7 @@ def test_progress_bar_max_val_check_interval(
 
     assert pbar_callback.val_progress_bar.n == limit_batches
     assert pbar_callback.val_progress_bar.total == limit_batches
+
     assert pbar_callback.train_progress_bar.n == limit_batches
     assert pbar_callback.train_progress_bar.total == limit_batches
     assert pbar_callback.is_enabled
@@ -856,3 +857,30 @@ def test_tqdm_progress_bar_reset_behavior(tmp_path):
     assert 2 in val_bar.total_values, (
         f"validation total should be set to 2 after reset(), got total_values: {val_bar.total_values}"
     )
+
+
+def test_total_train_batches_max_steps_accumulate_grad_batches(tmp_path):
+    """Test that total_train_batches scales remaining max_steps by accumulate_grad_batches when max_epochs == -1."""
+    model = BoringModel()
+    pbar = TQDMProgressBar(refresh_rate=1)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=-1,
+        max_steps=3,
+        accumulate_grad_batches=4,
+        limit_train_batches=8,
+        num_sanity_val_steps=0,
+        limit_val_batches=0,
+        callbacks=[pbar],
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+    )
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
+
+    # Epoch 0: min(8, 3 * 4) = 8 batches (completes 2 optimizer steps)
+    # Epoch 1: min(8, (3 - 2) * 4) = 4 batches (completes the 3rd optimizer step)
+    assert pbar.train_progress_bar.total_values == [8, 4]
+    assert pbar.train_progress_bar.n == 4
+
