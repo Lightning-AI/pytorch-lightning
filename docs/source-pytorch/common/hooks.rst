@@ -55,6 +55,7 @@ important to understand. The following order is always used:
 
 .. testoutput::
    :hide:
+   :options: +NORMALIZE_WHITESPACE
 
     Callback: Training is starting!
     Model: Training is starting!
