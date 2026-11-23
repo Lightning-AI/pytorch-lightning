@@ -1,0 +1,40 @@
+name: macOS CI experiment
+
+on:
+  push:
+    branches: [ethan/wip-macos-ci-performance]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  experiment:
+    runs-on: macos-15
+    timeout-minutes: 12
+    env:
+      DISABLE_MPS: "1"
+      GLOO_SOCKET_IFNAME: lo0
+      UV_EXCLUDE_NEWER: "2 days"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install the benchmark dependencies
+        run: |
+          uv venv --python 3.13
+          uv pip install . 'torch==2.13.*' 'numpy<2.4.5' 'pytest==9.0.2' 'pytest-timeout==2.4.0'
+
+      - name: Measure socket operations and rendezvous
+        env:
+          TORCH_CPP_LOG_LEVEL: INFO
+          TORCH_DISTRIBUTED_DEBUG: DETAIL
+        run: .venv/bin/python .github/diagnostics/measure_tcp_store.py
+
+      - name: Compare complete two-rank Trainer stages
+        run: |
+          .venv/bin/python -m pytest .github/diagnostics/test_macos_rendezvous.py \
+            -s --timeout=180 --durations=0
