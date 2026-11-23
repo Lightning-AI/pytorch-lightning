@@ -992,3 +992,20 @@ def test_mps_amp_device_selection(accelerator, precision):
     connector = _AcceleratorConnector(accelerator=accelerator, precision=precision)
     assert isinstance(connector.precision_plugin, MixedPrecision)
     assert connector.precision_plugin.device == accelerator
+
+
+def test_cpu_accelerator_instance_mixed_precision_device_selection():
+    """Test that passing a CPUAccelerator() instance with mixed precision selects 'cpu' and falls back to bf16-mixed."""
+    with pytest.warns(
+        UserWarning,
+        match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
+    ):
+        connector = _AcceleratorConnector(accelerator=CPUAccelerator(), precision="16-mixed")
+    assert isinstance(connector.precision_plugin, MixedPrecision)
+    assert connector.precision_plugin.precision == "bf16-mixed"
+    assert connector.precision_plugin.device == "cpu"
+
+    connector_bf16 = _AcceleratorConnector(accelerator=CPUAccelerator(), precision="bf16-mixed")
+    assert isinstance(connector_bf16.precision_plugin, MixedPrecision)
+    assert connector_bf16.precision_plugin.precision == "bf16-mixed"
+    assert connector_bf16.precision_plugin.device == "cpu"

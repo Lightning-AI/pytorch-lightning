@@ -845,7 +845,19 @@ def test_precision_selection_16_on_cpu_warns():
         UserWarning,
         match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
     ):
-        _Connector(accelerator="cpu", precision="16-mixed")
+        connector = _Connector(accelerator="cpu", precision="16-mixed")
+    assert isinstance(connector.precision, MixedPrecision)
+    assert connector.precision.precision == "bf16-mixed"
+    assert connector.precision.device == "cpu"
+
+    with pytest.warns(
+        UserWarning,
+        match=r"precision='16-mixed'\)` but AMP with fp16 is not supported on CPU. Using `precision='bf16-mixed'",
+    ):
+        connector_inst = _Connector(accelerator=CPUAccelerator(), precision="16-mixed")
+    assert isinstance(connector_inst.precision, MixedPrecision)
+    assert connector_inst.precision.precision == "bf16-mixed"
+    assert connector_inst.precision.device == "cpu"
 
 
 class MyAMP(MixedPrecision):
