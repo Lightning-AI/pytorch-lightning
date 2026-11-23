@@ -544,7 +544,8 @@ class Fabric:
             norm_type: The type of norm if ``max_norm`` was passed. Can be ``'inf'`` for infinity norm.
                 Defaults to 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
-                Only applies when ``max_norm`` is used.
+                Only applies when ``max_norm`` is used. Ignored when a gradient scaler is active
+                (``precision="16-mixed"``), which skips the steps with non-finite gradients instead.
 
         Returns:
             The total norm of the gradients (before clipping was applied) as a scalar tensor if ``max_norm`` was

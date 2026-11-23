@@ -382,6 +382,10 @@ class Strategy(ABC):
     ) -> torch.Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
+        scaler = getattr(self.precision, "scaler", None)
+        if scaler is not None and scaler.is_enabled():
+            # non-finite gradients are expected here: the scaler skips the optimizer step and lowers the scale
+            error_if_nonfinite = False
         parameters = self.precision.main_params(optimizer)
         return torch.nn.utils.clip_grad_norm_(
             parameters, max_norm=max_norm, norm_type=norm_type, error_if_nonfinite=error_if_nonfinite
