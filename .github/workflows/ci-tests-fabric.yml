@@ -135,10 +135,13 @@ jobs:
       - name: Build the macOS numeric loopback helper
         if: runner.os == 'macOS'
         run: |
-          clang -dynamiclib -Wall -Wextra -Werror .actions/macos_numeric_loopback.c \
+          # Python is arm64, and shell-based CLI tests can launch arm64e system binaries.
+          clang -dynamiclib -arch arm64 -arch arm64e -Wall -Wextra -Werror .actions/macos_numeric_loopback.c \
             -o "$RUNNER_TEMP/numeric-loopback.dylib"
           DYLD_INSERT_LIBRARIES="$RUNNER_TEMP/numeric-loopback.dylib" python -c \
-            'import socket; assert socket.getnameinfo(("127.0.0.1", 1), socket.NI_NUMERICSERV)[0] == "127.0.0.1"'
+            'import socket, subprocess
+          assert socket.getnameinfo(("127.0.0.1", 1), socket.NI_NUMERICSERV)[0] == "127.0.0.1"
+          subprocess.run("true", shell=True, check=True)'
 
       - name: Testing Warnings
         env:
