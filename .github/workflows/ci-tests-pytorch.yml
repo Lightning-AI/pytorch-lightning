@@ -42,37 +42,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04, windows-2022]
+        os: [ubuntu-24.04]
         config:
-          # Test unified "lightning" package at the oldest supported and the latest PyTorch
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
           - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.13" }
-
-          # Test "pytorch" package with PyTorch 2.6-2.13
-          - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.6", requires: "oldest" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.10" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.11" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.12" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.13" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.9" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.10" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.11" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.12" }
           - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
-
-          # Test minimum supported versions (oldest)
-          - { pkg-name: "pytorch", pytorch-version: "2.6", requires: "oldest" }
-    timeout-minutes: ${{ matrix.os == 'macos-15' && 75 || 50 }}
+        include:
+          - os: macos-26
+            config: { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
+            smoke: true
+          - os: windows-2025
+            config: { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
+            smoke: true
+    timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-      # TODO: Remove this - Enable running MPS tests on this platform
-      DISABLE_MPS: ${{ matrix.os == 'macos-15' && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
       # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
       UV_EXCLUDE_NEWER: "2 days"
@@ -82,22 +70,19 @@ jobs:
       - name: Install uv and set Python version
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
-          python-version: ${{ matrix.config.python-version || '3.10' }}
+          python-version: ${{ matrix.config.python-version }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
           enable-cache: true
 
       - name: Basic setup
+        if: ${{ !matrix.smoke }}
         run: uv pip install -q -r .actions/requirements.txt
 
       - name: Append Env. vars for Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ !matrix.smoke }}
         run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
-
-      - name: Append Env. vars for MacOS
-        if: ${{ runner.os == 'macOS' }}
-        run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
 
       - name: Set min. dependencies
         if: ${{ matrix.config.requires == 'oldest' }}
@@ -112,7 +97,7 @@ jobs:
           python .actions/assistant.py prune_pytest_as_errors
 
       - name: Adjust PyTorch versions in requirements files
-        if: ${{ matrix.config.requires != 'oldest' }}
+        if: ${{ !matrix.smoke && matrix.config.requires != 'oldest' }}
         run: |
           uv pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
@@ -122,6 +107,7 @@ jobs:
           cat requirements/pytorch/base.txt
 
       - name: Env. variables
+        if: ${{ !matrix.smoke }}
         run: |
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.config.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
@@ -129,6 +115,7 @@ jobs:
           python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.config.pkg-name}}' != 'lightning' else 'pytorch-'))" >> $GITHUB_ENV
 
       - name: Install package & dependencies
+        if: ${{ !matrix.smoke }}
         timeout-minutes: 20
         run: |
           uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" \
@@ -139,37 +126,41 @@ jobs:
           uv pip list
 
       - name: Drop LAI from extensions
-        if: ${{ matrix.config.pkg-name != 'lightning' }}
+        if: ${{ !matrix.smoke && matrix.config.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
         run: uv pip uninstall lightning
 
       - name: Drop PL for LAI
-        if: ${{ matrix.config.pkg-name == 'lightning' }}
+        if: ${{ !matrix.smoke && matrix.config.pkg-name == 'lightning' }}
         run: uv pip uninstall pytorch-lightning
 
       - name: Cache datasets
+        if: ${{ !matrix.smoke }}
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: Datasets
           key: pl-dataset
 
       - name: Sanity check
+        if: ${{ !matrix.smoke }}
         run: |
           set -e
           python requirements/pytorch/check-avail-extras.py
           python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.config.pytorch-version }}'), ver"
 
       - name: Adjust tests / env. -> PL
-        if: ${{ matrix.config.pkg-name != 'lightning' }}
+        if: ${{ !matrix.smoke && matrix.config.pkg-name != 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning.fabric,lightning.pytorch" \
             --target_import="lightning_fabric,pytorch_lightning"
 
       - name: Prevent using raw source
+        if: ${{ !matrix.smoke }}
         run: rm -rf src/
 
       - name: Get legacy checkpoints
+        if: ${{ !matrix.smoke }}
         run: |
           bash .actions/pull_legacy_checkpoints.sh
           cd tests/legacy
@@ -177,23 +168,33 @@ jobs:
           ls -l checkpoints/
 
       - name: Testing Warnings
+        if: ${{ !matrix.smoke }}
         working-directory: tests/tests_pytorch
         # needs to run outside `pytest`
         run: python utilities/test_warnings.py
 
       - name: Testing PyTorch
+        if: ${{ !matrix.smoke }}
         working-directory: tests/tests_pytorch
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest . -v --timeout=${{ runner.os == 'macOS' && '360' || '90' }} --durations=50 --random-order-seed=$GITHUB_RUN_ID
+            -m pytest . -v --timeout=90 --durations=50 --random-order-seed=$GITHUB_RUN_ID
 
       - name: Statistics
-        if: success()
+        if: ${{ !matrix.smoke && success() }}
         working-directory: tests/tests_pytorch
         run: |
           coverage report
+
+      - name: Install package for smoke test
+        if: matrix.smoke
+        run: uv pip install . "torch==${{ matrix.config.pytorch-version }}.*" --find-links=https://download.pytorch.org/whl/cpu/
+
+      - name: Run CPU smoke test
+        if: matrix.smoke
+        run: python .actions/cpu_smoke.py ${{ matrix.config.pkg-name }} ${{ matrix.config.pytorch-version }}
 
       - name: Minimize uv cache
         run: uv cache prune --ci

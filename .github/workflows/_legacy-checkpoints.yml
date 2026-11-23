@@ -53,7 +53,7 @@ defaults:
 
 jobs:
   create-legacy-ckpts:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
     steps:
@@ -138,7 +138,7 @@ jobs:
           aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
 
   add-ckpt-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: inputs.create_pr
     needs: create-legacy-ckpts
     env:
