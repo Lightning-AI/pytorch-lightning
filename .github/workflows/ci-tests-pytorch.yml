@@ -66,7 +66,7 @@ jobs:
 
           # Test minimum supported versions (oldest)
           - { pkg-name: "pytorch", pytorch-version: "2.6", requires: "oldest" }
-    timeout-minutes: 50
+    timeout-minutes: ${{ matrix.os == 'macos-15' && 75 || 50 }}
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
