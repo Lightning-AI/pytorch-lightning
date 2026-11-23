@@ -28,13 +28,25 @@ jobs:
           uv venv --python 3.13
           uv pip install . 'torch==2.13.*' 'numpy<2.4.5' 'pytest==9.0.2' 'pytest-timeout==2.4.0'
 
-      - name: Measure socket operations and rendezvous
-        env:
-          TORCH_CPP_LOG_LEVEL: INFO
-          TORCH_DISTRIBUTED_DEBUG: DETAIL
+      - name: Measure the standard TCP and file stores
         run: .venv/bin/python .github/diagnostics/measure_tcp_store.py
 
-      - name: Compare complete two-rank Trainer stages
+      - name: Run the full-stage baseline
+        continue-on-error: true
         run: |
+          .venv/bin/python -m pytest .github/diagnostics/test_macos_rendezvous.py \
+            -s --timeout=180 --durations=0
+
+      - name: Build and verify the numeric loopback probe
+        run: |
+          clang -dynamiclib -Wall -Wextra -Werror .github/diagnostics/numeric_loopback.c \
+            -o "$RUNNER_TEMP/numeric-loopback.dylib"
+          DYLD_INSERT_LIBRARIES="$RUNNER_TEMP/numeric-loopback.dylib" .venv/bin/python -c \
+            'import socket; assert socket.getnameinfo(("127.0.0.1", 1), socket.NI_NUMERICSERV)[0] == "127.0.0.1"'
+
+      - name: Repeat both measurements with numeric loopback addresses
+        run: |
+          export DYLD_INSERT_LIBRARIES="$RUNNER_TEMP/numeric-loopback.dylib"
+          .venv/bin/python .github/diagnostics/measure_tcp_store.py
           .venv/bin/python -m pytest .github/diagnostics/test_macos_rendezvous.py \
             -s --timeout=180 --durations=0

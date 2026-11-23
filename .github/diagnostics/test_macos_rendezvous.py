@@ -35,7 +35,7 @@ class FileRendezvousStrategy(DDPStrategy):
 @pytest.mark.parametrize("store", ["tcp", "file"])
 def test_distributed_profiler_all_stages(tmp_path, store):
     strategy_cls = DDPStrategy if store == "tcp" else FileRendezvousStrategy
-    strategy = strategy_cls(start_method="spawn", timeout=timedelta(seconds=30))
+    strategy = strategy_cls(start_method="spawn", timeout=timedelta(seconds=90))
     reports = tmp_path / "reports"
     profiler = SimpleProfiler(dirpath=reports, filename="profiler")
     trainer = Trainer(
