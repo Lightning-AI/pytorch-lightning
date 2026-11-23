@@ -577,7 +577,8 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
     return model
 
 
-@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
+# FSDP2 + TP (2D device mesh) all-gather segfaults on torch 2.6 (bundled NCCL); works from 2.7 onward
+@RunIf(min_torch="2.7", min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision",
     [

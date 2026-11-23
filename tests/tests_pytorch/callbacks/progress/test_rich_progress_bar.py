@@ -447,6 +447,18 @@ def test_rich_progress_bar_padding():
 
 
 @RunIf(rich=True)
+def test_rich_progress_bar_infinite_epochs():
+    """`max_epochs=-1` means "no limit on epochs" and should not be treated as a real epoch count."""
+    progress_bar = RichProgressBar()
+    trainer = Mock()
+    trainer.max_epochs = -1
+    progress_bar._trainer = trainer
+
+    train_description = progress_bar._get_train_description(current_epoch=2)
+    assert train_description.strip() == "Epoch 2"
+
+
+@RunIf(rich=True)
 def test_rich_progress_bar_can_be_pickled(tmp_path):
     bar = RichProgressBar()
     trainer = Trainer(
