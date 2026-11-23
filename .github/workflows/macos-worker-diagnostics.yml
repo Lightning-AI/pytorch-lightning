@@ -20,9 +20,21 @@ jobs:
 
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
-      - name: Measure TCP store and Gloo group initialization separately
+      - name: Compare loopback addresses for the TCP store
         shell: bash
         run: |
           uv venv --python 3.12 .venv
-          uv pip install --python .venv/bin/python 'torch==2.13.*' 'numpy<2.4.5'
+          uv pip install --python .venv/bin/python . 'torch==2.13.*' 'numpy<2.4.5' \
+            'pytest==9.0.2' 'pytest-timeout==2.4.0' 'pytest-rerunfailures==16.1' 'coverage==7.13.5'
           .venv/bin/python .github/diagnostics/measure_macos_workers.py
+
+      - name: Check the distributed profiler test with each address
+        shell: bash
+        run: |
+          for address in 127.0.0.1 ::1 localhost; do
+            echo "::group::MASTER_ADDR=$address"
+            MASTER_ADDR="$address" .venv/bin/python -m coverage run --source lightning -m pytest \
+              tests/tests_pytorch/profilers/test_profiler.py::test_simple_profiler_distributed_files \
+              --timeout=180 --durations=0 -q || echo "::warning::Profiler test failed with MASTER_ADDR=$address"
+            echo "::endgroup::"
+          done

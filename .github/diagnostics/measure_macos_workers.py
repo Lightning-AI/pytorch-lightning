@@ -8,8 +8,6 @@ import subprocess
 import sys
 import time
 from datetime import timedelta
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
 
 def report(label, start):
@@ -35,8 +33,9 @@ def worker(rank, case, rendezvous, started, tensor=None):
     if case == "file":
         store = dist.FileStore(rendezvous, 2)
     else:
+        host, port = rendezvous
         store = dist.TCPStore(
-            "127.0.0.1", rendezvous, 2, rank == 0, timeout,
+            host, port, 2, rank == 0, timeout,
             use_libuv=os.environ["USE_LIBUV"] == "1",
         )
     report(f"{case} rank {rank} created store", start)
@@ -60,7 +59,7 @@ def measure(case, tensor=None, rendezvous=None):
     if case == "tcp":
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
-            rendezvous = sock.getsockname()[1]
+            rendezvous = (rendezvous, sock.getsockname()[1])
 
     started = time.perf_counter()
     processes = [
@@ -95,16 +94,17 @@ def main():
     measure("python")
     measure("torch")
     measure("tensor", tensor=torch.ones(1))
-    for interface in ("lo0", "en0"):
-        os.environ["GLOO_SOCKET_IFNAME"] = interface
-        for case, libuv in (("tcp", "1"), ("file", "1"), ("tcp", "0")):
-            os.environ["USE_LIBUV"] = libuv
-            print(f"Gloo interface={interface} store={case} USE_LIBUV={libuv}", flush=True)
-            with TemporaryDirectory() as directory:
-                try:
-                    measure(case, rendezvous=str(Path(directory) / "store"))
-                except RuntimeError as error:
-                    print(f"Probe failed: {error}", flush=True)
+    os.environ["GLOO_SOCKET_IFNAME"] = "lo0"
+    os.environ["USE_LIBUV"] = "1"
+    for host in ("127.0.0.1", "::1", "localhost"):
+        print(f"TCPStore host={host}", flush=True)
+        start = time.perf_counter()
+        socket.getaddrinfo(host, 12345, type=socket.SOCK_STREAM)
+        report(f"{host} getaddrinfo", start)
+        try:
+            measure("tcp", rendezvous=host)
+        except RuntimeError as error:
+            print(f"Probe failed: {error}", flush=True)
 
 
 
