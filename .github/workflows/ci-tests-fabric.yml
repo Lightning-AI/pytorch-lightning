@@ -46,7 +46,7 @@ jobs:
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.10" }
           - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
         include:
-          - os: macos-26
+          - os: macos-15
             config: { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
             smoke: true
           - os: windows-2025
