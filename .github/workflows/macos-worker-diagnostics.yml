@@ -20,18 +20,9 @@ jobs:
 
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
-      - name: Compare PyTorch versions on one macOS runner
+      - name: Measure TCP store and Gloo group initialization separately
         shell: bash
         run: |
-          for version in 2.6 2.7 2.13; do
-            echo "::group::PyTorch $version"
-            uv venv --python 3.12 ".venv-$version"
-            python=".venv-$version/bin/python"
-            uv pip install --python "$python" . "torch==$version.*" 'numpy<2.4.5' \
-              'pytest==9.0.2' 'pytest-timeout==2.4.0' 'pytest-rerunfailures==16.1' 'coverage==7.13.5'
-            "$python" .github/diagnostics/measure_macos_workers.py
-            "$python" -m coverage run --source lightning -m pytest \
-              tests/tests_pytorch/profilers/test_profiler.py::test_simple_profiler_distributed_files \
-              --timeout=180 --durations=0 -q
-            echo "::endgroup::"
-          done
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/bin/python 'torch==2.13.*' 'numpy<2.4.5'
+          .venv/bin/python .github/diagnostics/measure_macos_workers.py

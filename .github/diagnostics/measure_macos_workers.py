@@ -8,13 +8,15 @@ import subprocess
 import sys
 import time
 from datetime import timedelta
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 
 def report(label, start):
     print(f"{label}: {time.perf_counter() - start:.3f}s", flush=True)
 
 
-def worker(rank, case, port, started, tensor=None):
+def worker(rank, case, rendezvous, started, tensor=None):
     report(f"{case} rank {rank} reached target", started)
     if case == "python":
         return
@@ -24,42 +26,45 @@ def worker(rank, case, port, started, tensor=None):
     report(f"{case} rank {rank} imported torch", start)
     if tensor is not None:
         assert tensor.item() == 1
-    if case != "gloo":
+    if case not in ("tcp", "file"):
         return
 
     dist = torch.distributed
+    timeout = timedelta(seconds=45)
     start = time.perf_counter()
-    dist.init_process_group(
-        "gloo",
-        init_method=f"tcp://127.0.0.1:{port}",
-        rank=rank,
-        world_size=2,
-        timeout=timedelta(seconds=45),
-    )
-    report(f"gloo rank {rank} joined process group", start)
+    if case == "file":
+        store = dist.FileStore(rendezvous, 2)
+    else:
+        store = dist.TCPStore(
+            "127.0.0.1", rendezvous, 2, rank == 0, timeout,
+            use_libuv=os.environ["USE_LIBUV"] == "1",
+        )
+    report(f"{case} rank {rank} created store", start)
+    start = time.perf_counter()
+    dist.init_process_group("gloo", store=store, rank=rank, world_size=2, timeout=timeout)
+    report(f"{case} rank {rank} joined process group", start)
     try:
         start = time.perf_counter()
         value = torch.ones(1)
         dist.all_reduce(value)
         assert value.item() == 2
-        report(f"gloo rank {rank} reduced tensor", start)
+        report(f"{case} rank {rank} reduced tensor", start)
     finally:
         start = time.perf_counter()
         dist.destroy_process_group()
-        report(f"gloo rank {rank} destroyed process group", start)
+        report(f"{case} rank {rank} destroyed process group", start)
 
 
-def measure(case, tensor=None):
+def measure(case, tensor=None, rendezvous=None):
     ctx = mp.get_context("spawn")
-    port = None
-    if case == "gloo":
+    if case == "tcp":
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
-            port = sock.getsockname()[1]
+            rendezvous = sock.getsockname()[1]
 
     started = time.perf_counter()
     processes = [
-        ctx.Process(target=worker, args=(rank, case, port, started, tensor))
+        ctx.Process(target=worker, args=(rank, case, rendezvous, started, tensor))
         for rank in range(2)
     ]
     try:
@@ -90,11 +95,17 @@ def main():
     measure("python")
     measure("torch")
     measure("tensor", tensor=torch.ones(1))
-    os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo0")
-    for store in ("1", "0"):
-        os.environ["USE_LIBUV"] = store
-        print(f"Gloo USE_LIBUV={store}", flush=True)
-        measure("gloo")
+    for interface in ("lo0", "en0"):
+        os.environ["GLOO_SOCKET_IFNAME"] = interface
+        for case, libuv in (("tcp", "1"), ("file", "1"), ("tcp", "0")):
+            os.environ["USE_LIBUV"] = libuv
+            print(f"Gloo interface={interface} store={case} USE_LIBUV={libuv}", flush=True)
+            with TemporaryDirectory() as directory:
+                try:
+                    measure(case, rendezvous=str(Path(directory) / "store"))
+                except RuntimeError as error:
+                    print(f"Probe failed: {error}", flush=True)
+
 
 
 if __name__ == "__main__":
