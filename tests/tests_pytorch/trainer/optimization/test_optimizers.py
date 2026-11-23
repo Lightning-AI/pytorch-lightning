@@ -472,6 +472,40 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     assert mocked_sched.call_count == expected_steps
 
 
+@mock.patch("torch.optim.lr_scheduler.StepLR.step")
+def test_lr_scheduler_step_frequency_with_grad_accumulation(mocked_sched, tmp_path):
+    """A step-interval scheduler's ``frequency`` counts real optimizer steps, not raw
+    batches -- update_lr_schedulers("step", ...) already skips the call entirely while
+    accumulating, so the frequency check must use a counter that only advances on a real
+    optimizer step, not a raw within-epoch batch index that still increments on
+    accumulation-only batches.
+    """
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [{"scheduler": lr_scheduler, "interval": "step", "frequency": 2}]
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=8,
+        limit_val_batches=0,
+        accumulate_grad_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # 8 batches / accumulate_grad_batches=2 -> 4 real optimizer steps.
+    # frequency=2 -> the scheduler should step on the 2nd and 4th real optimizer
+    # step (2 calls), plus the one call every LRScheduler gets at init.
+    assert mocked_sched.call_count == 3
+
+
 @pytest.mark.parametrize(("every_n_train_steps", "epoch_interval"), [(None, True), (2, False), (2, True)])
 def test_lr_scheduler_state_updated_before_saving(tmp_path, every_n_train_steps, epoch_interval):
     batches = 2

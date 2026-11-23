@@ -479,8 +479,16 @@ class _TrainingEpochLoop(loops._Loop):
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
-            current_idx = self.batch_idx if interval == "step" else trainer.current_epoch
-            current_idx += 1  # account for both batch and epoch starts from 0
+            if interval == "step":
+                # self.global_step (the real optimizer-step counter) rather than
+                # self.batch_idx: update_lr_schedulers("step", ...) already skips
+                # this call entirely while accumulating (see above), so every
+                # invocation here follows a real optimizer step that has already
+                # incremented this counter -- it's naturally 1-indexed and never
+                # resets across epochs, unlike a raw batch index.
+                current_idx = self.global_step
+            else:
+                current_idx = trainer.current_epoch + 1  # account for epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if config.interval == interval and current_idx % config.frequency == 0:
