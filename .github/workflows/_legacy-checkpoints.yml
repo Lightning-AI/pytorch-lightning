@@ -53,6 +53,8 @@ defaults:
 
 jobs:
   create-legacy-ckpts:
+    # PR runs fail at the S3 upload because the checkpoint bucket credentials are unavailable.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
