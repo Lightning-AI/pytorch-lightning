@@ -52,7 +52,6 @@ jobs:
           - os: windows-2025
             pkg-name: lightning
             python-version: "3.13"
-            smoke: true
     env:
       # Supply-chain guard: skip PyPI releases newer than this (ISO 8601 duration). See https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to
       PIP_UPLOADED_PRIOR_TO: "P2D"
@@ -79,20 +78,18 @@ jobs:
           pkg-name: ${{ matrix.pkg-name }}
 
       - name: DocTests actions
-        if: ${{ !matrix.smoke }}
         working-directory: .actions/
         run: |
           pip install -q pytest -r requirements.txt
           python -m pytest assistant.py
 
       - name: Adjust code for standalone
-        if: ${{ !matrix.smoke && contains(fromJSON('["fabric", "pytorch"]'), matrix.pkg-name) }}
+        if: ${{ contains(fromJSON('["fabric", "pytorch"]'), matrix.pkg-name) }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
             --source_import="lightning.pytorch,lightning.fabric" \
             --target_import="pytorch_lightning,lightning_fabric"
       - name: Rename src folders
-        if: ${{ !matrix.smoke }}
         working-directory: src/
         run: |
           python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
@@ -100,7 +97,7 @@ jobs:
           rm -f ./**/__*.py
           mv lightning lit  # rename lightning folder to prevent accidental local imports
       - name: drop Secondary doctest
-        if: ${{ !matrix.smoke && (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') }}
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
         working-directory: src/lit
         run: |
           items=("data")
@@ -109,13 +106,11 @@ jobs:
             rm -rf $item
           done
       - name: Install pytest doctest extension
-        if: ${{ !matrix.smoke }}
         run: |
           pip install -q -r requirements/doctests.txt
           pip list
 
       - name: DocTest package
-        if: ${{ !matrix.smoke }}
         env:
           LIGHTING_TESTING: 1 # path for require wrapper
           PY_IGNORE_IMPORTMISMATCH: 1
