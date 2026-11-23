@@ -46,7 +46,7 @@ class TransformerEnginePrecision(Precision):
     Args:
         weights_dtype: The weights dtype to use.
         recipe: Recipe for the DelayedScaling
-            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
+            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
             In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
@@ -154,7 +154,7 @@ def _convert_layers(module: torch.nn.Module) -> None:
     for name, child in module.named_children():
         if isinstance(child, torch.nn.Linear):
             if child.in_features % 8 != 0 or child.out_features % 16 != 0:
-                # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html#FP8-autocasting
+                # https://docs.nvidia.com/deeplearning/transformer-engine/examples/fp8_primer.html#FP8-autocasting
                 rank_zero_warn(
                     "Support for FP8 in the linear layers with this plugin is currently limited to"
                     " tensors with shapes where the dimensions are divisible by 8 and 16 respectively."
@@ -178,5 +178,5 @@ def _convert_layers(module: torch.nn.Module) -> None:
             module.__setattr__(name, replacement)
         else:
             # there are other transformer engine layers that we could convert but require fusion. full list at:
-            # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
+            # https://docs.nvidia.com/deeplearning/transformer-engine/api/pytorch.html
             _convert_layers(child)
