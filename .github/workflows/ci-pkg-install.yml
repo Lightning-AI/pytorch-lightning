@@ -49,7 +49,6 @@ jobs:
           - os: macos-15
             pkg-name: lightning
             python-version: "3.13"
-            smoke: true
           - os: windows-2025
             pkg-name: lightning
             python-version: "3.13"
