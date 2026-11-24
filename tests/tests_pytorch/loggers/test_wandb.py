@@ -14,6 +14,7 @@
 import os
 import pickle
 from pathlib import Path
+from typing import get_type_hints
 from unittest import mock
 
 import pytest
@@ -26,6 +27,7 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
 def test_wandb_project_name(wandb_mock):
@@ -642,6 +644,15 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     WandbLogger.download_artifact("test_artifact", str(tmp_path), "model", True)
 
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
+
+
+def test_wandb_logger_download_artifact_on_nonzero_rank(wandb_mock, monkeypatch):
+    monkeypatch.setattr(rank_zero_only, "rank", 1)
+
+    assert WandbLogger.download_artifact("test_artifact") is None
+    wandb_mock.run.use_artifact.assert_not_called()
+    wandb_mock.Api.assert_not_called()
+    assert get_type_hints(WandbLogger.download_artifact)["return"] == (str | None)
 
 
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])

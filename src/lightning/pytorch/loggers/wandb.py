@@ -600,8 +600,11 @@ class WandbLogger(Logger):
         save_dir: Optional[_PATH] = None,
         artifact_type: Optional[str] = None,
         use_artifact: Optional[bool] = True,
-    ) -> str:
+    ) -> Optional[str]:
         """Downloads an artifact from the wandb server.
+
+        In distributed training, the download runs only on global rank zero. To use the artifact on all ranks with a
+        shared filesystem, pass a shared ``save_dir`` and synchronize the ranks before reading the files.
 
         Args:
             artifact: The path of the artifact to download.
@@ -610,7 +613,7 @@ class WandbLogger(Logger):
             use_artifact: Whether to add an edge between the artifact graph.
 
         Returns:
-            The path to the downloaded artifact.
+            The path to the downloaded artifact on global rank zero, or ``None`` on other ranks.
 
         """
         import wandb
