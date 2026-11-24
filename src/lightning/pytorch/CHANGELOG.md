@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `WandbLogger` ignoring the `dir` argument when `save_dir` is not provided ([#18601](https://github.com/Lightning-AI/pytorch-lightning/issues/18601))
+
 - Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
 
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))

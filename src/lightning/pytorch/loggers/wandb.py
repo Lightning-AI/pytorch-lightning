@@ -258,7 +258,7 @@ class WandbLogger(Logger):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved.
+        save_dir: Path where data is saved. Defaults to ``dir`` if set, otherwise to the current working directory.
         version: Sets the version, mainly used to resume a previous run.
         offline: Run offline (data can be streamed later to wandb servers).
         dir: Same as save_dir.
@@ -294,7 +294,7 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: _PATH = ".",
+        save_dir: Optional[_PATH] = None,
         version: Optional[str] = None,
         offline: bool = False,
         dir: Optional[_PATH] = None,
@@ -328,10 +328,7 @@ class WandbLogger(Logger):
         self.add_file_policy = add_file_policy
 
         # paths are processed as strings
-        if save_dir is not None:
-            save_dir = os.fspath(save_dir)
-        elif dir is not None:
-            dir = os.fspath(dir)
+        save_dir = os.fspath(save_dir or dir or ".")
 
         project = project or os.environ.get("WANDB_PROJECT", "lightning_logs")
 
@@ -339,7 +336,7 @@ class WandbLogger(Logger):
         self._wandb_init: dict[str, Any] = {
             "name": name,
             "project": project,
-            "dir": save_dir or dir,
+            "dir": save_dir,
             "id": version or id,
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
