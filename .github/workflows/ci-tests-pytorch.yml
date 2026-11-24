@@ -42,37 +42,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04, windows-2022]
+        os: [ubuntu-24.04]
+        shard: [callbacks, trainer, other]
         config:
-          # Test unified "lightning" package at the oldest supported and the latest PyTorch
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
           - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.13" }
-
-          # Test "pytorch" package with PyTorch 2.6-2.13
-          - { pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.8" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.9" }
+          - { pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.6", requires: "oldest" }
           - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.10" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.11" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.12" }
-          - { pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.13" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.8" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.9" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.10" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.11" }
-          - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.12" }
           - { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
-
-          # Test minimum supported versions (oldest)
-          - { pkg-name: "pytorch", pytorch-version: "2.6", requires: "oldest" }
+        include:
+          - os: macos-15
+            shard: full
+            config: { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
+          - os: windows-2025
+            config: { pkg-name: "pytorch", python-version: "3.13", pytorch-version: "2.13" }
+            shard: full
     timeout-minutes: ${{ matrix.os == 'macos-15' && 75 || 50 }}
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-      # TODO: Remove this - Enable running MPS tests on this platform
-      DISABLE_MPS: ${{ matrix.os == 'macos-15' && '1' || '0' }}
+      # The hosted macOS runner does not support the MPS tests.
+      DISABLE_MPS: ${{ startsWith(matrix.os, 'macos-') && '1' || '0' }}
       UV_TORCH_BACKEND: "cpu"
       # Supply-chain guard: skip PyPI releases newer than this. See https://docs.astral.sh/uv/reference/settings/#exclude-newer
       UV_EXCLUDE_NEWER: "2 days"
@@ -82,7 +73,7 @@ jobs:
       - name: Install uv and set Python version
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
-          python-version: ${{ matrix.config.python-version || '3.10' }}
+          python-version: ${{ matrix.config.python-version }}
           # TODO: Avoid activating environment like this
           # see: https://github.com/astral-sh/setup-uv/tree/v6/?tab=readme-ov-file#activate-environment
           activate-environment: true
@@ -92,11 +83,11 @@ jobs:
         run: uv pip install -q -r .actions/requirements.txt
 
       - name: Append Env. vars for Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: runner.os == 'Linux'
         run: echo "GLOO_SOCKET_IFNAME=eth0" >> $GITHUB_ENV
 
-      - name: Append Env. vars for MacOS
-        if: ${{ runner.os == 'macOS' }}
+      - name: Append Env. vars for macOS
+        if: runner.os == 'macOS'
         run: echo "GLOO_SOCKET_IFNAME=lo0" >> $GITHUB_ENV
 
       - name: Set min. dependencies
@@ -176,21 +167,51 @@ jobs:
           bash generate_checkpoints.sh
           ls -l checkpoints/
 
+      - name: Build the macOS numeric loopback helper
+        if: runner.os == 'macOS'
+        run: |
+          # Python is arm64, and shell-based CLI tests can launch arm64e system binaries.
+          clang -dynamiclib -arch arm64 -arch arm64e -Wall -Wextra -Werror .actions/macos_numeric_loopback.c \
+            -o "$RUNNER_TEMP/numeric-loopback.dylib"
+          DYLD_INSERT_LIBRARIES="$RUNNER_TEMP/numeric-loopback.dylib" python -c \
+            'import socket, subprocess
+          assert socket.getnameinfo(("127.0.0.1", 1), socket.NI_NUMERICSERV)[0] == "127.0.0.1"
+          subprocess.run("true", shell=True, check=True)'
+
       - name: Testing Warnings
+        env:
+          NUMERIC_LOOPBACK_LIBRARY: ${{ runner.os == 'macOS' && format('{0}/numeric-loopback.dylib', runner.temp) || '' }}
         working-directory: tests/tests_pytorch
         # needs to run outside `pytest`
-        run: python utilities/test_warnings.py
+        run: DYLD_INSERT_LIBRARIES="$NUMERIC_LOOPBACK_LIBRARY" python utilities/test_warnings.py
 
       - name: Testing PyTorch
+        env:
+          NUMERIC_LOOPBACK_LIBRARY: ${{ runner.os == 'macOS' && format('{0}/numeric-loopback.dylib', runner.temp) || '' }}
+          TEST_SHARD: ${{ matrix.shard }}
         working-directory: tests/tests_pytorch
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         run: |
-          echo $GITHUB_RUN_ID
-          python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest . -v --timeout=${{ runner.os == 'macOS' && '360' || '90' }} --durations=50 --random-order-seed=$GITHUB_RUN_ID
+          # Group test directories by their historical Linux runtimes.
+          callbacks_dirs=(callbacks checkpointing)
+          trainer_dirs=(trainer tuner loggers)
+          case "$TEST_SHARD" in
+            callbacks) test_paths=("${callbacks_dirs[@]}") ;;
+            trainer) test_paths=("${trainer_dirs[@]}") ;;
+            other)
+              test_paths=(.)
+              for dir in "${callbacks_dirs[@]}" "${trainer_dirs[@]}"; do
+                test_paths+=("--ignore=$dir")
+              done
+              ;;
+            full) test_paths=(.) ;;
+            *) exit 1 ;;
+          esac
+          DYLD_INSERT_LIBRARIES="$NUMERIC_LOOPBACK_LIBRARY" python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
+            -m pytest "${test_paths[@]}" -v --timeout=${{ runner.os == 'macOS' && '360' || '90' }} --durations=50 --random-order-seed="$GITHUB_RUN_ID"
 
       - name: Statistics
-        if: success()
+        if: ${{ success() }}
         working-directory: tests/tests_pytorch
         run: |
           coverage report
