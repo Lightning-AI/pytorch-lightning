@@ -131,7 +131,7 @@ def test_torchscript_device_with_check_inputs(device_str):
     assert isinstance(script, torch.jit.ScriptModule)
 
 
-def test_torchscript_retain_training_state():
+def test_torchscript_retain_training_state(monkeypatch):
     """Test that torchscript export does not alter the training mode of original model."""
     model = BoringModel()
     model.train(True)
@@ -144,6 +144,19 @@ def test_torchscript_retain_training_state():
         _ = model.to_torchscript()
     assert not model.training
     assert not script.training
+
+    model.train(True)
+
+    def _failing_script(*args, **kwargs):
+        raise RuntimeError("script failed")
+
+    monkeypatch.setattr(torch.jit, "script", _failing_script)
+    with (
+        pytest.deprecated_call(match="has been deprecated in v2.7 and will be removed in v2.8"),
+        pytest.raises(RuntimeError, match="script failed"),
+    ):
+        model.to_torchscript()
+    assert model.training
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
