@@ -234,7 +234,7 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts.
+    """Saves a LightningCLI config when training starts.
 
     Args:
         parser: The parser object used to parse the configuration.
@@ -242,7 +242,8 @@ class SaveConfigCallback(Callback):
         config_filename: Filename for the config file.
         overwrite: Whether to overwrite an existing config file.
         multifile: When input is multiple config files, saved config preserves this structure.
-        save_to_log_dir: Whether to save the config to the log_dir.
+        save_to_log_dir: Whether to save the config to ``Trainer.log_dir``. If the logger does not provide a local
+            directory, use ``Trainer.default_root_dir``.
 
     Raises:
         RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
@@ -279,7 +280,8 @@ class SaveConfigCallback(Callback):
 
         if self.save_to_log_dir:
             log_dir = trainer.log_dir  # this broadcasts the directory
-            assert log_dir is not None
+            if log_dir is None:
+                log_dir = trainer.strategy.broadcast(trainer.default_root_dir)
             config_path = os.path.join(log_dir, self.config_filename)
             fs = get_filesystem(log_dir)
 

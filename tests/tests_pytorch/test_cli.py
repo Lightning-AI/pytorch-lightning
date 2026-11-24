@@ -47,6 +47,7 @@ from lightning.pytorch.cli import (
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -316,6 +317,39 @@ def test_lightning_cli_save_config_only_once(cleandir):
     assert os.path.isfile(config_path)
     assert save_config_callback.already_saved
     cli.trainer.test(cli.model)  # Should not fail because config already saved
+
+
+def test_lightning_cli_save_config_without_log_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["any.py"])
+    trainer_defaults = {
+        "logger": lazy_instance(DummyLogger),
+        "default_root_dir": str(tmp_path),
+        "accelerator": "cpu",
+        "max_steps": 1,
+        "limit_val_batches": 0,
+        "num_sanity_val_steps": 0,
+        "enable_checkpointing": False,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+    }
+    cli = LightningCLI(BoringModel, run=False, args=[], trainer_defaults=trainer_defaults)
+    assert cli.trainer.log_dir is None
+    with mock.patch.object(cli.trainer.strategy, "broadcast", wraps=cli.trainer.strategy.broadcast) as broadcast:
+        cli.trainer.fit(cli.model)
+    broadcast.assert_any_call(str(tmp_path))
+
+    config_path = tmp_path / "config.yaml"
+    saved_config = config_path.read_text()
+    assert yaml.safe_load(saved_config)["trainer"]["default_root_dir"] == str(tmp_path)
+    save_callback = next(c for c in cli.trainer.callbacks if isinstance(c, SaveConfigCallback))
+    assert save_callback.already_saved
+    save_callback.setup(cli.trainer, cli.model, "test")
+    assert config_path.read_text() == saved_config
+
+    cli = LightningCLI(BoringModel, run=False, args=[], trainer_defaults=trainer_defaults)
+    with pytest.raises(RuntimeError, match="Aborting to avoid overwriting"):
+        cli.trainer.fit(cli.model)
+    assert config_path.read_text() == saved_config
 
 
 def test_lightning_cli_save_config_seed_everything(cleandir):
