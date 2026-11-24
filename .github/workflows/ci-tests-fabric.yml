@@ -132,17 +132,32 @@ jobs:
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
             --source_import="lightning.fabric" --target_import="lightning_fabric"
 
+      - name: Build the macOS numeric loopback helper
+        if: runner.os == 'macOS'
+        run: |
+          # Python is arm64, and shell-based CLI tests can launch arm64e system binaries.
+          clang -dynamiclib -arch arm64 -arch arm64e -Wall -Wextra -Werror .actions/macos_numeric_loopback.c \
+            -o "$RUNNER_TEMP/numeric-loopback.dylib"
+          DYLD_INSERT_LIBRARIES="$RUNNER_TEMP/numeric-loopback.dylib" python -c \
+            'import socket, subprocess
+          assert socket.getnameinfo(("127.0.0.1", 1), socket.NI_NUMERICSERV)[0] == "127.0.0.1"
+          subprocess.run("true", shell=True, check=True)'
+
       - name: Testing Warnings
+        env:
+          NUMERIC_LOOPBACK_LIBRARY: ${{ runner.os == 'macOS' && format('{0}/numeric-loopback.dylib', runner.temp) || '' }}
         working-directory: tests/tests_fabric
         # needs to run outside `pytest`
-        run: python utilities/test_warnings.py
+        run: DYLD_INSERT_LIBRARIES="$NUMERIC_LOOPBACK_LIBRARY" python utilities/test_warnings.py
 
       - name: Testing Fabric
+        env:
+          NUMERIC_LOOPBACK_LIBRARY: ${{ runner.os == 'macOS' && format('{0}/numeric-loopback.dylib', runner.temp) || '' }}
         working-directory: tests/tests_fabric
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         run: |
           echo $GITHUB_RUN_ID
-          python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
+          DYLD_INSERT_LIBRARIES="$NUMERIC_LOOPBACK_LIBRARY" python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
             -m pytest -v --timeout=${{ runner.os == 'macOS' && '120' || '60' }} --durations=50 --random-order-seed=$GITHUB_RUN_ID
 
       - name: Statistics
