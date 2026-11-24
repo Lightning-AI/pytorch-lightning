@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
+
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
 - Fixed `Trainer.fit(ckpt_path=...)` silently dropping the loop, optimizer, LR scheduler and precision plugin state when a `LearningRateFinder` or `BatchSizeFinder` callback runs in `on_fit_start` ([#17420](https://github.com/Lightning-AI/pytorch-lightning/issues/17420))
