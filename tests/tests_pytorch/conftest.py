@@ -290,8 +290,15 @@ def caplog(caplog):
 def tmpdir_server(tmp_path):
     Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
+    from socketserver import TCPServer
 
-    with ThreadingHTTPServer(("localhost", 0), Handler) as server:
+    class LoopbackHTTPServer(ThreadingHTTPServer):
+        def server_bind(self):
+            # HTTPServer.server_bind would reverse-resolve the loopback address.
+            TCPServer.server_bind(self)
+            self.server_name, self.server_port = self.server_address
+
+    with LoopbackHTTPServer(("127.0.0.1", 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         # Exit the server thread when the main thread terminates
         server_thread.daemon = True
