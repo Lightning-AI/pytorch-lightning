@@ -117,7 +117,7 @@ class MLFlowLogger(Logger):
         self,
         experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
-        tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
+        tracking_uri: Optional[str] = None,
         tags: Optional[dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
@@ -131,8 +131,8 @@ class MLFlowLogger(Logger):
         if synchronous is not None and not _MLFLOW_SYNCHRONOUS_AVAILABLE:
             raise ModuleNotFoundError("`synchronous` requires mlflow>=2.8.0")
         super().__init__()
-        if not tracking_uri:
-            tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
+        # read the environment variable here rather than as the argument default, which is evaluated at import time
+        tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI") or f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
         self._experiment_id: Optional[str] = None
