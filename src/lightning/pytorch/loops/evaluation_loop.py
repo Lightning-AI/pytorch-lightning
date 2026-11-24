@@ -383,6 +383,8 @@ class _EvaluationLoop(_Loop):
     def _store_dataloader_outputs(self) -> None:
         trainer = self.trainer
         trainer._logger_connector.epoch_end_reached()
+        # Sync on_epoch metrics across ranks and validate all ranks logged the same keys
+        trainer._logger_connector.sync_on_epoch_metrics()
         self._logged_outputs.append(trainer._logger_connector.update_eval_epoch_metrics())
 
     def _on_before_fetch(self) -> None:
@@ -441,6 +443,9 @@ class _EvaluationLoop(_Loop):
         output = call._call_strategy_hook(trainer, hook_name, *step_args)
 
         self.batch_progress.increment_processed()
+
+        # Sync on_step metrics across ranks and validate all ranks logged the same keys
+        trainer._logger_connector.sync_on_step_metrics()
 
         if using_dataloader_iter:
             # update the hook kwargs now that the step method might have consumed the iterator
