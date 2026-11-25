@@ -258,8 +258,8 @@ class TensorBoardLogger(Logger):
             else:
                 from tensorboardX.summary import hparams  # type: ignore[no-redef]
 
-            metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-            exp, ssi, sei = hparams(params, metrics)
+            prefixed_metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+            exp, ssi, sei = hparams(params, prefixed_metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp, step)
             writer.add_summary(ssi, step)
