@@ -174,8 +174,6 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # readthedocs badge
     text = text.replace("badge/?version=stable", f"badge/?version={version}")
     text = text.replace("pytorch-lightning.readthedocs.io/en/stable/", f"pytorch-lightning.readthedocs.io/en/{version}")
-    # codecov badge
-    text = text.replace("/branch/master/graph/badge.svg", f"/release/{version}/graph/badge.svg")
     # github actions badge
     text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={version}")
     # azure pipelines badge
@@ -185,11 +183,6 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     skip_end = r"<!-- end skipping PyPI description -->"
     # todo: wrap content as commented description
     return re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
-
-    # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
-    # github_release_url = os.path.join(homepage, "releases", "download", version)
-    # # download badge and replace url with local file
-    # text = _parse_for_badge(text, github_release_url)
 
 
 def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
