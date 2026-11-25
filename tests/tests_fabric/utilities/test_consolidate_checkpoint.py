@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import runpy
+import sys
 from argparse import Namespace
 from pathlib import Path
 from unittest import mock
@@ -150,6 +151,8 @@ def test_consolidate_main_remote(monkeypatch):
         "sys.argv",
         ["any.py", "memory:///consolidate-main/ckpt", "--output_file", "memory:///consolidate-main/out.ckpt"],
     )
+    # drop the imported module so runpy can re-execute it as `__main__` without a RuntimeWarning
+    monkeypatch.delitem(sys.modules, "lightning.fabric.utilities.consolidate_checkpoint", raising=False)
     runpy.run_module("lightning.fabric.utilities.consolidate_checkpoint", run_name="__main__")
 
     with fs.open("memory:///consolidate-main/out.ckpt", "rb") as f:
