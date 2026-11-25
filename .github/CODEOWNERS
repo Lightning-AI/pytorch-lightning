@@ -5,19 +5,16 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @lantiga @tchaton @justusschock @ethanwharris
+* @ethanwharris @justusschock @rusenask @tchaton
 
 # Docs
-/.github/*.md                               @williamfalcon @lantiga
-/docs/source-fabric/index.rst               @williamfalcon @lantiga
-/docs/source-pytorch/index.rst              @williamfalcon @lantiga
-/docs/source-pytorch/levels                 @williamfalcon @lantiga
+/.github/*.md                               @ethanwharris @justusschock
+/docs/source-fabric/index.rst               @ethanwharris @justusschock
+/docs/source-pytorch/index.rst              @ethanwharris @justusschock
+/docs/source-pytorch/levels                 @ethanwharris @justusschock
 
-/.github/CODEOWNERS                  @williamfalcon
-/SECURITY.md                         @williamfalcon @lantiga
-/README.md                           @williamfalcon @lantiga
-/src/pytorch_lightning/__about__.py  @williamfalcon @lantiga
-/src/lightning_fabric/__about__.py   @williamfalcon @lantiga
-
-/src/lightning/fabric/loggers        @williamfalcon
-/src/lightning/pytorch/loggers       @williamfalcon
+/.github/CODEOWNERS                  @ethanwharris
+/SECURITY.md                         @ethanwharris
+/README.md                           @ethanwharris
+/src/pytorch_lightning/__about__.py  @ethanwharris
+/src/lightning_fabric/__about__.py   @ethanwharris
