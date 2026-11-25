@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import re
 from argparse import Namespace
 from unittest import mock
 from unittest.mock import Mock
@@ -155,6 +156,18 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger = TensorBoardLogger(tmp_path)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
+
+
+@pytest.mark.parametrize("value", [[1], "x", None])
+def test_tensorboard_log_metrics_exception_message(tmp_path, value):
+    logger = TensorBoardLogger(tmp_path)
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"you tried to log {value} which is currently not supported. Try a dict or a scalar/tensor.",
+        ),
+    ):
+        logger.log_metrics(metrics={"metric": value})
 
 
 def test_tensorboard_log_hyperparams(tmp_path):
