@@ -227,10 +227,17 @@ def _configure_optimizers(
         for opt_dict in optim_conf:
             _validate_optim_conf(opt_dict)
         optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-        scheduler_dict = lambda scheduler: dict(scheduler) if isinstance(scheduler, dict) else {"scheduler": scheduler}
-        lr_schedulers = [
-            scheduler_dict(opt_dict["lr_scheduler"]) for opt_dict in optim_conf if "lr_scheduler" in opt_dict
-        ]
+
+        def _scheduler_dict(opt_dict: dict[str, Any]) -> dict[str, Any]:
+            scheduler = opt_dict["lr_scheduler"]
+            if isinstance(scheduler, dict):
+                return dict(scheduler)
+            config: dict[str, Any] = {"scheduler": scheduler}
+            if opt_dict.get("monitor") is not None:
+                config["monitor"] = opt_dict["monitor"]
+            return config
+
+        lr_schedulers = [_scheduler_dict(opt_dict) for opt_dict in optim_conf if "lr_scheduler" in opt_dict]
     # single list or tuple, multiple optimizer
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):
         optimizers = list(optim_conf)
