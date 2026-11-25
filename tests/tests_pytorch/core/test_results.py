@@ -57,10 +57,7 @@ def test_result_reduce_ddp():
 
 
 def result_metric_mean_uneven_batches_fn(strategy):
-    # Ranks log a different number of batches (3 vs 2), each with batch_size=1. The epoch value must
-    # be the exact batch-size-weighted mean over all 5 updates, (1 + 2 + 3 + 10 + 20) / 5 = 7.2.
-    # Mean-syncing the int64 batch-size accumulator floors the denominator (5 / 2 ranks -> 2 instead
-    # of 2.5), which would inflate the result to (36 / 2) / 2 = 9.0.
+    # ranks log 3 and 2 batches: the mean is 36 / 5 = 7.2, a floored count (2 instead of 2.5) gives 9.0
     metadata = _Metadata("validation_step", "val_metric", on_step=False, on_epoch=True)
     metadata.sync = _Sync(strategy.reduce, _should=True)
     metric = _ResultMetric(metadata, is_tensor=True)
@@ -73,5 +70,4 @@ def result_metric_mean_uneven_batches_fn(strategy):
 @pytest.mark.flaky(reruns=3)
 @RunIf(skip_windows=True)
 def test_result_metric_mean_with_uneven_batch_counts():
-    """Mean-reduced epoch metrics must not floor the cross-rank batch-count denominator."""
     spawn_launch(result_metric_mean_uneven_batches_fn, [torch.device("cpu")] * 2)
