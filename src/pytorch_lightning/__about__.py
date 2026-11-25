@@ -42,8 +42,8 @@ Overall, Lightning guarantees rigorously tested, correct, modern best practices 
 
 Documentation
 -------------
-- https://lightning.ai/docs/pytorch/en/latest
-- https://lightning.ai/docs/pytorch/en/stable
+- https://lightning.ai/docs/pytorch/latest
+- https://lightning.ai/docs/pytorch/stable
 """
 
 __all__ = [
