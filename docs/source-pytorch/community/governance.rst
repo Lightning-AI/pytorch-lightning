@@ -8,14 +8,6 @@ This document describes governance processes we follow in developing PyTorch Lig
 Persons of Interest
 *******************
 
-.. _governance_bdfl:
-
-BDFL
-----
-Role: All final decisions related to Lightning.
-
-- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
-
 Maintainers
 -----------
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
@@ -25,6 +17,7 @@ Maintainers
 
 Emeritus Maintainers
 --------------------
+- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 - Luca Antiga (`lantiga <https://github.com/lantiga>`_)
 - Nicki Skafte (`SkafteNicki <https://github.com/SkafteNicki>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
@@ -62,7 +55,7 @@ Project Management and Decision Making
 
 The decision what goes into a release is governed by the maintainers of ``lightning.pytorch``.
 Whenever possible, discussion happens publicly on GitHub and includes the whole community.
-For controversial changes, it is mandatory to seek consultation from :ref:`governance_bdfl` for a final decision.
+For controversial changes, a final decision requires consensus among the maintainers.
 When a consensus is reached, maintainers assign milestones and labels to the issue and/or pull request
 and start tracking the development. It is possible that priorities change over time.
 
