@@ -72,7 +72,8 @@ def _materialize(module: Module, device: _DEVICE) -> None:
     """Materialize a module."""
     _validate_reset_parameters(module)
     module.to_empty(device=device, recurse=False)
-    module.reset_parameters()
+    if callable(module.reset_parameters):
+        module.reset_parameters()
 
 
 def _materialize_meta_tensors(module: Module, device: _DEVICE) -> None:
