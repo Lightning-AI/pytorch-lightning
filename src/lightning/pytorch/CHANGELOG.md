@@ -48,7 +48,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
 
-- Fixed `_CheckpointConnector.hpc_save_path` (used by the SLURM auto-requeue handler) raising `ValueError` or picking a wrong version when the root dir contains files such as `model_ckpt_best.pt` that merely contain `ckpt_` in their name
+- Fixed the SLURM auto-requeue checkpoint path crashing or picking the wrong version when other files in the root dir contain `ckpt_` in their name ([#22070](https://github.com/Lightning-AI/pytorch-lightning/pull/22070))
 
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))
 
