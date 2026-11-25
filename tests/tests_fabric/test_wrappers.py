@@ -131,6 +131,62 @@ def test_fabric_module_method_lookup():
     assert fabric_module.method_with_self_invocation() == 102
 
 
+def test_fabric_module_method_lookup_cleans_up_hooks():
+    """The call tracker must not leave its hooks behind or carry its verdict into the next call."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.submodule = torch.nn.Linear(2, 3)
+
+        def forward(self, x):
+            return x
+
+        def maybe_call_submodule(self, call):
+            if call:
+                self.submodule(torch.rand(2, 2))
+            return 100
+
+        def raises(self):
+            raise ValueError("boom")
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self, module):
+            super().__init__()
+            self.wrapped = module
+
+        def forward(self, *args, **kwargs):
+            return self.wrapped(*args, **kwargs)
+
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(
+        forward_module=ModuleWrapper(original_module),
+        strategy=Mock(precision=Precision()),
+        original_module=original_module,
+    )
+
+    def hook_count():
+        return sum(len(module._forward_hooks) for module in original_module.modules())
+
+    assert hook_count() == 0
+
+    method = fabric_module.maybe_call_submodule
+    assert method(call=False) == 100
+    assert hook_count() == 0
+
+    with pytest.raises(RuntimeError, match=r"You are calling the method `OriginalModule.maybe_call_submodule\(\)`"):
+        method(call=True)
+    assert hook_count() == 0
+
+    # the verdict from the failed call must not leak into the next one
+    assert method(call=False) == 100
+
+    # an exception raised by the method itself must not leave hooks behind either
+    with pytest.raises(ValueError, match="boom"):
+        fabric_module.raises()
+    assert hook_count() == 0
+
+
 def test_fabric_module_mark_forward_method():
     class OriginalModule(torch.nn.Module):
         attribute = 1
