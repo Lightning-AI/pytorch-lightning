@@ -126,7 +126,9 @@ class _DummyExperiment:
     def nop(self, *args: Any, **kw: Any) -> None:
         pass
 
-    def __getattr__(self, _: Any) -> Callable:
+    def __getattr__(self, name: str) -> Callable:
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)
         return self.nop
 
     def __getitem__(self, idx: int) -> "_DummyExperiment":

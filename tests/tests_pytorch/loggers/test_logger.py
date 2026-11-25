@@ -186,6 +186,24 @@ def test_dummyexperiment_support_item_assignment():
     assert experiment["variable"] != "value"  # this is only a stateless mock experiment
 
 
+def test_dummyexperiment_copy_and_pickle():
+    """Test that DummyExperiment preserves its type across copy, deepcopy, and pickle."""
+    import copy
+
+    experiment = DummyExperiment()
+    copied = copy.copy(experiment)
+    deep_copied = deepcopy(experiment)
+    unpickled = pickle.loads(pickle.dumps(experiment))
+
+    assert isinstance(copied, DummyExperiment)
+    assert isinstance(deep_copied, DummyExperiment)
+    assert isinstance(unpickled, DummyExperiment)
+    assert deep_copied.some_method("arg", key="val") is None
+    assert deep_copied[0] is deep_copied
+    with pytest.raises(AttributeError):
+        _ = experiment.__deepcopy__
+
+
 def test_np_sanitization():
     class CustomParamsLogger(CustomLogger):
         def __init__(self):
