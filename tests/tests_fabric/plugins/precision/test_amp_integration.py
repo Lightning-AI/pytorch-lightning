@@ -53,6 +53,9 @@ def test_amp(accelerator, precision, expected_dtype):
 
 
 def _test_amp(fabric, expected_dtype):
+    if fabric.device.type == "cpu":
+        # The tiny model does not need a CPU thread pool in each distributed worker.
+        torch.set_num_threads(1)
     model = MixedPrecisionModule(expected_dtype)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
