@@ -38,6 +38,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
+
+- Fixed `Trainer.fit(ckpt_path=...)` silently dropping the loop, optimizer, LR scheduler and precision plugin state when a `LearningRateFinder` or `BatchSizeFinder` callback runs in `on_fit_start` ([#17420](https://github.com/Lightning-AI/pytorch-lightning/issues/17420))
+
+- Fixed `TensorBoardLogger.log_hyperparams` registering unprefixed HParams `MetricInfo` keys when `prefix` is non-empty, which prevented TensorBoard's HParams plugin from binding to the prefixed scalar summaries logged by `log_metrics` ([#22225](https://github.com/Lightning-AI/pytorch-lightning/pull/22225))
+
 - Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
 
 - Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))

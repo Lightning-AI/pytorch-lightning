@@ -146,6 +146,15 @@ def test_tensorboard_log_hparams_and_metrics(tmp_path):
     logger.log_hyperparams(hparams, metrics)
 
 
+def test_tensorboard_log_hparams_metrics_with_prefix(tmp_path):
+    """Verify that HParams MetricInfo keys are prefixed to match scalar tags when prefix is configured."""
+    summary_mod = "torch.utils.tensorboard.summary.hparams" if _TENSORBOARD_AVAILABLE else "tensorboardX.summary.hparams"
+    logger = TensorBoardLogger(tmp_path, prefix="trial1")
+    with mock.patch(summary_mod, wraps=__import__(summary_mod.rsplit(".", 1)[0], fromlist=["hparams"]).hparams) as mock_hparams:
+        logger.log_hyperparams({"lr": 0.01}, {"val_loss": 0.25})
+        mock_hparams.assert_called_once_with({"lr": 0.01}, {"trial1-val_loss": 0.25})
+
+
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph_plain_module(tmp_path, example_input_array):
     model = BoringModel()
