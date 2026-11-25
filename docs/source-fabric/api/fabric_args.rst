@@ -68,15 +68,15 @@ Configure the devices to run on. Can be of type:
 
 - int: the number of devices (e.g., GPUs) to train on
 - list of int: which device index (e.g., GPU ID) to train on (0-indexed)
-- str: a string representation of one of the above
+- str: a string representation of one of the above, or ``"auto"``
 
 .. code-block:: python
 
-    # default used by Fabric, i.e., use the CPU
-    fabric = Fabric(devices=None)
+    # default used by Fabric, i.e., use whatever hardware your machine has available
+    fabric = Fabric(devices="auto")
 
-    # equivalent
-    fabric = Fabric(devices=0)
+    # run on the CPU with one process
+    fabric = Fabric(devices=1, accelerator="cpu")
 
     # int: run on two GPUs
     fabric = Fabric(devices=2, accelerator="gpu")
