@@ -74,6 +74,8 @@ class _CheckpointConnector:
 
         """
         self._ckpt_path = checkpoint_path
+        # drop any checkpoint left pending by an earlier run that did not reach `resume_end` (e.g. a tuner early exit)
+        self._loaded_checkpoint = {}
         if not checkpoint_path:
             log.debug("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
@@ -244,18 +246,24 @@ class _CheckpointConnector:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
 
         """
-        self.resume_start(checkpoint_path, weights_only=weights_only)
+        # `Trainer.fit(ckpt_path=...)` pre-loads its checkpoint and restores the training state only after
+        # `on_fit_start`. A restore that runs in between (e.g. the tuner callbacks) must not drop it.
+        pending_ckpt_path, pending_checkpoint = self._ckpt_path, self._loaded_checkpoint
+        try:
+            self.resume_start(checkpoint_path, weights_only=weights_only)
 
-        # restore module states
-        self.restore_datamodule()
-        self.restore_model()
+            # restore module states
+            self.restore_datamodule()
+            self.restore_model()
 
-        # restore callback states
-        self.restore_callbacks()
+            # restore callback states
+            self.restore_callbacks()
 
-        # restore training state
-        self.restore_training_state()
-        self.resume_end()
+            # restore training state
+            self.restore_training_state()
+            self.resume_end()
+        finally:
+            self._ckpt_path, self._loaded_checkpoint = pending_ckpt_path, pending_checkpoint
 
     def restore_datamodule(self) -> None:
         """Calls hooks on the datamodule to give it a chance to restore its state from the checkpoint."""
