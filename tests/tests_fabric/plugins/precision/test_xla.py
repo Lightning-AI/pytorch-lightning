@@ -51,13 +51,28 @@ def test_selected_dtype(precision, expected_dtype, xla_available):
     assert plugin._desired_dtype == expected_dtype
 
 
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_teardown(xla_available):
     plugin = XLAPrecision(precision="16-true")
     assert os.environ["XLA_USE_F16"] == "1"
     plugin.teardown()
+    assert "XLA_USE_F16" not in os.environ
     assert "XLA_USE_B16" not in os.environ
 
     plugin = XLAPrecision(precision="bf16-true")
     assert os.environ["XLA_USE_BF16"] == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ
+
+    os.environ["XLA_USE_BF16"] = "1"
+    plugin_fp32 = XLAPrecision(precision="32-true")
+    plugin_fp32.teardown()
+    assert os.environ.get("XLA_USE_BF16") == "1"
+
+    os.environ["XLA_USE_F16"] = "0"
+    plugin_fp16 = XLAPrecision(precision="16-true")
+    assert os.environ["XLA_USE_F16"] == "1"
+    plugin_fp16.teardown()
+    assert os.environ.get("XLA_USE_F16") == "0"
+    assert os.environ.get("XLA_USE_BF16") == "1"
+

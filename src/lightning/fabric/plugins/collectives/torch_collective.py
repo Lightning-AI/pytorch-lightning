@@ -147,12 +147,14 @@ class TorchCollective(Collective):
             os.environ[self.port_key] = str(main_port)
             setting_env.append(self.port_key)
         # this will `init_group`
-        super().setup(**kwargs)
+        try:
+            super().setup(**kwargs)
+        finally:
+            # cleanup
+            for kenv in setting_env:
+                os.environ.pop(kenv, None)
         # set as a class attribute so any instance can know whether we initialized the default process group
         TorchCollective.manages_default_group = True
-        # cleanup
-        for kenv in setting_env:
-            os.environ.pop(kenv, None)
         return self
 
     @override
