@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed epoch-level mean metrics logged with `sync_dist=True` being inflated when ranks accumulate different total batch sizes ([#21859](https://github.com/Lightning-AI/pytorch-lightning/issues/21859))
 
+- Fixed `CombinedLoader` in `max_size_cycle` mode to continue when an iterable is empty ([#21894](https://github.com/Lightning-AI/pytorch-lightning/pull/21894))
+
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
 - Fixed `Trainer.fit(ckpt_path=...)` silently dropping the loop, optimizer, LR scheduler and precision plugin state when a `LearningRateFinder` or `BatchSizeFinder` callback runs in `on_fit_start` ([#17420](https://github.com/Lightning-AI/pytorch-lightning/issues/17420))
