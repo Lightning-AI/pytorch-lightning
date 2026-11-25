@@ -206,7 +206,7 @@ def _call_callback_hooks(
     *args: Any,
     monitoring_callbacks: Optional[bool] = None,
     **kwargs: Any,
-) -> None:
+) -> Optional[int]:
     log.debug(f"{trainer.__class__.__name__}: calling callback hook: {hook_name}")
 
     pl_module = trainer.lightning_module
@@ -216,20 +216,24 @@ def _call_callback_hooks(
 
     callbacks = trainer.callbacks
     if monitoring_callbacks is True:
-        # the list of "monitoring callbacks" is hard-coded to these two. we could add an API to define this
         callbacks = [cb for cb in callbacks if isinstance(cb, (EarlyStopping, Checkpoint))]
     elif monitoring_callbacks is False:
         callbacks = [cb for cb in callbacks if not isinstance(cb, (EarlyStopping, Checkpoint))]
 
+    cb_response = None
     for callback in callbacks:
         fn = getattr(callback, hook_name)
         if callable(fn):
             with trainer.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
-                fn(trainer, trainer.lightning_module, *args, **kwargs)
+                result = fn(trainer, trainer.lightning_module, *args, **kwargs)
+            if result == -1:
+                cb_response = -1
 
     if pl_module:
         # restore current_fx when nested context
         pl_module._current_fx_name = prev_fx_name
+
+    return cb_response
 
 
 def _call_callbacks_state_dict(trainer: "pl.Trainer") -> dict[str, dict]:
