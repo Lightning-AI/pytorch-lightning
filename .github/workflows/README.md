@@ -31,14 +31,13 @@ Brief description of all our automation tools used for boosting development perf
 
 | workflow file                    | action                                                                   |
 | -------------------------------- | ------------------------------------------------------------------------ |
-| .github/workflows/docs-build.yml | Run doctest, linkcheck and full HTML build.                              |
+| .github/workflows/docs-build.yml | Build HTML and run doctests. Check links on PRs targeting `release/*`.    |
 | .github/workflows/ci-rtfd.yml    | Append link to the PR description with temporaty ReadTheDocs build docs. |
 
 ## Code Quality
 
 | workflow file                     | action                                                                                    |
 | --------------------------------- | ----------------------------------------------------------------------------------------- |
-| .codecov.yml                      | Measure test coverage with [codecov.io](https://app.codecov.io/gh/Lightning-AI/lightning) |
 | .github/workflows/code-checks.yml | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/).                  |
 | .github/workflows/ci-schema.yml   | Validate the syntax of workflow files.                                                    |
 
