@@ -20,7 +20,6 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -71,7 +70,7 @@ class MixedPrecision(Precision):
 
         self.precision = precision
         if scaler is None and self.precision == "16-mixed":
-            scaler = torch.amp.GradScaler(device=device) if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler(device=device)
         if scaler is not None and self.precision == "bf16-mixed":
             raise MisconfigurationException(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
@@ -124,7 +123,7 @@ class MixedPrecision(Precision):
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
+        if clip_val > 0 and self.scaler is not None and _optimizer_handles_unscaling(optimizer):
             raise RuntimeError(
                 f"The current optimizer, {type(optimizer).__qualname__}, does not allow for gradient clipping"
                 " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
