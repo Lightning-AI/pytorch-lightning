@@ -206,7 +206,6 @@ ______________________________________________________________________
 
 Lightning is rigorously tested across multiple CPUs and GPUs and against major Python and PyTorch versions.
 
-###### \*Codecov is > 90%+ but build delays may show less
 
 <details>
   <summary>Current build statuses</summary>

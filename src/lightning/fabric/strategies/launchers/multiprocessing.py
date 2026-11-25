@@ -114,12 +114,24 @@ class _MultiProcessingLauncher(_Launcher):
         else:
             process_args = [function, args, kwargs, return_queue]
 
-        mp.start_processes(
+        process_context = mp.start_processes(
             self._wrapping_function,
             args=process_args,
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
+            join=False,
         )
+        try:
+            while not process_context.join():
+                pass
+        except BaseException:
+            # If the parent is interrupted, live workers can block Python's exit.
+            for process in process_context.processes:
+                if process.is_alive():
+                    process.kill()
+            for process in process_context.processes:
+                process.join()
+            raise
         return return_queue.get()
 
     def _wrapping_function(
