@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
+
 - Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
 
 - Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
