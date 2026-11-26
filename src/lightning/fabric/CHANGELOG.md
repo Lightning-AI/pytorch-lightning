@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `_DummyExperiment.__getattr__` intercepting Python dunder protocols (such as `__deepcopy__` and `__getstate__`), which caused `copy.deepcopy(_DummyExperiment())` to return `None` on non-zero ranks ([#22232](https://github.com/Lightning-AI/pytorch-lightning/pull/22232))
+
 - Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
 
 - Fixed `_FabricModule.__setattr__` invoking the wrapped module's `property` getters ([#21944](https://github.com/Lightning-AI/pytorch-lightning/pull/21944))
