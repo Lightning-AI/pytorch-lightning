@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for remote storage (fsspec URLs) in checkpoint consolidation (`python -m lightning.fabric.utilities.consolidate_checkpoint` and the `lightning consolidate` CLI) ([#21826](https://github.com/Lightning-AI/pytorch-lightning/pull/21826))
 
-- Added support for Huawei Ascend NPU accelerators ([#PRNUM](https://github.com/Lightning-AI/pytorch-lightning/pull/PRNUM))
+- Added support for Huawei Ascend NPU accelerators ([#22235](https://github.com/Lightning-AI/pytorch-lightning/pull/22235))
 
 ### Changed
 
