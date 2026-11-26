@@ -412,7 +412,8 @@ class _FitLoop(_Loop):
             self.epoch_progress.increment_processed()
             self.epoch_progress.increment_completed()
 
-        if (
+            self.reset_restart_stage()
+        elif (
             self.epoch_loop.restarted_on_train_batch_end
             and self.epoch_loop.batch_progress.is_last_batch
             and not self.restarted_mid_epoch

@@ -16,7 +16,7 @@ from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 import torch
@@ -632,6 +632,19 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.processed == 0
     assert epoch_loop.batch_progress.current.completed == 0
+
+    assert not fit_loop.restarted_mid_epoch
+
+    current = fit_loop.epoch_progress.current
+    ready_before = current.ready
+    started_before = current.started
+
+    with patch.object(model, "on_train_epoch_start") as on_train_epoch_start:
+        fit_loop.on_advance_start()
+        on_train_epoch_start.assert_called_once()
+
+    assert current.ready == ready_before + 1
+    assert current.started == started_before + 1
 
 
 def compare_state_dicts(dict1, dict2):
