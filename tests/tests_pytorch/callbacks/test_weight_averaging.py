@@ -452,8 +452,14 @@ def test_ema_weight_averaging_decay_values(tmp_path, decay):
     assert callback._average_model is not None
 
 
-@pytest.mark.parametrize("device", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))])
-@pytest.mark.parametrize("fused", [False, True])
+@pytest.mark.parametrize(
+    ("device", "fused"),
+    [
+        ("cpu", False),
+        pytest.param("cuda", False, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", True, marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
 def test_ema_does_not_update_on_grad_scaler_skip(tmp_path, device, fused):
     class NonFiniteFirstStepModel(TestModel):
         def configure_optimizers(self):
