@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed LR schedulers, per-group learning rates and step-based schedules keeping pre-search values with the `LearningRateFinder` and `BatchSizeFinder` callbacks, by calling `configure_optimizers` again after a search that runs before the first training batch ([#22240](https://github.com/Lightning-AI/pytorch-lightning/pull/22240))
+
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
 
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))

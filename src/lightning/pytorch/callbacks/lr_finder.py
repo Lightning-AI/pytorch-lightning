@@ -20,9 +20,11 @@ Finds optimal learning rate
 
 from typing import Optional
 
+from torch.optim import Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.lr_finder import _lr_find, _LRFinder
 from lightning.pytorch.utilities.exceptions import _TunerExitException
@@ -113,9 +115,11 @@ class LearningRateFinder(Callback):
         self._weights_only = weights_only
 
         self._early_exit = False
+        self._lr_ignored = False
         self.optimal_lr: Optional[_LRFinder] = None
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        old_lrs = _initial_lrs(trainer.optimizers)
         with isolate_rng():
             self.optimal_lr = _lr_find(
                 trainer,
@@ -133,6 +137,43 @@ class LearningRateFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+        if self._update_attr and self.optimal_lr is not None and self.optimal_lr._optimal_idx is not None:
+            self._lr_ignored = not _reconfigure_optimizers(trainer, old_lrs)
+
     @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)
+
+
+def _initial_lrs(optimizers: list[Optimizer]) -> list:
+    return [group.get("initial_lr", group["lr"]) for optimizer in optimizers for group in optimizer.param_groups]
+
+
+def _reconfigure_optimizers(trainer: "pl.Trainer", old_lrs: Optional[list] = None) -> bool:
+    """Runs ``configure_optimizers`` again after a tuner changed a value it may read, such as the learning rate or the
+    batch size behind ``trainer.estimated_stepping_batches``.
+
+    This only happens before the first training batch, so no state is lost. A checkpoint passed to ``fit`` is restored
+    after ``on_fit_start``.
+
+    Returns ``False`` if the new optimizers have the learning rates in ``old_lrs``, which means that
+    ``configure_optimizers`` ignores the tuned one. The old optimizers, which already hold it, are then kept.
+
+    """
+    from lightning.pytorch.strategies import DeepSpeedStrategy
+
+    strategy = trainer.strategy
+    # the DeepSpeed engine owns the optimizer and the LR scheduler
+    if trainer.state.fn != "fit" or trainer.fit_loop.total_batch_idx >= 0 or isinstance(strategy, DeepSpeedStrategy):
+        return True
+
+    old_optimizers, old_scheduler_configs = strategy.optimizers, strategy.lr_scheduler_configs
+    current_lrs = [(group, group["lr"]) for optimizer in old_optimizers for group in optimizer.param_groups]
+    strategy.setup_optimizers(trainer)
+    if old_lrs == _initial_lrs(strategy.optimizers):
+        for group, lr in current_lrs:
+            group["lr"] = lr  # a new scheduler on a reused optimizer overwrites it
+        strategy.optimizers, strategy.lr_scheduler_configs = old_optimizers, old_scheduler_configs
+        return False
+    _optimizers_to_device(strategy.optimizers, strategy.root_device)
+    return True
