@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Prevent TensorBoard from attempting to convert non-scalar NumPy arrays (ndim > 0) to scalars, avoiding errors introduced in NumPy 2.4.0 ([#21504](https://github.com/Lightning-AI/pytorch-lightning/pull/21504))
+
 - Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
 
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
