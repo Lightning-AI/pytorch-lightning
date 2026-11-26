@@ -1999,6 +1999,14 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
         assert set(os.listdir(second)) == {"epoch=0-step=6.ckpt", "epoch=0-step=8.ckpt"}
 
 
+@pytest.mark.parametrize("remote_dir", [True, False])
+def test_remove_remote_checkpoint_after_resuming_from_local_path(tmp_path, remote_dir):
+    callback = ModelCheckpoint(dirpath="memory:///run" if remote_dir else tmp_path)
+    trainer = Mock(ckpt_path=tmp_path / "resume.ckpt")
+
+    assert callback._should_remove_checkpoint(trainer, "memory:///run/old.ckpt", "memory:///run/new.ckpt") is remote_dir
+
+
 @pytest.mark.parametrize("same_resume_folder", [True, False])
 def test_resume_training_preserves_old_remote_checkpoint(same_resume_folder, tmp_path):
     root = f"memory:///{tmp_path.as_posix().lstrip('/')}"

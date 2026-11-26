@@ -1030,12 +1030,12 @@ class ModelCheckpoint(Checkpoint):
             previous_path = PurePosixPath(previous_path_str)
             resume_path = None
             if trainer.ckpt_path is not None:
-                resume_fs, resume_path_str = url_to_fs(trainer.ckpt_path)
+                resume_fs, resume_path_str = url_to_fs(str(trainer.ckpt_path))
                 if previous_fs.protocol == resume_fs.protocol:
                     resume_path = PurePosixPath(resume_path_str)
 
             assert self.dirpath is not None
-            dirpath_fs, dirpath_str = url_to_fs(self.dirpath)
+            dirpath_fs, dirpath_str = url_to_fs(str(self.dirpath))
             if previous_fs.protocol != dirpath_fs.protocol:
                 return False
             dirpath = PurePosixPath(dirpath_str)
