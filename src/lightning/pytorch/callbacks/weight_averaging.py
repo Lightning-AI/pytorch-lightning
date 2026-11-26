@@ -178,9 +178,9 @@ class WeightAveraging(Callback):
         # make step_idx consistent with epoch_idx, we'll pass a zero-based index.
         step_idx = trainer.global_step - 1
         if (
-            not trainer.precision_plugin.optimizer_step_was_skipped
-            and trainer.global_step > self._latest_update_step
+            trainer.global_step > self._latest_update_step
             and self.should_update(step_idx=step_idx)
+            and not trainer.precision_plugin.optimizer_step_was_skipped
         ):
             assert self._average_model is not None
             self._average_model.update_parameters(pl_module)

@@ -169,14 +169,7 @@ class FSDPPrecision(Precision):
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            self._optimizer_step_was_skipped = True
-            step_hook = optimizer.register_step_pre_hook(lambda *_: setattr(self, "_optimizer_step_was_skipped", False))
-            try:
-                step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
-            finally:
-                step_hook.remove()
-            self.scaler.update()
-            return step_output
+            return self._scaler_step(self.scaler, optimizer, **kwargs)
         self._optimizer_step_was_skipped = model.automatic_optimization
         return closure_result
 

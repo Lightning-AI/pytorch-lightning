@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader, Dataset
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import EMAWeightAveraging, WeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.plugins.precision import MixedPrecision
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -451,10 +452,14 @@ def test_ema_weight_averaging_decay_values(tmp_path, decay):
     assert callback._average_model is not None
 
 
-@RunIf(min_cuda_gpus=1)
-def test_ema_does_not_update_on_grad_scaler_skip(tmp_path):
+@pytest.mark.parametrize("device", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))])
+@pytest.mark.parametrize("fused", [False, True])
+def test_ema_does_not_update_on_grad_scaler_skip(tmp_path, device, fused):
     class NonFiniteFirstStepModel(TestModel):
-        def on_before_optimizer_step(self, optimizer) -> None:
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1, fused=fused)
+
+        def on_after_backward(self) -> None:
             if self.global_step == 0:
                 next(self.parameters()).grad.fill_(float("inf"))
 
@@ -468,18 +473,19 @@ def test_ema_does_not_update_on_grad_scaler_skip(tmp_path):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-            self.model_params.append([p.detach().clone() for p in pl_module.parameters()])
-            self.ema_params.append([p.detach().clone() for p in self._average_model.parameters()])
+            self.model_params.append([p.detach().cpu().clone() for p in pl_module.parameters()])
+            self.ema_params.append([p.detach().cpu().clone() for p in self._average_model.parameters()])
             self.n_averaged.append(self._average_model.n_averaged.item())
             self.latest_update_step.append(self._latest_update_step)
 
-    model = NonFiniteFirstStepModel()
+    model = NonFiniteFirstStepModel(batch_norm=False)
     callback = RecordingEMA()
     trainer = Trainer(
         default_root_dir=tmp_path,
-        accelerator="cuda",
+        accelerator=device,
         devices=1,
-        precision="16-mixed",
+        plugins=[MixedPrecision("16-mixed", device, scaler=torch.amp.GradScaler(device, init_scale=8.0))],
+        callbacks=[callback],
         max_steps=2,
         logger=False,
         enable_checkpointing=False,
@@ -487,7 +493,7 @@ def test_ema_does_not_update_on_grad_scaler_skip(tmp_path):
         enable_model_summary=False,
     )
     initial_params = [p.detach().clone() for p in model.parameters()]
-    trainer.fit(model, callbacks=callback)
+    trainer.fit(model)
 
     assert all(torch.equal(actual, initial) for actual, initial in zip(callback.model_params[0], initial_params))
     assert all(torch.equal(actual, initial) for actual, initial in zip(callback.ema_params[0], initial_params))
