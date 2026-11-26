@@ -135,6 +135,12 @@ class LSFEnvironment(ClusterEnvironment):
         ``LSB_DJOB_RANKFILE``."""
         return self._node_rank
 
+    @override
+    def num_nodes(self) -> int:
+        """The total number of nodes in the cluster based on the unique hosts in ``LSB_DJOB_RANKFILE``."""
+        hosts = self._read_hosts()
+        return len(set(hosts))
+
     def _get_node_rank(self) -> int:
         """A helper method for getting the node rank.
 

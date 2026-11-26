@@ -85,6 +85,12 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return int(os.environ.get("GROUP_RANK", 0))
 
     @override
+    def num_nodes(self) -> int:
+        if "GROUP_WORLD_SIZE" in os.environ:
+            return int(os.environ["GROUP_WORLD_SIZE"])
+        return self.world_size() // int(os.environ["LOCAL_WORLD_SIZE"])
+
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if num_devices * num_nodes != self.world_size():
             raise ValueError(
