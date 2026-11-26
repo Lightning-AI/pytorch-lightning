@@ -300,6 +300,8 @@ class DDPStrategy(ParallelStrategy):
         assert isinstance(self.model, pl.LightningModule)
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
+        # `post_backward` has to flush the first static graph iteration of every new wrapper
+        self._pl_static_graph_delay_done = False
 
     def determine_ddp_device_ids(self) -> Optional[list[int]]:
         if self.root_device.type == "cpu":
