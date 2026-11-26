@@ -86,6 +86,7 @@ def restore_env_variables():
         "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "TRITON_PTXAS_PATH",  # leaked by torch.compile
         "_TORCHINDUCTOR_PYOBJECT_TENSOR_DATA_PTR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
@@ -162,8 +163,13 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.name == "QueueFeederThread"  # tensorboardX
             or thread.name == "QueueManagerThread"  # torch.compile
             or "(_read_thread)" in thread.name  # torch.compile
+            or thread.name == "subproc_worker_timer"  # torch.compile subprocess pool watchdog
         ):
             thread.join(timeout=20)
+        elif type(thread).__name__ == "_DummyThread":
+            # threads not created by the `threading` module (e.g. native NCCL/torch.compile threads
+            # that call into Python) surface as `_DummyThread` and can't be joined or stopped
+            continue
         elif isinstance(thread, TMonitor):
             thread.exit()
         elif (
@@ -284,8 +290,15 @@ def caplog(caplog):
 def tmpdir_server(tmp_path):
     Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
+    from socketserver import TCPServer
 
-    with ThreadingHTTPServer(("localhost", 0), Handler) as server:
+    class LoopbackHTTPServer(ThreadingHTTPServer):
+        def server_bind(self):
+            # HTTPServer.server_bind would reverse-resolve the loopback address.
+            TCPServer.server_bind(self)
+            self.server_name, self.server_port = self.server_address
+
+    with LoopbackHTTPServer(("127.0.0.1", 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         # Exit the server thread when the main thread terminates
         server_thread.daemon = True

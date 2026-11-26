@@ -41,7 +41,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
@@ -124,8 +123,20 @@ class DDPStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self._determine_ddp_device_ids()
+        ctx: Union[torch.cuda.StreamContext, nullcontext] = nullcontext()
+
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        if device_ids is not None:
+            capturing = torch.cuda.is_current_stream_capturing()
+            if capturing:
+                # DDP must be initialized on a side-stream for CUDA graph whole-network capture.
+                # The resulting AccumulateGrad stream mismatch is intentional in this case.
+                # See: https://pytorch.org/docs/stable/notes/cuda.html#id5
+                ctx = torch.cuda.stream(torch.cuda.Stream())
+                torch.autograd.graph.set_warn_on_accumulate_grad_stream_mismatch(False)
+            else:
+                # Default stream avoids AccumulateGrad stream mismatch warnings during normal training.
+                ctx = torch.cuda.stream(torch.cuda.default_stream())
         with ctx:
             return DistributedDataParallel(module=module, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -223,10 +234,12 @@ class DDPStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)

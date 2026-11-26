@@ -50,7 +50,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         additional_dependencies: [tomli]
@@ -72,7 +72,7 @@ repos:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.10
+    rev: v0.15.9
     hooks:
       # try to fix what is possible
       - id: ruff
@@ -83,7 +83,7 @@ repos:
       - id: ruff
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.22
+    rev: 1.0.0
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -98,7 +98,7 @@ repos:
           )$
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.7.4
+    rev: v3.8.1
     hooks:
       - id: prettier
         # https://prettier.io/docs/en/options.html#print-width

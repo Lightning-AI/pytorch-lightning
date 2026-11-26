@@ -82,7 +82,8 @@ class _MaxSizeCycle(_ModeIterator):
                     raise
                 # reset the consumed dataloader
                 self.iterators[i] = iter(self.iterables[i])
-                out[i] = next(self.iterators[i])
+                with contextlib.suppress(StopIteration):
+                    out[i] = next(self.iterators[i])
         index = self._idx
         self._idx += 1
         return out, index, 0
@@ -397,7 +398,7 @@ class CombinedLoader(Iterable):
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
     if hasattr(dataloader, "_iterator"):
         if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
-            dataloader._iterator._shutdown_workers()
+            del dataloader._iterator
         dataloader._iterator = None
 
 

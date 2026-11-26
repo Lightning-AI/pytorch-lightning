@@ -21,7 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
 
@@ -104,6 +104,32 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path)
     model = CurrentModel()
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
+    if batch_idx_ > trainer.num_training_batches - 1:
+        assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
+        assert trainer.global_step == trainer.num_training_batches * max_epochs
+    else:
+        assert trainer.fit_loop.batch_idx == batch_idx_
+        assert trainer.global_step == batch_idx_ * max_epochs
+
+    assert trainer.is_last_batch
+
+
+@pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8), (4, 12)])
+def test_callback_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path):
+    class CurrentCallback(Callback):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            if batch_idx == batch_idx_:
+                return -1
+            return None
+
+    callback = CurrentCallback()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=max_epochs,
+        limit_train_batches=10,
+        callbacks=[callback],
+    )
+    trainer.fit(BoringModel())
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
         assert trainer.global_step == trainer.num_training_batches * max_epochs
