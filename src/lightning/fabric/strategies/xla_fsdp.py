@@ -517,6 +517,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
 

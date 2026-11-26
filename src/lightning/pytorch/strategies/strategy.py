@@ -363,7 +363,12 @@ class Strategy(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return self._lightning_module
 
-    def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+    def load_checkpoint(
+        self,
+        checkpoint_path: _PATH,
+        weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path, weights_only=weights_only)
 

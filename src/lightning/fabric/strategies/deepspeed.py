@@ -476,6 +476,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -484,6 +485,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
+            storage_options: Optional parameters when saving to storage.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine

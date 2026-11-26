@@ -53,6 +53,19 @@ This reduces memory peaks and speeds up the saving to disk.
     The path can also be a remote filesystem URL supported by `fsspec <https://filesystem-spec.readthedocs.io/>`_, such as ``s3://my-bucket/checkpoint``, ``gs://my-bucket/checkpoint``, or ``abfs://my-container/checkpoint``.
     This requires the corresponding fsspec implementation to be installed (e.g., ``s3fs``, ``gcsfs``, or ``adlfs``).
 
+    You can configure ``storage_options`` (such as ``{"thread_count": 8}`` to increase parallel I/O threads per rank, or remote filesystem credentials) either in the strategy or directly during ``save``/``load``:
+
+    .. code-block:: python
+
+        # Set default storage options on the strategy
+        strategy = FSDPStrategy(
+            state_dict_type="sharded",
+            storage_options={"thread_count": 8},
+        )
+
+        # Or pass storage options per save
+        fabric.save("path/to/checkpoint", state, storage_options={"thread_count": 8})
+
 .. collapse:: Full example
 
     .. code-block:: python

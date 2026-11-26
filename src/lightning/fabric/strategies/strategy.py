@@ -311,6 +311,7 @@ class Strategy(ABC):
         state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
         weights_only: Optional[bool] = None,
+        storage_options: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -329,6 +330,7 @@ class Strategy(ABC):
                 an ``nn.Module``, use ``weights_only=False``. If loading checkpoint from an untrusted source, we
                 recommend using ``weights_only=True``. For more information, please refer to the
                 `PyTorch Developer Notes on Serialization Semantics <https://docs.pytorch.org/docs/main/notes/serialization.html#id3>`_.
+            storage_options: Optional parameters when saving to storage.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
