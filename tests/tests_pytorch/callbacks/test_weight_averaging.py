@@ -210,8 +210,7 @@ def test_ema(tmp_path, batch_norm: bool, iterable_dataset: bool):
 
 
 @pytest.mark.parametrize(
-    "accelerator",
-    [pytest.param("gpu", marks=RunIf(standalone=True, min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))],
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_ema_accelerator(tmp_path, accelerator):
     model = TestModel()
@@ -219,21 +218,21 @@ def test_ema_accelerator(tmp_path, accelerator):
     _train(model, dataset, tmp_path, EMATestCallback(), accelerator=accelerator, devices=1)
 
 
-@RunIf(standalone=True, min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_ema_ddp(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp", accelerator="gpu", devices=2)
 
 
-@RunIf(standalone=True, min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_ema_ddp_spawn(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
     _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
-@RunIf(skip_windows=True, standalone=True)
+@RunIf(skip_windows=True)
 def test_ema_ddp_spawn_cpu(tmp_path):
     model = TestModel()
     dataset = RandomDataset(32, 32)
@@ -241,7 +240,6 @@ def test_ema_ddp_spawn_cpu(tmp_path):
 
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3, 5])
-@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
 def test_ema_resume(tmp_path, crash_on_epoch):
     dataset = RandomDataset(32, 32)
     model1 = TestModel()
@@ -256,7 +254,7 @@ def test_ema_resume(tmp_path, crash_on_epoch):
         assert torch.allclose(param1, param2)
 
 
-@RunIf(skip_windows=True, standalone=True, min_cuda_gpus=2)
+@RunIf(skip_windows=True)
 def test_ema_resume_ddp(tmp_path):
     model = TestModel()
     model.crash_on_epoch = 3
@@ -274,8 +272,8 @@ def test_swa(tmp_path):
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
-        pytest.param("fsdp", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("fsdp", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
@@ -340,7 +338,7 @@ def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices
     ("strategy", "accelerator", "devices"),
     [
         ("auto", "cpu", 1),
-        pytest.param("auto", "gpu", 1, marks=RunIf(standalone=True, min_cuda_gpus=1)),
+        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 def test_ema_weight_averaging(tmp_path, strategy, accelerator, devices):
@@ -391,6 +389,29 @@ def test_ema_weight_averaging_starting_epoch(tmp_path):
     _train(model, dataset, tmp_path, callback)
 
     assert callback._average_model is not None
+
+
+def test_validation_uses_restored_epoch_average(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="cpu", logger=False)
+    model = BoringModel()
+    callback = EMAWeightAveraging(update_every_n_steps=0, update_starting_at_epoch=0)
+    callback.setup(trainer, model, "fit")
+    callback.on_train_epoch_end(trainer, model)
+    averaged = model.layer.weight.detach().clone()
+    with torch.no_grad():
+        model.layer.weight.add_(1)
+    current = model.layer.weight.detach().clone()
+    checkpoint = {"state_dict": model.state_dict()}
+    callback.on_save_checkpoint(trainer, model, checkpoint)
+
+    restored = EMAWeightAveraging(update_every_n_steps=0, update_starting_at_epoch=0)
+    restored.setup(trainer, model, "fit")
+    restored.load_state_dict(callback.state_dict())
+    restored.on_load_checkpoint(trainer, model, checkpoint)
+    restored.on_validation_epoch_start(trainer, model)
+    torch.testing.assert_close(model.layer.weight, averaged)
+    restored.on_validation_epoch_end(trainer, model)
+    torch.testing.assert_close(model.layer.weight, current)
 
 
 def test_weight_averaging_no_swap_before_first_update(tmp_path):
