@@ -158,8 +158,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         metrics: Optional[dict[str, Any]] = None,
         step: Optional[int] = None,
     ) -> None:
-        """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        """Record hyperparameters.
+
+        TensorBoard logs with and without saved hyperparameters are incompatible, the hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:

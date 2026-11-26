@@ -64,8 +64,8 @@ class EMAAveragingFunction:
     """EMA averaging function.
 
     Functionally equivalent to the closure that ``get_ema_avg_fn()`` would return. This class is needed because we
-    cannot use a closure with ddp_spawn. (``Popen(process_obj)`` would fail with
-    ``Can't get local object 'get_ema_avg_fn.<locals>.ema_update'``).
+    cannot use a closure with ddp_spawn. (``Popen(process_obj)`` would fail with ``Can't get local object
+    'get_ema_avg_fn.<locals>.ema_update'``).
 
     """
 

@@ -531,7 +531,6 @@ def test_loop_state_on_complete_run(tmp_path):
 def test_fit_loop_reset(tmp_path):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
-
     # generate checkpoints at end of epoch and mid-epoch
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(

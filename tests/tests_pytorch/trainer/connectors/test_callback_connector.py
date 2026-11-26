@@ -125,7 +125,6 @@ class StatefulCallbackContent1(Callback):
 def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     """Test that all callback states get saved even if the ModelCheckpoint is not given as last and when there are
     multiple callbacks of the same type."""
-
     callback0 = StatefulCallbackContent0()
     callback1 = StatefulCallbackContent1(unique="one")
     callback2 = StatefulCallbackContent1(unique="two", other=2)

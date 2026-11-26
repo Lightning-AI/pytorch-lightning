@@ -425,7 +425,6 @@ def test_throughput_monitor_variable_batch_size_with_validation(tmp_path):
 
 def test_throughput_monitor_validation_with_many_epochs(tmp_path):
     """Ensure ThroughputMonitor handles many epochs with validation and time increases monotonically."""
-
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
     monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)

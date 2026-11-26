@@ -406,9 +406,10 @@ class _NonTensorMeta:
 def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, tmp_path):
     """Regression: sharded-checkpoint metadata holding non-tensor objects must load on torch>=2.6.
 
-    ``torch.load``/``_load`` default to ``weights_only=True`` on torch>=2.6, which rejects arbitrary
-    pickled objects. ``_load_checkpoint`` must default to ``weights_only=False`` (like the FSDP strategy)
-    so metadata such as callback/loop state round-trips.
+    ``torch.load``/``_load`` default to ``weights_only=True`` on torch>=2.6, which rejects arbitrary pickled objects.
+    ``_load_checkpoint`` must default to ``weights_only=False`` (like the FSDP strategy) so metadata such as
+    callback/loop state round-trips.
+
     """
     from lightning.fabric.strategies import model_parallel as mp
     from lightning.fabric.utilities.cloud_io import _atomic_save

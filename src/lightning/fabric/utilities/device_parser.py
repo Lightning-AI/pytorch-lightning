@@ -114,8 +114,9 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[in
 
 
 def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: bool = False) -> list[int]:
-    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
-    GPUs is not available.
+    """Checks that each of the GPUs in the list is actually available.
+
+    Raises a MisconfigurationException if any of the GPUs is not available.
 
     Args:
         gpus: List of ints corresponding to GPU indices

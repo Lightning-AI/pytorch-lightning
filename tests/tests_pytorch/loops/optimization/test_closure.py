@@ -48,8 +48,8 @@ def test_optimizer_step_no_closure_raises(tmp_path):
 def test_closure_with_no_grad_optimizer(tmp_path):
     """Test that the closure is guaranteed to run with grad enabled.
 
-    There are certain third-party library optimizers
-    (such as Hugging Face Transformers' AdamW) that set `no_grad` during the `step` operation.
+    There are certain third-party library optimizers (such as Hugging Face Transformers' AdamW) that set `no_grad`
+    during the `step` operation.
 
     """
 

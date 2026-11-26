@@ -771,8 +771,9 @@ class Trainer:
         datamodule: Optional[LightningDataModule] = None,
         weights_only: Optional[bool] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on your
-        test set until you want to.
+        r"""Perform one evaluation epoch over the test set.
+
+        It's separated from fit to make sure you never run on your test set until you want to.
 
         Args:
             model: The model to test.
@@ -890,8 +891,9 @@ class Trainer:
         ckpt_path: Optional[_PATH] = None,
         weights_only: Optional[bool] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
-        r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
-        perform distributed and batched predictions. Logging is disabled in the predict hooks.
+        r"""Run inference on your data.
+
+        This will call the model forward function to compute predictions. Useful to perform distributed and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -1208,8 +1210,9 @@ class Trainer:
             yield
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process. If running on multiple machines, it will print from the first
-        process in each machine.
+        """Print something only on the first process.
+
+        If running on multiple machines, it will print from the first process in each machine.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
 
@@ -1217,9 +1220,7 @@ class Trainer:
         if self.local_rank == 0:
             print(*args, **kwargs)
 
-    """
-    Accelerator properties
-    """
+    """Accelerator properties."""
 
     @property
     def accelerator(self) -> Accelerator:
@@ -1314,9 +1315,7 @@ class Trainer:
         """
         return self.strategy.model
 
-    """
-    General properties
-    """
+    """General properties."""
 
     @property
     def log_dir(self) -> Optional[str]:
@@ -1475,9 +1474,7 @@ class Trainer:
             self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
             self.strategy.barrier("Trainer.save_checkpoint")
 
-    """
-    State properties
-    """
+    """State properties."""
 
     @property
     def interrupted(self) -> bool:
@@ -1556,9 +1553,7 @@ class Trainer:
         """
         return self._signal_connector.received_sigterm
 
-    """
-    Loop properties
-    """
+    """Loop properties."""
 
     @property
     def global_step(self) -> int:
@@ -1676,9 +1671,7 @@ class Trainer:
             return self.predict_loop
         return None
 
-    """
-    Logging properties
-    """
+    """Logging properties."""
 
     @property
     def logger(self) -> Optional[Logger]:
@@ -1751,9 +1744,7 @@ class Trainer:
             return active_loop._results
         return None
 
-    """
-    Other
-    """
+    """Other."""
 
     @property
     def estimated_stepping_batches(self) -> Union[int, float]:

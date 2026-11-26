@@ -417,7 +417,6 @@ def test_multiple_early_stopping_callbacks(
     dist_diverge_epoch: Optional[int],
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
-
     model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end, dist_diverge_epoch=dist_diverge_epoch)
 
     trainer = Trainer(

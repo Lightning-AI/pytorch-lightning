@@ -46,8 +46,9 @@ class Callback:
         return type(self)
 
     def _generate_state_key(self, **kwargs: Any) -> str:
-        """Formats a set of key-value pairs into a state key string with the callback class name prefixed. Useful for
-        defining a :attr:`state_key`.
+        """Formats a set of key-value pairs into a state key string with the callback class name prefixed.
+
+        Useful for defining a :attr:`state_key`.
 
         Args:
             **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.

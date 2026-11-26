@@ -23,7 +23,6 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
     the model must fit on GPU or CPU memory.
 
     """
-
     dp_mesh = device_mesh["data_parallel"]
     tp_mesh = device_mesh["tensor_parallel"]
 

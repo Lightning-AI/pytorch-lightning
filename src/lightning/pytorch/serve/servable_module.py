@@ -63,11 +63,11 @@ class ServableModule(ABC, torch.nn.Module):
     def configure_serialization(self) -> tuple[dict[str, Callable], dict[str, Callable]]:
         """Returns a tuple of dictionaries.
 
-        The first dictionary contains the name of the ``serve_step`` input variables name as its keys
-        and the associated de-serialization function (e.g function to convert a payload to tensors).
+        The first dictionary contains the name of the ``serve_step`` input variables name as its keys and the associated
+        de-serialization function (e.g function to convert a payload to tensors).
 
-        The second dictionary contains the name of the ``serve_step`` output variables name as its keys
-        and the associated serialization function (e.g function to convert a tensors into payload).
+        The second dictionary contains the name of the ``serve_step`` output variables name as its keys and the
+        associated serialization function (e.g function to convert a tensors into payload).
 
         """
 

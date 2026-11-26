@@ -54,17 +54,13 @@ def test_import_fabric_with_torch_dist_unavailable():
 def test_import_deepspeed_lazily():
     """Test that we are importing deepspeed only when necessary."""
     code = dedent(
-        """
-        import lightning.fabric
-        import sys
+        """Import lightning.fabric import sys.
 
-        assert 'deepspeed' not in sys.modules
-        from lightning.fabric.strategies import DeepSpeedStrategy
-        from lightning.fabric.plugins import DeepSpeedPrecision
-        assert 'deepspeed' not in sys.modules
+        assert 'deepspeed' not in sys.modules from lightning.fabric.strategies import DeepSpeedStrategy from
+        lightning.fabric.plugins import DeepSpeedPrecision assert 'deepspeed' not in sys.modules
 
-        import deepspeed
-        assert 'deepspeed' in sys.modules
+        import deepspeed assert 'deepspeed' in sys.modules
+
         """
     )
     # run in complete isolation

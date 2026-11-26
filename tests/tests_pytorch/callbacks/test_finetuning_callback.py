@@ -209,7 +209,6 @@ class OnEpochLayerFinetuning(BaseFinetuning):
 
 def test_base_finetuning_internal_optimizer_metadata(tmp_path):
     """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks."""
-
     seed_everything(42)
 
     class FreezeModel(BoringModel):
@@ -280,7 +279,6 @@ class ConvBlockParam(nn.Module):
 def test_complex_nested_model():
     """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters."""
-
     model = nn.Sequential(
         OrderedDict([
             ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
@@ -397,7 +395,6 @@ class BackboneBoringModel(BoringModel):
 
 def test_callbacks_restore_backbone(tmp_path):
     """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
-
     ckpt = ModelCheckpoint(dirpath=tmp_path, save_last=True)
     trainer = Trainer(
         default_root_dir=tmp_path,

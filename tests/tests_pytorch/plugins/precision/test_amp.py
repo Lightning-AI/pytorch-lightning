@@ -56,9 +56,9 @@ def test_clip_gradients():
 def test_optimizer_amp_scaling_support_in_step_method(precision, scaler, should_error):
     """Test that gradient clipping with fused optimizers is only blocked when a scaler is present.
 
-    The `_step_supports_amp_scaling` flag indicates the optimizer handles unscaling internally (e.g., fused Adam).
-    This is incompatible with gradient clipping only when using a GradScaler (16-mixed), since we can't unscale
-    before clipping. With bf16-mixed there's no scaler, so gradient clipping works normally.
+    The `_step_supports_amp_scaling` flag indicates the optimizer handles unscaling internally (e.g., fused Adam). This
+    is incompatible with gradient clipping only when using a GradScaler (16-mixed), since we can't unscale before
+    clipping. With bf16-mixed there's no scaler, so gradient clipping works normally.
 
     """
     optimizer = Mock(_step_supports_amp_scaling=True)

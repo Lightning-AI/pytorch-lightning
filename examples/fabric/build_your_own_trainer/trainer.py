@@ -35,8 +35,9 @@ class MyCustomTrainer:
         checkpoint_dir: str = "./checkpoints",
         checkpoint_frequency: int = 1,
     ) -> None:
-        """Exemplary Trainer with Fabric. This is a very simple trainer focused on readability but with reduced
-        featureset. As a trainer with more included features, we recommend using the
+        """Exemplary Trainer with Fabric.
+
+        This is a very simple trainer focused on readability but with reduced featureset. As a trainer with more included features, we recommend using the
         :class:`lightning.pytorch.Trainer`.
 
         Args:
@@ -86,7 +87,6 @@ class MyCustomTrainer:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
 
         """
-
         self.fabric = L.Fabric(
             accelerator=accelerator,
             strategy=strategy,
@@ -322,8 +322,9 @@ class MyCustomTrainer:
         torch.set_grad_enabled(True)
 
     def training_step(self, model: L.LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
-        """A single training step, running forward and backward. The optimizer step is called separately, as this is
-        given as a closure to the optimizer step.
+        """A single training step, running forward and backward.
+
+        The optimizer step is called separately, as this is given as a closure to the optimizer step.
 
         Args:
             model: the lightning module to train
@@ -361,7 +362,6 @@ class MyCustomTrainer:
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
 
         """
-
         # no scheduler
         if scheduler_cfg is None:
             return

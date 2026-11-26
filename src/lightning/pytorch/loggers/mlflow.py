@@ -155,8 +155,9 @@ class MLFlowLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "MlflowClient":
-        r"""Actual MLflow object. To use MLflow features in your :class:`~lightning.pytorch.core.LightningModule` do the
-        following.
+        r"""Actual MLflow object.
+
+        To use MLflow features in your :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 

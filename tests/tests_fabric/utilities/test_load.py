@@ -146,8 +146,8 @@ def test_move_state_into():
 
 @RunIf(min_torch="2.3")
 def test_load_distributed_checkpoint_remote(monkeypatch):
-    """Regression: consolidating a checkpoint on remote storage must use an fsspec-aware reader instead of the
-    local-only `FileSystemReader`."""
+    """Regression: consolidating a checkpoint on remote storage must use an fsspec-aware reader instead of the local-
+    only `FileSystemReader`."""
 
     class FakeReader:
         pass

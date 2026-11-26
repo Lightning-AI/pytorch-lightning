@@ -873,7 +873,6 @@ def test_module_sharding_context():
 
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.module_init_context = Mock(wraps=strategy.module_init_context)

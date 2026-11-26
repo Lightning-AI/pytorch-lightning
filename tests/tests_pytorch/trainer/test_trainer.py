@@ -866,7 +866,6 @@ def test_tested_checkpoint_path_best(tmp_path, enable_checkpointing, fn):
 def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     """Test that a warning is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
-
     ckpt_callback1 = ModelCheckpoint(monitor="foo")
     ckpt_callback1.best_model_path = "foo_best_model.ckpt"
     ckpt_callback2 = ModelCheckpoint(monitor="bar")
@@ -1473,7 +1472,6 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmp_path)
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmp_path, max_steps, max_epochs, global_step):
     """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`, and
     disabled if the limit is reached."""
-
     dataset_len = 200
     batch_size = 10
 

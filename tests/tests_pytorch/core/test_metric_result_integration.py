@@ -203,7 +203,6 @@ def my_sync_dist(x, *_, **__):
 
 def test_result_collection_restoration(tmp_path):
     """This test make sure metrics are properly reloaded on failure."""
-
     result = _ResultCollection(True)
     metric_a = DummyMetric()
     metric_b = DummyMetric()

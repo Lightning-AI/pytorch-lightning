@@ -122,11 +122,12 @@ class CSVLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "_ExperimentWriter":
-        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the following.
+        """Actual ExperimentWriter object.
 
-        Example::
+        To use ExperimentWriter features anywhere in your code, do the following.
+                Example::
 
-            self.logger.experiment.some_experiment_writer_function()
+                    self.logger.experiment.some_experiment_writer_function()
 
         """
         if self._experiment is not None:
