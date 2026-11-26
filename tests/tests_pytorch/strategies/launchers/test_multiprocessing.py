@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing import Process
+from multiprocessing import Process, get_context
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+from torch.multiprocessing.spawn import ProcessContext
 
-from lightning.fabric.plugins import ClusterEnvironment
+from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
@@ -63,6 +64,27 @@ def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
         assert isinstance(function_args[5], _GlobalStateSnapshot)
     else:
         assert len(function_args) == 5
+
+
+def test_launch_reaps_workers_when_join_is_interrupted(monkeypatch):
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu")] * 2, cluster_environment=LightningEnvironment())
+    launcher = _MultiProcessingLauncher(strategy)
+    gate = get_context("spawn").Event()
+
+    def interrupt_join(context):
+        assert all(process.is_alive() for process in context.processes)
+        raise KeyboardInterrupt("interrupted join")
+
+    monkeypatch.setattr(ProcessContext, "join", interrupt_join)
+    try:
+        with pytest.raises(KeyboardInterrupt, match="interrupted join"):
+            launcher.launch(gate.wait)
+        assert all(process.exitcode is not None for process in launcher.procs)
+    finally:
+        for process in launcher.procs:
+            if process.is_alive():
+                process.kill()
+            process.join()
 
 
 def test_global_state_snapshot():
