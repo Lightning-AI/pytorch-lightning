@@ -400,6 +400,93 @@ def _distributed_is_initialized() -> bool:
     return torch.distributed.is_available() and torch.distributed.is_initialized()
 
 
+_BARRIER_NAME_MAX_BYTES = 1024
+_BARRIER_NAME_NONE = 0
+_BARRIER_NAME_STRING = 1
+_BARRIER_NAME_INVALID_TYPE = 2
+_BARRIER_NAME_INVALID_ENCODING = 3
+_BARRIER_NAME_STATUS = {
+    _BARRIER_NAME_INVALID_TYPE: "invalid type",
+    _BARRIER_NAME_INVALID_ENCODING: "invalid UTF-8",
+}
+
+
+def _validate_same_barrier_name(name: Optional[str], device: Optional[torch.device] = None) -> None:
+    """Validate that every rank uses the same optional name before entering a barrier."""
+    if not _distributed_is_initialized() or torch.distributed.get_world_size() == 1:
+        return
+
+    rank = torch.distributed.get_rank()
+    world_size = torch.distributed.get_world_size()
+    backend = torch.distributed.get_backend()
+    device = torch.device("cpu") if backend == "gloo" else device
+    if device is None and backend == "nccl":
+        device = torch.device("cuda", torch.cuda.current_device())
+    if device is None:
+        raise RuntimeError(f"Failed to validate barrier {name!r} on rank {rank}: no collective device is available.")
+
+    status = _BARRIER_NAME_NONE
+    encoded_name = b""
+    if name is not None:
+        if not isinstance(name, str):
+            status = _BARRIER_NAME_INVALID_TYPE
+        else:
+            try:
+                encoded_name = name.encode("utf-8")
+                status = _BARRIER_NAME_STRING
+            except UnicodeEncodeError:
+                status = _BARRIER_NAME_INVALID_ENCODING
+    metadata = torch.tensor([status, len(encoded_name)], dtype=torch.long, device=device)
+    gathered_metadata = [torch.empty_like(metadata) for _ in range(world_size)]
+    try:
+        torch.distributed.all_gather(gathered_metadata, metadata)
+    except Exception as ex:
+        raise RuntimeError(f"Failed to validate barrier {name!r} on rank {rank}.") from ex
+
+    metadata_by_rank = [tuple(item.cpu().tolist()) for item in gathered_metadata]
+    invalid_ranks = []
+    for gathered_rank, (gathered_status, _) in enumerate(metadata_by_rank):
+        if gathered_status not in (_BARRIER_NAME_NONE, _BARRIER_NAME_STRING):
+            reason = _BARRIER_NAME_STATUS.get(gathered_status, f"unknown status {gathered_status}")
+            invalid_ranks.append(f"{gathered_rank}: {reason}")
+    if invalid_ranks:
+        reasons = ", ".join(invalid_ranks)
+        raise RuntimeError(f"Invalid barrier names on rank {rank}: invalid names by rank are {{{reasons}}}.")
+    if any(size < 0 or size > _BARRIER_NAME_MAX_BYTES for _, size in metadata_by_rank):
+        sizes = ", ".join(f"{gathered_rank}: {size}" for gathered_rank, (_, size) in enumerate(metadata_by_rank))
+        raise RuntimeError(
+            f"Barrier names exceed {_BARRIER_NAME_MAX_BYTES} bytes on rank {rank}: sizes by rank are {{{sizes}}}."
+        )
+
+    max_size = max(size for _, size in metadata_by_rank)
+    names: list[Optional[str]] = []
+    if max_size:
+        padded_name = torch.zeros(max_size, dtype=torch.uint8, device=device)
+        if encoded_name:
+            padded_name[: len(encoded_name)] = torch.tensor(list(encoded_name), dtype=torch.uint8, device=device)
+        gathered_names = [torch.empty_like(padded_name) for _ in range(world_size)]
+        try:
+            torch.distributed.all_gather(gathered_names, padded_name)
+        except Exception as ex:
+            raise RuntimeError(f"Failed to validate barrier {name!r} on rank {rank}.") from ex
+        names = [
+            None
+            if gathered_status == _BARRIER_NAME_NONE
+            else bytes(gathered_name[:size].cpu().tolist()).decode("utf-8")
+            for (gathered_status, size), gathered_name in zip(metadata_by_rank, gathered_names)
+        ]
+    else:
+        names = [None if gathered_status == _BARRIER_NAME_NONE else "" for gathered_status, _ in metadata_by_rank]
+
+    if all(gathered_name == name for gathered_name in names):
+        return
+
+    rank_names = ", ".join(f"{gathered_rank}: {gathered_name!r}" for gathered_rank, gathered_name in enumerate(names))
+    raise RuntimeError(
+        f"Barrier name mismatch on rank {rank}: local name is {name!r}; names by rank are {{{rank_names}}}."
+    )
+
+
 class _InfiniteBarrier:
     """A barrier with an infinite timeout.
 
