@@ -17,6 +17,19 @@ def test_dtype_context_manager():
         raise RuntimeError("foo")
     assert torch.get_default_dtype() is torch.float32
 
+    # deferred entry after default dtype changes + re-entrant nesting
+    cm = _DtypeContextManager(torch.float16)
+    try:
+        torch.set_default_dtype(torch.float64)
+        with cm:
+            assert torch.get_default_dtype() is torch.float16
+            with cm:
+                assert torch.get_default_dtype() is torch.float16
+            assert torch.get_default_dtype() is torch.float16
+        assert torch.get_default_dtype() is torch.float64
+    finally:
+        torch.set_default_dtype(torch.float32)
+
 
 def test_class_replacement_context_manager():
     original_linear = torch.nn.Linear
@@ -46,3 +59,21 @@ def test_class_replacement_context_manager():
     assert isinstance(linear, original_linear)
     assert isinstance(layernorm, original_layernorm)
     assert hasattr(linear, "forward")
+
+    # deferred entry after class replacement + re-entrant nesting
+    class IntermediateLinear:
+        def __init__(self, *_, **__):
+            pass
+
+    try:
+        torch.nn.Linear = IntermediateLinear
+        with context_manager:
+            assert torch.nn.Linear is MyLinear
+            with context_manager:
+                assert torch.nn.Linear is MyLinear
+            assert torch.nn.Linear is MyLinear
+        assert torch.nn.Linear is IntermediateLinear
+        assert torch.nn.LayerNorm is original_layernorm
+    finally:
+        torch.nn.Linear = original_linear
+        torch.nn.LayerNorm = original_layernorm
