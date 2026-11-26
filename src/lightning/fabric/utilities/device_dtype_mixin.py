@@ -48,6 +48,8 @@ class _DeviceDtypeModuleMixin(Module):
         # make this more explicit to always include the index
         if device.type == "cuda" and device.index is None:
             return torch.device(f"cuda:{torch.cuda.current_device()}")
+        if device.type == "npu" and device.index is None:
+            return torch.device(f"npu:{torch.npu.current_device()}")
 
         return device
 

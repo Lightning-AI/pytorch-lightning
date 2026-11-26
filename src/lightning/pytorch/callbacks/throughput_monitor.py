@@ -129,6 +129,9 @@ class ThroughputMonitor(Callback):
         if trainer.strategy.root_device.type == "cuda":
             # required or else perf_counter() won't be correct
             torch.cuda.synchronize()
+        elif trainer.strategy.root_device.type == "npu":
+            # NPU counterpart of the CUDA synchronize above; the cuda branch is preserved
+            torch.npu.synchronize()
 
         elapsed = time.perf_counter() - self._t0s[stage]
         if self.length_fn is not None:

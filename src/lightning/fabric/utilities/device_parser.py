@@ -50,6 +50,7 @@ def _parse_gpu_ids(
     gpus: Optional[Union[int, str, list[int]]],
     include_cuda: bool = False,
     include_mps: bool = False,
+    include_npu: bool = False,
 ) -> Optional[list[int]]:
     """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
@@ -61,6 +62,7 @@ def _parse_gpu_ids(
             Any int N > 0 indicates that GPUs [0..N) should be used.
         include_cuda: A boolean value indicating whether to include CUDA devices for GPU parsing.
         include_mps: A boolean value indicating whether to include MPS devices for GPU parsing.
+        include_npu: A boolean value indicating whether to include Ascend NPU devices for GPU parsing.
 
     Returns:
         A list of GPUs to be used or ``None`` if no GPUs were requested
@@ -84,7 +86,9 @@ def _parse_gpu_ids(
     # We know the user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
-    gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
+    gpus = _normalize_parse_gpu_input_to_list(
+        gpus, include_cuda=include_cuda, include_mps=include_mps, include_npu=include_npu
+    )
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
 
@@ -92,7 +96,8 @@ def _parse_gpu_ids(
         torch.distributed.is_available()
         and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
-        and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
+        and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_npu=include_npu))
+        == 1
     ):
         # Omit sanity check on torchelastic because by default it shows one visible GPU per process
         return gpus
@@ -100,7 +105,7 @@ def _parse_gpu_ids(
     # Check that GPUs are unique. Duplicate GPUs are not supported by the backend.
     _check_unique(gpus)
 
-    return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
+    return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps, include_npu=include_npu)
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[int, list[int]]:
@@ -113,7 +118,9 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[in
     return int(s.strip())
 
 
-def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: bool = False) -> list[int]:
+def _sanitize_gpu_ids(
+    gpus: list[int], include_cuda: bool = False, include_mps: bool = False, include_npu: bool = False
+) -> list[int]:
     """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
     GPUs is not available.
 
@@ -128,9 +135,11 @@ def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: 
             If machine has fewer available GPUs than requested.
 
     """
-    if sum((include_cuda, include_mps)) == 0:
+    if sum((include_cuda, include_mps, include_npu)) == 0:
         raise ValueError("At least one gpu type should be specified!")
-    all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
+    all_available_gpus = _get_all_available_gpus(
+        include_cuda=include_cuda, include_mps=include_mps, include_npu=include_npu
+    )
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
@@ -140,7 +149,10 @@ def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: 
 
 
 def _normalize_parse_gpu_input_to_list(
-    gpus: Union[int, list[int], tuple[int, ...]], include_cuda: bool, include_mps: bool
+    gpus: Union[int, list[int], tuple[int, ...]],
+    include_cuda: bool,
+    include_mps: bool,
+    include_npu: bool,
 ) -> Optional[list[int]]:
     assert gpus is not None
     if isinstance(gpus, (MutableSequence, tuple)):
@@ -150,22 +162,24 @@ def _normalize_parse_gpu_input_to_list(
     if not gpus:  # gpus==0
         return None
     if gpus == -1:
-        return _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
+        return _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_npu=include_npu)
 
     return list(range(gpus))
 
 
-def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False) -> list[int]:
+def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False, include_npu: bool = False) -> list[int]:
     """
     Returns:
         A list of all available GPUs
     """
     from lightning.fabric.accelerators.cuda import _get_all_visible_cuda_devices
     from lightning.fabric.accelerators.mps import _get_all_available_mps_gpus
+    from lightning.fabric.accelerators.npu import _get_all_visible_npu_devices
 
     cuda_gpus = _get_all_visible_cuda_devices() if include_cuda else []
     mps_gpus = _get_all_available_mps_gpus() if include_mps else []
-    return cuda_gpus + mps_gpus
+    npu_gpus = _get_all_visible_npu_devices() if include_npu else []
+    return cuda_gpus + mps_gpus + npu_gpus
 
 
 def _check_unique(device_ids: list[int]) -> None:
@@ -210,12 +224,16 @@ def _select_auto_accelerator() -> str:
     """Choose the accelerator type (str) based on availability."""
     from lightning.fabric.accelerators.cuda import CUDAAccelerator
     from lightning.fabric.accelerators.mps import MPSAccelerator
+    from lightning.fabric.accelerators.npu import NPUAccelerator
     from lightning.fabric.accelerators.xla import XLAAccelerator
 
     if XLAAccelerator.is_available():
         return "tpu"
     if MPSAccelerator.is_available():
         return "mps"
+    # NPU probe: on Ascend machines `is_npu_available()` is True and NPU is preferred over CUDA
+    if NPUAccelerator.is_available():
+        return "npu"
     if CUDAAccelerator.is_available():
         return "cuda"
     return "cpu"

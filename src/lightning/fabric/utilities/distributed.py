@@ -281,8 +281,9 @@ def _init_dist_connection(
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
-    if torch_distributed_backend == "nccl":
+    if torch_distributed_backend in ("nccl", "hccl"):
         # PyTorch >= 2.4 warns about undestroyed NCCL process group, so we need to do it at program exit
+        # (hccl process groups benefit from the same cleanup; the nccl branch is preserved)
         atexit.register(_destroy_dist_connection)
 
     # On rank=0 let everyone know training is starting
@@ -307,6 +308,11 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     device_backend_map = torch.distributed.Backend.default_device_backend_map
     if device.type in device_backend_map:
         return device_backend_map[device.type]
+    if device.type == "npu":
+        # Framework-level fallback mapping (B06): torch_npu normally registers `npu -> hccl`
+        # in `default_device_backend_map`; keep an explicit mapping here so the NPU path
+        # resolves to `hccl` even when torch_npu has not registered the entry yet.
+        return "hccl"
     return "gloo"
 
 

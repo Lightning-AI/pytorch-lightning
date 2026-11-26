@@ -222,7 +222,7 @@ class ModelParallelStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() in ("nccl", "hccl"):
             torch.distributed.barrier(device_ids=[self.root_device.index])
         else:
             torch.distributed.barrier()
@@ -308,11 +308,17 @@ class ModelParallelStrategy(ParallelStrategy):
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
+        # NPU guard (V18): torch_npu + transfer_to_npu 会使 torch.cuda.is_available() 返回 True，
+        # 若对 npu 设备传入 device_id（bound_device_id 置位），DeviceMesh._init_one_process_group 会误走
+        # CUDA 的 split_group(ncclCommSplit) 分支，而 hccl 不支持 split → "No backend ... does not support splitting"。
+        # npu 与 cpu 一样不传 device_id（hccl 无 eager bound device 语义，init_device_mesh('npu') 走 new_group 正常）。
+        # CUDA/XPU 行为不变。
+        device_id = self.root_device if self.root_device.type not in ("cpu", "npu") else None
         _init_dist_connection(
             self.cluster_environment,
             self._process_group_backend,
             timeout=self._timeout,
-            device_id=self.root_device if self.root_device.type != "cpu" else None,
+            device_id=device_id,
         )
 
     def _get_process_group_backend(self) -> str:

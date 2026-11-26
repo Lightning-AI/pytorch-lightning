@@ -251,11 +251,14 @@ trainer = Trainer(accelerator="gpu", devices=8, num_nodes=32)
 </details>
 
 <details>
-  <summary>Train on other accelerators like TPUs without code changes</summary>
+  <summary>Train on other accelerators like TPUs and NPUs without code changes</summary>
 
 ```python
 # no code changes needed
 trainer = Trainer(accelerator="tpu", devices=8)
+
+# Ascend NPUs
+trainer = Trainer(accelerator="npu", devices=8)
 ```
 
 </details>

@@ -110,7 +110,7 @@ def test_accelerator_registry_with_new_accelerator():
 
 
 def test_available_accelerators_in_registry():
-    assert ACCELERATOR_REGISTRY.available_accelerators() == {"cpu", "cuda", "mps", "tpu"}
+    assert ACCELERATOR_REGISTRY.available_accelerators() == {"cpu", "cuda", "mps", "npu", "tpu"}
 
 
 def test_registry_as_decorator():

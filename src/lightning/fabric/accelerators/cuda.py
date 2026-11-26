@@ -157,6 +157,10 @@ def is_cuda_available() -> bool:
 
 
 def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
+    if device is not None and device.type == "npu":
+        # NPU devices have no CUDA capability field (A04: torch.cuda.get_device_capability has no NPU equivalent).
+        # Skip the CUDA-specific Tensor-Core matmul precision advice on NPU by returning a fixed value.
+        return False
     major, _ = torch.cuda.get_device_capability(device)
     return major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
 

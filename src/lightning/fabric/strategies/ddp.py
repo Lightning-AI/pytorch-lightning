@@ -168,7 +168,8 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() in ("nccl", "hccl"):
+            # device_ids are required for the NCCL backend and the HCCl (NPU) backend; the nccl branch is preserved
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:
             # Handle PyTorch bug where barrier() fails on CPU with "PrivateUse1HooksInterface" error

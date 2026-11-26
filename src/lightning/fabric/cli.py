@@ -20,7 +20,7 @@ from typing import Any, Optional
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
-from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator, NPUAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.cloud_io import _atomic_save
@@ -34,7 +34,8 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
+# supported accelerators; Ascend NPU is included and gated by `is_npu_available()` at parse time
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "npu", "tpu", "auto")
 
 
 def _get_supported_strategies() -> list[str]:
@@ -192,16 +193,26 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
     if accelerator == "auto" or accelerator is None:
         accelerator = _select_auto_accelerator()
     if devices == "auto":
-        if accelerator == "cuda" or accelerator == "mps" or accelerator == "cpu":
+        # single-device defaults: cuda/mps/cpu, plus Ascend NPU (device_type routed through NPUAccelerator)
+        if accelerator == "cuda" or accelerator == "mps" or accelerator == "cpu" or accelerator == "npu":
             devices = "1"
         else:
             raise ValueError(f"Cannot default to '1' device for accelerator='{accelerator}'")
     if accelerator == "gpu":
-        parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
+        if NPUAccelerator.is_available():
+            # `gpu` on an Ascend machine resolves to the NPU backend. `transfer_to_npu` aliases torch.cuda.* onto the
+            # NPU device, so `num_cuda_devices()` already reports the NPU count; include only the NPU pool to avoid
+            # duplicate ids with the CUDA pool (which would trip the unique-id check below). The CUDA/MPS pool is
+            # preserved for non-NPU machines.
+            parsed_devices = _parse_gpu_ids(devices, include_npu=True)
+        else:
+            parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
     elif accelerator == "cuda":
         parsed_devices = CUDAAccelerator.parse_devices(devices)
     elif accelerator == "mps":
         parsed_devices = MPSAccelerator.parse_devices(devices)
+    elif accelerator == "npu":
+        parsed_devices = NPUAccelerator.parse_devices(devices)
     elif accelerator == "tpu":
         raise ValueError("Launching processes for TPU through the CLI is not supported.")
     else:

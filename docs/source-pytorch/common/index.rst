@@ -18,6 +18,7 @@
    Train on single or multiple GPUs <../accelerators/gpu>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
+   Train on Ascend NPU <../accelerators/npu>
    Use a pretrained model <../advanced/pretrained>
    ../data/data
    ../model/own_your_loop
@@ -171,6 +172,13 @@ How-to Guides
     :header: Train on MPS
     :description: Train models faster with Apple Silicon GPUs
     :button_link: ../accelerators/mps.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Train on Ascend NPU
+    :description: Train models faster with Huawei Ascend NPUs
+    :button_link: ../accelerators/npu.html
     :col_css: col-md-4
     :height: 180
 

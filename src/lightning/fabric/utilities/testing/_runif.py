@@ -23,12 +23,14 @@ from packaging.version import Version
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.accelerators.npu import num_npu_devices
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
 
 def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
+    min_npu_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
     min_python: Optional[str] = None,
@@ -45,6 +47,7 @@ def _runif_reasons(
 
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
+        min_npu_gpus: Require this number of NPU (Ascend) devices. NPU-equivalent of ``min_cuda_gpus`` (A25).
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -66,6 +69,11 @@ def _runif_reasons(
         if num_cuda_devices() < min_cuda_gpus:
             reasons.append(f"GPUs>={min_cuda_gpus}")
         kwargs["min_cuda_gpus"] = True
+
+    if min_npu_gpus:
+        if num_npu_devices() < min_npu_gpus:
+            reasons.append(f"NPUs>={min_npu_gpus}")
+        kwargs["min_npu_gpus"] = True
 
     # set use_base_version for nightly support
     if min_torch and compare_version("torch", operator.lt, min_torch, use_base_version=True):

@@ -291,6 +291,16 @@ class LightningModule(
         return self.device.type == "cuda"
 
     @property
+    def on_npu(self) -> bool:
+        """Returns ``True`` if this model is currently located on an Ascend NPU device.
+
+        Useful to set flags around the LightningModule for different CPU vs NPU behavior.
+        The ``on_gpu`` (CUDA) semantics are preserved; this is the NPU counterpart.
+
+        """
+        return self.device.type == "npu"
+
+    @property
     def automatic_optimization(self) -> bool:
         """If set to ``False`` you are responsible for calling ``.backward()``, ``.step()``, ``.zero_grad()``."""
         return self._automatic_optimization
