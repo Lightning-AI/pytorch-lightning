@@ -690,6 +690,22 @@ def test_warning_with_small_dataloader_and_logging_interval(log_interval, tmp_pa
         trainer.fit(model)
 
 
+def test_warning_with_dataloader_shorter_than_accumulate_grad_batches(tmp_path):
+    """Test that a warning message is shown if the dataloader has fewer batches than `accumulate_grad_batches`, since
+    Lightning always steps on the last batch of the epoch and gradients end up accumulated over fewer batches than
+    configured."""
+    model = BoringModel()
+    dataloader = DataLoader(RandomDataset(32, length=2))
+    model.train_dataloader = lambda: dataloader
+
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accumulate_grad_batches=4, logger=False)
+    with pytest.warns(
+        UserWarning,
+        match=r"The number of training batches \(2\) is smaller than `accumulate_grad_batches=4`",
+    ):
+        trainer.fit(model)
+
+
 def test_warning_with_small_dataloader_and_fast_dev_run(tmp_path):
     """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
     model = BoringModel()

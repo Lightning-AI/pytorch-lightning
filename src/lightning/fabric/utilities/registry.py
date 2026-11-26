@@ -40,7 +40,12 @@ def _load_external_callbacks(group: str) -> list[Any]:
     for factory in factories:
         callback_factory = factory.load()
         callbacks_list: Union[list[Any], Any] = callback_factory()
-        callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
+        if callbacks_list is None:
+            callbacks_list = []
+        elif isinstance(callbacks_list, (list, tuple)):
+            callbacks_list = [cb for cb in callbacks_list if cb is not None]
+        else:
+            callbacks_list = [callbacks_list]
         if callbacks_list:
             _log.info(
                 f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"

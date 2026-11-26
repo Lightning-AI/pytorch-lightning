@@ -19,7 +19,6 @@ from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -359,9 +358,8 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
-    if _TORCH_GREATER_EQUAL_2_3:
-        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -376,9 +374,8 @@ def test_callbacks_restore(tmp_path):
         "maximize": False,
         "foreach": None,
         "differentiable": False,
+        "fused": None,
     }
-    if _TORCH_GREATER_EQUAL_2_3:
-        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 
@@ -422,6 +419,45 @@ def test_callbacks_restore_backbone(tmp_path):
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
     )
     trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)
+
+
+@pytest.mark.parametrize(("unfreeze_backbone_at_epoch", "expected_requires_grad"), [(1, True), (3, False)])
+def test_finetuning_restores_requires_grad_on_resume(tmp_path, unfreeze_backbone_at_epoch, expected_requires_grad):
+    """Test that resuming restores the frozen state the modules had when the training was interrupted."""
+
+    class HeadOptimizerModel(BackboneBoringModel):
+        def configure_optimizers(self):
+            # only the head is optimized to begin with, the callback adds the backbone when it unfreezes it
+            return SGD(self.layer.parameters(), lr=0.1)
+
+    def fit(max_epochs, callbacks, ckpt_path=None):
+        model = HeadOptimizerModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            limit_train_batches=2,
+            limit_val_batches=0,
+            max_epochs=max_epochs,
+            num_sanity_val_steps=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+            callbacks=callbacks,
+        )
+        trainer.fit(model, ckpt_path=ckpt_path)
+        return model
+
+    ckpt = ModelCheckpoint(dirpath=tmp_path, save_last=True)
+    fit(2, [BackboneFinetuning(unfreeze_backbone_at_epoch=unfreeze_backbone_at_epoch), ckpt])
+
+    # `setup()` freezes the backbone again on the resumed run, so whatever was unfrozen before the interruption
+    # has to be made trainable again, and nothing else
+    model = fit(
+        3,
+        [BackboneFinetuning(unfreeze_backbone_at_epoch=unfreeze_backbone_at_epoch)],
+        ckpt_path=ckpt.last_model_path,
+    )
+    assert model.backbone.weight.requires_grad is expected_requires_grad
+    assert model.backbone.bias.requires_grad is expected_requires_grad
 
 
 @RunIf(deepspeed=True)
