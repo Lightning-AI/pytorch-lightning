@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed DDP replicas diverging after `BaseFinetuning` unfreezes parameters by wrapping the model in `DistributedDataParallel` again when `finetune_function` changes which parameters require grad ([#20340](https://github.com/Lightning-AI/pytorch-lightning/issues/20340), [#22208](https://github.com/Lightning-AI/pytorch-lightning/pull/22208))
 
+- Fixed Trainer shutdown hanging when the parent process is interrupted while waiting for multiprocessing workers ([#22236](https://github.com/Lightning-AI/pytorch-lightning/pull/22236))
+
 - Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
 
 - Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
@@ -77,6 +79,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - fixed AccumulateGrad stream mismatch warning when using DDP with Trainer ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
+
+
+- Fixed `BackboneFinetuning` not honoring `train_bn` during the initial frozen phase, leaving `BatchNorm` layers trainable when `train_bn=False` ([#21652](https://github.com/Lightning-AI/pytorch-lightning/pull/21652))
 
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 

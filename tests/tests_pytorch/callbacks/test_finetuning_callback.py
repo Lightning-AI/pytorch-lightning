@@ -73,6 +73,37 @@ def test_finetuning_callback(tmp_path):
     assert model.backbone.has_been_used
 
 
+def test_finetuning_callback_train_bn_false(tmp_path):
+    """Test that BackboneFinetuning respects train_bn=False during the initial freeze phase."""
+    seed_everything(42)
+
+    class FinetuningBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
+            self.layer = nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(self.backbone(x))
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    model = FinetuningBoringModel()
+    callback = BackboneFinetuning(unfreeze_backbone_at_epoch=3, train_bn=False, verbose=False)
+
+    trainer = Trainer(limit_train_batches=4, default_root_dir=tmp_path, callbacks=[callback], max_epochs=1)
+    trainer.fit(model)
+
+    # With train_bn=False, BatchNorm should be fully frozen (not trainable, no running stats)
+    assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[1].bias.requires_grad
+    assert not model.backbone[1].track_running_stats
+
+
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
     def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
