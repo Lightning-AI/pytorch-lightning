@@ -199,3 +199,35 @@ def test_step_checkpoint_with_train_epoch_metric(tmp_path, save_on_train_epoch_e
     trainer.fit(TrainEpochMetricModule(), train_dataloaders=loader, val_dataloaders=loader)
 
     assert str(tmp_path / f"{trainer.global_step}.ckpt") in ckpt.best_k_models
+
+
+def test_deferred_step_checkpoint_consumed_when_train_epoch_metric_is_logged(tmp_path):
+    class TrainEpochScore(StepScoreModule):
+        def on_train_epoch_end(self):
+            self.log("train_score", float(self.global_step))
+
+    loader = DataLoader(TinyDataset(5))
+    ckpt = ModelCheckpoint(
+        dirpath=tmp_path, filename="{step}", monitor="train_score", save_top_k=-1, every_n_train_steps=3
+    )
+    trainer = Trainer(accelerator="cpu", max_epochs=2, callbacks=[ckpt], logger=False, num_sanity_val_steps=0)
+    trainer.fit(TrainEpochScore(), train_dataloaders=loader, val_dataloaders=loader)
+
+    assert {Path(p).stem for p in ckpt.best_k_models} == {"step=5", "step=6", "step=9"}
+
+
+def test_step_checkpoint_with_empty_validation_loader(tmp_path):
+    class TrainStepScore(StepScoreModule):
+        def training_step(self, batch, batch_idx):
+            self.log("train_score", float(self.global_step))
+            return super().training_step(batch, batch_idx)
+
+    ckpt = ModelCheckpoint(
+        dirpath=tmp_path, filename="{step}", monitor="train_score", save_top_k=-1, every_n_train_steps=2
+    )
+    trainer = Trainer(accelerator="cpu", max_epochs=1, callbacks=[ckpt], logger=False, num_sanity_val_steps=0)
+    trainer.fit(
+        TrainStepScore(), train_dataloaders=DataLoader(TinyDataset(2)), val_dataloaders=DataLoader(TinyDataset(0))
+    )
+
+    assert {Path(p).stem for p in ckpt.best_k_models} == {"step=2"}

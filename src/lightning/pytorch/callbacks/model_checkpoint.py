@@ -363,6 +363,7 @@ class ModelCheckpoint(Checkpoint):
                 self._defer_save_until_validation = True
                 return
 
+            self._defer_save_until_validation = False
             # For manual optimization, we save the model state that was captured in training_step
             # before the optimizer step. The test case saves this state in model.saved_models.
             if (
@@ -464,19 +465,30 @@ class ModelCheckpoint(Checkpoint):
             self.monitor is not None
             and data_fetcher is not None
             and not epoch_loop._skip_next_val
+            and (epoch_loop.val_loop._combined_loader is None or not epoch_loop.val_loop.skip)
             and epoch_loop._should_check_val_fx(data_fetcher)
         ):
             self._defer_save_until_validation = True
             return
 
+        self._defer_save_until_validation = False
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
+        if self._should_save_on_train_epoch_end(trainer):
+            deferred = self._defer_save_until_validation
+            self._defer_save_until_validation = False
+            if self._should_skip_saving_checkpoint(trainer):
+                return
             monitor_candidates = self._monitor_candidates(trainer)
+            # A train-epoch metric can first become available after validation has finished.
+            if deferred and self.monitor in monitor_candidates:
+                self._save_topk_checkpoint(trainer, monitor_candidates)
+                self._save_last_checkpoint(trainer, monitor_candidates)
+                return
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
