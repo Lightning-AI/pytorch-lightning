@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `TensorBoardLogger.log_hyperparams` registering unprefixed HParams `MetricInfo` keys when `prefix` is non-empty, which prevented TensorBoard's HParams plugin from binding to the prefixed scalar summaries logged by `log_metrics` ([#22225](https://github.com/Lightning-AI/pytorch-lightning/pull/22225))
+
 - Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
 
 - Fixed `_FabricModule.__setattr__` invoking the wrapped module's `property` getters ([#21944](https://github.com/Lightning-AI/pytorch-lightning/pull/21944))
