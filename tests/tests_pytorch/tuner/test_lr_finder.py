@@ -22,12 +22,13 @@ from unittest import mock
 import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
 
 from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.callbacks import BatchSizeFinder, Callback, EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.tuner.lr_finder import _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -901,3 +902,117 @@ def test_lr_finder_respects_weights_only(tmp_path):
 
     assert lr_finder is not None
     assert hasattr(lr_finder, "results")
+
+
+class _RecordLR(Callback):
+    def __init__(self):
+        self.lrs = []
+
+    def on_train_batch_start(self, trainer, *_):
+        self.lrs.append([group["lr"] for group in trainer.optimizers[0].param_groups])
+
+
+class _EpochStartLearningRateFinder(LearningRateFinder):
+    """Searches at the start of the first epoch, like the ``FineTuneLearningRateFinder`` docstring example."""
+
+    def on_fit_start(self, *args, **kwargs):
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch == 0:
+            self.lr_find(trainer, pl_module)
+
+
+@pytest.mark.parametrize("finder_cls", [LearningRateFinder, _EpochStartLearningRateFinder])
+@pytest.mark.parametrize("schedule", ["lambda", "linear", "one_cycle", "param_groups"])
+def test_lr_finder_callback_rebuilds_lr_schedulers(tmp_path, schedule, finder_cls):
+    """Fitting with the callback matches fitting with the suggested learning rate from the start."""
+
+    class Model(BoringModel):
+        def __init__(self, lr):
+            super().__init__()
+            self.lr = lr
+            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 16), torch.nn.Linear(16, 2))
+
+        def configure_optimizers(self):
+            if schedule == "param_groups":
+                backbone, head = self.layer
+                groups = [{"params": backbone.parameters(), "lr": self.lr / 10}, {"params": head.parameters()}]
+                return torch.optim.SGD(groups, lr=self.lr)
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+            if schedule == "lambda":
+                scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / 10))
+            elif schedule == "linear":
+                scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=10)
+            else:
+                total_steps = self.trainer.estimated_stepping_batches
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.lr, total_steps=total_steps)
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "step"}}
+
+    def fit(model, callbacks):
+        record = _RecordLR()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            max_epochs=1,
+            limit_val_batches=0,
+            callbacks=[*callbacks, record],
+            logger=False,
+            enable_checkpointing=False,
+        )
+        trainer.fit(model)
+        return record.lrs
+
+    seed_everything(1)
+    model = Model(lr=1e-3)
+    lrs = fit(model, [finder_cls(min_lr=1e-4, max_lr=1e-1, num_training_steps=20, early_stop_threshold=None)])
+    assert model.lr != 1e-3
+    assert lrs == fit(Model(lr=model.lr), [])
+
+
+@pytest.mark.parametrize("with_batch_size_finder", [False, True])
+@pytest.mark.parametrize("reuse_optimizer", [False, True])
+def test_lr_finder_callback_keeps_suggestion_that_configure_optimizers_ignores(
+    tmp_path, reuse_optimizer, with_batch_size_finder
+):
+    """The suggestion stays in the optimizer if running ``configure_optimizers`` again would drop it."""
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.lr = 1e-3
+            self.batch_size = 2
+            self.optimizer = None
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+        def configure_optimizers(self):
+            if self.optimizer is None or not reuse_optimizer:
+                self.optimizer = torch.optim.SGD(self.parameters(), lr=1e-3)
+            if reuse_optimizer:
+                # a new `LambdaLR` on a reused optimizer overwrites its learning rate
+                scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lambda _: 1.0)
+            else:
+                # chainable, so the suggestion carries over to every step
+                scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=1000)
+            return {"optimizer": self.optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "step"}}
+
+    finder = LearningRateFinder(min_lr=1e-4, max_lr=1e-1, num_training_steps=20, early_stop_threshold=None)
+    callbacks = [finder]
+    if with_batch_size_finder:
+        callbacks.append(BatchSizeFinder(init_val=2, max_val=2, steps_per_trial=1))
+    record = _RecordLR()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_val_batches=0,
+        callbacks=[*callbacks, record],
+        logger=False,
+        enable_checkpointing=False,
+    )
+    seed_everything(1)
+    trainer.fit(Model())
+    suggestion = finder.optimal_lr.suggestion()
+    assert suggestion != 1e-3
+    assert record.lrs[0] == [suggestion]
+    assert reuse_optimizer or record.lrs[-1] == [suggestion]

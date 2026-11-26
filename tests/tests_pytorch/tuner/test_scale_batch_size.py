@@ -634,3 +634,82 @@ def test_scale_batch_size_max_trials_modes(tmp_path, max_trials, mode, init_val,
         init_val=init_val,
     )
     assert result == expected
+
+
+@pytest.mark.parametrize("batch_size", [8, 64])
+def test_batch_size_finder_callback_rebuilds_lr_schedulers(tmp_path, batch_size):
+    """A schedule sized with ``estimated_stepping_batches`` fits the batch size found by the callback."""
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 256), batch_size=self.batch_size)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            total_steps = self.trainer.estimated_stepping_batches
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.1, total_steps=total_steps)
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "step"}}
+
+    model = Model()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=0,
+        callbacks=[BatchSizeFinder(init_val=2, max_val=32, steps_per_trial=1)],
+        logger=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
+    assert model.batch_size == 32
+    assert trainer.lr_scheduler_configs[0].scheduler.total_steps == trainer.global_step == 16
+
+
+def test_batch_size_finder_callback_keeps_optimizer_after_training_started(tmp_path):
+    """A later search keeps the optimizer and its state, even if ``global_step`` never advanced."""
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.batch_size = 2
+            self.automatic_optimization = False
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1, momentum=0.9)
+
+        def training_step(self, batch, batch_idx):
+            # stepping the raw optimizer leaves `trainer.global_step` at 0
+            optimizer = self.optimizers(use_pl_optimizer=False)
+            optimizer.zero_grad()
+            self.manual_backward(self.step(batch))
+            optimizer.step()
+
+    class MilestoneFinder(BatchSizeFinder):
+        kept_optimizer = None
+
+        def on_fit_start(self, *args, **kwargs):
+            return
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                optimizer = trainer.optimizers[0]
+                self.scale_batch_size(trainer, pl_module)
+                self.kept_optimizer = trainer.optimizers[0] is optimizer and bool(optimizer.state)
+
+    finder = MilestoneFinder(init_val=2, max_val=4, steps_per_trial=1)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_val_batches=0,
+        callbacks=[finder],
+        logger=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(Model())
+    assert finder.kept_optimizer

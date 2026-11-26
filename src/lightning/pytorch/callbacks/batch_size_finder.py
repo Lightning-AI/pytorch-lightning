@@ -200,6 +200,12 @@ class BatchSizeFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+        # rebuilding would drop a `LearningRateFinder` suggestion that `configure_optimizers` ignores
+        if new_size is not None and not any(getattr(cb, "_lr_ignored", False) for cb in trainer.callbacks):
+            from lightning.pytorch.callbacks.lr_finder import _reconfigure_optimizers
+
+            _reconfigure_optimizers(trainer)
+
     @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)
