@@ -293,8 +293,6 @@ class _FitLoop(_Loop):
         # Use None to clearly signal "no batch-based validation"; wall-time logic will run elsewhere.
         if getattr(trainer, "_val_check_time_interval", None) is not None:
             trainer.val_check_batch = None
-            trainer._train_start_time = time.monotonic()
-            trainer._last_val_time = trainer._train_start_time
         elif isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
             if (
@@ -432,6 +430,11 @@ class _FitLoop(_Loop):
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
         trainer = self.trainer
+
+        # start the validation timer here rather than in `setup_data`, which runs again on every dataloader reload
+        if getattr(trainer, "_val_check_time_interval", None) is not None:
+            trainer._train_start_time = time.monotonic()
+            trainer._last_val_time = trainer._train_start_time
 
         # reload the evaluation dataloaders too for proper display in the progress bar
         if self.epoch_loop._should_check_val_epoch() and trainer.val_dataloaders is None:
