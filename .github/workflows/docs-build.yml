@@ -54,12 +54,14 @@ env:
 jobs:
   docs-make:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["fabric", "pytorch"]
-        target: ["html", "doctest", "linkcheck"]
+        target: >-
+          ${{ fromJSON(startsWith(github.base_ref, 'release/')
+              && '["html", "doctest", "linkcheck"]' || '["html", "doctest"]') }}
     env:
       DOCS_COPY_NOTEBOOKS: 1
       PIN_RELEASE_VERSIONS: 1
@@ -131,8 +133,8 @@ jobs:
 
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        # allow failing link check and doctest if you run with dispatch
-        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck') && github.event_name == 'workflow_dispatch' }}
+        # allow failing doctest if you run with dispatch
+        continue-on-error: ${{ matrix.target == 'doctest' && github.event_name == 'workflow_dispatch' }}
         run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
 
       - name: Keep artifact
@@ -151,7 +153,7 @@ jobs:
   deploy-docs:
     needs: docs-make
     if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
