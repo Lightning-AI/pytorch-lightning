@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
 
 ---
 
