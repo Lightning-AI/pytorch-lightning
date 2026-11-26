@@ -427,6 +427,11 @@ class ModelCheckpoint(Checkpoint):
             return
 
         # Original logic for automatic optimization
+        # while accumulating gradients, `global_step` hasn't advanced yet and the accumulated gradients aren't part of
+        # the checkpoint, so a checkpoint saved now would include the progress of batches that are not applied yet
+        if trainer.fit_loop._should_accumulate():
+            return
+
         skip_due_to_state = self._should_skip_saving_checkpoint(trainer)
         skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
@@ -554,6 +559,7 @@ class ModelCheckpoint(Checkpoint):
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
             "last_model_path": self.last_model_path,
+            "last_global_step_saved": self._last_global_step_saved,
         }
 
     @override
@@ -566,6 +572,8 @@ class ModelCheckpoint(Checkpoint):
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+            # so that the restored step isn't saved again, e.g. on exception right after resuming
+            self._last_global_step_saved = state_dict.get("last_global_step_saved", self._last_global_step_saved)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
@@ -601,8 +609,13 @@ class ModelCheckpoint(Checkpoint):
         the optimizer step, so we can use that state directly.
 
         """
-        trainer.save_checkpoint(filepath, self.save_weights_only)
-        self._last_global_step_saved = trainer.global_step
+        # set before saving so the checkpoint includes it, but roll it back if saving fails
+        previous_global_step_saved, self._last_global_step_saved = self._last_global_step_saved, trainer.global_step
+        try:
+            trainer.save_checkpoint(filepath, self.save_weights_only)
+        except BaseException:
+            self._last_global_step_saved = previous_global_step_saved
+            raise
         self._last_checkpoint_saved = filepath
 
         # notify loggers

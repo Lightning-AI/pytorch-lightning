@@ -12,7 +12,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 
     from lightning.pytorch.loggers import LitLogger
 
-    lit_logger = LitLogger(save_dir="logs/")
+    lit_logger = LitLogger(root_dir="logs/")
     trainer = Trainer(logger=lit_logger)
 
 Access the litlogger logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
