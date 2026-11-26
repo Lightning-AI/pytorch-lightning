@@ -223,7 +223,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and self._average_model.n_averaged > 0:
             self._swap_models(pl_module)
 
     @override
@@ -237,7 +237,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and self._average_model.n_averaged > 0:
             self._swap_models(pl_module)
 
     @override
