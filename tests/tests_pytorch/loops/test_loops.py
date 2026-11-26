@@ -1111,9 +1111,9 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
             super().__init__(*args, **kwargs)
             self.dataloader = dataloader
 
-        def _shutdown_workers(self):
+        def __del__(self):
             self.dataloader.shutdown_workers_epochs.append(trainer.current_epoch)
-            super()._shutdown_workers()
+            super().__del__()
 
     class TestDataLoader(DataLoader):
         def __init__(self, *args, **kwargs):
@@ -1137,8 +1137,8 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
         trainer.fit(model, train_dataloader, val_dataloader)
 
     if persistent_workers:
-        # workers get created and persist until the teardown in the final epoch
-        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+        # workers persist across epochs and are shut down exactly once via __del__.
+        expected = [trainer.current_epoch]
     elif should_fail:
         expected = [
             # <-- iter() on epoch 0, workers get created
@@ -1155,8 +1155,7 @@ def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
     assert train_dataloader.shutdown_workers_epochs == expected
 
     if persistent_workers:
-        # workers get created and persist until the teardown in the final epoch
-        expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
+        expected = [trainer.current_epoch]
     elif should_fail:
         expected = [
             # <-- iter() on sanity check, workers get created
@@ -1295,3 +1294,42 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_fit_loop_resume_from_last_batch_checkpoint_without_validation(tmp_path):
+    """Resuming twice from step checkpoints saved on an epoch's last batch must not repeat or double-count epochs."""
+
+    class StopAfterEpoch(Callback):
+        def __init__(self, epoch):
+            self.epoch = epoch
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.current_epoch == self.epoch:
+                trainer.should_stop = True
+
+    def make_trainer(stop_epoch=None):
+        callbacks = [ModelCheckpoint(dirpath=tmp_path, filename="{epoch}-{step}", every_n_train_steps=2, save_top_k=-1)]
+        if stop_epoch is not None:
+            callbacks.append(StopAfterEpoch(stop_epoch))
+        return Trainer(
+            default_root_dir=tmp_path,
+            max_epochs=3,
+            limit_train_batches=4,
+            limit_val_batches=0,
+            callbacks=callbacks,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+
+    make_trainer(stop_epoch=0).fit(BoringModel())
+
+    trainer = make_trainer(stop_epoch=1)
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=0-step=4.ckpt"))
+    assert trainer.fit_loop.epoch_progress.total.completed == 2
+
+    trainer = make_trainer()
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=1-step=8.ckpt"))
+    assert trainer.global_step == 12
+    progress = trainer.fit_loop.epoch_progress.total
+    assert progress.ready == progress.started == progress.processed == progress.completed == 3

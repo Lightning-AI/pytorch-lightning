@@ -54,15 +54,18 @@ class _LoggerConnector:
             return False
         if (loop := trainer._active_loop) is None:
             return True
+        stopping = trainer.should_stop
         if isinstance(loop, pl.loops._FitLoop):
             # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
             step = loop.epoch_loop._batches_that_stepped + 1
+            # `should_stop` doesn't stop training until `min_epochs`/`min_steps` are met
+            stopping = stopping and loop._can_stop_early
         elif isinstance(loop, (pl.loops._EvaluationLoop, pl.loops._PredictionLoop)):
             step = loop.batch_progress.current.ready
         else:
             raise NotImplementedError(loop)
         should_log = step % trainer.log_every_n_steps == 0
-        return should_log or trainer.should_stop
+        return should_log or stopping
 
     def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
         if not logger:
@@ -87,7 +90,10 @@ class _LoggerConnector:
         else:
             self.trainer.loggers = [logger]
 
-        if not any(isinstance(logger, LitLogger) for logger in self.trainer.loggers):
+        if (
+            not any(isinstance(logger, LitLogger) for logger in self.trainer.loggers)
+            and self.trainer.suggest_integrations
+        ):
             rank_zero_info(
                 "💡 Tip: For seamless cloud logging and experiment tracking,"
                 " try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger,"
@@ -119,7 +125,7 @@ class _LoggerConnector:
                 step = int(step_metric)
             else:
                 # added metrics for convenience
-                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
+                scalar_metrics.setdefault(f"{self.trainer.log_key_prefix}epoch", self.trainer.current_epoch)
                 step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics

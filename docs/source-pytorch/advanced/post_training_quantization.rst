@@ -126,7 +126,7 @@ At last, the quantized model can be saved by:
 Hands-on Examples
 *****************
 
-Based on the `given example code <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conducts model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
+This example shows how to quantize a PyTorch Lightning model with Intel Neural Compressor. We first define the basic config of the quantization process.
 
 .. code-block:: python
 
@@ -176,7 +176,7 @@ Following is the performance comparison between FP32 model and INT8 model:
 +-------------+-----------------+------------------+
 
 
-For more model quantization performance, please refer to `our model list <https://github.com/intel/neural-compressor/blob/master/docs/source/validated_model_list.md>`_
+For more model quantization performance, please refer to `our model list <https://github.com/intel/neural-compressor/blob/8a6db49e0e06f89562a0c3b22184f0b1bcf0123f/docs/source/validated_model_list.md>`_
 
 *****************
 Technical Support

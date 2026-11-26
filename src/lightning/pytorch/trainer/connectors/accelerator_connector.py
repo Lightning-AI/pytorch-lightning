@@ -465,7 +465,7 @@ class _AcceleratorConnector:
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
-            return HalfPrecision(self._precision_flag)  # type: ignore
+            return HalfPrecision(self._precision_flag)
         if self._precision_flag == "32-true":
             return Precision()
         if self._precision_flag == "64-true":
@@ -487,7 +487,7 @@ class _AcceleratorConnector:
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
-            return MixedPrecision(self._precision_flag, device)  # type: ignore[arg-type]
+            return MixedPrecision(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
 

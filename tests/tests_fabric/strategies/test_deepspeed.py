@@ -264,6 +264,55 @@ def test_deepspeed_load_checkpoint_validate_path(tmp_path):
         strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
 
 
+def test_validate_checkpoint_directory_remote_uri():
+    """Test that the checkpoint path validation supports remote URIs (e.g., S3, HDFS) without mangling the scheme."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    fs = Mock()
+    fs.isdir = Mock(side_effect=lambda p: p in {"s3://bucket/ckpt", "s3://bucket/ckpt/checkpoint"})
+    fs.isfile = Mock(side_effect=lambda p: p == "s3://bucket/ckpt/checkpoint/model_states.pt")
+
+    with mock.patch("lightning.fabric.strategies.deepspeed.get_filesystem", return_value=fs):
+        # A valid remote checkpoint passes validation
+        _validate_checkpoint_directory("s3://bucket/ckpt")
+
+        # User tries to pass the subfolder as the path
+        with pytest.raises(FileNotFoundError, match="parent directory instead: s3://bucket/ckpt$"):
+            _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint")
+
+        # User tries to pass an individual file inside the checkpoint folder
+        with pytest.raises(FileNotFoundError, match="parent directory instead: s3://bucket/ckpt$"):
+            _validate_checkpoint_directory("s3://bucket/ckpt/checkpoint/model_states.pt")
+
+    # The scheme must not get mangled (pathlib.Path would collapse "s3://" to "s3:/")
+    fs.isdir.assert_any_call("s3://bucket/ckpt")
+    fs.isdir.assert_any_call("s3://bucket/ckpt/checkpoint")
+
+
+def test_validate_checkpoint_directory_local_path(tmp_path):
+    """Test that the fsspec-based checkpoint path validation still handles local paths."""
+    from lightning.fabric.strategies.deepspeed import _validate_checkpoint_directory
+
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        _validate_checkpoint_directory(tmp_path)
+
+    checkpoint_dir = tmp_path / "checkpoint"
+    checkpoint_dir.mkdir()
+    _validate_checkpoint_directory(tmp_path)  # now a valid DeepSpeed checkpoint
+
+    with pytest.raises(
+        FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"
+    ):
+        _validate_checkpoint_directory(checkpoint_dir)
+
+    checkpoint_file = checkpoint_dir / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_file.touch()
+    with pytest.raises(
+        FileNotFoundError, match=f"Try to load using this parent directory instead: {escape(str(tmp_path))}"
+    ):
+        _validate_checkpoint_directory(checkpoint_file)
+
+
 @RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
