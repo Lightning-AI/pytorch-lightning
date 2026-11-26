@@ -117,7 +117,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         """
         super().__init__()
         self._forward_module = forward_module
-        self._original_module = original_module or forward_module
+        self._original_module = forward_module if original_module is None else original_module
         self._strategy = strategy
         self._forward_methods = set(_LIGHTNING_MODULE_STEP_METHODS)
         self._fabric_module_initialized = True
@@ -209,11 +209,17 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         @wraps(method)
         def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
+            nonlocal module_called
+            module_called = False
             handles = []
-            for module in self._original_module.modules():
-                handles.append(module.register_forward_hook(hook))
+            try:
+                for module in self._original_module.modules():
+                    handles.append(module.register_forward_hook(hook))
 
-            output = method(*args, **kwargs)
+                output = method(*args, **kwargs)
+            finally:
+                for handle in handles:
+                    handle.remove()
 
             if module_called:
                 raise RuntimeError(
@@ -221,8 +227,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                     " model. To avoid issues with the currently selected strategy, explicitly mark it as a"
                     f" forward method with `fabric_model.mark_forward_method({name!r})` after `fabric.setup()`."
                 )
-            for handle in handles:
-                handle.remove()
             return output
 
         return _wrapped_method
@@ -271,7 +275,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         # Get the _original_module attribute
         original_module = self._original_module
-        original_has_attr = hasattr(original_module, name)
+        # Can't use hasattr because it would call `property` getters, which may raise
+        original_has_attr = name in dir(original_module)
         # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
         # Can't use self.__getattr__ because it would pass through to the original module
         fabric_has_attr = name in dir(self)

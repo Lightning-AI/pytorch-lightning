@@ -97,6 +97,7 @@ class Trainer:
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
+        log_key_prefix: Optional[str] = None,
         callbacks: Optional[Union[list[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,
         max_epochs: Optional[int] = None,
@@ -132,6 +133,7 @@ class Trainer:
         default_root_dir: Optional[_PATH] = None,
         enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
+        suggest_integrations: bool = True,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -159,6 +161,9 @@ class Trainer:
                 ``False`` will disable logging. If multiple loggers are provided, local files
                 (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of the first logger.
                 Default: ``True``.
+
+            log_key_prefix: String prefix prepended to Trainer-generated logged metric keys.
+                Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -308,6 +313,10 @@ class Trainer:
 
             model_registry: The name of the model being uploaded to Model hub.
 
+            suggest_integrations: Whether to display suggestions for optional Lightning integrations.
+                Default: ``True``.
+
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -324,8 +333,10 @@ class Trainer:
 
         # remove version if accidentally passed
         self._model_registry = model_registry.split(":")[0] if model_registry else None
+        self.suggest_integrations = suggest_integrations
 
         self.barebones = barebones
+        self.log_key_prefix = log_key_prefix or ""
         if barebones:
             # opt-outs
             if enable_checkpointing:
