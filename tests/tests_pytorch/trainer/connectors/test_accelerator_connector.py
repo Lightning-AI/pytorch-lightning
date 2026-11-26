@@ -693,6 +693,38 @@ def test_sync_batchnorm_set_in_custom_strategy():
     assert isinstance(strategy._layer_sync, TorchSyncBatchNorm)
 
 
+def test_torch_sync_batchnorm_revert_preserves_training_mode():
+    """Test that TorchSyncBatchNorm.revert preserves per-module training/eval mode."""
+    model = torch.nn.Sequential(
+        torch.nn.BatchNorm1d(4),
+        torch.nn.BatchNorm2d(4),
+    )
+    # Freeze the first BatchNorm in eval mode while leaving the second in train mode
+    model[0].eval()
+    model[1].train()
+    running_mean_before = model[0].running_mean.clone()
+    running_var_before = model[0].running_var.clone()
+
+    plugin = TorchSyncBatchNorm()
+    synced = plugin.apply(model)
+    assert isinstance(synced[0], torch.nn.SyncBatchNorm)
+    assert isinstance(synced[1], torch.nn.SyncBatchNorm)
+    assert synced[0].training is False
+    assert synced[1].training is True
+
+    reverted = plugin.revert(synced)
+    assert not isinstance(reverted[0], torch.nn.SyncBatchNorm)
+    assert not isinstance(reverted[1], torch.nn.SyncBatchNorm)
+    assert reverted[0].training is False
+    assert reverted[1].training is True
+
+    # Eval-mode BatchNorm must not mutate running stats on forward
+    reverted[0](torch.randn(8, 4))
+    assert torch.equal(reverted[0].running_mean, running_mean_before)
+    assert torch.equal(reverted[0].running_var, running_var_before)
+    assert int(reverted[0].num_batches_tracked) == 0
+
+
 @pytest.mark.parametrize(
     ("plugins", "expected"),
     [
