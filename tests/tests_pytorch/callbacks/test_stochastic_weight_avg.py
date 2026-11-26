@@ -192,6 +192,7 @@ def test_swa_callback_ddp_spawn(tmp_path):
     train_with_swa(tmp_path, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
+@pytest.mark.flaky(reruns=2, only_rerun="ProcessExitedException:.*SIGABRT")
 @RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmp_path):
     train_with_swa(tmp_path, strategy="ddp_spawn", accelerator="cpu", devices=2)
