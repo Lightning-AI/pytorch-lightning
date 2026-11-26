@@ -19,7 +19,6 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Any, Callable, Optional, TextIO, Union
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
@@ -32,7 +31,7 @@ class Profiler(ABC):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
     ) -> None:
         self.dirpath = dirpath

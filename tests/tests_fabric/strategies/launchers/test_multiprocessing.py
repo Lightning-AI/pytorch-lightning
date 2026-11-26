@@ -47,7 +47,30 @@ def test_start_method(_, mp_mock, start_method):
         args=ANY,
         nprocs=ANY,
         start_method=start_method,
+        join=False,
     )
+
+
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
+def test_launch_cleans_up_workers_when_interrupted(mp_mock):
+    mp_mock.get_all_start_methods.return_value = ["spawn"]
+    mp_mock.current_process.return_value._inheriting = False
+    process_context = mp_mock.start_processes.return_value
+    process_context.join.side_effect = KeyboardInterrupt
+    running, exited = Mock(), Mock()
+    running.is_alive.return_value = True
+    exited.is_alive.return_value = False
+    process_context.processes = [running, exited]
+
+    launcher = _MultiProcessingLauncher(strategy=Mock())
+    with pytest.raises(KeyboardInterrupt):
+        launcher.launch(function=Mock())
+
+    running.kill.assert_called_once_with()
+    exited.kill.assert_not_called()
+    running.join.assert_called_once_with()
+    exited.join.assert_called_once_with()
+    mp_mock.get_context.return_value.SimpleQueue.return_value.get.assert_not_called()
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
