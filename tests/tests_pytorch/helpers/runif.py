@@ -14,7 +14,7 @@
 import pytest
 
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_8
+from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_8, _TORCH_GREATER_EQUAL_2_11
 from lightning.pytorch.utilities.testing import _runif_reasons
 
 
@@ -23,10 +23,10 @@ def RunIf(**kwargs):
     return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)
 
 
-# todo: RuntimeError: makeDeviceForHostname(): unsupported gloo device
+# RuntimeError: makeDeviceForHostname(): unsupported gloo device (fixed in 2.11)
 _xfail_gloo_windows = pytest.mark.xfail(
     RuntimeError,
     strict=True,
-    condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_8),
+    condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_8 and not _TORCH_GREATER_EQUAL_2_11),
     reason="makeDeviceForHostname(): unsupported gloo device",
 )

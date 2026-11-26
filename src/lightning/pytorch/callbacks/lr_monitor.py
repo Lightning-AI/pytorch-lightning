@@ -31,7 +31,7 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 
@@ -46,6 +46,10 @@ class LearningRateMonitor(Callback):
             has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
         log_weight_decay: option to also log the weight decay values of the optimizer. Defaults to
             ``False``.
+        log_key_prefix: optional string prefix to prepend to all logged metric names. Useful for
+            grouping learning rate metrics in loggers like TensorBoard. For example, setting
+            ``log_key_prefix="optim/"`` would log ``optim/lr-Adam`` instead of ``lr-Adam``.
+            Defaults to ``None`` (no prefix).
 
     Raises:
         MisconfigurationException:
@@ -57,6 +61,10 @@ class LearningRateMonitor(Callback):
         >>> from lightning.pytorch.callbacks import LearningRateMonitor
         >>> lr_monitor = LearningRateMonitor(logging_interval='step')
         >>> trainer = Trainer(callbacks=[lr_monitor])
+
+    The monitored values are sent to all loggers attached to the ``Trainer`` and are also available in
+    ``trainer.callback_metrics``. The callback can be used without any logger (e.g. ``Trainer(logger=False)``),
+    in which case the values are only stored in ``trainer.callback_metrics``.
 
     Logging names are automatically determined based on optimizer class name.
     In case of multiple optimizers of same type, they will be named ``Adam``,
@@ -96,6 +104,7 @@ class LearningRateMonitor(Callback):
         logging_interval: Optional[Literal["step", "epoch"]] = None,
         log_momentum: bool = False,
         log_weight_decay: bool = False,
+        log_key_prefix: Optional[str] = None,
     ) -> None:
         if logging_interval not in (None, "step", "epoch"):
             raise MisconfigurationException("logging_interval should be `step` or `epoch` or `None`.")
@@ -103,6 +112,7 @@ class LearningRateMonitor(Callback):
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
         self.log_weight_decay = log_weight_decay
+        self.log_key_prefix = log_key_prefix or ""
 
         self.lrs: dict[str, list[float]] = {}
         self.last_momentum_values: dict[str, Optional[list[float]]] = {}
@@ -111,16 +121,11 @@ class LearningRateMonitor(Callback):
     @override
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the same
-        type or in the case of multiple parameter groups.
-
-        Raises:
-            MisconfigurationException:
-                If ``Trainer`` has no ``logger``.
-
-        """
+        type or in the case of multiple parameter groups."""
         if not trainer.loggers:
-            raise MisconfigurationException(
-                "Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger."
+            rank_zero_info(
+                "`LearningRateMonitor` is used with a `Trainer` that has no logger. The monitored values will not be"
+                " logged, but they will be available in `trainer.callback_metrics`."
             )
 
         if self.log_momentum:
@@ -214,7 +219,7 @@ class LearningRateMonitor(Callback):
             latest_stat.update(current_stat)
 
         trainer.callback_metrics.update({
-            name: torch.tensor(value, device=trainer.strategy.root_device) for name, value in latest_stat.items()
+            name: torch.tensor(float(value), device=trainer.strategy.root_device) for name, value in latest_stat.items()
         })
 
         return latest_stat
@@ -361,4 +366,7 @@ class LearningRateMonitor(Callback):
             )
 
         name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
-        return [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
+        names = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
+        if self.log_key_prefix:
+            names = [f"{self.log_key_prefix}{n}" for n in names]
+        return names

@@ -18,7 +18,6 @@ import logging
 import os
 from contextlib import AbstractContextManager
 from functools import lru_cache, partial
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
@@ -29,7 +28,6 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
@@ -232,7 +230,7 @@ class PyTorchProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[Union[str, os.PathLike[str]]] = None,
         filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
@@ -406,16 +404,9 @@ class PyTorchProfiler(Profiler):
         activities: list[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
-        if _TORCH_GREATER_EQUAL_2_4:
-            activities.append(ProfilerActivity.CPU)
-            if is_cuda_available():
-                activities.append(ProfilerActivity.CUDA)
-        else:
-            # `use_cpu` and `use_cuda` are deprecated in PyTorch >= 2.4
-            if self._profiler_kwargs.get("use_cpu", True):
-                activities.append(ProfilerActivity.CPU)
-            if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
-                activities.append(ProfilerActivity.CUDA)
+        activities.append(ProfilerActivity.CPU)
+        if is_cuda_available():
+            activities.append(ProfilerActivity.CUDA)
         return activities
 
     @override
@@ -476,7 +467,7 @@ class PyTorchProfiler(Profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         handler = tensorboard_trace_handler(
-                            str(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
+                            os.fspath(self.dirpath), self._prepare_filename(action_name=action_name, extension="")
                         )
                         handler(profiler)
 
