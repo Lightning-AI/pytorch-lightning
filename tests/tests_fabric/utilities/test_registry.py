@@ -27,7 +27,17 @@ def test_load_external_callbacks():
     def factory_multiple_callbacks_list():
         return [ExternalCallback(), ExternalCallback()]
 
+    def factory_none_callback():
+        return None
+
+    def factory_multiple_callbacks_tuple():
+        return (ExternalCallback(), ExternalCallback())
+
     with _make_entry_point_query_mock(factory_no_callback):
+        callbacks = _load_external_callbacks("lightning.pytorch.callbacks_factory")
+    assert callbacks == []
+
+    with _make_entry_point_query_mock(factory_none_callback):
         callbacks = _load_external_callbacks("lightning.pytorch.callbacks_factory")
     assert callbacks == []
 
@@ -41,6 +51,12 @@ def test_load_external_callbacks():
 
     with _make_entry_point_query_mock(factory_multiple_callbacks_list):
         callbacks = _load_external_callbacks("lightning.pytorch.callbacks_factory")
+    assert isinstance(callbacks[0], ExternalCallback)
+    assert isinstance(callbacks[1], ExternalCallback)
+
+    with _make_entry_point_query_mock(factory_multiple_callbacks_tuple):
+        callbacks = _load_external_callbacks("lightning.pytorch.callbacks_factory")
+    assert len(callbacks) == 2
     assert isinstance(callbacks[0], ExternalCallback)
     assert isinstance(callbacks[1], ExternalCallback)
 
