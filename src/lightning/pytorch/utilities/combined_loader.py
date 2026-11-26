@@ -91,7 +91,8 @@ class _MaxSizeCycle(_ModeIterator):
                 # reset the consumed dataloader
                 self.iterators[i] = iter(self.iterables[i])
                 self._counts[i] = 0
-                out[i] = self._next_batch(i)
+                with contextlib.suppress(StopIteration):
+                    out[i] = self._next_batch(i)
         index = self._idx
         self._idx += 1
         return out, index, 0

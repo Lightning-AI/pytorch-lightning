@@ -35,11 +35,12 @@ def _reference(mode, rows):
         pairs = zip(*rows)
     elif mode == "max_size":
         pairs = itertools.zip_longest(*rows)
-    elif any(not values for values in rows):
-        # Preserve max_size_cycle's existing behavior for an empty iterable.
-        pairs = []
     else:
-        pairs = itertools.islice(zip(*(itertools.cycle(values) for values in rows)), max(map(len, rows)))
+        # Match max_size_cycle's current behavior of filling empty iterables with None.
+        pairs = itertools.islice(
+            zip(*(itertools.cycle(values) if values else itertools.repeat(None) for values in rows)),
+            max(map(len, rows)),
+        )
     return [({"a": left, "b": right}, index, 0) for index, (left, right) in enumerate(pairs)]
 
 
@@ -95,10 +96,12 @@ def test_limits_bound_infinite_iterable_dataloaders(mode, limits):
 
 
 @pytest.mark.parametrize("mode", ["min_size", "max_size", "max_size_cycle", "sequential"])
-def test_zero_limit_behaves_like_an_empty_iterator(mode):
-    loader = CombinedLoader({"a": DataLoader(range(5)), "b": DataLoader(range(10, 14))}, mode)
-    loader.limits = [3, 0]
-    assert _collect(loader) == _reference(mode, [list(range(3)), []])
+@pytest.mark.parametrize("limits", [[3, 0], [0, 2], [0, 0]])
+def test_zero_limit_behaves_like_an_empty_iterator(mode, limits):
+    rows = [list(range(5)), list(range(10, 14))]
+    loader = CombinedLoader({"a": DataLoader(rows[0]), "b": DataLoader(rows[1])}, mode)
+    loader.limits = limits
+    assert _collect(loader) == _reference(mode, [values[:limit] for values, limit in zip(rows, limits)])
 
 
 class _LimitedTrainingModel(LightningModule):
