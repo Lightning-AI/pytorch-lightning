@@ -277,6 +277,31 @@ class ConvBlockParam(nn.Module):
         return self.bn(x)
 
 
+def test_filter_on_optimizer_compares_identity():
+    """Test that parameters are only excluded if they are in the optimizer, not if they merely have equal values."""
+    in_optimizer, new = nn.Linear(2, 2), nn.Linear(2, 2)
+    for module in (in_optimizer, new):
+        nn.init.zeros_(module.weight)
+        nn.init.zeros_(module.bias)
+    optimizer = SGD(in_optimizer.parameters(), lr=0.1)
+
+    assert BaseFinetuning.filter_on_optimizer(optimizer, new.parameters()) == list(new.parameters())
+
+    with pytest.warns(UserWarning, match="already exist within another group"):
+        assert BaseFinetuning.filter_on_optimizer(optimizer, in_optimizer.parameters()) == []
+
+
+def test_unfreeze_and_add_param_group_adds_a_tied_parameter_once():
+    embed, head, other = nn.Linear(2, 2), nn.Linear(2, 2), nn.Linear(2, 2)
+    head.weight = embed.weight
+    model = nn.ModuleDict({"embed": embed, "head": head, "other": other})
+    BaseFinetuning.freeze(model)
+    optimizer = SGD(other.parameters(), lr=0.1)
+    BaseFinetuning.unfreeze_and_add_param_group([model["embed"], model["head"]], optimizer)
+    params = optimizer.param_groups[-1]["params"]
+    assert len(params) == len({id(p) for p in params}) == 3
+
+
 def test_complex_nested_model():
     """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters."""
