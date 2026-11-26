@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
 
 from lightning.pytorch import LightningModule, Trainer
@@ -634,6 +636,65 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.completed == 0
 
 
+class _EpochRecordingSampler(RandomSampler):
+    """Like `DistributedSampler`, reads `self.epoch` when the permutation is drawn in `__iter__`."""
+
+    def __init__(self, data_source, log_file):
+        super().__init__(data_source)
+        self.epoch = 0
+        self.log_file = log_file
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
+
+    def __iter__(self):
+        # the sampler is iterated in the main process, but log to a file to be robust against `spawn` start methods
+        with open(self.log_file, "a") as f:
+            f.write(f"{self.epoch}\n")
+        yield from super().__iter__()
+
+
+@pytest.mark.skipif(sys.platform in ["darwin", "win32"], reason="Skip on windows & macOS due to multiprocessing issues")
+@pytest.mark.parametrize("save_on_last_batch", [False, True])
+def test_resume_sets_sampler_epoch_before_iterator_creation(tmp_path, save_on_last_batch):
+    """Test that the first epoch of a resumed run draws its sampler permutation with the restored epoch."""
+    log_file = tmp_path / "sampler_epochs.log"
+    dataset = RandomDataset(32, 8)
+
+    def make_dataloader():
+        return DataLoader(dataset, sampler=_EpochRecordingSampler(dataset, str(log_file)), batch_size=4, num_workers=1)
+
+    def read_epochs():
+        epochs = [int(line) for line in log_file.read_text().split()]
+        log_file.write_text("")
+        return epochs
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    if save_on_last_batch:
+        # saved in `on_train_batch_end` of the last batch of epoch 1 (2 batches per epoch)
+        checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=4, save_top_k=-1)
+        ckpt_path = tmp_path / "epoch=1-step=4.ckpt"
+    else:
+        checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, save_last=True, save_top_k=0)
+        ckpt_path = tmp_path / "last.ckpt"
+
+    trainer = Trainer(**trainer_kwargs, max_epochs=2, callbacks=[checkpoint_callback])
+    trainer.fit(BoringModel(), make_dataloader())
+    assert read_epochs() == [0, 1]
+
+    trainer = Trainer(**trainer_kwargs, max_epochs=4, enable_checkpointing=False)
+    trainer.fit(BoringModel(), make_dataloader(), ckpt_path=ckpt_path)
+    # the sampler may be iterated more than once per epoch (the iterator is re-created), but never with a stale epoch
+    assert sorted(set(read_epochs())) == [2, 3]
+
+
 def compare_state_dicts(dict1, dict2):
     def compare_leaves(d1, d2):
         result = {}
@@ -1226,6 +1287,16 @@ class StatefulIterable(NotStatefulIterable):
         self.index = state_dict["index"] + 1
 
 
+class EagerStatefulIterable(StatefulIterable):
+    def __iter__(self):
+        return self._iterate_from(self.index)
+
+    def _iterate_from(self, start):
+        for index in range(start, len(self)):
+            self.index = index
+            yield index
+
+
 @pytest.mark.parametrize(
     ("train_dataloader_factory", "has_state", "batches_before", "batches_after"),
     [
@@ -1233,6 +1304,7 @@ class StatefulIterable(NotStatefulIterable):
         (lambda: [], False, [], []),
         # Single stateful DataLoader
         (lambda: StatefulIterable(), True, [0, 1], [2, 3]),
+        pytest.param(EagerStatefulIterable, True, [0, 1], [2, 3], id="eager"),
         # Single, not stateful DataLoader
         (lambda: CombinedLoader(NotStatefulIterable()), False, [0, 1], [0, 1]),
         # Single stateful DataLoader
@@ -1302,3 +1374,42 @@ def test_fit_loop_save_and_restore_dataloaders(
     trainer = Trainer(**trainer_kwargs, max_steps=4, max_epochs=10)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
+
+
+def test_fit_loop_resume_from_last_batch_checkpoint_without_validation(tmp_path):
+    """Resuming twice from step checkpoints saved on an epoch's last batch must not repeat or double-count epochs."""
+
+    class StopAfterEpoch(Callback):
+        def __init__(self, epoch):
+            self.epoch = epoch
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.current_epoch == self.epoch:
+                trainer.should_stop = True
+
+    def make_trainer(stop_epoch=None):
+        callbacks = [ModelCheckpoint(dirpath=tmp_path, filename="{epoch}-{step}", every_n_train_steps=2, save_top_k=-1)]
+        if stop_epoch is not None:
+            callbacks.append(StopAfterEpoch(stop_epoch))
+        return Trainer(
+            default_root_dir=tmp_path,
+            max_epochs=3,
+            limit_train_batches=4,
+            limit_val_batches=0,
+            callbacks=callbacks,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+
+    make_trainer(stop_epoch=0).fit(BoringModel())
+
+    trainer = make_trainer(stop_epoch=1)
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=0-step=4.ckpt"))
+    assert trainer.fit_loop.epoch_progress.total.completed == 2
+
+    trainer = make_trainer()
+    trainer.fit(BoringModel(), ckpt_path=str(tmp_path / "epoch=1-step=8.ckpt"))
+    assert trainer.global_step == 12
+    progress = trainer.fit_loop.epoch_progress.total
+    assert progress.ready == progress.started == progress.processed == progress.completed == 3

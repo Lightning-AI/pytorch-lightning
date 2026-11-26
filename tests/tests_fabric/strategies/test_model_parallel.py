@@ -25,14 +25,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import ModelParallelStrategy
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.strategies.model_parallel import _ParallelBackwardSyncControl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from tests_fabric.helpers.runif import RunIf
-
-
-@mock.patch("lightning.fabric.strategies.model_parallel._TORCH_GREATER_EQUAL_2_4", False)
-def test_torch_greater_equal_2_4():
-    with pytest.raises(ImportError, match="ModelParallelStrategy requires PyTorch 2.4 or higher"):
-        ModelParallelStrategy(parallelize_fn=(lambda m, _: m))
 
 
 @RunIf(min_torch="2.4")
@@ -317,11 +310,12 @@ def test_set_timeout(init_process_group_mock, _):
     process_group_backend = strategy._get_process_group_backend()
     global_rank = strategy.cluster_environment.global_rank()
     world_size = strategy.cluster_environment.world_size()
-    kwargs = {}
-    if _TORCH_GREATER_EQUAL_2_3:
-        kwargs["device_id"] = strategy.root_device if strategy.root_device.type != "cpu" else None
     init_process_group_mock.assert_called_with(
-        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta, **kwargs
+        process_group_backend,
+        rank=global_rank,
+        world_size=world_size,
+        timeout=test_timedelta,
+        device_id=None,
     )
 
 
@@ -391,13 +385,16 @@ def test_model_parallel_load_checkpoint_does_not_corrupt_remote_path(monkeypatch
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
     monkeypatch.setattr(mp, "_is_sharded_checkpoint", lambda p: True)
     monkeypatch.setattr(mp, "_is_full_checkpoint", lambda p: False)
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: captured.update(path=path))
+    monkeypatch.setattr(
+        mp, "_distributed_checkpoint_load", lambda state, path, strict=True: captured.update(path=path, strict=strict)
+    )
     monkeypatch.setattr(mp, "_load", lambda path, weights_only=None: captured.update(meta=str(path)) or {})
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)
     mp._load_checkpoint(path="gs://bucket/run/ckpt", state={"model": model}, strict=False)
     assert captured["path"] == "gs://bucket/run/ckpt"
+    assert captured["strict"] is False
     assert captured["meta"] == "gs://bucket/run/ckpt/meta.pt"
 
 
@@ -425,12 +422,16 @@ def test_model_parallel_load_checkpoint_loads_non_tensor_metadata(monkeypatch, t
     _atomic_save({"user_meta": _NonTensorMeta(42)}, ckpt_dir / _METADATA_FILENAME)
     assert _is_sharded_checkpoint(ckpt_dir)
 
+    captured = {}
     monkeypatch.setattr(mp, "_has_dtensor_modules", lambda m: isinstance(m, nn.Module))
-    monkeypatch.setattr(mp, "_distributed_checkpoint_load", lambda state, path: None)
+    monkeypatch.setattr(
+        mp, "_distributed_checkpoint_load", lambda state, path, strict=True: captured.update(strict=strict)
+    )
     monkeypatch.setattr("torch.distributed.checkpoint.state_dict.get_model_state_dict", lambda module: {})
 
     model = nn.Linear(2, 2)
     state = {"model": model, "user_meta": None}
     mp._load_checkpoint(path=ckpt_dir, state=state, strict=False)
+    assert captured["strict"] is False
     assert isinstance(state["user_meta"], _NonTensorMeta)
     assert state["user_meta"].value == 42

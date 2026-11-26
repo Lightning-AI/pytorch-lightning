@@ -205,10 +205,11 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
+        # `reset` fast-forwards the epoch progress of a restored run, required before setting up the data
+        self.reset()
         self.setup_data()
         if self.skip:
             return
-        self.reset()
         self.on_run_start()
         while not self.done:
             try:
@@ -224,9 +225,7 @@ class _FitLoop(_Loop):
 
     def setup_data(self) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
-            # the dataloaders may have been set up before the checkpoint was loaded, e.g., if the user accessed
-            # `trainer.estimated_stepping_batches` in `configure_optimizers`. in that case, restore the dataloader
-            # states now and recreate the iterator so the restored states take effect
+            # The dataloaders may have been set up before the checkpoint was loaded.
             if self.restarting and self._combined_loader_states_to_load:
                 self._load_combined_loader_states()
                 assert self._data_fetcher is not None
@@ -276,6 +275,10 @@ class _FitLoop(_Loop):
         combined_loader.limits = limits
 
         self._load_combined_loader_states()
+
+        # Set the sampler epoch before creating the iterator to preserve the restored epoch on resume.
+        for dl in combined_loader.flattened:
+            _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
@@ -329,6 +332,15 @@ class _FitLoop(_Loop):
                 f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
+                category=PossibleUserWarning,
+            )
+
+        if self.max_batches < trainer.accumulate_grad_batches:
+            rank_zero_warn(
+                f"The number of training batches ({self.max_batches}) is smaller than "
+                f"`accumulate_grad_batches={trainer.accumulate_grad_batches}`. Since Lightning always performs an"
+                " optimizer step on the last batch of the epoch, gradients will effectively be accumulated over only"
+                f" {self.max_batches} batch(es) instead of {trainer.accumulate_grad_batches} for this epoch.",
                 category=PossibleUserWarning,
             )
 
@@ -409,8 +421,8 @@ class _FitLoop(_Loop):
         ):
             self.epoch_progress.increment_processed()
             self.epoch_progress.increment_completed()
-
-        if (
+            self.reset_restart_stage()
+        elif (
             self.epoch_loop.restarted_on_train_batch_end
             and self.epoch_loop.batch_progress.is_last_batch
             and not self.restarted_mid_epoch

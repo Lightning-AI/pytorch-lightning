@@ -247,7 +247,8 @@ class _ResultMetric(Metric):
         if self.is_tensor:
             value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
-                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
+                # mean-syncing the integer count floors it and inflates the result, so sync it as a float
+                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size.to(value.dtype))
                 return value / cumulated_batch_size
             return value
         return self.value.compute()
@@ -304,6 +305,16 @@ class _ResultMetric(Metric):
 
     @override
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
+        # `_ResultCollection.log` calls `.to(value.device)` on every logged value on every step. Walking the
+        # whole `__dict__` with `apply_to_collection` is expensive, so skip it when the metric is already on the
+        # requested device. Only the simple `.to(device)` call (the hot path) is short-circuited; any other
+        # signature (e.g. a dtype cast) falls through to the full move.
+        if not kwargs and len(args) == 1 and isinstance(args[0], (str, torch.device)):
+            target = torch.device(args[0])
+            value = getattr(self, "value", None)
+            current = value.device if isinstance(value, (Tensor, Metric)) else None
+            if current is not None and current == target:
+                return self
         d = dict(self.__dict__)
         self.__dict__.update(apply_to_collection(d, (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
