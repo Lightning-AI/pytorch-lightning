@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
+
 - Fixed an unintuitive behavior in `Fabric.all_reduce` where passing a CPU tensor on a non-CPU device resulted in a silent backend copy instead of updating the original tensor, by explicitly raising a `RuntimeError` ([#21573](https://github.com/Lightning-AI/pytorch-lightning/pull/21573))
 
 - Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
