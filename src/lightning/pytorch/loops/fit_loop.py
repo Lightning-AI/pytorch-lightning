@@ -205,10 +205,11 @@ class _FitLoop(_Loop):
         return self.done or self.trainer.limit_train_batches == 0
 
     def run(self) -> None:
+        # `reset` fast-forwards the epoch progress of a restored run, required before setting up the data
+        self.reset()
         self.setup_data()
         if self.skip:
             return
-        self.reset()
         self.on_run_start()
         while not self.done:
             try:
@@ -269,6 +270,10 @@ class _FitLoop(_Loop):
         combined_loader.limits = limits
 
         self._load_combined_loader_states()
+
+        # Set the sampler epoch before creating the iterator to preserve the restored epoch on resume.
+        for dl in combined_loader.flattened:
+            _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
