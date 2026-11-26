@@ -54,7 +54,8 @@ class Precision(FabricPrecision, CheckpointHooks):
 
         def record_step(opt: Optimizer, args: Any, kwargs: Any) -> None:
             # Fused optimizers enter step() even on overflow. GradScaler passes them the device-side flag.
-            self._optimizer_step_was_skipped = getattr(opt, "found_inf", False)
+            found_inf = kwargs.get("found_inf")
+            self._optimizer_step_was_skipped = getattr(opt, "found_inf", False) if found_inf is None else found_inf
 
         self._optimizer_step_was_skipped = True
         with optimizer.register_step_pre_hook(record_step):
