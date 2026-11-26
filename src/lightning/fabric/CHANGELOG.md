@@ -26,6 +26,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
+
+- Fixed an unintuitive behavior in `Fabric.all_reduce` where passing a CPU tensor on a non-CPU device resulted in a silent backend copy instead of updating the original tensor, by explicitly raising a `RuntimeError` ([#21573](https://github.com/Lightning-AI/pytorch-lightning/pull/21573))
+
+- Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
+
+- Fixed `_FabricModule.__setattr__` invoking the wrapped module's `property` getters ([#21944](https://github.com/Lightning-AI/pytorch-lightning/pull/21944))
+
 - Fixed type checking for the `BitsandbytesPrecision` plugin and raised the supported `bitsandbytes` ceiling to `<0.50` (compatible with 0.48/0.49) ([#21858](https://github.com/Lightning-AI/pytorch-lightning/pull/21858))
 
 - Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
@@ -41,6 +49,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
 
 - Fixed `_atomic_save` swallowing `PermissionError`, which made checkpoint saving report success without writing a file ([#21799](https://github.com/Lightning-AI/pytorch-lightning/pull/21799))
+
+- Fixed `FSDPStrategy.load_checkpoint` and `ModelParallelStrategy.load_checkpoint` ignoring `strict=False` when loading sharded (distributed) checkpoints ([#22028](https://github.com/Lightning-AI/pytorch-lightning/pull/22028))
 
 - Fixed the `scheduler` type hint on `Fabric.setup` and `Strategy.setup_module_and_optimizers` to use the public `LRScheduler` instead of the private `_LRScheduler` ([#21934](https://github.com/Lightning-AI/pytorch-lightning/pull/21934))
 
