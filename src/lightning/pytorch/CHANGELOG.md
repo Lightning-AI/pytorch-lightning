@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `_log_hyperparams` falsely raising `RuntimeError` for equal `torch.Tensor` hyperparameters and `ValueError` for multi-element `numpy.ndarray` hyperparameters shared between `LightningModule` and `LightningDataModule`
+
 - Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
 
 - Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
