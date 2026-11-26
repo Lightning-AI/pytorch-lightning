@@ -47,7 +47,7 @@ class ManualResult(OutputResult):
     def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, Mapping):
-            extra = training_step_output.copy()
+            extra = dict(training_step_output)
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
@@ -55,7 +55,7 @@ class ManualResult(OutputResult):
                 "In manual optimization, `training_step` must either return a Tensor or have no return."
             )
 
-        if "loss" in extra:
+        if isinstance(extra.get("loss"), Tensor):
             # we detach manually as it's expected that it will have a `grad_fn`
             extra["loss"] = extra["loss"].detach()
 
@@ -91,10 +91,13 @@ class _ManualOptimization(_Loop):
 
     def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
         self.on_run_start()
-        with suppress(StopIteration):  # no loop to break at this level
-            self.advance(kwargs)
-        self._restarting = False
-        return self.on_run_end()
+        try:
+            with suppress(StopIteration):  # no loop to break at this level
+                self.advance(kwargs)
+        finally:
+            self._restarting = False
+            output = self.on_run_end()
+        return output
 
     def on_run_start(self) -> None:
         # inject logic around the optimizer step

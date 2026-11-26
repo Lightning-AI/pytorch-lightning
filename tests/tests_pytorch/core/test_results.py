@@ -21,7 +21,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
-from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
+from lightning.pytorch.trainer.connectors.logger_connector.result import _Metadata, _ResultMetric, _Sync
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_tpu import wrap_launch_function
 
@@ -54,3 +54,20 @@ def result_reduce_ddp_fn(strategy):
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     spawn_launch(result_reduce_ddp_fn, [torch.device("cpu")] * 2)
+
+
+def result_metric_mean_uneven_batches_fn(strategy):
+    # ranks log 3 and 2 batches: the mean is 36 / 5 = 7.2, a floored count (2 instead of 2.5) gives 9.0
+    metadata = _Metadata("validation_step", "val_metric", on_step=False, on_epoch=True)
+    metadata.sync = _Sync(strategy.reduce, _should=True)
+    metric = _ResultMetric(metadata, is_tensor=True)
+    values = ([1.0, 2.0, 3.0], [10.0, 20.0])[dist.get_rank()]
+    for value in values:
+        metric.update(torch.tensor(value), batch_size=1)
+    assert metric.compute().item() == pytest.approx(7.2)
+
+
+@pytest.mark.flaky(reruns=3)
+@RunIf(skip_windows=True)
+def test_result_metric_mean_with_uneven_batch_counts():
+    spawn_launch(result_metric_mean_uneven_batches_fn, [torch.device("cpu")] * 2)

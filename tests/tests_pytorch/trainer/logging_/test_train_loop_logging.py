@@ -28,9 +28,10 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from lightning.pytorch import Trainer, callbacks
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -741,6 +742,39 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
         call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
         call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
     ])
+
+
+@mock.patch("lightning.pytorch.loggers.CSVLogger.log_metrics")
+def test_log_every_n_steps_while_stop_is_deferred_by_min_epochs(mock_log_metrics, tmp_path):
+    """A `should_stop` that `min_epochs` defers must not make every step log."""
+
+    class StopEveryBatch(Callback):
+        def on_train_batch_end(self, trainer, *_):
+            trainer.should_stop = True
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        min_epochs=2,
+        max_epochs=2,
+        log_every_n_steps=4,
+        callbacks=StopEveryBatch(),
+        logger=CSVLogger(tmp_path),
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(MyModel())
+
+    assert trainer.current_epoch == 2
+    logged_steps = [c.kwargs["step"] for c in mock_log_metrics.call_args_list if "foo" in c.kwargs["metrics"]]
+    assert logged_steps == [3, 7]
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
