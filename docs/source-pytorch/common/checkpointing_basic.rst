@@ -88,6 +88,7 @@ To explicitly control the checkpoint location when using a logger, use the
 :class:`~lightning.pytorch.callbacks.ModelCheckpoint` callback:
 
 .. code-block:: python
+    :emphasize-lines: 4
 
     from lightning.pytorch.callbacks import ModelCheckpoint
 
@@ -109,6 +110,7 @@ LightningModule from checkpoint
 To load a LightningModule along with its weights and hyperparameters use the following method:
 
 .. code-block:: python
+    :emphasize-lines: 1
 
     model = MyLightningModule.load_from_checkpoint("/path/to/checkpoint.ckpt")
 
@@ -125,6 +127,7 @@ Save hyperparameters
 The LightningModule allows you to automatically save all the hyperparameters passed to *init* simply by calling *self.save_hyperparameters()*.
 
 .. code-block:: python
+    :emphasize-lines: 4
 
     class MyLightningModule(LightningModule):
         def __init__(self, learning_rate, another_parameter, *args, **kwargs):
