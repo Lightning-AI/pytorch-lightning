@@ -28,6 +28,7 @@ from typing_extensions import override
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.logger import rank_zero_experiment
+from lightning.fabric.utilities.cloud_io import _path_join
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.saving import save_hparams_to_yaml
@@ -64,7 +65,7 @@ class ExperimentWriter(_FabricExperimentWriter):
 
         """
         self.hparams.update(params)
-        hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
+        hparams_file = _path_join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
 
@@ -165,7 +166,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         be saved in "save_dir/version"
 
         """
-        return os.path.join(self.save_dir, self.name)
+        return _path_join(self.save_dir, self.name)
 
     @property
     @override
@@ -178,7 +179,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, version)
+        return _path_join(self.root_dir, version)
 
     @property
     @override

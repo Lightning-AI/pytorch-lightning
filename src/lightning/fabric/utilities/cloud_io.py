@@ -17,6 +17,8 @@ import errno
 import importlib
 import io
 import logging
+import os
+import posixpath
 import shutil
 from pathlib import Path
 from typing import IO, Any, Optional, Union
@@ -187,6 +189,12 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
 
 def _is_local_file_protocol(path: _PATH) -> bool:
     return fsspec.utils.get_protocol(str(path)) == "file"
+
+
+def _path_join(path: _PATH, *parts: str) -> str:
+    """Join local paths with native separators and remote URLs with forward slashes."""
+    join = os.path.join if _is_local_file_protocol(path) else posixpath.join
+    return join(os.fspath(path), *parts)
 
 
 def _resolve_path(path: _PATH) -> Union[str, Path]:

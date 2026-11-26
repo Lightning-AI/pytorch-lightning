@@ -22,7 +22,7 @@ from torch import Tensor
 from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, _path_join, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
@@ -117,7 +117,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self._root_dir, self.name, version)
+        return _path_join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
@@ -169,7 +169,7 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        versions_root = os.path.join(self._root_dir, self.name)
+        versions_root = _path_join(self._root_dir, self.name)
 
         if not _is_dir(self._fs, versions_root, strict=True):
             return 0
@@ -205,7 +205,7 @@ class _ExperimentWriter:
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
-        self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
+        self.metrics_file_path = _path_join(self.log_dir, self.NAME_METRICS_FILE)
 
         self._check_log_dir_exists()
         self._fs.makedirs(self.log_dir, exist_ok=True)
