@@ -64,18 +64,22 @@ class RegisterRecordFunction:
 
     def __init__(self, model: nn.Module) -> None:
         self._model = model
-        self._records: dict[str, record_function] = {}
+        self._records: dict[str, list[record_function]] = {}
         self._handles: dict[str, list[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
         record = record_function("[pl][module]" + record_name)
         record.__enter__()
-        self._records[record_name] = record
+        self._records.setdefault(record_name, []).append(record)
         return input
 
     def _stop_recording_forward(self, _: nn.Module, __: Tensor, output: Tensor, record_name: str) -> Tensor:
-        self._records[record_name].__exit__(None, None, None)
+        records = self._records.get(record_name)
+        if records:
+            records.pop().__exit__(None, None, None)
+            if not records:
+                del self._records[record_name]
         return output
 
     def __enter__(self) -> None:
@@ -93,6 +97,10 @@ class RegisterRecordFunction:
                 self._handles[module_name] = [pre_forward_handle, post_forward_handle]
 
     def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
+        for records in reversed(list(self._records.values())):
+            for record in reversed(records):
+                record.__exit__(type, value, traceback)
+        self._records = {}
         for handles in self._handles.values():
             for h in handles:
                 h.remove()
