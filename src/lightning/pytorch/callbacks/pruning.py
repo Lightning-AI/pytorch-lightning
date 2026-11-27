@@ -276,13 +276,30 @@ class ModelPruning(Callback):
                     del module._forward_pre_hooks[k]
 
     @staticmethod
+    def _deepcopy_for_pruning(module: nn.Module) -> nn.Module:
+        """Copy the unmasked parameters, including those of pruned child modules."""
+        memo = {}
+        for submodule in module.modules():
+            for name, tensor in vars(submodule).items():
+                if not isinstance(tensor, Tensor):
+                    continue
+                # A pruning hook caches a masked weight until the next forward. Lottery-ticket resets update
+                # the original parameter, so that cached tensor can be stale when the next fit starts.
+                original = submodule._parameters.get(f"{name}_orig")
+                if original is not None and f"{name}_mask" in submodule._buffers:
+                    memo[id(tensor)] = original.detach().clone()
+                elif not tensor.is_leaf:
+                    memo[id(tensor)] = tensor.detach().clone()
+        return deepcopy(module, memo)
+
+    @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
         # Check if the parameter has been pruned (has _orig suffix)
         dst = getattr(new, name + "_orig") if hasattr(new, name + "_orig") else getattr(new, name)
         src = getattr(old, name)
         if dst is None or src is None or not isinstance(dst, Tensor) or not isinstance(src, Tensor):
             return
-        dst.data = src.data.to(dst.device)
+        dst.detach().copy_(src.detach())
 
     def apply_lottery_ticket_hypothesis(self) -> None:
         r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
@@ -376,12 +393,11 @@ class ModelPruning(Callback):
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self._use_lottery_ticket_hypothesis:
-            # group modules by id. Each entry has a copy of the initial data
-            # and a list of the associated parameter names to prune
             self._original_layers = {}
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 id_ = id(module)
-                self._original_layers.setdefault(id_, _LayerRef(data=deepcopy(module), names=[]))
+                if id_ not in self._original_layers:
+                    self._original_layers[id_] = _LayerRef(data=self._deepcopy_for_pruning(module), names=[])
                 self._original_layers[id_]["names"].append((i, name))
 
     def _run_pruning(self, current_epoch: int) -> None:
