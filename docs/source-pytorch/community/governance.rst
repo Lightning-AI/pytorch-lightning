@@ -11,7 +11,7 @@ Persons of Interest
 Maintainers
 -----------
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-- Justus Schock (`justusschock <https://github.com/justusschock>`_)
+- Justus Schock (`justusperillieux <https://github.com/justusperillieux>`_)
 - Karolis Rusenas (`rusenask <https://github.com/rusenask>`_)
 
 
