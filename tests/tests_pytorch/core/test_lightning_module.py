@@ -319,6 +319,49 @@ def test_toggle_untoggle_optimizer_are_compiler_disabled():
     assert is_compiler_disabled(LightningModule.untoggle_optimizer)
 
 
+def test_toggle_optimizer_preserves_shared_and_frozen_parameter_updates(tmp_path):
+    class ManualModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+            self.active = nn.Parameter(torch.tensor(1.0))
+            self.inactive = nn.Parameter(torch.tensor(2.0))
+            self.frozen = nn.Parameter(torch.tensor(3.0), requires_grad=False)
+            self.shared = nn.Parameter(torch.tensor(4.0))
+
+        def configure_optimizers(self):
+            return [
+                SGD([self.active, self.shared], lr=0.1),
+                SGD([self.inactive, self.frozen, self.shared], lr=0.1),
+            ]
+
+        def training_step(self, batch, batch_idx):
+            for index, optimizer in enumerate(self.optimizers()):
+                self.zero_grad(set_to_none=True)
+                with self.toggled_optimizer(optimizer):
+                    self.manual_backward(self.active + self.inactive + self.frozen + self.shared)
+                    assert (self.active.grad is not None) == (index == 0)
+                    assert (self.inactive.grad is not None) == (index == 1)
+                    assert self.frozen.grad is None
+                    torch.testing.assert_close(self.shared.grad, torch.tensor(1.0))
+                    optimizer.step()
+                assert self.active.requires_grad
+                assert self.inactive.requires_grad
+                assert self.shared.requires_grad
+                assert not self.frozen.requires_grad
+
+    model = ManualModel()
+    trainer = Trainer(barebones=True, accelerator="cpu", devices=1, max_epochs=1, default_root_dir=tmp_path)
+    trainer.fit(model, torch.utils.data.DataLoader(torch.zeros(1, 1)))
+    for parameter, expected in (
+        (model.active, 0.9),
+        (model.inactive, 1.9),
+        (model.frozen, 3.0),
+        (model.shared, 3.8),
+    ):
+        torch.testing.assert_close(parameter, torch.tensor(expected))
+
+
 @pytest.mark.parametrize(
     ("accelerator", "device"),
     [

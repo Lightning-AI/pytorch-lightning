@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Reduced redundant `requires_grad` mutations when toggling optimizers while preserving shared and frozen parameter states ([#22181](https://github.com/Lightning-AI/pytorch-lightning/pull/22181))
+
 - Changed the `dirpath` argument of `lightning.pytorch.profilers` profilers to accept `str | os.PathLike[str]` instead of `str | pathlib.Path` ([#21871](https://github.com/Lightning-AI/pytorch-lightning/pull/21871))
 
 - `LearningRateMonitor` no longer raises an error when the `Trainer` has no logger; values are still tracked and added to `trainer.callback_metrics` ([#22083](https://github.com/Lightning-AI/pytorch-lightning/pull/22083))
