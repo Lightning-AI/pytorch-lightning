@@ -228,3 +228,52 @@ def test_resume_mid_epoch_warning(tmp_path):
 
     # Resume mid-epoch, stateful dataloader -> no warning
     train_and_resume(dataloader=StatefulIterable(), resume_step=1, expected_warning=False)
+
+
+def test_resume_end_of_epoch_restores_stateful_dataloader(tmp_path):
+    """Test that resuming from a checkpoint saved at the end of an epoch restores the state of stateful
+    dataloaders."""
+
+    class StatefulIterable:
+        def __init__(self):
+            self.counter = 0
+            self.loaded_state = None
+
+        def __iter__(self):
+            for i in range(3):
+                self.counter += 1
+                yield torch.ones(2, 32) * i
+
+        def __len__(self):
+            return 3
+
+        def state_dict(self):
+            return {"counter": self.counter}
+
+        def load_state_dict(self, state_dict):
+            self.loaded_state = state_dict
+            self.counter = state_dict["counter"]
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+
+    # Train one full epoch and checkpoint at the end of it
+    dataloader = StatefulIterable()
+    checkpoint_dir = tmp_path / "checkpoints"
+    trainer = Trainer(**trainer_kwargs, max_epochs=1, callbacks=ModelCheckpoint(dirpath=checkpoint_dir, save_last=True))
+    trainer.fit(BoringModel(), dataloader)
+    saved_state = dataloader.state_dict()
+    checkpoint = checkpoint_dir / "last.ckpt"
+
+    # Resume from the end-of-epoch checkpoint with a fresh dataloader instance
+    dataloader = StatefulIterable()
+    trainer = Trainer(**trainer_kwargs, max_epochs=2, enable_checkpointing=False)
+    trainer.fit(BoringModel(), dataloader, ckpt_path=checkpoint)
+
+    # The stateful dataloader must have been restored to the checkpointed state
+    assert dataloader.loaded_state == saved_state
