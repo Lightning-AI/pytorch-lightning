@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
 
+- Fixed step-interval LR scheduler frequencies resetting at epoch boundaries ([#21926](https://github.com/Lightning-AI/pytorch-lightning/pull/21926))
+
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
 
 - Fixed races between checkpoint saves and removals in `AsyncCheckpointIO` ([#21996](https://github.com/Lightning-AI/pytorch-lightning/pull/21996))
