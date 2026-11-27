@@ -60,7 +60,7 @@ class _DeviceDtypeModuleMixin(Module):
         return super().to(*args, **kwargs)
 
     @override
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
+    def cuda(self, device: Optional[Union[torch.device, int, str]] = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU while
         being optimized.
@@ -77,6 +77,8 @@ class _DeviceDtypeModuleMixin(Module):
             device = torch.device("cuda", torch.cuda.current_device())
         elif isinstance(device, int):
             device = torch.device("cuda", index=device)
+        elif isinstance(device, str):
+            device = torch.device(device)
         _update_properties(self, device=device)
         return super().cuda(device=device)
 
@@ -109,6 +111,25 @@ class _DeviceDtypeModuleMixin(Module):
         """See :meth:`torch.nn.Module.half`."""
         _update_properties(self, dtype=torch.half)
         return super().half()
+
+    @override
+    def bfloat16(self) -> Self:
+        """See :meth:`torch.nn.Module.bfloat16`."""
+        _update_properties(self, dtype=torch.bfloat16)
+        return super().bfloat16()
+
+    @override
+    def to_empty(self, *, device: Optional[Union[str, torch.device, int]], recurse: bool = True) -> Self:
+        """See :meth:`torch.nn.Module.to_empty`."""
+        if device is None:
+            resolved_device = torch.get_default_device() if _TORCH_GREATER_EQUAL_2_8 else torch.empty(0).device
+        else:
+            resolved_device = torch.device(device)
+        if recurse:
+            _update_properties(self, device=resolved_device)
+        else:
+            self._device = resolved_device
+        return super().to_empty(device=device, recurse=recurse)
 
 
 def _update_properties(

@@ -169,3 +169,44 @@ def test_dtype_conversions():
     module.half()
     assert module.weight.dtype is torch.float16
     assert module.dtype is torch.float16
+    module.bfloat16()
+    assert module.weight.dtype is torch.bfloat16
+    assert module.dtype is torch.bfloat16
+
+
+def test_to_empty_updates_device():
+    with torch.device("meta"):
+        model = TopModule()
+        model.register_buffer("buf", torch.empty(2, 2))
+    assert model.device == torch.device("meta")
+    assert model.module.module.device == torch.device("meta")
+
+    model.to_empty(device="cpu")
+    assert model.device == torch.device("cpu")
+    assert model.module.module.device == torch.device("cpu")
+    assert model.buf.device == torch.device("cpu")
+
+
+def test_to_empty_non_recursive_updates_only_root():
+    with torch.device("meta"):
+        model = TopModule()
+    assert model.device == torch.device("meta")
+    assert model.module.module.device == torch.device("meta")
+
+    model.to_empty(device="cpu", recurse=False)
+    assert model.device == torch.device("cpu")
+    assert model.module.module.device == torch.device("meta")
+
+
+def test_cuda_string_device(monkeypatch):
+    monkeypatch.setattr(nn.Module, "cuda", lambda self, device=None: self)
+    monkeypatch.setattr(torch.cuda, "current_device", lambda: 0)
+
+    model = TopModule()
+    model.cuda("cuda:0")
+    assert model.device == torch.device("cuda", 0)
+    assert model.module.module.device == torch.device("cuda", 0)
+
+    model.cuda("cuda")
+    assert model.device == torch.device("cuda", 0)
+
