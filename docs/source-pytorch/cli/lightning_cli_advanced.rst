@@ -90,6 +90,21 @@ save the config in a logger. An example of this is:
     to worry about ranks or race conditions. Since it only runs on rank zero, any collective call will make the process
     hang waiting for a broadcast. If you need to make collective calls, implement the ``setup`` method instead.
 
+Log the config as an MLflow artifact
+===================================
+
+When the trainer uses an :class:`~lightning.pytorch.loggers.MLFlowLogger`, opt in to storing the full CLI configuration
+in the MLflow run's artifacts:
+
+.. code:: python
+
+    from lightning.pytorch.cli import LightningCLI, MLFlowSaveConfigCallback
+
+    cli = LightningCLI(MyModel, save_config_callback=MLFlowSaveConfigCallback)
+
+The callback also saves the config in the standard log directory by default. To keep only the MLflow copy, pass
+``save_config_kwargs={"save_to_log_dir": False}``.
+
 
 ----
 

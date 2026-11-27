@@ -18,6 +18,7 @@ import warnings
 from collections.abc import Iterable
 from functools import partial, update_wrapper
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import MethodType
 from typing import Any, Callable, Optional, TypeVar, Union
 
@@ -33,6 +34,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.core.mixins.hparams_mixin import _given_hyperparameters_context
+from lightning.pytorch.loggers import MLFlowLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -332,6 +334,29 @@ class SaveConfigCallback(Callback):
             instead.
 
         """
+
+
+class MLFlowSaveConfigCallback(SaveConfigCallback):
+    """Save the LightningCLI config as an artifact in each configured MLflow run.
+
+    Pass this class to ``LightningCLI(save_config_callback=...)`` to enable artifact logging. The standard log-dir
+    copy can be disabled with ``save_config_kwargs={"save_to_log_dir": False}``.
+
+    """
+
+    @override
+    def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        loggers = [logger for logger in trainer.loggers if isinstance(logger, MLFlowLogger)]
+        if not loggers:
+            return
+
+        with TemporaryDirectory() as tmp_dir:
+            config_path = Path(tmp_dir) / Path(self.config_filename).name
+            self.parser.save(self.config, str(config_path), multifile=self.multifile, **_KEEP_NONE_KWARGS)
+            for logger in loggers:
+                run_id = logger.run_id
+                assert run_id is not None
+                logger.experiment.log_artifacts(run_id, tmp_dir)
 
 
 class LightningCLI:

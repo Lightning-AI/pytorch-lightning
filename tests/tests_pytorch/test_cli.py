@@ -41,12 +41,13 @@ from lightning.pytorch.cli import (
     LightningCLI,
     LRSchedulerCallable,
     LRSchedulerTypeTuple,
+    MLFlowSaveConfigCallback,
     OptimizerCallable,
     SaveConfigCallback,
     instantiate_class,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.loggers import CSVLogger, MLFlowLogger, TensorBoardLogger
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -379,6 +380,44 @@ def test_lightning_cli_logger_save_config(cleandir):
     hparam_data = HParamsPluginData.FromString(data).session_start_info.hparams
     assert hparam_data.get("config") is not None
     assert hparam_data["config"].string_value == config
+
+
+@pytest.mark.parametrize("save_to_log_dir", [True, False])
+def test_lightning_cli_mlflow_config_artifact(tmp_path, monkeypatch, save_to_log_dir):
+    mlflow = pytest.importorskip("mlflow")
+    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "true")
+    monkeypatch.setattr(mlflow, "set_tracking_uri", mock.Mock())
+    monkeypatch.setattr("sys.argv", ["any.py"])
+    from mlflow.utils.file_utils import local_file_uri_to_path
+
+    cli = LightningCLI(
+        BoringModel,
+        args=["fit", "--seed_everything=123"],
+        trainer_defaults={
+            "accelerator": "cpu",
+            "max_steps": 1,
+            "limit_val_batches": 0,
+            "enable_checkpointing": False,
+            "logger": lazy_instance(MLFlowLogger, save_dir=str(tmp_path)),
+        },
+        save_config_callback=MLFlowSaveConfigCallback,
+        save_config_kwargs={"config_filename": "training.yaml", "save_to_log_dir": save_to_log_dir},
+    )
+
+    logger = cli.trainer.logger
+    assert isinstance(logger, MLFlowLogger)
+    client = logger.experiment
+    assert [artifact.path for artifact in client.list_artifacts(logger.run_id)] == ["training.yaml"]
+    artifact_uri = client.get_run(logger.run_id).info.artifact_uri
+    uploaded_config = (Path(local_file_uri_to_path(artifact_uri)) / "training.yaml").read_text()
+    config = yaml.safe_load(uploaded_config)
+    assert config["seed_everything"] == 123
+    assert config["trainer"]["max_steps"] == 1
+
+    local_path = tmp_path / "training.yaml"
+    assert local_path.is_file() == save_to_log_dir
+    if save_to_log_dir:
+        assert local_path.read_text() == uploaded_config
 
 
 def test_lightning_cli_config_and_subclass_mode(cleandir):
