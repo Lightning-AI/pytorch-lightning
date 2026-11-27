@@ -94,46 +94,51 @@ class ServableModuleValidator(Callback):
         # Note: The Trainer needs to be detached from the pl_module before starting the process.
         # This would fail during the deepcopy with DDP.
         servable_module.trainer = None
+        try:
+            process = Process(
+                target=self._start_server, args=(servable_module, self.host, self.port, self.optimization)
+            )
+            process.start()
+        finally:
+            servable_module.trainer = trainer
 
-        process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
-        process.start()
+        try:
+            ready = False
+            t0 = time.time()
+            while not ready:
+                with contextlib.suppress(requests.exceptions.ConnectionError):
+                    resp = requests.get(f"http://{self.host}:{self.port}/ping")
+                    ready = resp.status_code == 200
+                if time.time() - t0 > self.timeout:
+                    raise Exception(f"The server didn't start within {self.timeout} seconds.")
+                time.sleep(0.1)
 
-        servable_module.trainer = trainer
+            payload = servable_module.configure_payload()
 
-        ready = False
-        t0 = time.time()
-        while not ready:
-            with contextlib.suppress(requests.exceptions.ConnectionError):
-                resp = requests.get(f"http://{self.host}:{self.port}/ping")
-                ready = resp.status_code == 200
-            if time.time() - t0 > self.timeout:
-                process.kill()
-                raise Exception(f"The server didn't start within {self.timeout} seconds.")
-            time.sleep(0.1)
+            if "body" not in payload:
+                raise Exception(f'Your provided payload {payload} should have a field named "body".')
 
-        payload = servable_module.configure_payload()
-
-        if "body" not in payload:
-            raise Exception(f'Your provided payload {payload} should have a field named "body".')
-
-        self.resp = requests.post(f"http://{self.host}:{self.port}/serve", json=payload)
-        process.kill()
-
-        if is_overridden("configure_response", servable_module, ServableModule):
-            response = servable_module.configure_response()
-            if self.resp.json() != response:
-                raise Exception(f"The expected response {response} doesn't match the generated one {self.resp.json()}.")
+            self.resp = requests.post(f"http://{self.host}:{self.port}/serve", json=payload)
+        finally:
+            process.kill()
+            process.join()
 
         if self.exit_on_failure and not self.successful:
             raise MisconfigurationException("The model isn't servable. Investigate the traceback and try again.")
 
         if self.successful:
+            if is_overridden("configure_response", servable_module, ServableModule):
+                response = servable_module.configure_response()
+                if self.resp.json() != response:
+                    raise Exception(
+                        f"The expected response {response} doesn't match the generated one {self.resp.json()}."
+                    )
             _logger.info(f"Your model is servable and the received payload was {self.resp.json()}.")
 
     @property
     def successful(self) -> Optional[bool]:
         """Returns whether the model was successfully served."""
-        return self.resp.status_code == 200 if self.resp else None
+        return self.resp.status_code == 200 if self.resp is not None else None
 
     @override
     def state_dict(self) -> dict[str, Any]:
