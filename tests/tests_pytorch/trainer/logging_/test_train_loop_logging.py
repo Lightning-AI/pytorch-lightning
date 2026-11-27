@@ -883,3 +883,54 @@ def test_unsqueezed_tensor_logging():
     model.trainer = trainer
     model.log("foo", Tensor([1.2]), on_epoch=True)
     assert trainer.callback_metrics["foo"].ndim == 0
+
+
+@pytest.mark.parametrize("hook", ["on_before_backward", "on_after_backward", "on_before_optimizer_step"])
+def test_log_in_nested_hook_keeps_training_step_metrics(tmp_path, hook):
+    """A hook that logs while `training_step` is running must not reset what `training_step` logged before it."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+            self.step_values = []
+            self.epoch_values = []
+
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+            self.log("before", float(batch_idx), on_step=True, on_epoch=True)
+            opt.zero_grad()
+            self.manual_backward(self.step(batch))
+            opt.step()
+            self.log("after", float(batch_idx), on_step=True, on_epoch=True)
+
+        def on_train_batch_end(self, *_):
+            self.step_values.append(self.trainer.callback_metrics.get("before_step"))
+
+        def on_train_epoch_end(self):
+            self.epoch_values.append((
+                self.trainer.callback_metrics["before_epoch"],
+                self.trainer.callback_metrics["after_epoch"],
+            ))
+
+    def log_in_hook(self, *_):
+        self.log("nested", 1.0)
+
+    setattr(TestModel, hook, log_in_hook)
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        max_epochs=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    assert model.step_values == [0, 1, 2, 0, 1, 2]
+    assert model.epoch_values == [(1, 1), (1, 1)]
