@@ -238,4 +238,6 @@ def test_step_checkpoint_with_empty_validation_loader(tmp_path, validation_frequ
         TrainStepScore(), train_dataloaders=DataLoader(TinyDataset(2)), val_dataloaders=DataLoader(TinyDataset(0))
     )
 
-    assert {Path(p).stem for p in ckpt.best_k_models} == {f"step={2 * epoch}" for epoch in range(1, validation_frequency + 1)}
+    assert {Path(p).stem for p in ckpt.best_k_models} == {
+        f"step={2 * epoch}" for epoch in range(1, validation_frequency + 1)
+    }
