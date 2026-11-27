@@ -99,6 +99,11 @@ def test_attributes_from_environment_variables(caplog):
         ("host[5-9,1]", "host5"),
         ("alpha, host[5-9], gamma", "alpha"),
         ("alpha[3,1], beta", "alpha3"),
+        ("alpha[3],beta[1-2]", "alpha3"),
+        ("alpha[3] beta[1-2]", "alpha3"),
+        ("rack[1-2]-node[3-4]", "rack1-node3"),
+        ("rack[1]-node[3-4]", "rack1-node3"),
+        ("rack[1-2]-node[3],other[5-6]", "rack1-node3"),
     ],
 )
 def test_main_address_from_slurm_node_list(slurm_node_list, expected):
