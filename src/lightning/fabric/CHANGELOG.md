@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `using_sparse_model` and `sparse_cuda_acceleration_factor` parameters to `Throughput` so MFU defaults to the dense peak and opts into the sparse peak explicitly ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
+- Optimized remote checkpoint loading by delegating to `fs.get_file` with a node-local file lock (`fcntl.flock`), a version-keyed cache and `mmap=True` in `_load`, configurable through `LIGHTNING_CHECKPOINT_CACHE` and `LIGHTNING_CHECKPOINT_CACHE_DIR` ([#21869](https://github.com/Lightning-AI/pytorch-lightning/pull/21869))
+
+- Added `lightning.fabric.utilities.cloud_io.clear_cache` to drop the node-local remote checkpoint cache ([#21869](https://github.com/Lightning-AI/pytorch-lightning/pull/21869))
+
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `FSDPStrategy` ([#21775](https://github.com/Lightning-AI/pytorch-lightning/pull/21775))
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21821](https://github.com/Lightning-AI/pytorch-lightning/pull/21821))
@@ -18,7 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Local checkpoints are now memory-mapped (`mmap=True`) in `_load` instead of being read through a file object ([#21869](https://github.com/Lightning-AI/pytorch-lightning/pull/21869))
 
 ### Removed
 

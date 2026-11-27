@@ -36,6 +36,40 @@ Additionally, you could also resume training with a checkpoint stored at a remot
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     trainer.fit(model, ckpt_path="s3://my_bucket/ckpts/classifier.ckpt")
 
+.. note::
+    When loading a remote checkpoint of 128 MB or larger, Lightning downloads it once into a
+    node-local cache directory (preferring the ``/dev/shm`` RAM disk when it has enough free
+    capacity, otherwise the system temporary directory) and then loads it with memory-mapping
+    (``mmap=True``). Ranks sharing a node elect a single downloader through a POSIX file lock, so
+    the object is fetched once and the resulting pages are shared by all of them. Platforms without
+    ``fcntl`` (Windows) stream the checkpoint instead.
+
+    Cache entries are keyed on the remote object's version (``etag``, ``generation`` or
+    ``version_id``), so overwriting a checkpoint at the same path invalidates the old entry
+    automatically and the superseded copy is reclaimed. If the backend reports no version
+    information, the checkpoint is streamed instead of cached.
+
+    Entries outlive the process so that later jobs on the same node reuse them. Nothing is ever
+    evicted to make room: a checkpoint is only cached when the root has room for it, so a filling
+    root simply stops accepting new entries and later loads stream instead. ``/dev/shm`` is cleared
+    on reboot, and ``lightning.fabric.utilities.cloud_io.clear_cache()`` reclaims the cached
+    checkpoints on demand (empty lock marker files are left behind, since removing one is unsafe
+    while another rank may be waiting on it). An entry in ``/dev/shm`` stays resident in RAM and,
+    in containers, counts toward the container's memory limit even after the process exits; point
+    the cache at local disk or disable it if that headroom is tight. Two environment variables
+    control the behavior:
+
+    .. list-table::
+        :widths: 40 60
+        :header-rows: 1
+
+        * - Variable
+          - Effect
+        * - ``LIGHTNING_CHECKPOINT_CACHE``
+          - Set to ``0`` to disable caching and always stream.
+        * - ``LIGHTNING_CHECKPOINT_CACHE_DIR``
+          - Use this directory instead of ``/dev/shm`` and the temporary directory.
+
 PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
 
 The most common filesystems supported by Lightning are:
