@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import platform
+import re
 import sys
 from unittest.mock import Mock
 
@@ -45,7 +46,8 @@ def test_bitsandbytes_plugin(monkeypatch):
     bitsandbytes_mock.nn.Params4bit = object
 
     precision = BitsandbytesPrecision("nf4", dtype=torch.float16)
-    connector = _Connector(plugins=precision)
+    monkeypatch.setattr("lightning.fabric.accelerators.cuda.num_cuda_devices", lambda: 1)
+    connector = _Connector(plugins=precision, accelerator="cuda", devices=1)
     assert connector.precision is precision
     assert precision.dtype == torch.float16
 
@@ -89,7 +91,22 @@ def test_bitsandbytes_plugin(monkeypatch):
     model = MyModule()
     precision.convert_module(model)
     assert isinstance(model.l1, _NF4Linear)
-    assert isinstance(model.l2.l, torch.nn.Linear)
+    assert type(model.l2.l) is torch.nn.Linear
+
+    precision = BitsandbytesPrecision("nf4", dtype=torch.float16, ignore_modules=r"\.l2\.l$")
+    model = torch.nn.Sequential(MyModule(), MyModule())
+    with pytest.raises(RuntimeError, match="not supported"), precision.module_init_context():
+        pass
+    precision.convert_module(model)
+    for block in model:
+        assert isinstance(block.l1, _NF4Linear)
+        assert type(block.l2.l) is torch.nn.Linear
+
+    precision.ignore_modules = "["
+    model = MyModule()
+    with pytest.raises(re.error):
+        precision.convert_module(model)
+    assert type(model.l1) is torch.nn.Linear
 
     model = torch.nn.Conv1d(1, 1, 1)
     with pytest.raises(TypeError, match="your model has no Linear"):

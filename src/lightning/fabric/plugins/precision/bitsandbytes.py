@@ -15,12 +15,13 @@ import functools
 import logging
 import math
 import os
+import re
 import warnings
 from collections import OrderedDict
 from contextlib import AbstractContextManager, ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, Literal, Optional, cast
+from typing import Any, Callable, Literal, Optional, Union, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -54,9 +55,9 @@ class BitsandbytesPrecision(Precision):
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
-        ignore_modules: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
-            This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
-            "transformer.blocks" will ignore all linear layers in all of the transformer blocks.
+        ignore_modules: Linear layers to leave unquantized. A set of strings matches literal prefixes of fully
+            qualified module names, for example ``{"lm_head"}``. A non-empty string is a regular expression searched
+            against each fully qualified Linear layer name.
     """
 
     # Note: you'll notice that the `precision` str class attribute is not defined. This is on purpose because there are
@@ -71,7 +72,7 @@ class BitsandbytesPrecision(Precision):
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
         dtype: Optional[torch.dtype] = None,
-        ignore_modules: Optional[set[str]] = None,
+        ignore_modules: Optional[Union[set[str], str]] = None,
     ) -> None:
         _import_bitsandbytes()
 
@@ -113,7 +114,9 @@ class BitsandbytesPrecision(Precision):
         bnb = _import_bitsandbytes()
         if not any(isinstance(m, (bnb.nn.Linear8bitLt, bnb.nn.Linear4bit)) for m in module.modules()):
             # this will not quantize the model but only replace the layer classes
-            _convert_layers(module, self._linear_cls, self.ignore_modules)
+            exclusions = self.ignore_modules or set()
+            pattern_or_prefixes = re.compile(exclusions) if isinstance(exclusions, str) else tuple(exclusions)
+            _convert_layers(module, self._linear_cls, pattern_or_prefixes)
 
         # set the compute dtype if necessary
         for m in module.modules():
@@ -422,10 +425,17 @@ def _import_bitsandbytes() -> ModuleType:
     return bnb
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: type, ignore_modules: set[str], prefix: str = "") -> None:
+def _convert_layers(
+    module: torch.nn.Module,
+    linear_cls: type,
+    exclusions: Union[tuple[str, ...], re.Pattern[str]],
+    prefix: str = "",
+) -> None:
     for name, child in module.named_children():
         fullname = f"{prefix}.{name}" if prefix else name
-        if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in ignore_modules):
+        if isinstance(child, torch.nn.Linear) and not (
+            exclusions.search(fullname) if isinstance(exclusions, re.Pattern) else fullname.startswith(exclusions)
+        ):
             log.debug(f"Replacing layer {fullname!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
             # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
@@ -445,4 +455,4 @@ def _convert_layers(module: torch.nn.Module, linear_cls: type, ignore_modules: s
             replacement.weight = _replace_param(replacement.weight, child.weight.data.clone(), **state)
             module.__setattr__(name, replacement)
         else:
-            _convert_layers(child, linear_cls, ignore_modules, prefix=fullname)
+            _convert_layers(child, linear_cls, exclusions, prefix=fullname)

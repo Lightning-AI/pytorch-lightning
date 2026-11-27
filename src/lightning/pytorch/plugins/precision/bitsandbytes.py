@@ -26,7 +26,7 @@ class BitsandbytesPrecision(Precision, FabricBNBPrecision):
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
-        ignore_modules: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
-            This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
-            "transformer.blocks" will ignore all linear layers in all of the transformer blocks.
+        ignore_modules: Linear layers to leave unquantized. A set of strings matches literal prefixes of fully
+            qualified module names, for example ``{"lm_head"}``. A non-empty string is a regular expression searched
+            against each fully qualified Linear layer name.
     """

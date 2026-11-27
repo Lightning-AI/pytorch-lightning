@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added regex support to `BitsandbytesPrecision.ignore_modules` for excluding Linear layers by name ([#22150](https://github.com/Lightning-AI/pytorch-lightning/pull/22150))
+
 - Added `using_sparse_model` and `sparse_cuda_acceleration_factor` parameters to `Throughput` so MFU defaults to the dense peak and opts into the sparse peak explicitly ([#21743](https://github.com/Lightning-AI/pytorch-lightning/pull/21743))
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `FSDPStrategy` ([#21775](https://github.com/Lightning-AI/pytorch-lightning/pull/21775))
