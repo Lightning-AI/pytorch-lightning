@@ -11,8 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import inspect
 from typing import Callable, Optional
+
+
+@functools.lru_cache(maxsize=256)
+def _get_function_argspec_info(hook_fx: Callable) -> tuple[tuple[str, ...], bool]:
+    parameters = inspect.getfullargspec(hook_fx)
+    return tuple(parameters.args[1:]), parameters.varargs is not None
 
 
 def is_param_in_hook_signature(
@@ -25,13 +32,13 @@ def is_param_in_hook_signature(
         explicit: whether the parameter has to be explicitly declared
         min_args: whether the `signature` has at least `min_args` parameters
     """
-    if hasattr(hook_fx, "__wrapped__"):
-        # in case the hook has a decorator
-        hook_fx = hook_fx.__wrapped__
-    parameters = inspect.getfullargspec(hook_fx)
-    args = parameters.args[1:]  # ignore `self`
-    return (
-        param in args
-        or (not explicit and (parameters.varargs is not None))
-        or (isinstance(min_args, int) and len(args) >= min_args)
-    )
+    hook_fx = inspect.unwrap(hook_fx)
+    if inspect.ismethod(hook_fx):
+        hook_fx = inspect.unwrap(hook_fx.__func__)
+    if inspect.isfunction(hook_fx):
+        args, has_varargs = _get_function_argspec_info(hook_fx)
+    else:
+        parameters = inspect.getfullargspec(hook_fx)
+        args = tuple(parameters.args[1:])  # ignore `self`
+        has_varargs = parameters.varargs is not None
+    return param in args or (not explicit and has_varargs) or (isinstance(min_args, int) and len(args) >= min_args)
