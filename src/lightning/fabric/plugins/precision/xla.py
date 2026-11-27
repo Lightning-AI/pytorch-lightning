@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 import torch
 from typing_extensions import get_args, override
@@ -46,11 +46,14 @@ class XLAPrecision(Precision):
                 f" `precision` must be one of: {supported_precision}."
             )
         self.precision = precision
+        self._prev_xla_env: dict[str, Optional[str]] = {}
 
         if precision == "16-true":
+            self._prev_xla_env["XLA_USE_F16"] = os.environ.get("XLA_USE_F16")
             os.environ["XLA_USE_F16"] = "1"
             self._desired_dtype = torch.float16
         elif precision == "bf16-true":
+            self._prev_xla_env["XLA_USE_BF16"] = os.environ.get("XLA_USE_BF16")
             os.environ["XLA_USE_BF16"] = "1"
             self._desired_dtype = torch.bfloat16
         else:
@@ -69,5 +72,9 @@ class XLAPrecision(Precision):
 
     @override
     def teardown(self) -> None:
-        os.environ.pop("XLA_USE_BF16", None)
-        os.environ.pop("XLA_USE_F16", None)
+        for key, prev_val in self._prev_xla_env.items():
+            if prev_val is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prev_val
+        self._prev_xla_env.clear()

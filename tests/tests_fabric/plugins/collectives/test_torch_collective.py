@@ -313,3 +313,19 @@ def test_collective_manages_default_group():
     destroy_mock.assert_called_once_with(mock_group)
 
     assert not TorchCollective.manages_default_group
+
+
+@skip_distributed_unavailable
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_setup_cleans_up_env_on_init_failure():
+    TorchCollective.manages_default_group = False
+    collective = TorchCollective()
+    with (
+        mock.patch("torch.distributed.init_process_group", side_effect=RuntimeError("init failed")),
+        pytest.raises(RuntimeError, match="init failed"),
+    ):
+        collective.setup(main_address="foo", main_port="123")
+
+    assert not os.environ
+    assert not TorchCollective.manages_default_group
+
