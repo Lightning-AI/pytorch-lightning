@@ -225,6 +225,13 @@ class _FitLoop(_Loop):
 
     def setup_data(self) -> None:
         if self._combined_loader is not None and not self._should_reload_train_dl:
+            # The dataloaders may have been set up before the checkpoint was loaded.
+            if self.restarting and self._combined_loader_states_to_load:
+                self._load_combined_loader_states()
+                assert self._data_fetcher is not None
+                for dl in self._combined_loader.flattened:
+                    _set_sampler_epoch(dl, self.epoch_progress.current.processed)
+                iter(self._data_fetcher)  # creates the iterator inside the fetcher
             return
 
         trainer = self.trainer

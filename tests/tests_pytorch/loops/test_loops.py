@@ -1287,6 +1287,16 @@ class StatefulIterable(NotStatefulIterable):
         self.index = state_dict["index"] + 1
 
 
+class EagerStatefulIterable(StatefulIterable):
+    def __iter__(self):
+        return self._iterate_from(self.index)
+
+    def _iterate_from(self, start):
+        for index in range(start, len(self)):
+            self.index = index
+            yield index
+
+
 @pytest.mark.parametrize(
     ("train_dataloader_factory", "has_state", "batches_before", "batches_after"),
     [
@@ -1294,6 +1304,7 @@ class StatefulIterable(NotStatefulIterable):
         (lambda: [], False, [], []),
         # Single stateful DataLoader
         (lambda: StatefulIterable(), True, [0, 1], [2, 3]),
+        pytest.param(EagerStatefulIterable, True, [0, 1], [2, 3], id="eager"),
         # Single, not stateful DataLoader
         (lambda: CombinedLoader(NotStatefulIterable()), False, [0, 1], [0, 1]),
         # Single stateful DataLoader
@@ -1309,8 +1320,9 @@ class StatefulIterable(NotStatefulIterable):
         ),
     ],
 )
+@pytest.mark.parametrize("access_estimated_stepping_batches", [False, True])
 def test_fit_loop_save_and_restore_dataloaders(
-    train_dataloader_factory, has_state, batches_before, batches_after, tmp_path
+    train_dataloader_factory, has_state, batches_before, batches_after, access_estimated_stepping_batches, tmp_path
 ):
     """Test that the CheckpointConnector saves the state of stateful dataloaders."""
 
@@ -1318,6 +1330,12 @@ def test_fit_loop_save_and_restore_dataloaders(
         def __init__(self):
             super().__init__()
             self.seen_data = []
+
+        def configure_optimizers(self):
+            if access_estimated_stepping_batches:
+                # sets up the dataloaders before the loop state gets restored from the checkpoint (#20550)
+                _ = int(self.trainer.estimated_stepping_batches)
+            return super().configure_optimizers()
 
         def training_step(self, batch, batch_idx):
             self.seen_data.append(batch)
@@ -1337,8 +1355,9 @@ def test_fit_loop_save_and_restore_dataloaders(
     }
 
     # Train for 2 steps
+    # `max_epochs` is set so that `estimated_stepping_batches` cannot take the infinite-training shortcut
     model = DummyModel()
-    trainer = Trainer(**trainer_kwargs, max_steps=2)
+    trainer = Trainer(**trainer_kwargs, max_steps=2, max_epochs=10)
     trainer.fit(model)
     assert model.seen_data == batches_before
 
@@ -1352,7 +1371,7 @@ def test_fit_loop_save_and_restore_dataloaders(
 
     # Restore training from step 2 and continue 2 more steps
     model = DummyModel()
-    trainer = Trainer(**trainer_kwargs, max_steps=4)
+    trainer = Trainer(**trainer_kwargs, max_steps=4, max_epochs=10)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     assert model.seen_data == batches_after
 
