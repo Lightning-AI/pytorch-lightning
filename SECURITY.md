@@ -1,1 +1,1 @@
-developer@lightning.ai
+security@lightning.ai
