@@ -409,12 +409,23 @@ def test_summary_data_output(example_input):
         assert all(isinstance(entry, str) for entry in entries)
 
 
+@pytest.mark.parametrize("max_depth", [-1, 1, 2])
 @pytest.mark.parametrize("example_input", [None, torch.ones(2, 2)])
-def test_summary_data_with_non_layer_params(example_input):
-    model = NonLayerParamsModel()
+def test_summary_data_with_non_layer_params(example_input, max_depth):
+    class NestedNonLayerParamsModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.param = torch.nn.Parameter(torch.ones(2, 2))
+            self.net = torch.nn.Sequential(torch.nn.Linear(2, 2))
+
+        def forward(self, inp):
+            return self.net(self.param @ inp)
+
+    model = NestedNonLayerParamsModel()
     model.example_input_array = example_input
 
-    summary = summarize(model)
+    summary = summarize(model, max_depth=max_depth)
+    assert summary.total_layer_params == 6
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data[" "][-1] == " "
     assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
