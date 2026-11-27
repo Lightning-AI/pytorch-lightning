@@ -18,6 +18,3 @@ sphinxcontrib-video ==0.4.2
 jinja2 <3.2.0
 
 lightning-utilities >=0.11.1, <0.16.0
-
-# installed from S3 location and fetched in advance
-lai-sphinx-theme

@@ -335,7 +335,7 @@ class _TrainingEpochLoop(loops._Loop):
             response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
             should_skip_rest_of_epoch = (response == -1) or (cb_response == -1)
-            
+
             # Signal this is the last batch for the current epoch
             if should_skip_rest_of_epoch:
                 self.batch_progress.increment_by(0, is_last_batch=True)
