@@ -122,35 +122,40 @@ class _EvaluationLoop(_Loop):
         if self.skip:
             return []
         self.reset()
-        self.on_run_start()
-        data_fetcher = self._data_fetcher
-        assert data_fetcher is not None
-        previous_dataloader_idx = 0
-        while True:
-            try:
-                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-                    dataloader_iter = next(data_fetcher)
-                    # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
-                    batch = data_fetcher._batch
-                    batch_idx = data_fetcher._batch_idx
-                    dataloader_idx = data_fetcher._dataloader_idx
-                else:
-                    dataloader_iter = None
-                    batch, batch_idx, dataloader_idx = next(data_fetcher)
-                if previous_dataloader_idx != dataloader_idx:
-                    # the dataloader has changed, notify the logger connector
-                    self._store_dataloader_outputs()
-                previous_dataloader_idx = dataloader_idx
-                self.batch_progress.is_last_batch = data_fetcher.done
-                # run step hooks
-                self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
-            except StopIteration:
-                # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
-                break
-            finally:
-                self.on_iteration_done()
-        self._store_dataloader_outputs()
-        return self.on_run_end()
+        self._module_mode.mode.clear()
+        try:
+            self.on_run_start()
+            data_fetcher = self._data_fetcher
+            assert data_fetcher is not None
+            previous_dataloader_idx = 0
+            while True:
+                try:
+                    if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+                        dataloader_iter = next(data_fetcher)
+                        # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
+                        batch = data_fetcher._batch
+                        batch_idx = data_fetcher._batch_idx
+                        dataloader_idx = data_fetcher._dataloader_idx
+                    else:
+                        dataloader_iter = None
+                        batch, batch_idx, dataloader_idx = next(data_fetcher)
+                    if previous_dataloader_idx != dataloader_idx:
+                        # the dataloader has changed, notify the logger connector
+                        self._store_dataloader_outputs()
+                    previous_dataloader_idx = dataloader_idx
+                    self.batch_progress.is_last_batch = data_fetcher.done
+                    # run step hooks
+                    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
+                except StopIteration:
+                    # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
+                    break
+                finally:
+                    self.on_iteration_done()
+            self._store_dataloader_outputs()
+            return self.on_run_end()
+        except BaseException:
+            self._module_mode.restore(self.trainer.lightning_module)
+            raise
 
     def setup_data(self) -> None:
         trainer = self.trainer
