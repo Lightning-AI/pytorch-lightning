@@ -164,12 +164,12 @@ If you would like more information regarding the uv commands, please refer to uv
 
 ### Developments scripts
 
-To build the documentation locally, execute the following from the project root (Unix only):
+Development scripts from the project root (Unix only):
 
 - `make clean` — cleans repo from temp/generated files
-- `make docs-pytorch` — builds PyTorch Lightning docs under `docs/source-pytorch/`
-- `make docs-fabric` — builds Lightning Fabric docs under `docs/source-fabric/`
 - `make test` — runs all project tests with coverage (both packages)
+
+The versioned library docs are synced and published externally.
 
 ### Original code
 
