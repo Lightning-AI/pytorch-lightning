@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.trainer.trainer import Trainer
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -246,3 +247,114 @@ def test_time_and_epoch_gated_val_check(
         f"\nExpected validation at batches: {expected_val_batches},"
         f"\nGot: {model.val_batches, model.val_epoch_calls}\n"
     )
+
+
+@pytest.mark.parametrize("rank_zero_decision", [False, True])
+def test_time_based_val_check_follows_rank_zero_decision(tmp_path, rank_zero_decision):
+    """Test that the time-based validation decision is broadcast from rank 0 instead of using the local clock, so that
+    all ranks run validation on the same batch."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+        val_check_interval=timedelta(seconds=0),
+    )
+    with patch.object(trainer.strategy, "broadcast", return_value=rank_zero_decision) as mock_broadcast:
+        trainer.fit(BoringModel())
+
+    mock_broadcast.assert_any_call(True)
+    expected_val_runs = 3 if rank_zero_decision else 0
+    assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed == expected_val_runs
+
+
+def test_time_based_val_check_broadcasts_on_early_stop_and_last_batch(tmp_path):
+    """Test that early-return conditions (`should_stop` and `_DataLoaderIterDataFetcher` `is_last_batch`) still go
+    through `strategy.broadcast` when time-based `val_check_interval` is active."""
+
+    class EarlyStopModel(BoringModel):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
+            self.trainer.should_stop = True
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+        val_check_interval=timedelta(hours=1),
+    )
+    with patch.object(trainer.strategy, "broadcast", side_effect=lambda x: x) as mock_broadcast:
+        trainer.fit(EarlyStopModel())
+
+    mock_broadcast.assert_called_with(True)
+    assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed == 1
+
+    class IterModel(BoringModel):
+        def training_step(self, dataloader_iter):
+            batch, _, _ = next(dataloader_iter)
+            return super().training_step(batch, 0)
+
+    trainer_iter = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        val_check_interval=timedelta(hours=1),
+    )
+    with patch.object(trainer_iter.strategy, "broadcast", side_effect=lambda x: x) as mock_broadcast_iter:
+        trainer_iter.fit(IterModel())
+
+    mock_broadcast_iter.assert_called_with(True)
+    assert trainer_iter.fit_loop.epoch_loop.val_loop.batch_progress.total.completed == 1
+
+
+class _DivergentRankModel(BoringModel):
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        if batch_idx == 0 and self.trainer.is_global_zero:
+            # Only rank 0 thinks the time interval has elapsed on batch 0
+            self.trainer._last_val_time -= 7200.0
+        elif batch_idx == 1 and self.trainer.is_global_zero:
+            # Only rank 0 sets `should_stop` before `_should_check_val_fx` on batch 1
+            self.trainer.should_stop = True
+
+    def validation_step(self, batch, batch_idx):
+        out = super().validation_step(batch, batch_idx)
+        self.log("val_loss", out["x"], sync_dist=True)
+        return out
+
+    def on_validation_end(self):
+        self.trainer.should_stop = bool(self.trainer.strategy.broadcast(self.trainer.should_stop))
+
+    def on_train_end(self):
+        assert self.trainer.global_step == 2
+        assert self.trainer.fit_loop.epoch_loop.val_loop.batch_progress.total.completed == 2
+
+
+@RunIf(skip_windows=True)
+def test_time_based_val_check_ddp_cpu_rank_divergence(tmp_path):
+    """Test multi-process collective participation when ranks diverge in local clock time and `should_stop`."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        num_sanity_val_steps=0,
+        val_check_interval=timedelta(hours=1),
+    )
+    trainer.fit(_DivergentRankModel())

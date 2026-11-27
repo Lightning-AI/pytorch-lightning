@@ -24,6 +24,24 @@ from lightning.pytorch.utilities.imports import _TORCH_GREATER_EQUAL_2_11
 from tests_pytorch.helpers.runif import RunIf
 
 
+@pytest.mark.parametrize("as_keyword", [True, False])
+def test_scaler_step_tracks_fused_overflow_flag(as_keyword):
+    class FusedOptimizer(Optimizer):
+        def step(self, *, found_inf=None):
+            flag = self.found_inf if found_inf is None else found_inf
+            flag.fill_(1)
+
+    optimizer = FusedOptimizer([nn.Parameter(torch.zeros(()))], {})
+    flag = torch.tensor(0.0)
+    if not as_keyword:
+        optimizer.found_inf = flag
+    scaler = Mock()
+    scaler.step.side_effect = lambda opt: opt.step(**({"found_inf": flag} if as_keyword else {}))
+    precision = MixedPrecision(precision="16-mixed", device="cpu", scaler=scaler)
+    precision._scaler_step(scaler, optimizer)
+    assert precision.optimizer_step_was_skipped
+
+
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
     optimizer = Mock(spec=Optimizer)

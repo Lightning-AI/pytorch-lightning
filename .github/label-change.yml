@@ -37,7 +37,6 @@ ci:
 docs:
   - changed-files:
       - any-glob-to-any-file:
-          - ".github/workflows/docs-build.yml"
           - "docs/**"
           - "requirements/docs.txt"
           - "requirements/*/docs.txt"

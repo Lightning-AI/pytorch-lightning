@@ -135,7 +135,7 @@ class DDPStrategy(ParallelStrategy):
     @property
     @override
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
-        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -300,6 +300,8 @@ class DDPStrategy(ParallelStrategy):
         assert isinstance(self.model, pl.LightningModule)
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
+        # `post_backward` has to flush the first static graph iteration of every new wrapper
+        self._pl_static_graph_delay_done = False
 
     def determine_ddp_device_ids(self) -> Optional[list[int]]:
         if self.root_device.type == "cpu":

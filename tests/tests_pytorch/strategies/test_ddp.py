@@ -19,7 +19,7 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, TorchElasticEnvironment
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
@@ -217,3 +217,21 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     trainer.strategy.setup(trainer)
     # because TrainerFn is not FITTING, model is not configured with sync batchnorm
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
+
+def test_ddp_distributed_sampler_kwargs_uses_world_size(monkeypatch):
+    """``num_replicas`` is the actual world size, not ``num_nodes * num_processes`` (#19898)."""
+    # e.g. torchrun over two nodes holding 2 and 1 devices: `num_nodes * num_processes` would report 4 here,
+    # while the true world size is 3.
+    monkeypatch.setenv("WORLD_SIZE", "3")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("LOCAL_RANK", "0")
+    monkeypatch.setenv("MASTER_ADDR", "127.0.0.1")
+    monkeypatch.setenv("MASTER_PORT", "12345")
+    strategy = DDPStrategy(
+        parallel_devices=[torch.device("cpu")] * 2,
+        cluster_environment=TorchElasticEnvironment(),
+    )
+    strategy.num_nodes = 2
+
+    assert strategy.distributed_sampler_kwargs == {"num_replicas": 3, "rank": 0}

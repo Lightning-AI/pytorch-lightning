@@ -551,3 +551,55 @@ def test_sparsity_calculation(tmp_path, caplog, pruning_amount: float, model_typ
     expected_pruned_count = int(expected_total_params * pruning_amount)
     pruned_tolerance = max(1, int(expected_total_params * 0.05))
     assert abs(pruned_count - expected_pruned_count) <= pruned_tolerance
+
+
+def test_iterative_pruning_no_runtime_error(tmp_path):
+    """Reusing a ModelPruning callback with use_lottery_ticket_hypothesis across multiple trainer.fit() calls must not
+    raise RuntimeError due to non-leaf tensors.
+
+    Regression test for https://github.com/Lightning-AI/pytorch-lightning/issues/8542
+
+    """
+    seed_everything(42)
+
+    model = BoringModel()
+    initial_weight = model.layer.weight.detach().clone()
+    pruning_callback = ModelPruning(
+        "l1_unstructured",
+        use_lottery_ticket_hypothesis=True,
+        use_global_unstructured=True,
+        make_pruning_permanent=False,
+        amount=0.2,
+    )
+
+    for _ in range(3):
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+            limit_train_batches=2,
+            limit_val_batches=1,
+            max_epochs=1,
+            accelerator="cpu",
+            callbacks=[pruning_callback],
+        )
+        # Must not raise RuntimeError: "Only Tensors created explicitly by the
+        # user (graph leaves) support the deepcopy protocol"
+        trainer.fit(model)
+        torch.testing.assert_close(model.layer.weight_orig, initial_weight)
+
+
+def test_lottery_ticket_snapshot_includes_pruned_children():
+    module = nn.Module()
+    module.child = nn.Linear(2, 2)
+    original = module.child.weight.detach().clone()
+    pytorch_prune.l1_unstructured(module.child, name="weight", amount=0.5)
+    masked = module.child.weight
+
+    snapshot = ModelPruning._deepcopy_for_pruning(module)
+
+    torch.testing.assert_close(snapshot.child.weight, original)
+    assert module.child.weight is masked
+    assert snapshot.child.weight.data_ptr() != module.child.weight_orig.data_ptr()

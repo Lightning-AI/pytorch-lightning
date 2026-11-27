@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader, Dataset
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import EMAWeightAveraging, WeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch.plugins.precision import MixedPrecision
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -120,8 +121,8 @@ class EMATestCallback(WeightAveraging):
         # => Using two processes we have 2 optimizer steps per epoch.
         steps_per_epoch = 4 // self.devices
         assert self._average_model.n_averaged == trainer.max_epochs * steps_per_epoch
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
-        assert self.copy_calls == 1
+        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2 + 1
+        assert self.copy_calls == 0
 
 
 class SWATestCallback(WeightAveraging):
@@ -166,14 +167,17 @@ class SWATestCallback(WeightAveraging):
             assert self._average_model.n_averaged == 2
         else:
             assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.current_epoch + 1 - self.first_epoch) * 2
+        # The model is only swapped during validation once the average model has been updated. The first update happens
+        # at the end of epoch 3, so the validation epochs that swap are those from epoch 4 onwards (two swaps each).
+        assert self.swap_calls == max(0, trainer.current_epoch - 3) * 2
         assert self.copy_calls == 0
 
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
         assert self._average_model.n_averaged == 3
-        assert self.swap_calls == (trainer.max_epochs - self.first_epoch) * 2
-        assert self.copy_calls == 1
+        # Two swaps per validation after epoch 3 and one final swap at the end of training.
+        assert self.swap_calls == max(0, trainer.max_epochs - 1 - 3) * 2 + 1
+        assert self.copy_calls == 0
 
 
 def test_weight_averaging_deepcopy(tmp_path):
@@ -388,6 +392,86 @@ def test_ema_weight_averaging_starting_epoch(tmp_path):
     assert callback._average_model is not None
 
 
+def test_validation_uses_restored_epoch_average(tmp_path):
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="cpu", logger=False)
+    model = BoringModel()
+    callback = EMAWeightAveraging(update_every_n_steps=0, update_starting_at_epoch=0)
+    callback.setup(trainer, model, "fit")
+    callback.on_train_epoch_end(trainer, model)
+    averaged = model.layer.weight.detach().clone()
+    with torch.no_grad():
+        model.layer.weight.add_(1)
+    current = model.layer.weight.detach().clone()
+    checkpoint = {"state_dict": model.state_dict()}
+    callback.on_save_checkpoint(trainer, model, checkpoint)
+
+    restored = EMAWeightAveraging(update_every_n_steps=0, update_starting_at_epoch=0)
+    restored.setup(trainer, model, "fit")
+    restored.load_state_dict(callback.state_dict())
+    restored.on_load_checkpoint(trainer, model, checkpoint)
+    restored.on_validation_epoch_start(trainer, model)
+    torch.testing.assert_close(model.layer.weight, averaged)
+    restored.on_validation_epoch_end(trainer, model)
+    torch.testing.assert_close(model.layer.weight, current)
+
+
+def test_weight_averaging_no_swap_before_first_update(tmp_path):
+    """Validation must use the current (trained) weights while the average model has not been updated yet.
+
+    Before the first update, the ``AveragedModel`` only holds the copy of the initial weights made in ``setup()``.
+    Swapping it in for validation during a delayed-start warmup would discard the trained weights and evaluate the
+    untrained snapshot instead. See https://github.com/Lightning-AI/pytorch-lightning/issues/21724.
+
+    """
+
+    class SwapProbeModel(BoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.layer = nn.Linear(32, 2)
+            self.initial_weight: Optional[Tensor] = None
+            self.validation_weight: Optional[Tensor] = None
+
+        def on_train_start(self) -> None:
+            # Snapshot of the weights the average model copies in ``setup()``.
+            self.initial_weight = self.layer.weight.detach().clone()
+
+        def on_validation_epoch_start(self) -> None:
+            self.validation_weight = self.layer.weight.detach().clone()
+
+        def configure_optimizers(self):
+            # A large learning rate guarantees the weights move noticeably away from their initial values.
+            return torch.optim.SGD(self.parameters(), lr=1.0)
+
+    model = SwapProbeModel()
+    dataset = RandomDataset(32, 32)
+    # The update threshold is never reached during this run, so the average model is never updated.
+    callback = EMAWeightAveraging(update_every_n_steps=1, update_starting_at_step=1000)
+    trainer = Trainer(
+        accelerator="cpu",
+        devices=1,
+        logger=False,
+        callbacks=callback,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        deterministic=True,
+        default_root_dir=tmp_path,
+    )
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=False)
+    trainer.fit(model, train_dataloaders=dataloader, val_dataloaders=dataloader)
+
+    assert callback._average_model is not None
+    assert callback._average_model.n_averaged == 0
+    assert model.initial_weight is not None
+    assert model.validation_weight is not None
+    # Validation must not have swapped in the un-updated (frozen) average model.
+    assert not torch.allclose(model.validation_weight, model.initial_weight)
+
+
 def test_ema_weight_averaging_should_update(tmp_path):
     """Test the should_update logic of EMAWeightAveraging."""
     # Test with step-based updates
@@ -449,3 +533,60 @@ def test_ema_weight_averaging_decay_values(tmp_path, decay):
     _train(model, dataset, tmp_path, callback)
 
     assert callback._average_model is not None
+
+
+@pytest.mark.parametrize(
+    ("device", "fused"),
+    [
+        ("cpu", False),
+        pytest.param("cuda", False, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", True, marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
+def test_ema_does_not_update_on_grad_scaler_skip(tmp_path, device, fused):
+    class NonFiniteFirstStepModel(TestModel):
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1, fused=fused)
+
+        def on_after_backward(self) -> None:
+            if self.global_step == 0:
+                next(self.parameters()).grad.fill_(float("inf"))
+
+    class RecordingEMA(EMAWeightAveraging):
+        def __init__(self) -> None:
+            super().__init__(decay=0.5)
+            self.model_params = []
+            self.ema_params = []
+            self.n_averaged = []
+            self.latest_update_step = []
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
+            self.model_params.append([p.detach().cpu().clone() for p in pl_module.parameters()])
+            self.ema_params.append([p.detach().cpu().clone() for p in self._average_model.parameters()])
+            self.n_averaged.append(self._average_model.n_averaged.item())
+            self.latest_update_step.append(self._latest_update_step)
+
+    model = NonFiniteFirstStepModel(batch_norm=False)
+    callback = RecordingEMA()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator=device,
+        devices=1,
+        plugins=[MixedPrecision("16-mixed", device, scaler=torch.amp.GradScaler(device, init_scale=8.0))],
+        callbacks=[callback],
+        max_steps=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    initial_params = [p.detach().clone() for p in model.parameters()]
+    trainer.fit(model)
+
+    assert all(torch.equal(actual, initial) for actual, initial in zip(callback.model_params[0], initial_params))
+    assert all(torch.equal(actual, initial) for actual, initial in zip(callback.ema_params[0], initial_params))
+    assert callback.n_averaged == [0, 1]
+    assert callback.latest_update_step == [0, 2]
+    assert any(not torch.equal(actual, initial) for actual, initial in zip(callback.model_params[1], initial_params))
+    assert any(not torch.equal(actual, initial) for actual, initial in zip(callback.ema_params[1], initial_params))
