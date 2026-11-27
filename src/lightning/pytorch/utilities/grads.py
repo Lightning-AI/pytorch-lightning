@@ -16,10 +16,11 @@
 from typing import Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 
 
-def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = "/") -> dict[str, float]:
+def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = "/") -> dict[str, Tensor]:
     """Compute each parameter's gradient's norm and their overall norm.
 
     The overall norm is computed over all gradients together, as if they
@@ -48,6 +49,6 @@ def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator
         if p.grad is not None
     }
     if norms:
-        total_norm = torch.tensor(list(norms.values())).norm(norm_type)
+        total_norm = torch.stack(list(norms.values())).norm(norm_type)
         norms[f"grad_{norm_type}_norm_total"] = total_norm
     return norms
