@@ -15,7 +15,7 @@
 
 import inspect
 import os
-from collections.abc import Iterable, Sized
+from collections.abc import Iterable, Mapping, Sized
 from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
@@ -287,7 +287,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
                 try:
                     loader = loader_method()  # type: ignore
-                    info[loader_name] = loader_info(loader)
+                    info[loader_name] = dataset_info(False, "") if loader is None else loader_info(loader)
                 except Exception:
                     info[loader_name] = dataset_info(False, "")
 
@@ -300,6 +300,13 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 # Single dataset
                 if isinstance(loader_info, dataset_info):
                     loader_info_formatted = "None" if not loader_info.available else f"size={loader_info.length}"
+                elif not loader_info:
+                    loader_info_formatted = "None"
+                elif isinstance(loader_info, Mapping):
+                    loader_info_formatted = " ; ".join(
+                        "None" if not loader_info_i.available else f"{k}. size={loader_info_i.length}"
+                        for k, loader_info_i in loader_info.items()
+                    )
                 # Iterable of datasets
                 else:
                     loader_info_formatted = " ; ".join(
