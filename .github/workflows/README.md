@@ -29,10 +29,7 @@ Brief description of all our automation tools used for boosting development perf
 
 ## Documentation
 
-| workflow file                    | action                                                                   |
-| -------------------------------- | ------------------------------------------------------------------------ |
-| .github/workflows/docs-build.yml | Build HTML and run doctests. Check links on PRs targeting `release/*`.    |
-| .github/workflows/ci-rtfd.yml    | Append link to the PR description with temporaty ReadTheDocs build docs. |
+Library docs are synced and published externally.
 
 ## Code Quality
 
@@ -55,7 +52,6 @@ The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/py
 
 | workflow file                              | action                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
-| .github/workflows/docs-build.yml           | Build the docs for each project and puch it to GCS with automatics deployment. |
 | .github/workflows/docker-build.yml         | Build docker images used for releases and push them to the Docker Hub.         |
 | .github/workflows/release-pkg.yml          | Publish a release to PyPI and upload to the GH release page as artifact.       |
 | .github/workflows/\_legacy-checkpoints.yml | Add on request generate legacy checkpoints and upload them to AWS S3.          |
