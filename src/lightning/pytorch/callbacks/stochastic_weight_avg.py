@@ -145,7 +145,10 @@ class StochasticWeightAveraging(Callback):
 
     @staticmethod
     def pl_module_contains_batch_norm(pl_module: "pl.LightningModule") -> bool:
-        return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
+        return any(
+            isinstance(module, nn.modules.batchnorm._BatchNorm) and module.track_running_stats
+            for module in pl_module.modules()
+        )
 
     @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
@@ -295,7 +298,7 @@ class StochasticWeightAveraging(Callback):
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154."""
         self.momenta = {}
         for module in pl_module.modules():
-            if not isinstance(module, nn.modules.batchnorm._BatchNorm):
+            if not isinstance(module, nn.modules.batchnorm._BatchNorm) or not module.track_running_stats:
                 continue
             assert module.running_mean is not None
             module.running_mean = torch.zeros_like(
@@ -324,11 +327,20 @@ class StochasticWeightAveraging(Callback):
         average_model: "pl.LightningModule", model: "pl.LightningModule", n_averaged: Tensor, avg_fn: _AVG_FN
     ) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112."""
+        is_first = n_averaged.item() == 0
+        n_averaged_on_device: dict[torch.device, Tensor] = {n_averaged.device: n_averaged}
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
             p_swa_ = p_swa.detach()
             p_model_ = p_model.detach().to(device)
-            src = p_model_ if n_averaged == 0 else avg_fn(p_swa_, p_model_, n_averaged.to(device))
+            if is_first:
+                src = p_model_
+            else:
+                n_avg_dev = n_averaged_on_device.get(device)
+                if n_avg_dev is None:
+                    n_avg_dev = n_averaged.to(device)
+                    n_averaged_on_device[device] = n_avg_dev
+                src = avg_fn(p_swa_, p_model_, n_avg_dev)
             p_swa_.copy_(src)
         n_averaged += 1
 
