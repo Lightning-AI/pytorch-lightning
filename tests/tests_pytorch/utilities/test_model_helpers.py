@@ -68,13 +68,28 @@ class RestrictedClass:
         pass
 
 
-def test_restricted_classmethod():
+def test_restricted_classmethod(monkeypatch):
     restricted_method = RestrictedClass().restricted_cmethod  # no exception when getting restricted method
 
     with pytest.raises(TypeError, match="cannot be called on an instance"):
         restricted_method()
 
     _ = inspect.getmembers(RestrictedClass())  # no exception on inspecting instance
+
+    stack_calls = []
+    orig_stack = inspect.stack
+
+    def recording_stack(context=1):
+        stack_calls.append(context)
+        return orig_stack(context)
+
+    monkeypatch.setattr(inspect, "stack", recording_stack)
+    RestrictedClass.restricted_cmethod()
+    assert stack_calls == []
+
+    with pytest.raises(TypeError, match="cannot be called on an instance"):
+        RestrictedClass().restricted_cmethod()
+    assert stack_calls == [0]
 
 
 def test_module_mode():
