@@ -168,6 +168,7 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp
         monitor.setup(trainer, Mock(), "fit")
 
 
+@RunIf(psutil=True)
 def test_device_stats_monitor_logs_for_different_stages(tmp_path):
     """Test that metrics are logged for all stages that is training, testing and validation."""
     model = BoringModel()
@@ -281,3 +282,27 @@ def test_device_stats_monitor_filter_keys_unrecognized_warns(tmp_path):
     )
     with pytest.warns(UserWarning, match="filter_keys contains keys not found"):
         trainer.fit(model)
+
+
+def test_device_stats_monitor_cpu_stats_true_when_psutil_not_available(monkeypatch, tmp_path):
+    """Test that ModuleNotFoundError is raised in setup when cpu_stats=True and psutil is not available."""
+    import lightning.pytorch.callbacks.device_stats_monitor as imports
+
+    monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
+    monitor = DeviceStatsMonitor(cpu_stats=True)
+    trainer = Trainer(accelerator="cpu", logger=CSVLogger(tmp_path))
+    with pytest.raises(ModuleNotFoundError, match="psutil` is not installed"):
+        monitor.setup(trainer, Mock(), "fit")
+
+
+def test_device_stats_monitor_cpu_stats_false_with_filter_keys_skips_cpu_stats(monkeypatch, tmp_path):
+    """Test that cpu_stats=False on CPU with filter_keys does not query CPU stats or require psutil in setup."""
+    import lightning.pytorch.callbacks.device_stats_monitor as imports
+
+    monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
+    monitor = DeviceStatsMonitor(cpu_stats=False, filter_keys={_CPU_PERCENT})
+    trainer = Trainer(accelerator="cpu", logger=CSVLogger(tmp_path))
+    with mock.patch.object(trainer.accelerator, "get_device_stats") as get_stats_mock:
+        monitor.setup(trainer, Mock(), "fit")
+        get_stats_mock.assert_not_called()
+

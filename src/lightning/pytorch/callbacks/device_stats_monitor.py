@@ -156,12 +156,12 @@ class DeviceStatsMonitor(Callback):
 
         # warn in setup to warn once
         device = trainer.strategy.root_device
-        if self._cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
+        if (self._cpu_stats or (self._cpu_stats is None and device.type == "cpu")) and not _PSUTIL_AVAILABLE:
             raise ModuleNotFoundError(
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
-        if self._filter_keys is not None:
+        if self._filter_keys is not None and not (self._cpu_stats is False and device.type == "cpu"):
             device_stats = trainer.accelerator.get_device_stats(device)
             if self._cpu_stats and device.type != "cpu":
                 from lightning.pytorch.accelerators.cpu import get_cpu_stats
