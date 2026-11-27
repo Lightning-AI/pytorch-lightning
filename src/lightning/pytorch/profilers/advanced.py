@@ -122,5 +122,10 @@ class AdvancedProfiler(Profiler):
         return (
             self.__class__,
             (),
-            {"dirpath": self.dirpath, "filename": self.filename, "line_count_restriction": self.line_count_restriction},
+            {
+                "dirpath": self.dirpath,
+                "filename": self.filename,
+                "line_count_restriction": self.line_count_restriction,
+                "dump_stats": self.dump_stats,
+            },
         )

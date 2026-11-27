@@ -406,9 +406,22 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
-def test_advanced_profiler_deepcopy(advanced_profiler):
+def test_advanced_profiler_deepcopy(tmp_path):
+    advanced_profiler = AdvancedProfiler(
+        dirpath=tmp_path, filename="profiler", line_count_restriction=0.5, dump_stats=True
+    )
     advanced_profiler.describe()
-    assert deepcopy(advanced_profiler)
+    copied = deepcopy(advanced_profiler)
+    assert copied.dirpath == advanced_profiler.dirpath
+    assert copied.filename == advanced_profiler.filename
+    assert copied.line_count_restriction == 0.5
+    assert copied.dump_stats is True
+
+
+@pytest.mark.parametrize("extended", [True, False])
+def test_simple_profiler_empty_summary(extended):
+    profiler = SimpleProfiler(extended=extended)
+    assert profiler.summary() == f"Profiler Report{os.linesep}{os.linesep}"
 
 
 def test_advanced_profiler_nested(advanced_profiler):
