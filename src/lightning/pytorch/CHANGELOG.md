@@ -38,11 +38,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
+
 - Fixed `ModelCheckpoint(save_last=True)` no longer updating `last.ckpt` at epoch end when the monitored metric does not reach the top k, a regression in 2.6.0 that made resuming from `ckpt_path="last"` lose progress ([#22060](https://github.com/Lightning-AI/pytorch-lightning/pull/22060))
 
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
 
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
+
+- Fixed races between checkpoint saves and removals in `AsyncCheckpointIO` ([#21996](https://github.com/Lightning-AI/pytorch-lightning/pull/21996))
 
 - Fixed `ModelCheckpoint` with `every_n_train_steps` ranking a step checkpoint saved right before validation with the previous validation's metric ([#20185](https://github.com/Lightning-AI/pytorch-lightning/issues/20185), [#22203](https://github.com/Lightning-AI/pytorch-lightning/pull/22203))
 
@@ -50,7 +54,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed Trainer shutdown hanging when the parent process is interrupted while waiting for multiprocessing workers ([#22236](https://github.com/Lightning-AI/pytorch-lightning/pull/22236))
 
+- Fixed `CombinedLoader` ignoring individual batch limits when iterating in `min_size`, `max_size`, and `max_size_cycle` modes ([#22161](https://github.com/Lightning-AI/pytorch-lightning/pull/22161))
+
 - Fixed `ModelCheckpoint` deleting resumed-from checkpoints on remote filesystems ([#21910](https://github.com/Lightning-AI/pytorch-lightning/pull/21910))
+
+- Fixed `ModelPruning` checkpoint export mistaking ordinary mask buffers for pruning reparameterizations ([#22163](https://github.com/Lightning-AI/pytorch-lightning/pull/22163))
 
 - Fixed stateful dataloaders not restoring their state from a checkpoint when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers` ([#21765](https://github.com/Lightning-AI/pytorch-lightning/pull/21765))
 
