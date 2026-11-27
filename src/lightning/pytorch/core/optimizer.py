@@ -121,26 +121,30 @@ class LightningOptimizer:
                 opt_gen, opt_dis = self.optimizers()
 
                 ...
-                accumulated_grad_batches = batch_idx % 2 == 0
+                accumulated_grad_batches = (batch_idx + 1) % 2 == 0
 
                 # compute generator loss
                 def closure_gen():
                     loss_gen = self.compute_generator_loss(...)
                     self.manual_backward(loss_gen)
-                    if accumulated_grad_batches:
-                        opt_gen.zero_grad()
 
                 with opt_gen.toggle_model(sync_grad=accumulated_grad_batches):
-                    opt_gen.step(closure=closure_gen)
+                    if accumulated_grad_batches:
+                        opt_gen.step(closure=closure_gen)
+                        opt_gen.zero_grad()
+                    else:
+                        closure_gen()
 
                 def closure_dis():
                     loss_dis = self.compute_discriminator_loss(...)
                     self.manual_backward(loss_dis)
-                    if accumulated_grad_batches:
-                        opt_dis.zero_grad()
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
-                    opt_dis.step(closure=closure_dis)
+                    if accumulated_grad_batches:
+                        opt_dis.step(closure=closure_dis)
+                        opt_dis.zero_grad()
+                    else:
+                        closure_dis()
 
         """
         self._on_before_step()
