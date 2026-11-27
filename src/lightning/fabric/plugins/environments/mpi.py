@@ -14,7 +14,6 @@
 
 import logging
 import socket
-from functools import lru_cache
 from typing import Optional
 
 from lightning_utilities.core.imports import RequirementCache
@@ -43,6 +42,9 @@ class MPIEnvironment(ClusterEnvironment):
 
         self._comm_world = MPI.COMM_WORLD
         self._comm_local: Optional[MPI.Comm] = None
+        self._world_size: Optional[int] = None
+        self._global_rank: Optional[int] = None
+        self._local_rank: Optional[int] = None
         self._node_rank: Optional[int] = None
         self._main_address: Optional[str] = None
         self._main_port: Optional[int] = None
@@ -82,30 +84,33 @@ class MPIEnvironment(ClusterEnvironment):
         return MPI.COMM_WORLD.Get_size() > 1
 
     @override
-    @lru_cache(1)
     def world_size(self) -> int:
-        return self._comm_world.Get_size()
+        if self._world_size is None:
+            self._world_size = self._comm_world.Get_size()
+        return self._world_size
 
     @override
     def set_world_size(self, size: int) -> None:
         log.debug("MPIEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     @override
-    @lru_cache(1)
     def global_rank(self) -> int:
-        return self._comm_world.Get_rank()
+        if self._global_rank is None:
+            self._global_rank = self._comm_world.Get_rank()
+        return self._global_rank
 
     @override
     def set_global_rank(self, rank: int) -> None:
         log.debug("MPIEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     @override
-    @lru_cache(1)
     def local_rank(self) -> int:
-        if self._comm_local is None:
-            self._init_comm_local()
-        assert self._comm_local is not None
-        return self._comm_local.Get_rank()
+        if self._local_rank is None:
+            if self._comm_local is None:
+                self._init_comm_local()
+            assert self._comm_local is not None
+            self._local_rank = self._comm_local.Get_rank()
+        return self._local_rank
 
     @override
     def node_rank(self) -> int:
