@@ -45,7 +45,7 @@ def test_overfit_basic(tmp_path, overfit_batches):
     )
 
 
-def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
+def test_overfit_batches_preserves_custom_sampler_and_warns(tmp_path):
     class NonSequentialSampler(Sampler):
         def __init__(self, data_source):
             self.data_source = data_source
@@ -70,11 +70,11 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, overfit_batches=2)
 
-    with pytest.warns(UserWarning, match="requested to overfit but enabled train dataloader shuffling"):
+    with pytest.warns(UserWarning, match="requested to overfit but some train dataloaders use custom samplers"):
         trainer.fit(model)
 
-    assert isinstance(trainer.train_dataloader.sampler, SequentialSampler)
-    assert isinstance(trainer.val_dataloaders.sampler, SequentialSampler)
+    assert isinstance(trainer.train_dataloader.sampler, NonSequentialSampler)
+    assert isinstance(trainer.val_dataloaders.sampler, NonSequentialSampler)
 
 
 @pytest.mark.parametrize(
