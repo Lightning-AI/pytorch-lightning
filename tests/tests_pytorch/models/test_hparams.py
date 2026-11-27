@@ -34,7 +34,12 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.core.mixins import HyperparametersMixin
-from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from lightning.pytorch.core.saving import (
+    load_hparams_from_tags_csv,
+    load_hparams_from_yaml,
+    save_hparams_to_yaml,
+    update_hparams,
+)
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities import AttributeDict, is_picklable
@@ -662,11 +667,12 @@ def test_save_hparams_to_yaml(tmp_path):
 
 
 def test_save_hparams_to_yaml_warning(tmp_path):
-    """Test that we warn about unserializable parameters that need to be dropped."""
+    """Test that we warn about unserializable parameters that need to be dropped without mutating caller input."""
     path_yaml = tmp_path / "hparams.yaml"
     hparams = {"torch_type": torch.float32}
     with pytest.warns(UserWarning, match="Skipping 'torch_type' parameter"):
-        save_hparams_to_yaml(path_yaml, hparams)
+        save_hparams_to_yaml(path_yaml, hparams, use_omegaconf=False)
+    assert hparams["torch_type"] is torch.float32
 
 
 class NoArgsSubClassBoringModel(CustomBoringModel):
@@ -1062,3 +1068,21 @@ def test_nn_modules_warning_when_saved_as_hparams():
         model = CustomBoringModelNoWarn(encoder=TorchModule(), decoder=TorchModule())
 
     assert list(model.hparams) == ["other_hparam"]
+
+
+def test_update_hparams_with_non_dict_existing_value():
+    hparams = {"a": None, "b": 1, "c": {"x": 10}}
+    update_hparams(hparams, {"a": {"nested": 2}, "b": {"nested": 3}, "c": {"y": 20}})
+    assert hparams == {"a": {"nested": 2}, "b": {"nested": 3}, "c": {"x": 10, "y": 20}}
+
+
+def test_load_hparams_from_empty_yaml_and_blank_csv_rows(tmp_path):
+    empty_yaml = tmp_path / "empty.yaml"
+    empty_yaml.write_text("")
+    assert load_hparams_from_yaml(empty_yaml, use_omegaconf=False) == {}
+    assert load_hparams_from_yaml(empty_yaml, use_omegaconf=True) == {}
+
+    csv_path = tmp_path / "tags.csv"
+    csv_path.write_text("key,value\nlr,0.01\n\nbatch_size,16\n\n")
+    assert load_hparams_from_tags_csv(csv_path) == {"lr": 0.01, "batch_size": 16}
+
