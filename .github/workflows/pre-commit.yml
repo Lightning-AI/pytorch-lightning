@@ -21,10 +21,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up uv and Python
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
 
-      - name: Run pre-commit
-        run: uvx --python 3.12 pre-commit==4.7.0 run --all-files --show-diff-on-failure
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
