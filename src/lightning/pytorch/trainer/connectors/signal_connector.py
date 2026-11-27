@@ -86,18 +86,13 @@ class _SignalConnector:
             else:
                 job_id = os.environ["SLURM_JOB_ID"]
 
-            assert re.match("[0-9_-]+", job_id)
+            if re.fullmatch(r"[0-9_-]+", job_id) is None:
+                raise RuntimeError(f"Invalid SLURM job id: {job_id!r}")
             cmd = ["scontrol", "requeue", job_id]
 
             # requeue job
             log.info(f"requeing job {job_id}...")
-            try:
-                result = call(cmd)
-            except FileNotFoundError:
-                # This can occur if a subprocess call to `scontrol` is run outside a shell context
-                # Re-attempt call (now with shell context). If any error is raised, propagate to user.
-                # When running a shell command, it should be passed as a single string.
-                result = call(" ".join(cmd), shell=True)
+            result = call(cmd)
 
             # print result text
             if result == 0:
