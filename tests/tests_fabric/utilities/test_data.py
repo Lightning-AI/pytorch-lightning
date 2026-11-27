@@ -539,6 +539,26 @@ def test_custom_batch_sampler():
         _ = _update_dataloader(dataloader, sampler=Mock())
 
 
+def test_custom_batch_sampler_with_missing_required_arg():
+    """Test that a duck-typed batch sampler with `batch_size` and `drop_last` attributes that requires extra `__init__`
+    positional arguments raises the actionable guidance TypeError rather than an unhandled raw TypeError."""
+
+    class CustomBatchSamplerWithExtraArg:  # not inheriting from `BatchSampler`
+        def __init__(self, sampler, batch_size, drop_last, extra_required_arg):
+            self.sampler = sampler
+            self.batch_size = batch_size
+            self.drop_last = drop_last
+            self.extra_required_arg = extra_required_arg
+
+        def __iter__(self):
+            yield [0, 1]
+
+    batch_sampler = CustomBatchSamplerWithExtraArg(Mock(), batch_size=2, drop_last=True, extra_required_arg="val")
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+        _ = _update_dataloader(dataloader, sampler=Mock())
+
+
 def test_custom_batch_sampler_no_sampler():
     """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler argument."""
 
