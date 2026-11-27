@@ -159,7 +159,12 @@ class EarlyStopping(Callback):
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
-            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
+            # a time-based `val_check_interval` leaves `trainer.val_check_interval` unset and validates mid-epoch
+            self._check_on_train_epoch_end = (
+                getattr(trainer, "_val_check_time_interval", None) is None
+                and trainer.val_check_interval == 1.0
+                and trainer.check_val_every_n_epoch == 1
+            )
 
     def _validate_condition_metric(self, logs: dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)

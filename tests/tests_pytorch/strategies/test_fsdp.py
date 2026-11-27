@@ -964,9 +964,12 @@ def test_load_sharded_checkpoint_metadata_weights_only(load_mock, _is_sharded_mo
 
     strategy.load_checkpoint(checkpoint_path="memory:///x/sharded")
     assert load_mock.call_args.kwargs["weights_only"] is False
+    assert _dist_load_mock.call_args.kwargs["strict"] is True
 
+    model.strict_loading = False
     strategy.load_checkpoint(checkpoint_path="memory:///x/sharded", weights_only=True)
     assert load_mock.call_args.kwargs["weights_only"] is True
+    assert _dist_load_mock.call_args.kwargs["strict"] is False
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
