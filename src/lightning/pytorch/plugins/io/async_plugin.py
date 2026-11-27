@@ -121,8 +121,8 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 def _clone_tensor_or_array(value: Any) -> Any:
     """Clones a tensor or NumPy array on the caller thread.
 
-    Numerical arrays are copied by value. Object arrays are copied shallowly, so their elements still reference the
-    live Python objects.
+    Numerical arrays are copied by value. Object arrays are copied shallowly, so their elements still reference the live
+    Python objects.
 
     """
     if isinstance(value, torch.Tensor):
