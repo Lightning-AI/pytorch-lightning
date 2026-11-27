@@ -56,3 +56,55 @@ def test_train_step_no_return(tmp_path, single_cb: bool):
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
     trainer.fit(model)
+
+
+def test_on_before_optimizer_setup_is_called_in_correct_order(tmp_path):
+    """Ensure `on_before_optimizer_setup` runs after `configure_model` but before `configure_optimizers`."""
+
+    order = []
+
+    class TestCallback(Callback):
+        def setup(self, trainer, pl_module, stage=None):
+            order.append("setup")
+            assert pl_module.layer is None
+            assert len(trainer.optimizers) == 0
+
+        def on_before_optimizer_setup(self, trainer, pl_module):
+            order.append("on_before_optimizer_setup")
+            # configure_model should already have been called
+            assert pl_module.layer is not None
+            # but optimizers are not yet created
+            assert len(trainer.optimizers) == 0
+
+        def on_fit_start(self, trainer, pl_module):
+            order.append("on_fit_start")
+            # optimizers should now exist
+            assert len(trainer.optimizers) == 1
+            assert pl_module.layer is not None
+
+    class DemoModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = None
+
+        def configure_model(self):
+            from torch import nn
+
+            self.layer = nn.Linear(32, 2)
+
+    model = DemoModel()
+
+    trainer = Trainer(
+        callbacks=TestCallback(),
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        enable_model_summary=False,
+        log_every_n_steps=1,
+    )
+
+    trainer.fit(model)
+
+    # Verify call order
+    assert order == ["setup", "on_before_optimizer_setup", "on_fit_start"]
