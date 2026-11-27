@@ -16,6 +16,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Optional
 
+import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
@@ -67,9 +68,14 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
         # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)
         if "checkpoint" in kwargs:
-            kwargs = {**kwargs, "checkpoint": apply_to_collection(kwargs["checkpoint"], torch.Tensor, _clone_tensor)}
+            kwargs = {
+                **kwargs,
+                "checkpoint": apply_to_collection(
+                    kwargs["checkpoint"], (torch.Tensor, np.ndarray), _clone_tensor_or_array
+                ),
+            }
         elif len(args) >= 1:
-            args = (apply_to_collection(args[0], torch.Tensor, _clone_tensor), *args[1:])
+            args = (apply_to_collection(args[0], (torch.Tensor, np.ndarray), _clone_tensor_or_array), *args[1:])
 
         self._submit(super().save_checkpoint, *args, **kwargs)
 
@@ -112,6 +118,13 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
-def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
-    """Makes a detached CPU snapshot, keeping data-less meta tensors on meta."""
-    return t.detach().to(device="meta" if t.is_meta else "cpu", copy=True)
+def _clone_tensor_or_array(value: Any) -> Any:
+    """Clones a tensor or NumPy array on the caller thread.
+
+    Numerical arrays are copied by value. Object arrays are copied shallowly, so their elements still reference the live
+    Python objects.
+
+    """
+    if isinstance(value, torch.Tensor):
+        return value.detach().to(device="meta" if value.is_meta else "cpu", copy=True)
+    return value.copy()

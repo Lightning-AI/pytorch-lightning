@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `DDPStrategy` and `FSDPStrategy` reporting an incorrect `num_replicas` in `distributed_sampler_kwargs` when the nodes of a cluster hold a different number of devices, by using the actual world size instead of `num_nodes * num_processes` ([#19898](https://github.com/Lightning-AI/pytorch-lightning/issues/19898))
 
+- Fixed `AsyncCheckpointIO` retaining live numerical NumPy arrays during asynchronous checkpoint writes ([#22087](https://github.com/Lightning-AI/pytorch-lightning/pull/22087))
+
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
 
 - Fixed step-interval LR scheduler frequencies resetting at epoch boundaries ([#21926](https://github.com/Lightning-AI/pytorch-lightning/pull/21926))
