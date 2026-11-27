@@ -50,6 +50,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
 
+- Fixed `AsyncCheckpointIO` retaining extra tensor copies in accelerator memory while asynchronous writes are pending ([#21630](https://github.com/Lightning-AI/pytorch-lightning/issues/21630))
+
 - Fixed races between checkpoint saves and removals in `AsyncCheckpointIO` ([#21996](https://github.com/Lightning-AI/pytorch-lightning/pull/21996))
 
 - Fixed re-instantiating `DataLoader` with positional arguments (e.g. `batch_size`, `shuffle`) raising `TypeError: got multiple values for argument` ([#17991](https://github.com/Lightning-AI/pytorch-lightning/issues/17991))
