@@ -21,6 +21,7 @@ from typing_extensions import get_args
 
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.accelerators.xla import XLAAccelerator
@@ -420,9 +421,13 @@ class _Connector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         # Change fsdp to xla_fsdp if using TPU
-        if strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+        if strategy_flag == "fsdp" and (
+            self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator)
+        ):
             strategy_flag = "xla_fsdp"
-        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
+        if strategy_flag == "dp" and (
+            self._accelerator_flag == "cpu" or isinstance(self._accelerator_flag, CPUAccelerator)
+        ):
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
@@ -432,7 +437,7 @@ class _Connector:
             )
         if (
             strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
                 " to continue or select a different strategy."
@@ -479,7 +484,9 @@ class _Connector:
         if self._precision_input == "transformer-engine-float16":
             return TransformerEnginePrecision(weights_dtype=torch.float16)
 
-        if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
+        is_cpu = self._accelerator_flag == "cpu" or isinstance(self.accelerator, CPUAccelerator)
+        is_mps = self._accelerator_flag == "mps" or isinstance(self.accelerator, MPSAccelerator)
+        if self._precision_input == "16-mixed" and is_cpu:
             rank_zero_warn(
                 "You passed `Fabric(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
                 "CPU. Using `precision='bf16-mixed'` instead."
@@ -492,7 +499,7 @@ class _Connector:
                 if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+            device = "cpu" if is_cpu else ("mps" if is_mps else "cuda")
             return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")

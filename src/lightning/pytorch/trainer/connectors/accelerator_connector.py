@@ -33,6 +33,7 @@ from lightning.fabric.utilities.device_parser import _determine_root_gpu_device,
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
+from lightning.pytorch.accelerators.cpu import CPUAccelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
@@ -475,7 +476,9 @@ class _AcceleratorConnector:
         if self._precision_flag == "transformer-engine-float16":
             return TransformerEnginePrecision(weights_dtype=torch.float16)
 
-        if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
+        is_cpu = self._accelerator_flag == "cpu" or isinstance(self.accelerator, CPUAccelerator)
+        is_mps = self._accelerator_flag == "mps" or isinstance(self.accelerator, MPSAccelerator)
+        if self._precision_flag == "16-mixed" and is_cpu:
             rank_zero_warn(
                 "You passed `Trainer(accelerator='cpu', precision='16-mixed')` but AMP with fp16 is not supported on "
                 "CPU. Using `precision='bf16-mixed'` instead."
@@ -486,7 +489,7 @@ class _AcceleratorConnector:
             rank_zero_info(
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
-            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+            device = "cpu" if is_cpu else ("mps" if is_mps else "cuda")
             return MixedPrecision(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
