@@ -46,6 +46,17 @@ The most common filesystems supported by Lightning are:
 * Microsoft Azure Storage: ``adl://``, ``abfs://`` or ``az://`` - Microsoft Azure Storage, using `adlfs <https://github.com/fsspec/adlfs>`__. Run ``pip install fsspec[adl]`` to install it.
 * Hadoop File System: ``hdfs://`` - Hadoop Distributed File System. This uses `PyArrow <https://arrow.apache.org/docs/python/>`__ as the backend. Run ``pip install fsspec[hdfs]`` to install it.
 
+You could learn more about the available filesystems with:
+
+.. code-block:: python
+
+    from fsspec.registry import known_implementations
+
+    print(known_implementations)
+
+
+You could also look into :ref:`CheckpointIO Plugin <checkpointing_expert>` for more details on how to customize saving and loading checkpoints.
+
 S3-compatible object storage
 ============================
 
@@ -62,14 +73,3 @@ and the credentials through the standard AWS environment variables, which ``s3fs
 
 Environment variables are inherited by the processes launched for distributed training, so every rank uses the same endpoint.
 Checkpoint saving, ``ckpt_path`` resuming, and loggers that use fsspec then work with ``s3://my_bucket/...`` paths as shown above.
-
-You could learn more about the available filesystems with:
-
-.. code-block:: python
-
-    from fsspec.registry import known_implementations
-
-    print(known_implementations)
-
-
-You could also look into :ref:`CheckpointIO Plugin <checkpointing_expert>` for more details on how to customize saving and loading checkpoints.
