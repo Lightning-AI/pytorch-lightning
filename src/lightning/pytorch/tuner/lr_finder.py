@@ -172,8 +172,10 @@ class _LRFinder:
             loss samples.
 
         """
-        losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
-        lrs = torch.tensor(self.results["lr"][skip_begin:-skip_end])
+        # `[skip_begin:-skip_end]` would yield an empty slice for `skip_end=0`
+        end = max(len(self.results["loss"]) - skip_end, 0)
+        losses = torch.tensor(self.results["loss"][skip_begin:end])
+        lrs = torch.tensor(self.results["lr"][skip_begin:end])
         is_finite = torch.isfinite(losses)
         losses = losses[is_finite]
         lrs = lrs[is_finite]
@@ -190,7 +192,7 @@ class _LRFinder:
         gradients = torch.gradient(losses, spacing=[lrs])[0]  # Compute the gradient of losses w.r.t. learning rates
         min_grad = torch.argmin(gradients).item()
         all_losses_idx = torch.arange(len(self.results["loss"]))
-        idx_non_skipped = all_losses_idx[skip_begin:-skip_end]
+        idx_non_skipped = all_losses_idx[skip_begin:end]
         idx_finite = idx_non_skipped[is_finite]
         self._optimal_idx = idx_finite[min_grad].item()  # type: ignore
         return self.results["lr"][self._optimal_idx]

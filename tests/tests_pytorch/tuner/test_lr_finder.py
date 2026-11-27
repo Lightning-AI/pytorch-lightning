@@ -367,6 +367,9 @@ def test_multiple_lr_find_calls_gives_same_results(tmp_path):
         (10, 1, [], True),
         (0, 2, [0, 1, 2], True),
         (0, 1, [0, 1, 2], False),
+        (0, 0, [0, 1, 2], False),
+        (1, 0, [0, 1, 2], False),
+        (3, 0, [0, 1, 2], True),
         (1, 1, [0, 1, 2], True),
         (1, 1, [0, 1, 2, 3], False),
         (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
@@ -395,6 +398,17 @@ def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expec
             assert "Failed to compute suggestion for learning rate" in caplog.text
         else:
             assert lr is not None
+
+
+def test_suggestion_skip_end_zero_keeps_all_trailing_samples():
+    """``skip_end=0`` must not skip any sample at the end (``[skip_begin:-0]`` would be an empty slice)."""
+    lr_finder = _LRFinder(mode="linear", lr_min=0.0, lr_max=4.0, num_training=5)
+    # the steepest descent is between the last two samples
+    lr_finder.results = {"lr": [0.0, 1.0, 2.0, 3.0, 4.0], "loss": [5.0, 4.0, 3.5, 3.4, 1.0]}
+
+    assert lr_finder.suggestion(skip_begin=0, skip_end=1) == 0.0
+    assert lr_finder.suggestion(skip_begin=0, skip_end=0) == 4.0
+    assert lr_finder._optimal_idx == 4
 
 
 def test_lr_attribute_when_suggestion_invalid(tmp_path):
