@@ -88,6 +88,9 @@ def _parse_gpu_ids(
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
 
+    # Check that GPUs are unique. Duplicate GPUs are not supported by the backend.
+    _check_unique(gpus)
+
     if (
         torch.distributed.is_available()
         and torch.distributed.is_torchelastic_launched()
@@ -97,20 +100,18 @@ def _parse_gpu_ids(
         # Omit sanity check on torchelastic because by default it shows one visible GPU per process
         return gpus
 
-    # Check that GPUs are unique. Duplicate GPUs are not supported by the backend.
-    _check_unique(gpus)
-
     return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[int, list[int]]:
     if not isinstance(s, str):
         return s
+    s = s.strip()
     if s == "-1":
         return -1
     if "," in s:
-        return [int(x.strip()) for x in s.split(",") if len(x) > 0]
-    return int(s.strip())
+        return [int(x.strip()) for x in s.split(",") if x.strip()]
+    return int(s)
 
 
 def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: bool = False) -> list[int]:
