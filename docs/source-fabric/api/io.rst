@@ -6,7 +6,7 @@ lightning.fabric.plugins.io
 
 
 .. warning::
-    This is an `experimental <https://lightning.ai/docs/pytorch/latest/versioning.html>`__ feature.
+    This is an :ref:`experimental <pytorch_lightning:versioning:Experimental API>` feature.
 
 
 IO
