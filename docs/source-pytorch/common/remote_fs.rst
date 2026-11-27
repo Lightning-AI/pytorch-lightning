@@ -71,5 +71,5 @@ and the credentials through the standard AWS environment variables, which ``s3fs
     export AWS_SECRET_ACCESS_KEY=<secret-access-key>
     export AWS_DEFAULT_REGION=example-region
 
-Environment variables are inherited by the processes launched for distributed training, so every rank uses the same endpoint.
+Processes that Lightning launches for distributed training inherit these environment variables. For multi-node runs, set them on every node (for example, in your cluster launcher) so every rank uses the same endpoint.
 Checkpoint saving, ``ckpt_path`` resuming, and loggers that use fsspec then work with ``s3://my_bucket/...`` paths as shown above.
