@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -70,6 +71,37 @@ def test_finetuning_callback(tmp_path):
     trainer.fit(model)
 
     assert model.backbone.has_been_used
+
+
+def test_finetuning_callback_train_bn_false(tmp_path):
+    """Test that BackboneFinetuning respects train_bn=False during the initial freeze phase."""
+    seed_everything(42)
+
+    class FinetuningBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
+            self.layer = nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(self.backbone(x))
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    model = FinetuningBoringModel()
+    callback = BackboneFinetuning(unfreeze_backbone_at_epoch=3, train_bn=False, verbose=False)
+
+    trainer = Trainer(limit_train_batches=4, default_root_dir=tmp_path, callbacks=[callback], max_epochs=1)
+    trainer.fit(model)
+
+    # With train_bn=False, BatchNorm should be fully frozen (not trainable, no running stats)
+    assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[1].bias.requires_grad
+    assert not model.backbone[1].track_running_stats
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
@@ -421,6 +453,45 @@ def test_callbacks_restore_backbone(tmp_path):
     trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)
 
 
+@pytest.mark.parametrize(("unfreeze_backbone_at_epoch", "expected_requires_grad"), [(1, True), (3, False)])
+def test_finetuning_restores_requires_grad_on_resume(tmp_path, unfreeze_backbone_at_epoch, expected_requires_grad):
+    """Test that resuming restores the frozen state the modules had when the training was interrupted."""
+
+    class HeadOptimizerModel(BackboneBoringModel):
+        def configure_optimizers(self):
+            # only the head is optimized to begin with, the callback adds the backbone when it unfreezes it
+            return SGD(self.layer.parameters(), lr=0.1)
+
+    def fit(max_epochs, callbacks, ckpt_path=None):
+        model = HeadOptimizerModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            limit_train_batches=2,
+            limit_val_batches=0,
+            max_epochs=max_epochs,
+            num_sanity_val_steps=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+            callbacks=callbacks,
+        )
+        trainer.fit(model, ckpt_path=ckpt_path)
+        return model
+
+    ckpt = ModelCheckpoint(dirpath=tmp_path, save_last=True)
+    fit(2, [BackboneFinetuning(unfreeze_backbone_at_epoch=unfreeze_backbone_at_epoch), ckpt])
+
+    # `setup()` freezes the backbone again on the resumed run, so whatever was unfrozen before the interruption
+    # has to be made trainable again, and nothing else
+    model = fit(
+        3,
+        [BackboneFinetuning(unfreeze_backbone_at_epoch=unfreeze_backbone_at_epoch)],
+        ckpt_path=ckpt.last_model_path,
+    )
+    assert model.backbone.weight.requires_grad is expected_requires_grad
+    assert model.backbone.bias.requires_grad is expected_requires_grad
+
+
 @RunIf(deepspeed=True)
 def test_unsupported_strategies(tmp_path):
     model = BackboneBoringModel()
@@ -428,3 +499,61 @@ def test_unsupported_strategies(tmp_path):
     trainer = Trainer(accelerator="cpu", strategy="deepspeed", callbacks=[callback])
     with pytest.raises(NotImplementedError, match="does not support running with the DeepSpeed strategy"):
         callback.setup(trainer, model, stage=None)
+
+
+class FreezeBackboneAtEpoch1(BaseFinetuning):
+    def freeze_before_training(self, pl_module):
+        pass
+
+    def finetune_function(self, pl_module, epoch, optimizer):
+        if epoch == 1:
+            self.freeze(pl_module.backbone)
+
+
+class DDPBackboneBoringModel(BackboneBoringModel):
+    def __init__(self, automatic_optimization):
+        super().__init__()
+        self.automatic_optimization = automatic_optimization
+
+    def training_step(self, batch, batch_idx):
+        if self.automatic_optimization:
+            return super().training_step(batch, batch_idx)
+        optimizer = self.optimizers()
+        optimizer.zero_grad()
+        self.manual_backward(self.step(batch))
+        optimizer.step()
+        return None
+
+    def configure_optimizers(self):
+        return SGD(filter(lambda p: p.requires_grad, self.parameters()), lr=0.1)
+
+    def on_train_epoch_end(self):
+        # the replicas have to stay identical, also after the callback froze or unfroze parameters
+        for param in self.parameters():
+            gathered = self.all_gather(param.detach())
+            torch.testing.assert_close(gathered[0], gathered[1], rtol=0, atol=0)
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize(
+    ("unfreeze", "automatic_optimization", "static_graph"),
+    [(True, True, False), (False, True, False), (True, False, True)],
+)
+def test_finetuning_ddp_rewraps_model(tmp_path, unfreeze, automatic_optimization, static_graph):
+    """Test that the DDP replicas stay identical when the callback unfreezes or freezes parameters during training."""
+    callback = BackboneFinetuning(unfreeze_backbone_at_epoch=1) if unfreeze else FreezeBackboneAtEpoch1()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=2,
+        strategy=DDPStrategy(start_method="spawn", static_graph=static_graph),
+        max_epochs=3,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        callbacks=callback,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(DDPBackboneBoringModel(automatic_optimization))
