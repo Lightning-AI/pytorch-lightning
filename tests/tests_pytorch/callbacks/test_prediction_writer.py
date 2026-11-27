@@ -36,6 +36,13 @@ def test_prediction_writer_invalid_write_interval():
         DummyPredictionWriter("something")
 
 
+@pytest.mark.parametrize("interval", ["BATCH", "Epoch", "Batch_And_Epoch"])
+def test_prediction_writer_case_insensitive_write_interval(interval):
+    """Test that case-insensitive `write_interval` values accepted by `LightningEnum` are resolved."""
+    writer = DummyPredictionWriter(interval)
+    assert writer.interval.value == interval.lower()
+
+
 def test_prediction_writer_hook_call_intervals(tmp_path):
     """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
@@ -122,3 +129,24 @@ def test_batch_level_batch_indices(tmp_path):
         call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
         call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
     ])
+    assert trainer.predict_loop.current_batch_indices == []
+
+
+def test_prediction_writer_clears_batch_indices_for_non_indexed_dataloader(tmp_path):
+    """Test that `current_batch_indices` does not leak from an indexed DataLoader to a non-indexed iterable."""
+    DummyPredictionWriter.write_on_batch_end = Mock()
+
+    writer = DummyPredictionWriter("batch")
+    model = BoringModel()
+    indexed_loader = DataLoader(RandomDataset(32, 8), batch_size=4)
+    non_indexed_iterable = iter([indexed_loader.dataset[0].unsqueeze(0), indexed_loader.dataset[1].unsqueeze(0)])
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, callbacks=writer)
+    trainer.predict(model, dataloaders=[indexed_loader, non_indexed_iterable], return_predictions=False)
+
+    writer.write_on_batch_end.assert_has_calls([
+        call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
+        call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
+        call(trainer, model, ANY, [], ANY, 0, 1),
+        call(trainer, model, ANY, [], ANY, 1, 1),
+    ])
+
