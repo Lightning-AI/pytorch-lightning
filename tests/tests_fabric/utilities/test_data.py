@@ -369,6 +369,62 @@ def test_replace_dunder_methods_restore_methods():
     for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
         assert before[cls] == {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
 
+    with pytest.raises(RuntimeError, match="boom"), _replace_dunder_methods(DataLoader, "dataset"):
+        raise RuntimeError("boom")
+
+    for cls in (DataLoader, Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        assert "__old__init__" not in cls.__dict__
+        assert "__old__setattr__" not in cls.__dict__
+        assert "__old__delattr__" not in cls.__dict__
+    for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        assert before[cls] == {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
+
+
+def test_replace_dunder_methods_attr_and_init_exception_recovery():
+    """Test that caught exceptions in __setattr__/__delattr__ or nested __init__ do not corrupt tracking state."""
+
+    class BaseLoader(DataLoader):
+        def __init__(self, dataset, *args, fail_inner=False, **kwargs):
+            if fail_inner:
+                raise ValueError("inner init failed")
+            super().__init__(dataset, *args, **kwargs)
+
+    class OuterLoader(BaseLoader):
+        def __init__(self, dataset, *args, **kwargs):
+            try:
+                super().__init__(dataset, *args, fail_inner=True, **kwargs)
+            except ValueError:
+                super().__init__(dataset, *args, fail_inner=False, **kwargs)
+
+        def __setattr__(self, name, value):
+            if name == "validated_attr" and value < 0:
+                raise ValueError("must be non-negative")
+            super().__setattr__(name, value)
+
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        dataloader = OuterLoader(range(10))
+        assert dataloader.__pl_inside_init is False
+
+        with pytest.raises(ValueError, match="must be non-negative"):
+            dataloader.validated_attr = -1
+        # A subsequent valid write to the same attribute must still be recorded
+        dataloader.validated_attr = 42
+
+        with pytest.raises(AttributeError):
+            del dataloader.missing_attr
+        dataloader.missing_attr = "temp"
+        # A subsequent valid delete of the same attribute must still be recorded
+        del dataloader.missing_attr
+
+    assert dataloader.__pl_attrs_record == [
+        (("validated_attr", 42), _WrapAttrTag.SET),
+        (("missing_attr", "temp"), _WrapAttrTag.SET),
+        (("missing_attr",), _WrapAttrTag.DEL),
+    ]
+    reinstantiated = _update_dataloader(dataloader, dataloader.sampler)
+    assert reinstantiated.validated_attr == 42
+    assert not hasattr(reinstantiated, "missing_attr")
+
 
 @pytest.mark.parametrize(
     (
