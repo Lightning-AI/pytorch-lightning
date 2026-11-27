@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import types
 from collections import OrderedDict
 from typing import Any
 from unittest import mock
@@ -19,6 +20,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning_utilities.test.warning import no_warning_call
+from torch.utils.flop_counter import FlopCounterMode
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -27,6 +29,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
     UNKNOWN_SIZE,
     ModelSummary,
+    _is_nested_tensor_flop_counter_error,
     summarize,
 )
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
@@ -95,6 +98,40 @@ class MixedDtypeModel(LightningModule):
 
     def forward(self, x):
         return self.reduce(self.embed(x))
+
+
+class SimpleLinearModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 3)
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class JaggedNestedTensorBlock(nn.Module):
+    def __init__(self, fail_after_forward: bool = False):
+        super().__init__()
+        self.proj = nn.Linear(3, 2)
+        self.fail_after_forward = fail_after_forward
+
+    def forward(self, x):
+        nested = torch.nested.nested_tensor([x[0, :2], x[1, :3]], layout=torch.jagged)
+        output = self.proj(nested)
+        if self.fail_after_forward:
+            raise RuntimeError("plain forward failed")
+        return {"nested": output}
+
+
+class JaggedNestedTensorModel(LightningModule):
+    def __init__(self, fail_after_forward: bool = False):
+        super().__init__()
+        self.block = JaggedNestedTensorBlock(fail_after_forward=fail_after_forward)
+        self.example_input_array = torch.rand(2, 3, 3)
+
+    def forward(self, x):
+        return self.block(x)
 
 
 class PartialScriptModel(LightningModule):
@@ -203,6 +240,120 @@ def test_mixed_dtype_model_summary():
     summary = summarize(model)
     assert summary.in_sizes == [[2, 3], [2, 3, 20]]  # embed  # reduce
     assert summary.out_sizes == [[2, 3, 20], [2, 3, 1]]  # embed  # reduce
+
+
+def test_model_summary_flops_for_normal_tensor_example_input():
+    """Test that regular tensor inputs still collect shapes and FLOPs."""
+    summary = summarize(SimpleLinearModel())
+    assert summary.in_sizes == [[2, 3]]
+    assert summary.out_sizes == [[2, 2]]
+    assert summary.total_flops > 0
+
+
+def test_model_summary_with_jagged_nested_tensor_falls_back_to_unknown_output_size():
+    """Test that jagged NestedTensor operations unsupported by the FLOP counter don't crash the summary."""
+    _require_jagged_nested_tensor_flop_counter_error()
+
+    model = JaggedNestedTensorModel()
+    output = model(model.example_input_array)
+    assert output["nested"].layout is torch.jagged
+
+    summary = summarize(model)
+
+    assert summary.in_sizes == [[2, 3, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE]
+    assert summary.total_flops == 0
+
+
+def test_model_summary_with_jagged_nested_tensor_reraises_plain_forward_error():
+    """Test that the NestedTensor FLOP fallback does not hide a model error from the plain forward."""
+    _require_jagged_nested_tensor_flop_counter_error()
+
+    with pytest.raises(RuntimeError, match="plain forward failed"):
+        summarize(JaggedNestedTensorModel(fail_after_forward=True))
+
+
+def test_flop_counter_fallback_does_not_mix_shapes_across_forward_passes(monkeypatch):
+    """Test that the retry after a FLOP-counter failure re-captures shapes for layers that already ran (and had their
+    hook removed) during the failed, FLOP-counting forward pass, instead of keeping stale shapes from that failed
+    pass."""
+
+    class ShapeChangingLayer(nn.Module):
+        """Returns a different output shape on each call, so a stale (unreset) hook is caught red-handed."""
+
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def forward(self, x):
+            self.calls += 1
+            return x[:, :1] if self.calls == 1 else x
+
+    class FlakyLayer(nn.Module):
+        """Fails on the first call, simulating a FLOP-counter incompatibility, then succeeds."""
+
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def forward(self, x):
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("simulated FLOP-counter incompatibility")
+            return x
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.pre = ShapeChangingLayer()
+            self.flaky = FlakyLayer()
+            self.example_input_array = torch.rand(2, 4)
+
+        def forward(self, x):
+            return self.flaky(self.pre(x))
+
+    # Force the fallback path deterministically, independent of the real NestedTensor/FLOP-counter heuristic.
+    monkeypatch.setattr(
+        "lightning.pytorch.utilities.model_summary.model_summary._is_nested_tensor_flop_counter_error",
+        lambda ex: True,
+    )
+
+    summary = summarize(Model())
+
+    # `pre` ran once during the failed FLOP-counting pass (out_size [2, 1]) and once during the retry
+    # (out_size [2, 4]). Its hook must have been reset so the retry's shape, not the stale one, is reported.
+    assert summary.out_sizes[0] == [2, 4]
+
+
+def test_flop_counter_fallback_leaves_no_hooks_when_retry_fails(monkeypatch):
+    """Test that hooks don't leak onto the model when the retry after a FLOP-counter failure itself raises."""
+
+    class AlwaysFails(nn.Module):
+        def forward(self, x):
+            raise RuntimeError("always fails")
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.pre = nn.Linear(4, 4)
+            self.flaky = AlwaysFails()
+            self.example_input_array = torch.rand(2, 4)
+
+        def forward(self, x):
+            return self.flaky(self.pre(x))
+
+    # Force the fallback path deterministically, independent of the real NestedTensor/FLOP-counter heuristic.
+    monkeypatch.setattr(
+        "lightning.pytorch.utilities.model_summary.model_summary._is_nested_tensor_flop_counter_error",
+        lambda ex: True,
+    )
+
+    model = Model()
+    with pytest.raises(RuntimeError, match="always fails"):
+        summarize(model)
+
+    assert not model.pre._forward_hooks
+    assert not model.flaky._forward_hooks
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0])
@@ -454,6 +605,79 @@ def test_summary_restores_module_mode():
     assert model.training
     assert model.layer1.training
     assert not model.layer2.training
+
+
+def _require_jagged_nested_tensor_flop_counter_error():
+    if not hasattr(torch, "jagged"):
+        pytest.skip("Requires torch.jagged layout support.")
+    if not hasattr(torch, "nested") or not hasattr(torch.nested, "nested_tensor"):
+        pytest.skip("Requires torch.nested.nested_tensor.")
+
+    layer = nn.Linear(3, 2)
+    nested = torch.nested.nested_tensor([torch.rand(2, 3), torch.rand(3, 3)], layout=torch.jagged)
+    # mirror `ModelSummary._forward_example_input`, which always runs the forward under `torch.no_grad()`: whether
+    # the FLOP counter fails on jagged NestedTensor ops can depend on autograd tracking being enabled or not
+    try:
+        with torch.no_grad():
+            layer(nested)
+    except Exception as ex:
+        pytest.skip(f"Requires Linear support for jagged NestedTensor: {ex}")
+
+    try:
+        with torch.no_grad(), FlopCounterMode(display=False):
+            layer(nested)
+    except (NotImplementedError, RuntimeError, TypeError):
+        return
+
+    pytest.skip("Requires FlopCounterMode to not support jagged NestedTensor.")
+
+
+def _wrap_with_module_name(inner, name: str):
+    """Returns a function that calls `inner`, but whose own frame reports `__name__` as `name` (as if it were defined
+    in that module), without relying on `exec`."""
+
+    def _call():
+        inner()
+
+    return types.FunctionType(_call.__code__, {"__name__": name}, "_call", closure=_call.__closure__)
+
+
+def _raise_through_fake_modules(*module_names: str) -> BaseException:
+    """Raises and catches a ``RuntimeError`` through a synthetic call stack whose frames' ``__name__`` match the given
+    module names (innermost last), so ``_is_nested_tensor_flop_counter_error`` can be tested against a controlled
+    traceback instead of depending on real NestedTensor/FlopCounterMode internals."""
+
+    def _raise():
+        raise RuntimeError("synthetic failure")
+
+    fn = _raise
+    for name in reversed(module_names):
+        fn = _wrap_with_module_name(fn, name)
+
+    try:
+        fn()
+    except RuntimeError as ex:
+        return ex
+    raise AssertionError("unreachable")
+
+
+@pytest.mark.parametrize(
+    ("module_names", "expected"),
+    [
+        (("torch.utils.flop_counter", "torch.nested._internal.ops"), True),
+        (("torch.nested._internal.ops", "torch.utils.flop_counter"), True),
+        (("torch.utils.flop_counter",), False),
+        (("torch.nested._internal.ops",), False),
+        (("some.other.module",), False),
+        ((), False),
+    ],
+)
+def test_is_nested_tensor_flop_counter_error_classifies_traceback(module_names, expected):
+    """Test that `_is_nested_tensor_flop_counter_error` only classifies an exception as the FLOP-counter/NestedTensor
+    incompatibility when its traceback has frames from both a `torch.utils.flop_counter` module and a `torch.nested*`
+    module."""
+    ex = _raise_through_fake_modules(*module_names)
+    assert _is_nested_tensor_flop_counter_error(ex) is expected
 
 
 def test_total_training_modes():
