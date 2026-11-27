@@ -151,20 +151,38 @@ class Throughput:
                 The value might be different in each device if the batch size is not the same.
 
         """
-        self._time.append(time)
+        for window, value in ((self._time, time),):
+            last = window.last
+            if last is not None and last >= value:
+                raise ValueError(f"Expected the value to increase, last: {last}, current: {value}")
         if samples < batches:
             raise ValueError(f"Expected samples ({samples}) to be greater or equal than batches ({batches})")
-        self._batches.append(batches)
-        self._samples.append(samples)
+        for window, value in ((self._batches, batches), (self._samples, samples)):
+            last = window.last
+            if last is not None and last >= value:
+                raise ValueError(f"Expected the value to increase, last: {last}, current: {value}")
         if lengths is not None:
             if lengths < samples:
                 raise ValueError(f"Expected lengths ({lengths}) to be greater or equal than samples ({samples})")
-            self._lengths.append(lengths)
+            last = self._lengths.last
+            if last is not None and last >= lengths:
+                raise ValueError(f"Expected the value to increase, last: {last}, current: {lengths}")
             if len(self._samples) != len(self._lengths):
                 raise RuntimeError(
-                    f"If lengths are passed ({len(self._lengths)}), there needs to be the same number of samples"
-                    f" ({len(self._samples)})"
+                    f"If lengths are passed ({len(self._lengths) + 1}), there needs to be the same number of samples"
+                    f" ({len(self._samples) + 1})"
                 )
+        elif self._lengths:
+            raise RuntimeError(
+                f"If lengths are passed ({len(self._lengths)}), there needs to be the same number of samples"
+                f" ({len(self._samples) + 1})"
+            )
+
+        self._time.append(time)
+        self._batches.append(batches)
+        self._samples.append(samples)
+        if lengths is not None:
+            self._lengths.append(lengths)
         if flops is not None:
             # sum of flops across ranks
             self._flops.append(flops * self.world_size)
