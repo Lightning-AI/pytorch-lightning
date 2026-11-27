@@ -392,7 +392,7 @@ class _LRCallback(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         """Called before each training batch, logs the lr that will be used."""
-        if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if trainer.fit_loop._should_accumulate():
             return
 
         if self.progress_bar_refresh_rate and self.progress_bar is None:
@@ -405,7 +405,7 @@ class _LRCallback(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         """Called when the training batch ends, logs the calculated loss."""
-        if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if trainer.fit_loop._should_accumulate():
             return
 
         # _AutomaticOptimization.run turns None STEP_OUTPUT into an empty dict

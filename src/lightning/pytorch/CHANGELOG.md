@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
 
+- Fixed the learning rate finder omitting optimizer updates at the final partial gradient accumulation window ([#22171](https://github.com/Lightning-AI/pytorch-lightning/pull/22171))
+
 - Fixed `ModelCheckpoint(save_last=True)` no longer updating `last.ckpt` at epoch end when the monitored metric does not reach the top k, a regression in 2.6.0 that made resuming from `ckpt_path="last"` lose progress ([#22060](https://github.com/Lightning-AI/pytorch-lightning/pull/22060))
 
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
