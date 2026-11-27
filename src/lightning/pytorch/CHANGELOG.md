@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
 
+- Fixed `ModelCheckpoint` with `every_n_train_steps` ranking a step checkpoint saved right before validation with the previous validation's metric ([#20185](https://github.com/Lightning-AI/pytorch-lightning/issues/20185), [#22203](https://github.com/Lightning-AI/pytorch-lightning/pull/22203))
+
 - Fixed DDP replicas diverging after `BaseFinetuning` unfreezes parameters by wrapping the model in `DistributedDataParallel` again when `finetune_function` changes which parameters require grad ([#20340](https://github.com/Lightning-AI/pytorch-lightning/issues/20340), [#22208](https://github.com/Lightning-AI/pytorch-lightning/pull/22208))
 
 - Fixed Trainer shutdown hanging when the parent process is interrupted while waiting for multiprocessing workers ([#22236](https://github.com/Lightning-AI/pytorch-lightning/pull/22236))

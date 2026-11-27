@@ -363,6 +363,7 @@ class ModelCheckpoint(Checkpoint):
                 self._defer_save_until_validation = True
                 return
 
+            self._defer_save_until_validation = False
             # For manual optimization, we save the model state that was captured in training_step
             # before the optimizer step. The test case saves this state in model.saved_models.
             if (
@@ -461,39 +462,45 @@ class ModelCheckpoint(Checkpoint):
             self._defer_save_until_validation = True
             return
 
-        # Even if the monitored key exists, it could be stale from a previous validation.
-        # If validation is scheduled to run right after this batch (e.g., last batch of epoch)
-        # and we are not saving at train epoch end, defer to `on_validation_end` to use fresh metrics.
+        # Even if the monitored key exists, it could be stale from a previous validation. If the training epoch loop
+        # runs validation right after this batch, defer to `on_validation_end` to use fresh metrics.
+        epoch_loop = trainer.fit_loop.epoch_loop
+        data_fetcher = trainer.fit_loop._data_fetcher
         if (
             self.monitor is not None
-            and not self._should_save_on_train_epoch_end(trainer)
-            and getattr(trainer.fit_loop.epoch_loop.batch_progress, "is_last_batch", False)
+            and data_fetcher is not None
+            and not epoch_loop._skip_next_val
+            and epoch_loop._should_check_val_fx(data_fetcher)
         ):
-            # Only defer if a validation loop is expected to run after this batch.
-            will_run_val = False
-            if getattr(trainer, "enable_validation", False):
-                num_val_batches = (
-                    sum(trainer.num_val_batches)
-                    if isinstance(trainer.num_val_batches, list)
-                    else trainer.num_val_batches
-                )
-                if num_val_batches and num_val_batches > 0:
-                    cve = trainer.check_val_every_n_epoch
-                    if cve is None or ((trainer.current_epoch + 1) % cve == 0):
-                        will_run_val = True
-
-            if will_run_val:
+            if epoch_loop.val_loop._combined_loader is None:
+                # The first validation epoch may start after the initial dataloader setup.
+                trainer.validating = True
+                try:
+                    epoch_loop.val_loop.setup_data()
+                finally:
+                    trainer.training = True
+            if not epoch_loop.val_loop.skip:
                 self._defer_save_until_validation = True
                 return
 
+        self._defer_save_until_validation = False
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
+        if self._should_save_on_train_epoch_end(trainer):
+            deferred = self._defer_save_until_validation
+            self._defer_save_until_validation = False
+            if self._should_skip_saving_checkpoint(trainer):
+                return
             monitor_candidates = self._monitor_candidates(trainer)
+            # A train-epoch metric can first become available after validation has finished.
+            if deferred and self.monitor in monitor_candidates:
+                self._save_topk_checkpoint(trainer, monitor_candidates)
+                self._save_last_checkpoint(trainer, monitor_candidates)
+                return
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
@@ -505,16 +512,20 @@ class ModelCheckpoint(Checkpoint):
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
-        if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
-            monitor_candidates = self._monitor_candidates(trainer)
-            # If a step/time-triggered save was deferred due to a missing monitored metric,
-            # perform the save now that validation metrics are available.
-            if self._defer_save_until_validation:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-                self._save_last_checkpoint(trainer, monitor_candidates)
-                self._defer_save_until_validation = False
-                return
+        if self._should_skip_saving_checkpoint(trainer):
+            return
+        monitor_candidates = self._monitor_candidates(trainer)
+        save_on_train_epoch_end = self._should_save_on_train_epoch_end(trainer)
+        # If a step/time-triggered save was deferred due to a missing or stale monitored metric, perform the save now
+        # that validation metrics are available. When saving on train epoch end, the monitored key can be a train
+        # epoch metric that is not logged yet, so keep waiting for it instead of failing.
+        if self._defer_save_until_validation and (not save_on_train_epoch_end or self.monitor in monitor_candidates):
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
+            self._defer_save_until_validation = False
+            return
 
+        if not save_on_train_epoch_end:
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
