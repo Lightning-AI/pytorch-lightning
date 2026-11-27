@@ -483,7 +483,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx` when `add_dataloader_idx=True`"
             )
 
-        value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
+        value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name, enable_graph)
 
         if trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -656,12 +656,14 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
+    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str, enable_graph: bool = False) -> Tensor:
         value = (
-            value.clone().detach()
+            value.clone()
             if isinstance(value, Tensor)
             else torch.tensor(value, device=self.device, dtype=_get_default_dtype())
         )
+        if not enable_graph:
+            value = value.detach()
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
