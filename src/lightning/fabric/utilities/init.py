@@ -55,27 +55,70 @@ class _EmptyInit(TorchFunctionMode):
         if getattr(func, "__module__", None) == "torch.nn.init":
             if "tensor" in kwargs:
                 return kwargs["tensor"]
-            return args[0]
+            if args:
+                return args[0]
         return func(*args, **kwargs)
 
 
-def _materialize(module: Module, device: _DEVICE) -> None:
-    """Materialize a module."""
-    module.to_empty(device=device, recurse=False)
-    if not hasattr(module, "reset_parameters"):
+def _validate_reset_parameters(module: Module) -> None:
+    if not callable(getattr(module, "reset_parameters", None)):
         raise TypeError(
             f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."
             " This method is used to initialize any children parameters or buffers in this module."
         )
+
+
+def _materialize(module: Module, device: _DEVICE) -> None:
+    """Materialize a module."""
+    _validate_reset_parameters(module)
+    module.to_empty(device=device, recurse=False)
     if callable(module.reset_parameters):
         module.reset_parameters()
 
 
 def _materialize_meta_tensors(module: Module, device: _DEVICE) -> None:
     """Materialize all tensors in a given module."""
-    for module in module.modules():
-        if _has_meta_device_parameters_or_buffers(module, recurse=False):
-            _materialize(module, device)
+    meta_modules: list[Module] = []
+    seen_meta_tensors: set[int] = set()
+    for submodule in module.modules():
+        unseen_meta = [
+            id(t)
+            for t in itertools.chain(submodule.parameters(recurse=False), submodule.buffers(recurse=False))
+            if t.is_meta and id(t) not in seen_meta_tensors
+        ]
+        if unseen_meta:
+            seen_meta_tensors.update(unseen_meta)
+            meta_modules.append(submodule)
+    for submodule in meta_modules:
+        _validate_reset_parameters(submodule)
+
+    materialized_params: dict[int, Parameter] = {}
+    materialized_buffers: dict[int, torch.Tensor] = {}
+    for submodule in module.modules():
+        for name, param in list(submodule._parameters.items()):
+            if param is not None and id(param) in materialized_params:
+                submodule._parameters[name] = materialized_params[id(param)]
+        for name, buf in list(submodule._buffers.items()):
+            if buf is not None and id(buf) in materialized_buffers:
+                submodule._buffers[name] = materialized_buffers[id(buf)]
+        if _has_meta_device_parameters_or_buffers(submodule, recurse=False):
+            old_param_ids = {
+                name: id(param)
+                for name, param in submodule._parameters.items()
+                if param is not None and param.is_meta
+            }
+            old_buf_ids = {
+                name: id(buf) for name, buf in submodule._buffers.items() if buf is not None and buf.is_meta
+            }
+            _materialize(submodule, device)
+            for name, old_id in old_param_ids.items():
+                new_param = submodule._parameters.get(name)
+                if new_param is not None:
+                    materialized_params[old_id] = new_param
+            for name, old_id in old_buf_ids.items():
+                new_buf = submodule._buffers.get(name)
+                if new_buf is not None:
+                    materialized_buffers[old_id] = new_buf
 
 
 def _materialize_distributed_module(module: Module, device: torch.device) -> None:

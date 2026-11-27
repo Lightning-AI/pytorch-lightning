@@ -76,6 +76,37 @@ def test_materialize_meta_tensors():
 
     with pytest.raises(TypeError, match="MyModel.reset_parameters` method is implemented"):
         _materialize_meta_tensors(model, torch.device("cpu"))
+    assert model.buf.is_meta
+    assert all(p.is_meta for p in model.parameters())
+
+    class NonCallableResetModel(MyModel):
+        reset_parameters = None
+
+    with torch.device("meta"):
+        model_non_callable = NonCallableResetModel()
+
+    with pytest.raises(TypeError, match="NonCallableResetModel.reset_parameters` method is implemented"):
+        _materialize_meta_tensors(model_non_callable, torch.device("cpu"))
+    assert model_non_callable.buf.is_meta
+    assert all(p.is_meta for p in model_non_callable.parameters())
+
+    class BadChild(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.p = torch.nn.Parameter(torch.empty(1))
+
+    class ParentWithBadChild(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.good = torch.nn.Linear(1, 1)
+            self.bad = BadChild()
+
+    with torch.device("meta"):
+        parent_model = ParentWithBadChild()
+
+    with pytest.raises(TypeError, match="BadChild.reset_parameters` method is implemented"):
+        _materialize_meta_tensors(parent_model, torch.device("cpu"))
+    assert all(p.is_meta for p in parent_model.parameters())
 
     class MyModel2(MyModel):
         def reset_parameters(self):
@@ -88,6 +119,31 @@ def test_materialize_meta_tensors():
     assert model.buf.device.type == "cpu"
     assert len(list(model.parameters())) == 4
     assert all(p.device.type == "cpu" for p in model.parameters())
+
+    class TiedWrapperWithoutReset(torch.nn.Module):
+        def __init__(self, weight: torch.nn.Parameter):
+            super().__init__()
+            self.weight = weight
+
+    class TiedModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.embed = torch.nn.Embedding(10, 4)
+            self.head = torch.nn.Linear(4, 10, bias=False)
+            self.head.weight = self.embed.weight
+            self.wrapper = TiedWrapperWithoutReset(self.embed.weight)
+
+    with torch.device("meta"):
+        tied_model = TiedModel()
+
+    head_reset_spy = Mock(wraps=tied_model.head.reset_parameters)
+    tied_model.head.reset_parameters = head_reset_spy
+
+    _materialize_meta_tensors(tied_model, torch.device("cpu"))
+    assert tied_model.embed.weight.device.type == "cpu"
+    assert tied_model.head.weight is tied_model.embed.weight
+    assert tied_model.wrapper.weight is tied_model.embed.weight
+    head_reset_spy.assert_not_called()
 
 
 def test_has_meta_device_parameters_or_buffers():
@@ -115,3 +171,19 @@ def test_has_meta_device_parameters_or_buffers():
     # unsupported objects
     with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
         _has_meta_device_parameters_or_buffers(None)
+
+
+def test_empty_init_kwargs_and_no_positional_args():
+    """Test that `_EmptyInit` handles `torch.nn.init` calls with keyword tensor or no positional args."""
+    t = torch.empty(2, 2)
+    with _EmptyInit(enabled=True):
+        out = torch.nn.init.uniform_(tensor=t)
+        assert out is t
+
+    mode = _EmptyInit(enabled=True)
+
+    def _custom_init_fn(*, val: torch.Tensor) -> str:
+        return "called"
+
+    _custom_init_fn.__module__ = "torch.nn.init"
+    assert mode.__torch_function__(_custom_init_fn, (torch.Tensor,), args=(), kwargs={"val": t}) == "called"
