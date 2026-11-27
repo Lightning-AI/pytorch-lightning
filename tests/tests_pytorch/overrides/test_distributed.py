@@ -78,6 +78,7 @@ def test_index_batch_sampler():
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
 
+    assert index_batch_sampler.seen_batch_indices == []
     assert batch_sampler.batch_size == index_batch_sampler.batch_size
     assert batch_sampler.drop_last == index_batch_sampler.drop_last
     assert batch_sampler.sampler is sampler
@@ -96,3 +97,8 @@ def test_index_batch_sampler():
     b1 = next(iterator)
     assert b1 == [3, 4, 5]
     assert index_batch_sampler.seen_batch_indices == [b0, b1]
+
+    # Wrapping a sampler that already defines `seen_batch_indices` must not leak or alias it
+    nested_wrapper = _IndexBatchSamplerWrapper(index_batch_sampler)
+    assert nested_wrapper.seen_batch_indices == []
+    assert nested_wrapper.seen_batch_indices is not index_batch_sampler.seen_batch_indices
