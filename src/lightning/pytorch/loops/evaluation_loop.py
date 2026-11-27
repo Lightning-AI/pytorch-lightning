@@ -520,19 +520,21 @@ class _EvaluationLoop(_Loop):
     def _get_keys(data: dict) -> Iterable[tuple[str, ...]]:
         for k, v in data.items():
             if isinstance(v, dict):
-                for new_key in apply_to_collection(v, dict, _EvaluationLoop._get_keys):
+                for new_key in _EvaluationLoop._get_keys(v):
                     yield (k, *new_key)  # this need to be in parenthesis for older python versions
             else:
                 yield (k,)
 
     @staticmethod
     def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+        if not isinstance(data, dict):
+            return None
         target_start, *rest = target
         if target_start not in data:
             return None
         result = data[target_start]
         if not rest:
-            return result
+            return None if isinstance(result, dict) else result
         return _EvaluationLoop._find_value(result, rest)
 
     @staticmethod
@@ -551,7 +553,9 @@ class _EvaluationLoop(_Loop):
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
+        max_length = max(
+            1, int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
+        )
 
         rows: list[list[Any]] = [[] for _ in metrics_paths]
 
@@ -566,7 +570,7 @@ class _EvaluationLoop(_Loop):
                     row.append(" ")
 
         # keep one column with max length for metrics
-        num_cols = int((term_size - max_length) / max_length)
+        num_cols = max(1, int((term_size - max_length) / max_length))
 
         for i in range(0, len(headers), num_cols):
             table_headers = headers[i : (i + num_cols)]
