@@ -30,7 +30,7 @@ class _HandlersCompose:
 
     def __call__(self, signum: _SIGNUM, frame: FrameType) -> None:
         for signal_handler in self.signal_handlers:
-            if isinstance(signal_handler, int):
+            if isinstance(signal_handler, int) and not isinstance(signal_handler, signal.Handlers):
                 signal_handler = signal.getsignal(signal_handler)
             if callable(signal_handler):
                 signal_handler(signum, frame)
