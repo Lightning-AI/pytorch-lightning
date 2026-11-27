@@ -38,17 +38,41 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
+
+- Fixed `ModelCheckpoint` manual-optimization pre-step state restoration to support whole-module state dicts, current `batch_idx` lookup across epochs, and cached warnings ([#21842](https://github.com/Lightning-AI/pytorch-lightning/issues/21842))
+
+- Fixed `ModelCheckpoint(save_last=True)` no longer updating `last.ckpt` at epoch end when the monitored metric does not reach the top k, a regression in 2.6.0 that made resuming from `ckpt_path="last"` lose progress ([#22060](https://github.com/Lightning-AI/pytorch-lightning/pull/22060))
+
+- Fixed `DDPStrategy` and `FSDPStrategy` reporting an incorrect `num_replicas` in `distributed_sampler_kwargs` when the nodes of a cluster hold a different number of devices, by using the actual world size instead of `num_nodes * num_processes` ([#19898](https://github.com/Lightning-AI/pytorch-lightning/issues/19898))
+
 - Fixed `AsyncCheckpointIO` retaining live numerical NumPy arrays during asynchronous checkpoint writes ([#22087](https://github.com/Lightning-AI/pytorch-lightning/pull/22087))
 
 - Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
 
+- Fixed step-interval LR scheduler frequencies resetting at epoch boundaries ([#21926](https://github.com/Lightning-AI/pytorch-lightning/pull/21926))
+
 - Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
+
+- Fixed `AsyncCheckpointIO` retaining extra tensor copies in accelerator memory while asynchronous writes are pending ([#21630](https://github.com/Lightning-AI/pytorch-lightning/issues/21630))
+
+- Fixed races between checkpoint saves and removals in `AsyncCheckpointIO` ([#21996](https://github.com/Lightning-AI/pytorch-lightning/pull/21996))
+
+- Fixed re-instantiating `DataLoader` with positional arguments (e.g. `batch_size`, `shuffle`) raising `TypeError: got multiple values for argument` ([#17991](https://github.com/Lightning-AI/pytorch-lightning/issues/17991))
+
+- Fixed `ModelCheckpoint` with `every_n_train_steps` ranking a step checkpoint saved right before validation with the previous validation's metric ([#20185](https://github.com/Lightning-AI/pytorch-lightning/issues/20185), [#22203](https://github.com/Lightning-AI/pytorch-lightning/pull/22203))
 
 - Fixed DDP replicas diverging after `BaseFinetuning` unfreezes parameters by wrapping the model in `DistributedDataParallel` again when `finetune_function` changes which parameters require grad ([#20340](https://github.com/Lightning-AI/pytorch-lightning/issues/20340), [#22208](https://github.com/Lightning-AI/pytorch-lightning/pull/22208))
 
 - Fixed Trainer shutdown hanging when the parent process is interrupted while waiting for multiprocessing workers ([#22236](https://github.com/Lightning-AI/pytorch-lightning/pull/22236))
 
+- Fixed `CombinedLoader` ignoring individual batch limits when iterating in `min_size`, `max_size`, and `max_size_cycle` modes ([#22161](https://github.com/Lightning-AI/pytorch-lightning/pull/22161))
+
 - Fixed `ModelCheckpoint` deleting resumed-from checkpoints on remote filesystems ([#21910](https://github.com/Lightning-AI/pytorch-lightning/pull/21910))
+
+- Fixed `ModelPruning` checkpoint export mistaking ordinary mask buffers for pruning reparameterizations ([#22163](https://github.com/Lightning-AI/pytorch-lightning/pull/22163))
+
+- Fixed stateful dataloaders not restoring their state from a checkpoint when `trainer.estimated_stepping_batches` is accessed in `configure_optimizers` ([#21765](https://github.com/Lightning-AI/pytorch-lightning/pull/21765))
 
 - Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
 
@@ -63,6 +87,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
 
 - Fixed `Trainer.fit(ckpt_path=...)` silently dropping the loop, optimizer, LR scheduler and precision plugin state when a `LearningRateFinder` or `BatchSizeFinder` callback runs in `on_fit_start` ([#17420](https://github.com/Lightning-AI/pytorch-lightning/issues/17420))
+
+- Fixed `ckpt_path="last"` never finding the last checkpoint when `ModelCheckpoint` saves to a remote filesystem ([#18261](https://github.com/Lightning-AI/pytorch-lightning/issues/18261))
 
 - Fixed `RichProgressBar` showing a nonsensical negative epoch total (e.g. `Epoch 5/-2`) when `Trainer(max_epochs=-1)` (unlimited epochs) is used and training stops via another condition ([#21925](https://github.com/Lightning-AI/pytorch-lightning/issues/21925))
 

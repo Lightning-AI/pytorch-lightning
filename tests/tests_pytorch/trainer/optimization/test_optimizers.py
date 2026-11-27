@@ -472,6 +472,31 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     assert mocked_sched.call_count == expected_steps
 
 
+def test_lr_scheduler_step_frequency_across_epochs(tmp_path):
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=1.0)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {"scheduler": scheduler, "interval": "step", "frequency": 3},
+            }
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=3,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(TestModel())
+
+    assert trainer.optimizers[0].param_groups[0]["lr"] == 0.25
+
+
 @pytest.mark.parametrize(("every_n_train_steps", "epoch_interval"), [(None, True), (2, False), (2, True)])
 def test_lr_scheduler_state_updated_before_saving(tmp_path, every_n_train_steps, epoch_interval):
     batches = 2
