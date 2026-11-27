@@ -348,6 +348,7 @@ def test_mlflow_logger_no_synchronous_support(mlflow_mock, tmp_path):
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_with_long_param_value(mlflow_mock, tmp_path, monkeypatch, limit):
     """Test that long parameter values are handled correctly."""
+    monkeypatch.setitem(sys.modules, "mlflow.utils.validation", None)
     if limit is not None:
         validation = ModuleType("mlflow.utils.validation")
         validation.MAX_PARAM_VAL_LENGTH = limit
