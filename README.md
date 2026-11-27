@@ -18,7 +18,7 @@ ______________________________________________________________________
   <a href="#lightning-fabric-expert-control">Fabric</a> •
   <a href="https://lightning.ai/?utm_source=ptl_readme&utm_medium=referral&utm_campaign=ptl_readme">Lightning Cloud</a> •   
   <a href="#community">Community</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a>
+  <a href="https://lightning.ai/docs/pytorch/stable">Docs</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
