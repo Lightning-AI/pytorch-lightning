@@ -16,6 +16,7 @@ import logging
 import math
 import os
 import pickle
+from datetime import timedelta
 from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -438,6 +439,7 @@ def test_multiple_early_stopping_callbacks(
     {
         "val_check_interval": {"val_check_interval": 0.3, "limit_train_batches": 10, "max_epochs": 10},
         "check_val_every_n_epoch": {"check_val_every_n_epoch": 2, "max_epochs": 5},
+        "time_based": {"val_check_interval": timedelta(0), "limit_train_batches": 10, "max_epochs": 10},
     }.items(),
 )
 def test_check_on_train_epoch_end_smart_handling(tmp_path, case):
@@ -465,6 +467,8 @@ def test_check_on_train_epoch_end_smart_handling(tmp_path, case):
     assert es_mock.call_count == len(side_effect)
     if case == "val_check_interval":
         assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
+    elif case == "time_based":
+        assert trainer.global_step == len(side_effect)  # a zero interval validates after every batch
     else:
         assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch
 

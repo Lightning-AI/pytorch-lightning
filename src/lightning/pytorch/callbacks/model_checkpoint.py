@@ -26,12 +26,13 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from pathlib import Path
+from pathlib import Path, PurePath, PurePosixPath
 from typing import Any, Literal, Optional, Union
 from weakref import proxy
 
 import torch
 import yaml
+from fsspec.core import url_to_fs
 from torch import Tensor
 from typing_extensions import override
 
@@ -344,6 +345,9 @@ class ModelCheckpoint(Checkpoint):
         batch_idx: int,
     ) -> None:
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`."""
+        if pl_module.automatic_optimization and trainer.fit_loop._should_accumulate():
+            return
+
         skip_due_to_state = self._should_skip_saving_checkpoint(trainer)
         skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
@@ -362,6 +366,9 @@ class ModelCheckpoint(Checkpoint):
             return
         if not skip_time:
             self._last_time_checked = now
+        # don't defer a save to validation end either if this step was already saved
+        if skip_due_to_state:
+            return
 
         monitor_candidates = self._monitor_candidates(trainer)
         # If monitoring a metric that is not yet available (e.g., validation-only),
@@ -395,10 +402,6 @@ class ModelCheckpoint(Checkpoint):
             if will_run_val:
                 self._defer_save_until_validation = True
                 return
-
-        # Only proceed to save if not skipping due to trainer/callback state
-        if skip_due_to_state:
-            return
 
         if not pl_module.automatic_optimization:
             self._save_manual_opt_checkpoint(trainer, pl_module, monitor_candidates, batch_idx)
@@ -549,6 +552,7 @@ class ModelCheckpoint(Checkpoint):
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
             "last_model_path": self.last_model_path,
+            "last_global_step_saved": self._last_global_step_saved,
         }
 
     @override
@@ -561,6 +565,8 @@ class ModelCheckpoint(Checkpoint):
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+            # so that the restored step isn't saved again, e.g. on exception right after resuming
+            self._last_global_step_saved = state_dict.get("last_global_step_saved", self._last_global_step_saved)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
@@ -591,8 +597,13 @@ class ModelCheckpoint(Checkpoint):
 
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Save the checkpoint to the given filepath."""
-        trainer.save_checkpoint(filepath, self.save_weights_only)
-        self._last_global_step_saved = trainer.global_step
+        # set before saving so the checkpoint includes it, but roll it back if saving fails
+        previous_global_step_saved, self._last_global_step_saved = self._last_global_step_saved, trainer.global_step
+        try:
+            trainer.save_checkpoint(filepath, self.save_weights_only)
+        except BaseException:
+            self._last_global_step_saved = previous_global_step_saved
+            raise
         self._last_checkpoint_saved = filepath
 
         # notify loggers
@@ -1003,21 +1014,39 @@ class ModelCheckpoint(Checkpoint):
 
         A checkpoint won't be deleted if any of the cases apply:
         - The previous checkpoint is the same as the current checkpoint (means the old was already overwritten by new)
-        - The previous checkpoint is not in the current checkpoint directory and the filesystem is local
-        - The previous checkpoint is the checkpoint the Trainer resumed from and the filesystem is local
+        - The previous checkpoint is not in the current checkpoint directory
+        - The previous checkpoint is the checkpoint the Trainer resumed from
 
         """
         if previous == current:
             return False
-        if not _is_local_file_protocol(previous):
-            return True
-        previous = Path(previous).absolute()
-        resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
-        if resume_path is not None and previous == resume_path:
+
+        previous_path: PurePath
+        resume_path: Optional[PurePath]
+        dirpath: PurePath
+        if _is_local_file_protocol(previous):
+            previous_path = Path(previous).absolute()
+            resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
+            assert self.dirpath is not None
+            dirpath = Path(self.dirpath).absolute()
+        else:
+            previous_fs, previous_path_str = url_to_fs(previous)
+            previous_path = PurePosixPath(previous_path_str)
+            resume_path = None
+            if trainer.ckpt_path is not None:
+                resume_fs, resume_path_str = url_to_fs(str(trainer.ckpt_path))
+                if previous_fs.protocol == resume_fs.protocol:
+                    resume_path = PurePosixPath(resume_path_str)
+
+            assert self.dirpath is not None
+            dirpath_fs, dirpath_str = url_to_fs(str(self.dirpath))
+            if previous_fs.protocol != dirpath_fs.protocol:
+                return False
+            dirpath = PurePosixPath(dirpath_str)
+
+        if resume_path is not None and previous_path == resume_path:
             return False
-        assert self.dirpath is not None
-        dirpath = Path(self.dirpath).absolute()
-        return dirpath in previous.parents
+        return dirpath in previous_path.parents
 
     def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""
