@@ -12,9 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 import torch
 
-from lightning.pytorch.utilities.memory import recursive_detach
+from lightning.pytorch.utilities.memory import (
+    is_cuda_out_of_memory,
+    is_cudnn_snafu,
+    is_oom_error,
+    is_out_of_cpu_memory,
+    recursive_detach,
+)
 
 
 def test_recursive_detach():
@@ -29,3 +36,21 @@ def test_recursive_detach():
     assert y["foo"].device.type == "cpu"
     assert y["bar"]["baz"].device.type == "cpu"
     assert not y["bar"]["baz"].requires_grad
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        RuntimeError(1),
+        RuntimeError(None),
+        RuntimeError((1, "CUDA out of memory")),
+        RuntimeError(),
+        ValueError(1),
+    ],
+)
+def test_is_oom_error_non_string_runtime_error_arg(exception):
+    assert not is_cuda_out_of_memory(exception)
+    assert not is_cudnn_snafu(exception)
+    assert not is_out_of_cpu_memory(exception)
+    assert not is_oom_error(exception)
+
