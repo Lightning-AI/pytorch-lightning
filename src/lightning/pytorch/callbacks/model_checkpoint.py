@@ -389,6 +389,14 @@ class ModelCheckpoint(Checkpoint):
             and data_fetcher is not None
             and not epoch_loop._skip_next_val
             and epoch_loop._should_check_val_fx(data_fetcher)
+            # A manual snapshot scored by a training metric must use the weights captured before the optimizer step.
+            and (
+                pl_module.automatic_optimization
+                or (
+                    self.monitor not in ("epoch", "step")
+                    and self.monitor not in trainer._logger_connector.metrics["callback"]
+                )
+            )
         ):
             if epoch_loop.val_loop._combined_loader is None:
                 # The first validation epoch may start after the initial dataloader setup.

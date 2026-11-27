@@ -331,3 +331,34 @@ def test_model_checkpoint_manual_opt_multi_epoch_sliding_window():
             assert torch.equal(expected_val, best_ckpt[key].cpu()), (
                 f"Expected snapshot from epoch 1 batch 1, but got stale state for {key}"
             )
+
+
+def test_manual_snapshot_with_validation_after_train_batch(tmp_path):
+    class ValidateAfterStep(SimpleModule):
+        def validation_step(self, batch, batch_idx):
+            self.log("val_score", float(self.global_step))
+
+    model = ValidateAfterStep()
+    loader = DataLoader(FakeDataset(), batch_size=1)
+    train_checkpoint = ModelCheckpoint(
+        dirpath=tmp_path / "train", filename="{step}", monitor="loss", every_n_train_steps=1, save_top_k=-1
+    )
+    val_checkpoint = ModelCheckpoint(
+        dirpath=tmp_path / "val", filename="{step}", monitor="val_score", every_n_train_steps=1, save_top_k=-1
+    )
+    trainer = Trainer(
+        max_epochs=1,
+        limit_val_batches=1,
+        val_check_interval=1,
+        callbacks=[train_checkpoint, val_checkpoint],
+        logger=False,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model, loader, loader)
+
+    for batch_idx, snapshot in model.saved_models.items():
+        step = batch_idx + 1
+        state = torch.load(tmp_path / "train" / f"step={step}.ckpt", weights_only=True)["state_dict"]
+        for key, expected in snapshot.items():
+            torch.testing.assert_close(state[f"layer.{key}"], expected)
+        assert val_checkpoint.best_k_models[str(tmp_path / "val" / f"step={step}.ckpt")] == step
