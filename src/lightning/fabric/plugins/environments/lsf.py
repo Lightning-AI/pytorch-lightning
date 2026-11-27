@@ -147,7 +147,15 @@ class LSFEnvironment(ClusterEnvironment):
         for host in hosts:
             if host not in count:
                 count[host] = len(count)
-        return count[socket.gethostname()]
+        hostname = socket.gethostname()
+        if hostname in count:
+            return count[hostname]
+        short_hostname = hostname.split(".")[0]
+        if not short_hostname.isdigit():
+            for host, rank in count.items():
+                if host.split(".")[0] == short_hostname:
+                    return rank
+        raise ValueError(f"Could not find current hostname `{hostname}` in `LSB_DJOB_RANKFILE` hosts: {list(count)}.")
 
     @staticmethod
     def _read_hosts() -> list[str]:
@@ -167,9 +175,12 @@ class LSFEnvironment(ClusterEnvironment):
 
         fs = get_filesystem(rankfile)
         with fs.open(rankfile, "r") as f:
-            ret = [line.strip() for line in f]
+            ret = [line.strip() for line in f if line.strip()]
         # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
-        return ret[1:]
+        hosts = ret[1:]
+        if not hosts:
+            raise ValueError(f"Could not find any compute hosts in `LSB_DJOB_RANKFILE` ({rankfile}).")
+        return hosts
 
     def _get_main_address(self) -> str:
         """A helper for getting the main address.
