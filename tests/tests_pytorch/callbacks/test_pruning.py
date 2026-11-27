@@ -551,3 +551,29 @@ def test_sparsity_calculation(tmp_path, caplog, pruning_amount: float, model_typ
     expected_pruned_count = int(expected_total_params * pruning_amount)
     pruned_tolerance = max(1, int(expected_total_params * 0.05))
     assert abs(pruned_count - expected_pruned_count) <= pruned_tolerance
+
+
+def test_make_pruning_permanent_on_state_dict_with_mask_in_module_name():
+    """Test that `_make_pruning_permanent_on_state_dict` only strips the trailing `_mask` suffix."""
+
+    class MaskedLayerModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.attention_mask_proj = nn.Linear(32, 2, bias=False)
+
+    model = MaskedLayerModel()
+    pruning = ModelPruning(
+        pruning_fn="l1_unstructured",
+        parameters_to_prune=[(model.attention_mask_proj, "weight")],
+        amount=0.5,
+        make_pruning_permanent=True,
+    )
+    pytorch_prune.l1_unstructured(model.attention_mask_proj, name="weight", amount=0.5)
+    assert "attention_mask_proj.weight_orig" in model.state_dict()
+    assert "attention_mask_proj.weight_mask" in model.state_dict()
+
+    permanent_state_dict = pruning._make_pruning_permanent_on_state_dict(model)
+    assert "attention_mask_proj.weight" in permanent_state_dict
+    assert "attention_mask_proj.weight_orig" not in permanent_state_dict
+    assert "attention_mask_proj.weight_mask" not in permanent_state_dict
+    assert torch.equal(permanent_state_dict["attention_mask_proj.weight"], model.attention_mask_proj.weight.cpu())
