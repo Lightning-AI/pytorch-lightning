@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -132,3 +133,43 @@ def test_xla_fsdp_policy(xla_available):
     strategy = XLAFSDPStrategy(activation_checkpointing_policy="foo")
     with pytest.raises(TypeError, match="must be a set"):
         strategy._parse_fsdp_kwargs()
+
+
+def test_xla_fsdp_load_sharded_checkpoint_custom_module_key(xla_available, tmp_path, monkeypatch):
+    """Test that `load_checkpoint` in sharded mode uses the module's key from `state` rather than hardcoding
+    `'model'`."""
+
+    class DummyXLAFSDP(nn.Module):
+        pass
+
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp", Mock(XlaFullyShardedDataParallel=DummyXLAFSDP))
+
+    strategy = XLAFSDPStrategy(state_dict_type="sharded")
+    strategy.broadcast = lambda x: x
+
+    shard_file = tmp_path / "checkpoint_rank-00000000-of-00000001.pth"
+    shard_file.touch()
+
+    module = MagicMock(spec=DummyXLAFSDP)
+    optimizer = MagicMock(spec=Adam)
+    fake_ckpt = {
+        "net": {"weight": torch.tensor([1.0, 2.0])},
+        "opt": {"state": {}},
+        "epoch": 5,
+        "extra": "meta",
+        "shard_metadata": {"meta": 1},
+    }
+    load_mock = Mock(return_value=fake_ckpt)
+    monkeypatch.setattr(torch, "load", load_mock)
+
+    state = {"net": module, "opt": optimizer, "epoch": 0}
+    leftover = strategy.load_checkpoint(tmp_path, state=state, strict=True, weights_only=False)
+
+    load_mock.assert_called_once_with(shard_file, weights_only=False)
+    assert module.load_state_dict.call_count == 1
+    loaded_state, call_kwargs = module.load_state_dict.call_args
+    assert torch.equal(loaded_state[0]["weight"], torch.tensor([1.0, 2.0]))
+    assert call_kwargs == {"strict": True}
+    optimizer.load_state_dict.assert_called_once_with({"state": {}})
+    assert state["epoch"] == 5
+    assert leftover == {"extra": "meta"}

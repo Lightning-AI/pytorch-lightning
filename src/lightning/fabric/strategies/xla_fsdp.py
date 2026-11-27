@@ -564,10 +564,10 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                     " load method for each model separately with a different path."
                 )
 
-            _, module = list(modules.items())[0]
-            sharded_ckpt = torch.load(file)
+            module_key, module = list(modules.items())[0]
+            sharded_ckpt = torch.load(file, weights_only=weights_only)
 
-            module.load_state_dict(sharded_ckpt["model"], strict=strict)
+            module.load_state_dict(sharded_ckpt[module_key], strict=strict)
             for opt_key, opt in optimizers.items():
                 opt.load_state_dict(sharded_ckpt[opt_key])
 
