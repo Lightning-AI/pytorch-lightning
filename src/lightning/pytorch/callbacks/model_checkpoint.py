@@ -470,11 +470,18 @@ class ModelCheckpoint(Checkpoint):
             self.monitor is not None
             and data_fetcher is not None
             and not epoch_loop._skip_next_val
-            and (epoch_loop.val_loop._combined_loader is None or not epoch_loop.val_loop.skip)
             and epoch_loop._should_check_val_fx(data_fetcher)
         ):
-            self._defer_save_until_validation = True
-            return
+            if epoch_loop.val_loop._combined_loader is None:
+                # The first validation epoch may start after the initial dataloader setup.
+                trainer.validating = True
+                try:
+                    epoch_loop.val_loop.setup_data()
+                finally:
+                    trainer.training = True
+            if not epoch_loop.val_loop.skip:
+                self._defer_save_until_validation = True
+                return
 
         self._defer_save_until_validation = False
         self._save_topk_checkpoint(trainer, monitor_candidates)

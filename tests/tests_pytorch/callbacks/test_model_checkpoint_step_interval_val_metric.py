@@ -216,7 +216,8 @@ def test_deferred_step_checkpoint_consumed_when_train_epoch_metric_is_logged(tmp
     assert {Path(p).stem for p in ckpt.best_k_models} == {"step=5", "step=6", "step=9"}
 
 
-def test_step_checkpoint_with_empty_validation_loader(tmp_path):
+@pytest.mark.parametrize("validation_frequency", [1, 2])
+def test_step_checkpoint_with_empty_validation_loader(tmp_path, validation_frequency):
     class TrainStepScore(StepScoreModule):
         def training_step(self, batch, batch_idx):
             self.log("train_score", float(self.global_step))
@@ -225,9 +226,16 @@ def test_step_checkpoint_with_empty_validation_loader(tmp_path):
     ckpt = ModelCheckpoint(
         dirpath=tmp_path, filename="{step}", monitor="train_score", save_top_k=-1, every_n_train_steps=2
     )
-    trainer = Trainer(accelerator="cpu", max_epochs=1, callbacks=[ckpt], logger=False, num_sanity_val_steps=0)
+    trainer = Trainer(
+        accelerator="cpu",
+        max_epochs=validation_frequency,
+        check_val_every_n_epoch=validation_frequency,
+        callbacks=[ckpt],
+        logger=False,
+        num_sanity_val_steps=0,
+    )
     trainer.fit(
         TrainStepScore(), train_dataloaders=DataLoader(TinyDataset(2)), val_dataloaders=DataLoader(TinyDataset(0))
     )
 
-    assert {Path(p).stem for p in ckpt.best_k_models} == {"step=2"}
+    assert {Path(p).stem for p in ckpt.best_k_models} == {f"step={2 * epoch}" for epoch in range(1, validation_frequency + 1)}
