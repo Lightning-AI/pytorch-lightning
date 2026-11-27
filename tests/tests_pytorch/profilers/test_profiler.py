@@ -775,3 +775,34 @@ def test_pytorch_profiler_chrome_export_with_pathlike_dirpath(tmp_path):
     profiler.describe()
 
     assert any(f.name.endswith(".json") for f in tmp_path.iterdir())
+
+
+def test_profiler_profile_start_error_does_not_corrupt_active_action(simple_profiler):
+    """Ensure a failed `start()` in `Profiler.profile` does not call `stop()` on an already-active outer action."""
+    with simple_profiler.profile("dup_action"):
+        with pytest.raises(ValueError, match="Attempted to start dup_action which has already started"):
+            with simple_profiler.profile("dup_action"):
+                pass
+        assert "dup_action" in simple_profiler.current_actions
+
+    assert "dup_action" not in simple_profiler.current_actions
+    assert len(simple_profiler.recorded_durations["dup_action"]) == 1
+
+
+def test_profiler_del_when_subclass_init_fails_before_super():
+    """Ensure `Profiler.__del__` does not raise `AttributeError` if subclass `__init__` fails before `super()`."""
+    from lightning.pytorch.profilers.profiler import Profiler
+
+    class _FailingProfiler(Profiler):
+        def __init__(self) -> None:
+            raise RuntimeError("init failed before super().__init__()")
+
+        def start(self, action_name: str) -> None:
+            pass
+
+        def stop(self, action_name: str) -> None:
+            pass
+
+    obj = _FailingProfiler.__new__(_FailingProfiler)
+    obj.__del__()
+
