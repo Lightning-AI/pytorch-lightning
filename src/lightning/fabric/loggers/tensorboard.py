@@ -24,11 +24,15 @@ from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.wrappers import _unwrap_objects
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 _TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
 _TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
@@ -210,7 +214,13 @@ class TensorBoardLogger(Logger):
                 self.experiment.add_scalars(k, v, step)
             else:
                 try:
-                    self.experiment.add_scalar(k, v, step)
+                    # Some writers wrap Python scalars in 1-D arrays, which NumPy 2.4 rejects in float().
+                    scalar = (
+                        np.asarray(v).reshape(())
+                        if _NUMPY_AVAILABLE and isinstance(v, (int, float, np.generic, np.ndarray))
+                        else v
+                    )
+                    self.experiment.add_scalar(k, scalar, step)
                 except (
                     NotImplementedError,
                     ValueError,

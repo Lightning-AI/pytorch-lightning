@@ -152,6 +152,7 @@ class FSDPPrecision(Precision):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        self._optimizer_step_was_skipped = False
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
@@ -168,9 +169,8 @@ class FSDPPrecision(Precision):
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
-            self.scaler.update()
-            return step_output
+            return self._scaler_step(self.scaler, optimizer, **kwargs)
+        self._optimizer_step_was_skipped = model.automatic_optimization
         return closure_result
 
     @override

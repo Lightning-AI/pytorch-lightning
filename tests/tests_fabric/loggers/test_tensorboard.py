@@ -111,6 +111,26 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+@pytest.mark.parametrize("value", [1.5, torch.tensor(1.5), np.float32(1.5), np.array(1.5), np.array([1.5])])
+def test_tensorboard_logs_scalar_as_zero_dimensional_array(tmp_path, value):
+    logger = TensorBoardLogger(tmp_path)
+    with mock.patch.object(logger.experiment, "add_scalar", wraps=logger.experiment.add_scalar) as add_scalar:
+        logger.log_metrics({"loss": value}, step=3)
+
+    name, scalar, step = add_scalar.call_args.args
+    assert (name, step) == ("loss", 3)
+    assert isinstance(scalar, np.ndarray)
+    assert scalar.shape == ()
+    assert scalar.item() == 1.5
+
+
+@pytest.mark.parametrize("value", [np.array([]), np.array([1, 2]), object()])
+def test_tensorboard_rejects_non_scalar_metric(tmp_path, value):
+    logger = TensorBoardLogger(tmp_path)
+    with pytest.raises(ValueError, match="currently not supported"):
+        logger.log_metrics({"loss": value})
+
+
 def test_tensorboard_log_hyperparams(tmp_path):
     logger = TensorBoardLogger(tmp_path)
     hparams = {
