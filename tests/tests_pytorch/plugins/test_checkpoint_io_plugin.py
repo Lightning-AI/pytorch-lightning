@@ -22,7 +22,7 @@ import torch
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning.pytorch.strategies import SingleDeviceStrategy
@@ -141,6 +141,7 @@ def test_async_checkpoint_plugin(tmp_path):
     base_ckpt_io = trainer.strategy.checkpoint_io.checkpoint_io
     assert base_ckpt_io.save_checkpoint.call_count == 3
     assert base_ckpt_io.remove_checkpoint.call_count == 1
+    assert {path.name for path in tmp_path.glob("*.ckpt")} == {"epoch=1-step=2.ckpt", "epoch=2-step=3.ckpt"}
 
 
 def test_multi_wrapped_checkpoint_io_initialization():
@@ -160,3 +161,30 @@ def test_multi_wrapped_checkpoint_io_initialization():
     assert isinstance(ckpt_io.checkpoint_io.checkpoint_io, TorchCheckpointIO)
     assert ckpt_io._base_checkpoint_io_configured is True
     assert ckpt_io.checkpoint_io._base_checkpoint_io_configured is True
+
+
+def test_async_checkpoint_callback_removal_after_teardown(tmp_path):
+    checkpoint_io = AsyncCheckpointIO(TorchCheckpointIO())
+    callback = OnExceptionCheckpoint(tmp_path)
+
+    class Model(BoringModel):
+        def on_train_start(self):
+            torch.save({}, callback.ckpt_path)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        plugins=checkpoint_io,
+        callbacks=[callback, ModelCheckpoint(dirpath=tmp_path / "models")],
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    try:
+        trainer.fit(Model())
+        assert not Path(callback.ckpt_path).exists()
+        assert checkpoint_io._executor is None
+    finally:
+        checkpoint_io.teardown()
