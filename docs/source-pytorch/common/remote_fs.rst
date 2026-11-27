@@ -46,6 +46,23 @@ The most common filesystems supported by Lightning are:
 * Microsoft Azure Storage: ``adl://``, ``abfs://`` or ``az://`` - Microsoft Azure Storage, using `adlfs <https://github.com/fsspec/adlfs>`__. Run ``pip install fsspec[adl]`` to install it.
 * Hadoop File System: ``hdfs://`` - Hadoop Distributed File System. This uses `PyArrow <https://arrow.apache.org/docs/python/>`__ as the backend. Run ``pip install fsspec[hdfs]`` to install it.
 
+S3-compatible object storage
+============================
+
+The ``s3://`` protocol also works with S3-compatible object stores such as Amazon S3, Backblaze B2, Cloudflare R2, or MinIO.
+Lightning creates the filesystem from the path alone, so configure the endpoint through `fsspec configuration <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`__
+and the credentials through the standard AWS environment variables, which ``s3fs`` reads:
+
+.. code-block:: bash
+
+    export FSSPEC_S3_ENDPOINT_URL=https://s3.example-region.example.com
+    export AWS_ACCESS_KEY_ID=<access-key-id>
+    export AWS_SECRET_ACCESS_KEY=<secret-access-key>
+    export AWS_DEFAULT_REGION=example-region
+
+Environment variables are inherited by the processes launched for distributed training, so every rank uses the same endpoint.
+Checkpoint saving, ``ckpt_path`` resuming, and loggers that use fsspec then work with ``s3://my_bucket/...`` paths as shown above.
+
 You could learn more about the available filesystems with:
 
 .. code-block:: python
