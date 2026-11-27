@@ -64,6 +64,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the `scheduler` type hint on `Fabric.setup` and `Strategy.setup_module_and_optimizers` to use the public `LRScheduler` instead of the private `_LRScheduler` ([#21934](https://github.com/Lightning-AI/pytorch-lightning/pull/21934))
 
+- Fixed `Fabric.clip_gradients(max_norm=...)` raising on the overflow steps that the gradient scaler skips with `precision="16-mixed"` ([#22216](https://github.com/Lightning-AI/pytorch-lightning/pull/22216))
+
 ---
 
 ## [2.6.5] - 2026-05-27

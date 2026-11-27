@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from lightning.fabric import Fabric
+from lightning.fabric.plugins.precision import MixedPrecision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from tests_fabric.helpers.runif import RunIf
 
@@ -105,3 +106,29 @@ def _run_test_clip_gradients(fabric, clip_type):
 
     optimizer.step()
     optimizer.zero_grad()
+
+
+@pytest.mark.parametrize("scaler_enabled", [True, False])
+def test_clip_gradients_norm_with_grad_scaler_overflow(scaler_enabled):
+    """An overflow step with an enabled grad scaler must reach ``optimizer.step()`` so it is skipped, not raise."""
+    scaler = torch.amp.GradScaler("cpu", enabled=scaler_enabled)
+    fabric = Fabric(accelerator="cpu", devices=1, plugins=MixedPrecision("16-mixed", "cpu", scaler=scaler))
+    model = torch.nn.Linear(4, 4)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+    weight = model.weight.detach().clone()
+
+    # large enough that the scaled fp16 gradients overflow
+    fabric.backward(model(torch.ones(2, 4)).sum() * 1e8)
+
+    if not scaler_enabled:
+        # nothing skips the step without a scaler, so the non-finite norm keeps raising
+        with pytest.raises(RuntimeError, match="is non-finite"):
+            fabric.clip_gradients(model, optimizer, max_norm=1.0)
+        return
+
+    norm = fabric.clip_gradients(model, optimizer, max_norm=1.0)
+    assert not torch.isfinite(norm)
+    optimizer.step()
+    assert torch.equal(model.weight, weight)
+    assert scaler.get_scale() == 2.0**15
