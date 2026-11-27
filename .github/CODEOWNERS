@@ -5,13 +5,13 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @ethanwharris @justusschock @rusenask @tchaton
+* @ethanwharris @justusperillieux @rusenask @tchaton
 
 # Docs
-/.github/*.md                               @ethanwharris @justusschock
-/docs/source-fabric/index.rst               @ethanwharris @justusschock
-/docs/source-pytorch/index.rst              @ethanwharris @justusschock
-/docs/source-pytorch/levels                 @ethanwharris @justusschock
+/.github/*.md                               @ethanwharris @justusperillieux
+/docs/source-fabric/index.rst               @ethanwharris @justusperillieux
+/docs/source-pytorch/index.rst              @ethanwharris @justusperillieux
+/docs/source-pytorch/levels                 @ethanwharris @justusperillieux
 
 /.github/CODEOWNERS                  @ethanwharris
 /SECURITY.md                         @ethanwharris
