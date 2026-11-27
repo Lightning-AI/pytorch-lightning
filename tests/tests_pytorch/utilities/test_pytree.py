@@ -85,11 +85,7 @@ def test_tree_flatten_calls_flatten_fn_once_per_container(monkeypatch):
         else type(orig_node_def)(
             counting_flatten_fn,
             orig_node_def.unflatten_fn,
-            *(
-                (orig_node_def.flatten_with_keys_fn,)
-                if hasattr(orig_node_def, "flatten_with_keys_fn")
-                else ()
-            ),
+            *((orig_node_def.flatten_with_keys_fn,) if hasattr(orig_node_def, "flatten_with_keys_fn") else ()),
         ),
     )
 

@@ -79,40 +79,6 @@ subprojects:
   # #    checks:
   # #      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
-  - id: "fabric: Docs"
-    paths:
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "docs/source-fabric/**"
-      - ".github/workflows/docs-build.yml"
-      - "requirements/docs.txt"
-      - "requirements/fabric/**"
-      - "setup.py"
-      - "pyproject.toml" # includes metadata used in the package creation
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "docs-make (fabric, doctest)"
-      - "docs-make (fabric, html)"
-
-  - id: "pytorch_lightning: Docs"
-    paths:
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "docs/source-pytorch/**"
-      - "_notebooks"
-      - ".actions/*"
-      - ".github/workflows/docs-build.yml"
-      - "requirements/docs.txt"
-      - "requirements/pytorch/**"
-      - "setup.py"
-      - "pyproject.toml" # includes metadata used in the package creation
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "docs-make (pytorch, doctest)"
-      - "docs-make (pytorch, html)"
-
   # SECTION: lightning_fabric
 
   - id: "lightning_fabric: CPU workflow"

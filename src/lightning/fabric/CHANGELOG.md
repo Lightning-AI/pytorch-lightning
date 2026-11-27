@@ -26,6 +26,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `_atomic_save` staging local checkpoints through `$TMPDIR`, which caused "no space left on device" on SLURM/HPC setups with a small `/tmp` ([#21744](https://github.com/Lightning-AI/pytorch-lightning/pull/21744))
+
+- Fixed Transformer Engine precision failing on `LayerNorm` layers without weight or bias by keeping those layers in PyTorch ([#21756](https://github.com/Lightning-AI/pytorch-lightning/pull/21756))
+
 - Fixed `DDPStrategy` and `FSDPStrategy` reporting an incorrect `num_replicas` in `distributed_sampler_kwargs` when the nodes of a cluster hold a different number of devices, by using the actual world size instead of `num_nodes * num_processes` ([#19898](https://github.com/Lightning-AI/pytorch-lightning/issues/19898))
 
 - Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
