@@ -320,8 +320,9 @@ class _PredictionLoop(_Loop):
             dataloader = combined_loader.flattened[dataloader_idx]
             batch_indices = self._get_batch_indices(dataloader)
             if not batch_indices:
-                # this is only available with `_IndexBatchSamplerWrapper`, but it's only used on DataLoaders, if this is
-                # reached, it's likely because a non-DataLoader was passed
+                # this is only available with `_IndexBatchSamplerWrapper`, which is not used for non-DataLoaders or
+                # DataLoaders over an `IterableDataset`. Clear the indices so they don't leak from a previous batch
+                self.current_batch_indices = []
                 return any_on_epoch
             batch_indices = batch_indices[batch_idx]
             if any_on_epoch:

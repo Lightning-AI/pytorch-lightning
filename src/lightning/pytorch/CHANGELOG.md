@@ -124,6 +124,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the first epoch of a resumed run drawing its indices with sampler epoch 0 instead of the restored epoch when the `DataLoader` uses worker processes, by setting the sampler epoch before the training iterator is created ([#21979](https://github.com/Lightning-AI/pytorch-lightning/pull/21979))
 
+- Fixed `BasePredictionWriter` receiving the previous batch's indices for dataloaders whose batch indices cannot be inferred, such as an `IterableDataset` ([#22065](https://github.com/Lightning-AI/pytorch-lightning/pull/22065))
+
 ---
 
 ## [2.6.6] - 2026-09-10
