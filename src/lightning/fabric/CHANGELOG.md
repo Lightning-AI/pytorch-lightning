@@ -18,13 +18,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Changed `TransformerEnginePrecision` to raise a `RuntimeError` instead of silently skipping `LayerNorm` layers that are missing `weight` or `bias` ([#21756](https://github.com/Lightning-AI/pytorch-lightning/pull/21756))
+-
 
 ### Removed
 
 - Removed dead code paths for PyTorch below 2.6 ([#21870](https://github.com/Lightning-AI/pytorch-lightning/pull/21870))
 
 ### Fixed
+
+- Fixed Transformer Engine precision failing on `LayerNorm` layers without weight or bias by keeping those layers in PyTorch ([#21756](https://github.com/Lightning-AI/pytorch-lightning/pull/21756))
 
 - Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
 
