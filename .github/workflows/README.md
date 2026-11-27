@@ -51,11 +51,11 @@ The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/py
 
 ## Deployment
 
-| workflow file                              | action                                                                         |
-| ------------------------------------------ | ------------------------------------------------------------------------------ |
-| .github/workflows/docker-build.yml         | Build docker images used for releases and push them to the Docker Hub.         |
-| .github/workflows/release-pkg.yml          | Publish a release to PyPI and upload to the GH release page as artifact.       |
-| .github/workflows/\_legacy-checkpoints.yml | Add on request generate legacy checkpoints and upload them to AWS S3.          |
+| workflow file                              | action                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------ |
+| .github/workflows/docker-build.yml         | Build docker images used for releases and push them to the Docker Hub.   |
+| .github/workflows/release-pkg.yml          | Publish a release to PyPI and upload to the GH release page as artifact. |
+| .github/workflows/\_legacy-checkpoints.yml | Add on request generate legacy checkpoints and upload them to AWS S3.    |
 
 ## Bots
 
