@@ -41,15 +41,15 @@ jobs:
         os: [ubuntu-24.04]
         config:
           - { pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.6" }
-          - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.13" }
+          - { pkg-name: "lightning", python-version: "3.13", pytorch-version: "2.14" }
           - { pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.6", requires: "oldest" }
           - { pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.10" }
-          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
+          - { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.14" }
         include:
           - os: macos-15
-            config: { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
+            config: { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.14" }
           - os: windows-2025
-            config: { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.13" }
+            config: { pkg-name: "fabric", python-version: "3.13", pytorch-version: "2.14" }
     timeout-minutes: 25
     env:
       PACKAGE_NAME: ${{ matrix.config.pkg-name }}

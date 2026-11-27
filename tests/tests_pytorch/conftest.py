@@ -176,7 +176,8 @@ def thread_police_duuu_daaa_duuu_daaa():
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)
             or "ThreadPoolExecutor-" in thread.name
-            or thread.name == "InductorSubproc"  # torch.compile
+            # torch.compile; 2.14 added the `InductorSubprocHealth`/`InductorSubprocWatchdog` siblings
+            or thread.name.startswith("InductorSubproc")
         ):
             # probably `torch.compile`, can't narrow it down further
             continue
