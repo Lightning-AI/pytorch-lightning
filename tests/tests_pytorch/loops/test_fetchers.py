@@ -77,6 +77,10 @@ def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     # validate reset works properly.
     assert generate() == expected
     assert fetcher.fetched == 3
+    iter(fetcher)
+    assert len(fetcher.batches) == (0 if dataset_cls is SizedDataset else min(prefetch_batches, 3))
+    fetcher.reset()
+    assert not fetcher.batches
 
 
 @pytest.mark.parametrize("multiple_iterables", [False, True])
