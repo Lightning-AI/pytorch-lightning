@@ -363,6 +363,18 @@ def test_litlogger_save_logs_option(litlogger_mock, tmp_path):
     assert call_kwargs["save_logs"] is True
 
 
+@pytest.mark.parametrize("store_step", [True, False])
+def test_litlogger_store_step_option(litlogger_mock, tmp_path, store_step):
+    """Test store_step option is stored and passed to Experiment."""
+    logger = LitLogger(name="test", root_dir=tmp_path, store_step=store_step)
+    assert logger._store_step is store_step
+
+    _ = logger.experiment
+
+    call_kwargs = litlogger_mock.Experiment.call_args[1]
+    assert call_kwargs["store_step"] is store_step
+
+
 def test_neptune_logger_raises_runtime_error():
     with pytest.raises(RuntimeError, match="NeptuneLogger is no longer supported"):
         NeptuneLogger()

@@ -73,6 +73,7 @@ class LitLogger(Logger):
             name: Name of your experiment (defaults to a generated name).
             teamspace: Teamspace name where charts and artifacts will appear.
             metadata: Extra metadata to associate with the experiment as tags.
+            store_step: If True, store the step for each logged metric.
             log_model: If True, automatically log model checkpoints as artifacts.
             save_logs: If True, capture and upload terminal logs.
             checkpoint_name: Override the base name for logged checkpoints.
@@ -111,6 +112,7 @@ class LitLogger(Logger):
         self._experiment: Optional[Experiment] = None
         self._step = -1
         self._metadata = metadata or {}
+        self._store_step = store_step
         self._is_ready = False
         self._log_model = log_model
         self._save_logs = save_logs
@@ -215,7 +217,7 @@ class LitLogger(Logger):
             name=self._experiment_name,
             teamspace=self._teamspace,
             metadata={k: str(v) for k, v in self._metadata.items()},
-            store_step=True,
+            store_step=self._store_step,
             store_created_at=True,
             log_dir=self.log_dir,
             save_logs=self._save_logs,
