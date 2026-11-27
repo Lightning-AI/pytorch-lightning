@@ -229,6 +229,8 @@ class _FitLoop(_Loop):
             if self.restarting and self._combined_loader_states_to_load:
                 self._load_combined_loader_states()
                 assert self._data_fetcher is not None
+                for dl in self._combined_loader.flattened:
+                    _set_sampler_epoch(dl, self.epoch_progress.current.processed)
                 iter(self._data_fetcher)  # creates the iterator inside the fetcher
             return
 
