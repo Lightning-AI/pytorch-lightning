@@ -277,32 +277,20 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _deepcopy_for_pruning(module: nn.Module) -> nn.Module:
-        """Deep-copy a module that may contain non-leaf tensors.
-
-        PyTorch pruning hooks write the masked weight (e.g.
-        ``weight_orig * weight_mask``) back onto the module as a plain
-        ``__dict__`` attribute (``module.weight``) after each forward pass.
-        That stored value is a non-leaf tensor, so a bare ``deepcopy`` raises::
-
-            RuntimeError: Only Tensors created explicitly by the user
-            (graph leaves) support the deepcopy protocol at the moment.
-
-        This helper temporarily replaces any non-leaf tensor found in
-        ``module.__dict__`` with a detached leaf clone, performs the
-        deep-copy, then restores the originals so the live module is
-        unchanged.
-
-        """
-        non_leaf: dict[str, Tensor] = {}
-        for attr_name, attr_val in list(module.__dict__.items()):
-            if isinstance(attr_val, Tensor) and not attr_val.is_leaf:
-                non_leaf[attr_name] = attr_val
-                module.__dict__[attr_name] = attr_val.detach().clone()
-        try:
-            return deepcopy(module)
-        finally:
-            for attr_name, original in non_leaf.items():
-                module.__dict__[attr_name] = original
+        """Copy the unmasked parameters, including those of pruned child modules."""
+        memo = {}
+        for submodule in module.modules():
+            for name, tensor in vars(submodule).items():
+                if not isinstance(tensor, Tensor):
+                    continue
+                # A pruning hook caches a masked weight until the next forward. Lottery-ticket resets update
+                # the original parameter, so that cached tensor can be stale when the next fit starts.
+                original = submodule._parameters.get(f"{name}_orig")
+                if original is not None and f"{name}_mask" in submodule._buffers:
+                    memo[id(tensor)] = original.detach().clone()
+                elif not tensor.is_leaf:
+                    memo[id(tensor)] = tensor.detach().clone()
+        return deepcopy(module, memo)
 
     @staticmethod
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
@@ -311,7 +299,7 @@ class ModelPruning(Callback):
         src = getattr(old, name)
         if dst is None or src is None or not isinstance(dst, Tensor) or not isinstance(src, Tensor):
             return
-        dst.data = src.data.to(dst.device)
+        dst.detach().copy_(src.detach())
 
     def apply_lottery_ticket_hypothesis(self) -> None:
         r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
@@ -405,18 +393,11 @@ class ModelPruning(Callback):
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self._use_lottery_ticket_hypothesis:
-            # Release references from any previous run so their tensors can be
-            # garbage-collected before we allocate the new copies.
-            self._original_layers = None
-            # group modules by id. Each entry has a copy of the initial data
-            # and a list of the associated parameter names to prune
             self._original_layers = {}
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 id_ = id(module)
-                # Use the detach-safe helper so that iterative pruning (where
-                # parameters may already be non-leaf tensors from a previous
-                # pruning cycle) does not raise a RuntimeError.
-                self._original_layers.setdefault(id_, _LayerRef(data=self._deepcopy_for_pruning(module), names=[]))
+                if id_ not in self._original_layers:
+                    self._original_layers[id_] = _LayerRef(data=self._deepcopy_for_pruning(module), names=[])
                 self._original_layers[id_]["names"].append((i, name))
 
     def _run_pruning(self, current_epoch: int) -> None:

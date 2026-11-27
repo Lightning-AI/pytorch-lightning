@@ -563,6 +563,7 @@ def test_iterative_pruning_no_runtime_error(tmp_path):
     seed_everything(42)
 
     model = BoringModel()
+    initial_weight = model.layer.weight.detach().clone()
     pruning_callback = ModelPruning(
         "l1_unstructured",
         use_lottery_ticket_hypothesis=True,
@@ -587,3 +588,18 @@ def test_iterative_pruning_no_runtime_error(tmp_path):
         # Must not raise RuntimeError: "Only Tensors created explicitly by the
         # user (graph leaves) support the deepcopy protocol"
         trainer.fit(model)
+        torch.testing.assert_close(model.layer.weight_orig, initial_weight)
+
+
+def test_lottery_ticket_snapshot_includes_pruned_children():
+    module = nn.Module()
+    module.child = nn.Linear(2, 2)
+    original = module.child.weight.detach().clone()
+    pytorch_prune.l1_unstructured(module.child, name="weight", amount=0.5)
+    masked = module.child.weight
+
+    snapshot = ModelPruning._deepcopy_for_pruning(module)
+
+    torch.testing.assert_close(snapshot.child.weight, original)
+    assert module.child.weight is masked
+    assert snapshot.child.weight.data_ptr() != module.child.weight_orig.data_ptr()
