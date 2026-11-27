@@ -169,7 +169,7 @@ Development scripts from the project root (Unix only):
 - `make clean` — cleans repo from temp/generated files
 - `make test` — runs all project tests with coverage (both packages)
 
-The versioned library docs are built by grid's external docs sync.
+The versioned library docs are synced and published externally.
 
 ### Original code
 

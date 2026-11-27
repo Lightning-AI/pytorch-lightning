@@ -29,7 +29,7 @@ Brief description of all our automation tools used for boosting development perf
 
 ## Documentation
 
-Library docs are synced and published by grid's external docs workflow.
+Library docs are synced and published externally.
 
 ## Code Quality
 
