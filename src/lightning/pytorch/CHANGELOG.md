@@ -76,6 +76,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
 
+- Fixed ``CometLogger`` treating the deprecated ``offline`` flag as if it meant ``online``, so ``offline=True`` started an online experiment ([#21921](https://github.com/Lightning-AI/pytorch-lightning/pull/21921))
+
 - Fixed `GradientAccumulationScheduler` mutating the input `scheduling` dict in place and accepting boolean keys or values ([#22078](https://github.com/Lightning-AI/pytorch-lightning/pull/22078))
 
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))

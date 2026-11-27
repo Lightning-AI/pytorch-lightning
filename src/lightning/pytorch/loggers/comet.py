@@ -238,7 +238,7 @@ class CometLogger(Logger):
         if "offline" in kwargs:
             log.warning("The parameter `offline is deprecated, please use `online` instead.")
             if online is None:
-                online = kwargs.pop("offline")
+                online = not kwargs.pop("offline")
             else:
                 log.warning("You specified both `offline` and `online` parameters, please use `online` only")
 
