@@ -25,9 +25,16 @@ def test_format_checkpoint():
     # Optimizer states with keys 'optimizer_0', 'optimizer_1', etc. get converted to a list
     optimizer0 = Mock()
     optimizer1 = Mock()
-    checkpoint = {"model": model, "optimizer_1": optimizer1, "optimizer_0": optimizer0, "optimizer_abc": "other"}
+    checkpoint = {
+        "model": model,
+        "optimizer_1": optimizer1,
+        "optimizer_0": optimizer0,
+        "optimizer_abc": "other",
+        "optimizer_0_extra": "extra",
+    }
     assert _format_checkpoint(checkpoint) == {
         "state_dict": model,
         "optimizer_states": [optimizer0, optimizer1],
         "optimizer_abc": "other",
+        "optimizer_0_extra": "extra",
     }

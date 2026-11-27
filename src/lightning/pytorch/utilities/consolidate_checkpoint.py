@@ -11,7 +11,7 @@ def _format_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     # Rename the model key
     checkpoint["state_dict"] = checkpoint.pop("model")
 
-    optimizer_keys = [key for key in checkpoint if re.match("optimizer_[0-9]+", key)]
+    optimizer_keys = [key for key in checkpoint if re.fullmatch(r"optimizer_[0-9]+", key)]
     if not optimizer_keys:
         return checkpoint
 
