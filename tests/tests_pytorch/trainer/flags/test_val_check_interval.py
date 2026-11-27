@@ -179,6 +179,42 @@ def test_time_based_val_check_interval(tmp_path, interval):
     assert val_runs == 5, f"Expected 5 validations, got {val_runs}"
 
 
+@pytest.mark.parametrize("reload_dataloaders_every_n_epochs", [0, 1])
+def test_time_based_val_check_interval_spans_dataloader_reloads(tmp_path, reload_dataloaders_every_n_epochs):
+    """The validation timer keeps running when the train dataloader is reloaded at the start of an epoch."""
+    clock = {"now": 0.0}
+
+    class TickingModel(BoringModel):
+        val_runs = 0
+
+        def training_step(self, batch, batch_idx):
+            clock["now"] += 1.0
+            return super().training_step(batch, batch_idx)
+
+        def on_validation_epoch_start(self):
+            self.val_runs += 1
+
+    with patch("time.monotonic", side_effect=lambda: clock["now"]):
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            logger=False,
+            enable_checkpointing=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            num_sanity_val_steps=0,
+            max_epochs=4,
+            limit_train_batches=2,
+            limit_val_batches=1,
+            val_check_interval=timedelta(seconds=3),
+            reload_dataloaders_every_n_epochs=reload_dataloaders_every_n_epochs,
+        )
+        model = TickingModel()
+        trainer.fit(model)
+
+    # 8 one-second steps with a 3s interval: validation after the 3rd and the 6th step
+    assert model.val_runs == 2
+
+
 @pytest.mark.parametrize(
     ("check_val_every_n_epoch", "val_check_interval", "epoch_duration", "expected_val_batches", "description"),
     [
