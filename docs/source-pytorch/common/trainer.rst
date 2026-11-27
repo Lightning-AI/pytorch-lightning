@@ -1164,7 +1164,48 @@ See :paramref:`lightning.pytorch.trainer.Trainer.params.use_distributed_sampler`
     # default used by the Trainer
     trainer = Trainer(use_distributed_sampler=True)
 
-By setting to False, you have to add your own distributed sampler:
+**Custom samplers with** ``use_distributed_sampler=True``
+
+When running on multiple devices with ``use_distributed_sampler=True``, Lightning shards data across ranks automatically:
+
+- **Single-sample samplers** (:class:`~torch.utils.data.Sampler`): Lightning wraps custom samplers (except :class:`~torch.utils.data.distributed.DistributedSampler` subclasses) with ``DistributedSamplerWrapper``. Implement ``__iter__`` and a finite ``__len__`` on your sampler, and define ``set_epoch(self, epoch: int)`` if your sampling order depends on the epoch.
+- **Custom batch samplers** (:class:`~torch.utils.data.BatchSampler`): To remain compatible with automatic distributed sampler injection, your batch sampler must:
+
+  1. Subclass :class:`torch.utils.data.BatchSampler`.
+  2. Accept a ``sampler`` argument in ``__init__`` (and ``drop_last`` if used with ``trainer.predict`` so Lightning can set ``drop_last=False``).
+  3. Be instantiated inside a ``*_dataloader`` hook of your :class:`~lightning.pytorch.core.LightningModule` or :class:`~lightning.pytorch.core.datamodule.LightningDataModule` so Lightning captures its ``__init__`` arguments when re-instantiating it with a distributed sampler.
+
+.. code-block:: python
+
+    from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+
+
+    class CustomBatchSampler(BatchSampler):
+        def __init__(self, sampler, batch_size, drop_last=False):
+            super().__init__(sampler, batch_size, drop_last)
+
+        def __iter__(self):
+            # self.sampler is replaced with a distributed sampler per rank by Lightning
+            batch = []
+            for idx in self.sampler:
+                batch.append(idx)
+                if len(batch) == self.batch_size:
+                    yield batch
+                    batch = []
+            if batch and not self.drop_last:
+                yield batch
+
+
+    # in your LightningModule or LightningDataModule
+    def train_dataloader(self):
+        dataset = ...
+        sampler = RandomSampler(dataset)
+        batch_sampler = CustomBatchSampler(sampler, batch_size=32, drop_last=False)
+        return DataLoader(dataset, batch_sampler=batch_sampler)
+
+**Manual distributed sampling with** ``use_distributed_sampler=False``
+
+If your custom batch sampler constructs batches directly without wrapping a single-sample ``Sampler`` (for example, sampling a fixed budget per class), or if you prefer to manage sharding yourself, set ``Trainer(use_distributed_sampler=False)`` and handle rank partitioning inside your sampler or ``*_dataloader`` hook:
 
 .. code-block:: python
 
@@ -1175,6 +1216,20 @@ By setting to False, you have to add your own distributed sampler:
         sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
         dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
         return dataloader
+
+For a custom batch sampler with ``Trainer(use_distributed_sampler=False)``, pass the rank and world size from ``self.trainer`` inside ``*_dataloader``:
+
+.. code-block:: python
+
+    # in your LightningModule or LightningDataModule
+    def train_dataloader(self):
+        dataset = ...
+        batch_sampler = MyDistributedBatchSampler(
+            dataset,
+            num_replicas=self.trainer.world_size,
+            rank=self.trainer.global_rank,
+        )
+        return DataLoader(dataset, batch_sampler=batch_sampler)
 
 
 val_check_interval
