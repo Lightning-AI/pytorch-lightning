@@ -56,3 +56,20 @@ You could learn more about the available filesystems with:
 
 
 You could also look into :ref:`CheckpointIO Plugin <checkpointing_expert>` for more details on how to customize saving and loading checkpoints.
+
+S3-compatible object storage
+============================
+
+The ``s3://`` protocol also works with S3-compatible object stores such as Amazon S3, Backblaze B2, Cloudflare R2, or MinIO.
+Lightning creates the filesystem from the path alone, so configure the endpoint through `fsspec configuration <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`__
+and the credentials through the standard AWS environment variables, which ``s3fs`` reads:
+
+.. code-block:: bash
+
+    export FSSPEC_S3_ENDPOINT_URL=https://s3.example-region.example.com
+    export AWS_ACCESS_KEY_ID=<access-key-id>
+    export AWS_SECRET_ACCESS_KEY=<secret-access-key>
+    export AWS_DEFAULT_REGION=example-region
+
+Processes that Lightning launches for distributed training inherit these environment variables. For multi-node runs, set them on every node (for example, in your cluster launcher) so every rank uses the same endpoint.
+Checkpoint saving, ``ckpt_path`` resuming, and loggers that use fsspec then work with ``s3://my_bucket/...`` paths as shown above.
