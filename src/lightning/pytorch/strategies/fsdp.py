@@ -71,7 +71,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -188,8 +187,6 @@ class FSDPStrategy(ParallelStrategy):
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
 
         if device_mesh is not None:
-            if not _TORCH_GREATER_EQUAL_2_2:
-                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
             self.kwargs["device_mesh"] = device_mesh
 
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
@@ -270,10 +267,12 @@ class FSDPStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        kwargs: dict[str, Any] = {"timeout": self._timeout}
-        if _TORCH_GREATER_EQUAL_2_3:
-            kwargs["device_id"] = self.root_device if self.root_device.type != "cpu" else None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend, **kwargs)
+        _init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            timeout=self._timeout,
+            device_id=self.root_device if self.root_device.type != "cpu" else None,
+        )
 
         # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
         if isinstance(self.kwargs.get("device_mesh"), tuple):
@@ -599,6 +598,13 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH, weights_only: Optional[bool] = None) -> dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``LightningModule.strict_loading=False`` applies to module state loading. Loading sharded optimizer
+            state remains strict and requires the model parameters to match the checkpoint.
+
+        """
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = _resolve_path(self.broadcast(checkpoint_path))
 
@@ -614,7 +620,7 @@ class FSDPStrategy(ParallelStrategy):
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, strict=self.lightning_module.strict_loading)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:

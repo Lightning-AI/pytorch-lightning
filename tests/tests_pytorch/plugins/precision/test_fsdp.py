@@ -103,6 +103,13 @@ def test_fsdp_precision_scaler_with_bf16():
     assert precision.scaler is None
 
 
+def test_fsdp_precision_scaler_with_16_mixed():
+    # a user-provided scaler is valid for 16-mixed and must be kept
+    scaler = Mock()
+    precision = FSDPPrecision(precision="16-mixed", scaler=scaler)
+    assert precision.scaler is scaler
+
+
 @RunIf(min_cuda_gpus=1)
 def test_fsdp_precision_forward_context_f16():
     """Test to ensure that the context manager correctly is set to float16."""
@@ -155,9 +162,11 @@ def test_fsdp_precision_backward():
     model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
-def test_fsdp_precision_optimizer_step_with_scaler():
+@pytest.mark.parametrize(("next_scale", "skipped"), [(4.0, True), (8.0, False), (16.0, False)])
+def test_fsdp_precision_optimizer_step_with_scaler(next_scale, skipped):
     precision = FSDPPrecision(precision="16-mixed")
     precision.scaler = Mock()
+    precision.scaler.get_scale.side_effect = [8.0, next_scale]
     model = Mock(trainer=Mock(callbacks=[], profiler=MagicMock()))
     optimizer = Mock()
     closure = Mock()
@@ -165,6 +174,7 @@ def test_fsdp_precision_optimizer_step_with_scaler():
     precision.optimizer_step(optimizer, model, closure, keyword="arg")
     precision.scaler.step.assert_called_once_with(optimizer, keyword="arg")
     precision.scaler.update.assert_called_once()
+    assert precision.optimizer_step_was_skipped is skipped
 
 
 def test_fsdp_precision_optimizer_step_without_scaler():

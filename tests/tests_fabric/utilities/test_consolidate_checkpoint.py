@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import runpy
+import sys
 from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
 import pytest
+import torch
 
-import lightning.fabric
 from lightning.fabric.utilities.cloud_io import _resolve_path, get_filesystem
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
 from lightning.fabric.utilities.load import _METADATA_FILENAME
@@ -40,18 +42,7 @@ def test_parse_cli_args(args, expected):
     assert vars(args) == expected
 
 
-def test_process_cli_args(tmp_path, caplog, monkeypatch):
-    # PyTorch version < 2.3
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", False)
-    with (
-        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
-        pytest.raises(SystemExit),
-    ):
-        _process_cli_args(Namespace())
-    assert "requires PyTorch >= 2.3." in caplog.text
-    caplog.clear()
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
-
+def test_process_cli_args(tmp_path, caplog):
     # Checkpoint does not exist
     checkpoint_folder = Path("does/not/exist")
     with (
@@ -104,10 +95,8 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     caplog.clear()
 
 
-def test_process_cli_args_remote(caplog, monkeypatch):
+def test_process_cli_args_remote(caplog):
     """The checkpoint folder and output file can live on remote (fsspec) storage, e.g. S3."""
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
-
     # Checkpoint does not exist on the remote filesystem. Directories are virtual on object storage, so this is
     # reported the same way as "not a valid FSDP checkpoint" rather than a separate "does not exist" check
     # (`isdir`/`exists` are unreliable there; see `_is_sharded_checkpoint`).
@@ -146,3 +135,26 @@ def test_process_cli_args_remote(caplog, monkeypatch):
         )
     assert "path for the converted checkpoint already exists" in caplog.text
     caplog.clear()
+
+
+def test_consolidate_main_remote(monkeypatch):
+    """Running the module as a script writes the consolidated checkpoint to remote (fsspec) storage."""
+    fs = get_filesystem("memory:///consolidate-main/ckpt")
+    fs.makedirs("/consolidate-main/ckpt", exist_ok=True)
+    with fs.open(f"memory:///consolidate-main/ckpt/{_METADATA_FILENAME}", "wb") as f:
+        f.write(b"fake")
+
+    monkeypatch.setattr(
+        "lightning.fabric.utilities.load._load_distributed_checkpoint", lambda _: {"weights": torch.arange(3)}
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["any.py", "memory:///consolidate-main/ckpt", "--output_file", "memory:///consolidate-main/out.ckpt"],
+    )
+    # drop the imported module so runpy can re-execute it as `__main__` without a RuntimeWarning
+    monkeypatch.delitem(sys.modules, "lightning.fabric.utilities.consolidate_checkpoint", raising=False)
+    runpy.run_module("lightning.fabric.utilities.consolidate_checkpoint", run_name="__main__")
+
+    with fs.open("memory:///consolidate-main/out.ckpt", "rb") as f:
+        checkpoint = torch.load(f)
+    assert torch.equal(checkpoint["weights"], torch.arange(3))

@@ -18,19 +18,57 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `log_key_prefix` parameter to `LearningRateMonitor` callback for prefixing logged metric names ([#21612](https://github.com/Lightning-AI/pytorch-lightning/issues/21612))
 
+- Added `log_key_prefix` parameter to `Trainer` to control the prefix of Trainer-generated metric keys (e.g. `epoch`) ([#21782](https://github.com/Lightning-AI/pytorch-lightning/issues/21782))
+
+- Added a `PossibleUserWarning` when the number of training batches is smaller than `accumulate_grad_batches` ([#21811](https://github.com/Lightning-AI/pytorch-lightning/pull/21811))
+
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `FSDPStrategy` ([#21775](https://github.com/Lightning-AI/pytorch-lightning/pull/21775))
 
 - Added support for remote storage (fsspec URLs) when saving and loading distributed checkpoints with `ModelParallelStrategy` ([#21797](https://github.com/Lightning-AI/pytorch-lightning/issues/21797))
 
 ### Changed
 
--
+- Changed the `dirpath` argument of `lightning.pytorch.profilers` profilers to accept `str | os.PathLike[str]` instead of `str | pathlib.Path` ([#21871](https://github.com/Lightning-AI/pytorch-lightning/pull/21871))
+
+- `LearningRateMonitor` no longer raises an error when the `Trainer` has no logger; values are still tracked and added to `trainer.callback_metrics` ([#22083](https://github.com/Lightning-AI/pytorch-lightning/pull/22083))
 
 ### Removed
 
--
+- Removed dead code paths for PyTorch below 2.6 ([#21870](https://github.com/Lightning-AI/pytorch-lightning/pull/21870))
 
 ### Fixed
+
+- Fixed `ModelCheckpoint` saving step checkpoints in the middle of gradient accumulation, which could overwrite the checkpoint training resumed from ([#22033](https://github.com/Lightning-AI/pytorch-lightning/issues/22033), [#22034](https://github.com/Lightning-AI/pytorch-lightning/pull/22034))
+
+- Fixed step-based weight averaging updating after mixed-precision gradient scaling skipped an optimizer step ([#21991](https://github.com/Lightning-AI/pytorch-lightning/pull/21991))
+
+- Fixed DDP replicas diverging after `BaseFinetuning` unfreezes parameters by wrapping the model in `DistributedDataParallel` again when `finetune_function` changes which parameters require grad ([#20340](https://github.com/Lightning-AI/pytorch-lightning/issues/20340), [#22208](https://github.com/Lightning-AI/pytorch-lightning/pull/22208))
+
+- Fixed Trainer shutdown hanging when the parent process is interrupted while waiting for multiprocessing workers ([#22236](https://github.com/Lightning-AI/pytorch-lightning/pull/22236))
+
+- Fixed `ModelCheckpoint` deleting resumed-from checkpoints on remote filesystems ([#21910](https://github.com/Lightning-AI/pytorch-lightning/pull/21910))
+
+- Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
+
+- Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
+
+- Corrected the return annotation and documentation of `WandbLogger.download_artifact()` to include `None` on non-zero ranks ([#19003](https://github.com/Lightning-AI/pytorch-lightning/issues/19003))
+
+- Fixed epoch-level mean metrics logged with `sync_dist=True` being inflated when ranks accumulate different total batch sizes ([#21859](https://github.com/Lightning-AI/pytorch-lightning/issues/21859))
+
+- Fixed `CombinedLoader` in `max_size_cycle` mode to continue when an iterable is empty ([#21894](https://github.com/Lightning-AI/pytorch-lightning/pull/21894))
+
+- Fixed `LightningCLI` emitting `jsonargparse` deprecation warnings ([#21900](https://github.com/Lightning-AI/pytorch-lightning/issues/21900))
+
+- Fixed `Trainer.fit(ckpt_path=...)` silently dropping the loop, optimizer, LR scheduler and precision plugin state when a `LearningRateFinder` or `BatchSizeFinder` callback runs in `on_fit_start` ([#17420](https://github.com/Lightning-AI/pytorch-lightning/issues/17420))
+
+- Fixed `RichProgressBar` showing a nonsensical negative epoch total (e.g. `Epoch 5/-2`) when `Trainer(max_epochs=-1)` (unlimited epochs) is used and training stops via another condition ([#21925](https://github.com/Lightning-AI/pytorch-lightning/issues/21925))
+
+- Fixed `EarlyStopping` raising `AttributeError` when the `Trainer` uses a time-based `val_check_interval` ([#22233](https://github.com/Lightning-AI/pytorch-lightning/pull/22233))
+
+- Fixed `FSDPPrecision` rejecting a user-provided gradient scaler with `16-mixed` precision, and dropping it instead of keeping it ([#21831](https://github.com/Lightning-AI/pytorch-lightning/pull/21831))
+
+- Fixed `GradientAccumulationScheduler` mutating the input `scheduling` dict in place and accepting boolean keys or values ([#22078](https://github.com/Lightning-AI/pytorch-lightning/pull/22078))
 
 - Fixed crash when calling ``self.log()`` inside a ``torch.compile``-wrapped ``LightningModule`` on PyTorch 2.12/2.13 by disabling Dynamo tracing at the ``LightningModule.log`` boundary ([#21836](https://github.com/Lightning-AI/pytorch-lightning/issues/21836))
 
@@ -38,15 +76,34 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `FSDPStrategy` raising `RuntimeError` under PyTorch 2.5+ when `root_device` is CPU, by passing an explicit `torch.device("cpu")` instead of `device_id=None` (relevant only when the GPU-accelerator guard is bypassed) ([#21774](https://github.com/Lightning-AI/pytorch-lightning/pull/21774))
 
+- Fixed per-step logging overhead that scaled with the number of logged metrics/losses by skipping the redundant device transfer of `_ResultMetric` when it is already on the target device ([#21769](https://github.com/Lightning-AI/pytorch-lightning/pull/21769))
+
 - Fixed non-zero process exits in `CombinedLoader.reset()` with large tensors and persistent spawned workers by avoiding explicit `_shutdown_workers()` calls and relying on iterator cleanup via `del` [#21708](https://github.com/Lightning-AI/pytorch-lightning/issues/21708)
 
 - Fixed `SIGTERMException` producing a zero exit code instead of 143 (128 + SIGTERM) ([#21623](https://github.com/Lightning-AI/pytorch-lightning/issues/21623))
+
+- Fixed `WeightAveraging` swapping in the un-updated average model during validation before its first update, which evaluated the untrained weights during a delayed-start warmup ([#21724](https://github.com/Lightning-AI/pytorch-lightning/issues/21724))
 
 - fixed AccumulateGrad stream mismatch warning when using DDP with Trainer ([#21746](https://github.com/Lightning-AI/pytorch-lightning/pull/21746))
 
 - Fixed `LightningModule.toggle_optimizer` / `untoggle_optimizer` breaking under `torch.compile` by disabling Dynamo tracing on these bookkeeping helpers ([#21513](https://github.com/Lightning-AI/pytorch-lightning/issues/21513))
 
+- Fixed `BackboneFinetuning` not honoring `train_bn` during the initial frozen phase, leaving `BatchNorm` layers trainable when `train_bn=False` ([#21652](https://github.com/Lightning-AI/pytorch-lightning/pull/21652))
+
+- Fixed `FSDPStrategy.load_checkpoint` ignoring `LightningModule.strict_loading=False` when loading sharded (distributed) checkpoints ([#22028](https://github.com/Lightning-AI/pytorch-lightning/pull/22028))
+
+- Fixed `CUDAAccelerator.setup_device` initializing CUDA on an unrelated device by calling `torch.cuda.set_device` before the matmul precision check ([#21726](https://github.com/Lightning-AI/pytorch-lightning/pull/21726))
+
+- Fixed the first epoch of a resumed run drawing its indices with sampler epoch 0 instead of the restored epoch when the `DataLoader` uses worker processes, by setting the sampler epoch before the training iterator is created ([#21979](https://github.com/Lightning-AI/pytorch-lightning/pull/21979))
+
+---
+
+## [2.6.6] - 2026-09-10
+
+### Fixed
+
 - Fixed arbitrary code execution in `load_from_checkpoint` by restricting the `_instantiator` hyperparameter to an allowlist of trusted instantiators ([#21832](https://github.com/Lightning-AI/pytorch-lightning/pull/21832))
+- Fixed arbitrary code execution in `load_from_checkpoint` by rejecting a checkpoint `_class_path` that does not resolve to an already imported subclass of the loaded class ([#21914](https://github.com/Lightning-AI/pytorch-lightning/pull/21914))
 
 ---
 

@@ -60,10 +60,10 @@ class FSDPPrecision(Precision):
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-        if scaler is not None and self.precision != "16-mixed":
+        if scaler is not None and precision != "16-mixed":
             raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
 
-        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else scaler
         self.precision = precision
 
         precision_to_type = {
@@ -152,6 +152,7 @@ class FSDPPrecision(Precision):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        self._optimizer_step_was_skipped = False
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
@@ -168,9 +169,8 @@ class FSDPPrecision(Precision):
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
-            self.scaler.update()
-            return step_output
+            return self._scaler_step(self.scaler, optimizer, **kwargs)
+        self._optimizer_step_was_skipped = model.automatic_optimization
         return closure_result
 
     @override
