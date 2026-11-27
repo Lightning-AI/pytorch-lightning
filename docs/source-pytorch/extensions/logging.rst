@@ -79,7 +79,7 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. code-block:: python
 
-    lit_logger = pl_loggers.LitLogger(save_dir="logs/")
+    lit_logger = pl_loggers.LitLogger(root_dir="logs/")
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     trainer = Trainer(logger=[lit_logger, tb_logger])
 
