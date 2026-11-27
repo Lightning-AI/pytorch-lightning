@@ -17,9 +17,13 @@ import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import compare_version
 from torch import nn
+from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanSquaredError
 
 from lightning.pytorch import LightningModule
+
+from .advanced_models import Discriminator, Generator
+from .datasets import MNIST
 
 # using new API with task
 _TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")
@@ -125,3 +129,126 @@ class RegressionModel(LightningModule):
         out = self.forward(x)
         self.log("test_loss", F.mse_loss(out, y), prog_bar=False)
         self.log("test_MSE", self.test_mse(out, y), prog_bar=True)
+
+
+class GenerationModel(LightningModule):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0002, b1: float = 0.5, b2: float = 0.999):
+        super().__init__()
+        self.automatic_optimization = False
+        self.hidden_dim = hidden_dim
+        self.learning_rate = learning_rate
+        self.b1 = b1
+        self.b2 = b2
+
+        # networks
+        mnist_shape = (1, 28, 28)
+        self.generator = Generator(latent_dim=self.hidden_dim, img_shape=mnist_shape)
+        self.discriminator = Discriminator(img_shape=mnist_shape)
+
+        self.example_input_array = torch.rand(2, self.hidden_dim)
+
+    def forward(self, z):
+        return self.generator(z)
+
+    def configure_optimizers(self):
+        lr = self.learning_rate
+        b1 = self.b1
+        b2 = self.b2
+
+        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
+        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
+        return [opt_g, opt_d], []
+
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_idx):
+        imgs, _ = batch
+
+        optimizer1, optimizer2 = self.optimizers()
+
+        # sample noise
+        z = torch.randn(imgs.shape[0], self.hidden_dim, device=imgs.device, dtype=imgs.dtype)
+
+        valid = torch.ones(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+        fake = torch.zeros(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+
+        # train generator
+        self.toggle_optimizer(optimizer1)
+        self.generated_imgs = self.generator(z)
+
+        # adversarial loss is binary cross-entropy
+        g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
+        optimizer1.zero_grad()
+        self.manual_backward(g_loss)
+        optimizer1.step()
+        self.untoggle_optimizer(optimizer1)
+
+        # train discriminator
+        self.toggle_optimizer(optimizer2)
+        real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+        fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
+
+        # discriminator loss is the average of these
+        d_loss = (real_loss + fake_loss) / 2
+        optimizer2.zero_grad()
+        self.manual_backward(d_loss)
+        optimizer2.step()
+        self.untoggle_optimizer(optimizer2)
+
+        self.log("train/g_loss", g_loss, prog_bar=True, logger=True)
+        self.log("train/d_loss", d_loss, prog_bar=True, logger=True)
+
+    def validation_step(self, batch, batch_idx):
+        imgs, _ = batch
+        imgs = imgs.type_as(next(self.generator.parameters()))
+
+        with torch.inference_mode():
+            z = torch.randn(imgs.shape[0], self.hidden_dim, device=imgs.device, dtype=imgs.dtype)
+
+            fake_imgs = self(z)
+
+            valid = torch.ones(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+            fake = torch.zeros(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+
+            g_loss = self.adversarial_loss(self.discriminator(fake_imgs), valid)
+
+            real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+            fake_loss = self.adversarial_loss(self.discriminator(fake_imgs), fake)
+            d_loss = (real_loss + fake_loss) / 2
+
+        self.log("valid/g_loss", g_loss)
+        self.log("valid/d_loss", d_loss)
+
+    def test_step(self, batch, batch_idx):
+        imgs, _ = batch
+        imgs = imgs.type_as(next(self.generator.parameters()))
+
+        # fix for reproducibility
+        g = torch.Generator(device=imgs.device)
+        g.manual_seed(1234 + batch_idx)
+
+        with torch.inference_mode():
+            z = torch.randn(imgs.shape[0], self.hidden_dim, generator=g, device=imgs.device, dtype=imgs.dtype)
+            fake_imgs = self(z)
+
+            valid = torch.ones(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+            fake = torch.zeros(imgs.shape[0], 1, device=imgs.device, dtype=imgs.dtype)
+
+            g_loss = self.adversarial_loss(self.discriminator(fake_imgs), valid)
+
+            real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+            fake_loss = self.adversarial_loss(self.discriminator(fake_imgs), fake)
+            d_loss = (real_loss + fake_loss) / 2
+
+        self.log("test/g_loss", g_loss)
+        self.log("test/d_loss", d_loss)
+
+    def train_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=True), 32)
+
+    def val_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=False), 32)
+
+    def test_dataloader(self, data_dir="./"):
+        return DataLoader(MNIST(data_dir, train=False), 32)
