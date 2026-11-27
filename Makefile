@@ -61,22 +61,6 @@ test: clean setup
 	python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
 	python -m coverage report
 
-docs: docs-pytorch
-
-sphinx-theme: setup
-	uv pip install -q awscli
-	mkdir -p dist/
-	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
-	uv pip install lai-sphinx-theme -f dist/
-
-docs-fabric: clean sphinx-theme
-	uv pip install -e '.[all]' --quiet -r requirements/fabric/docs.txt
-	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
-
-docs-pytorch: clean sphinx-theme
-	uv pip install -e '.[all]' --quiet -r requirements/pytorch/docs.txt
-	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
-
 update:
 	git submodule update --init --recursive --remote
 
