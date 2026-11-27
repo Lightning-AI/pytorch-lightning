@@ -166,7 +166,7 @@ class CometLogger(Logger):
 
     .. code-block:: python
 
-        logger.experiment.log_model(name="my-model", "<path to your model>")
+        logger.experiment.log_model(name="my-model", file_or_folder="<path to your model>")
 
     See Also:
         - `Demo in Google Colab <https://tinyurl.com/22phzw5s>`__
