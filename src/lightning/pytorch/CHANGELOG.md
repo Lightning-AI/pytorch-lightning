@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed races between checkpoint saves and removals in `AsyncCheckpointIO` ([#21996](https://github.com/Lightning-AI/pytorch-lightning/pull/21996))
 
+- Fixed re-instantiating `DataLoader` with positional arguments (e.g. `batch_size`, `shuffle`) raising `TypeError: got multiple values for argument` ([#17991](https://github.com/Lightning-AI/pytorch-lightning/issues/17991))
+
 - Fixed `ModelCheckpoint` with `every_n_train_steps` ranking a step checkpoint saved right before validation with the previous validation's metric ([#20185](https://github.com/Lightning-AI/pytorch-lightning/issues/20185), [#22203](https://github.com/Lightning-AI/pytorch-lightning/pull/22203))
 
 - Fixed DDP replicas diverging after `BaseFinetuning` unfreezes parameters by wrapping the model in `DistributedDataParallel` again when `finetune_function` changes which parameters require grad ([#20340](https://github.com/Lightning-AI/pytorch-lightning/issues/20340), [#22208](https://github.com/Lightning-AI/pytorch-lightning/pull/22208))
