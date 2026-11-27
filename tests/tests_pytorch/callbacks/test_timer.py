@@ -176,6 +176,22 @@ def test_timer_resume_training(tmp_path):
     assert trainer.global_step == saved_global_step
 
 
+def test_timer_reused_across_fits(tmp_path):
+    """Test that the timings of a previous ``fit`` do not count against the next one."""
+    timer = Timer(duration=timedelta(milliseconds=200), verbose=False)
+    kwargs = {"default_root_dir": tmp_path, "max_epochs": 1000, "enable_checkpointing": False, "logger": False}
+
+    trainer = Trainer(callbacks=timer, **kwargs)
+    trainer.fit(BoringModel())
+    first_steps = trainer.global_step
+    assert first_steps > 0
+
+    trainer = Trainer(callbacks=timer, **kwargs)
+    trainer.fit(BoringModel())
+    assert trainer.global_step > 0
+    assert timer.time_elapsed() < 10 * timedelta(milliseconds=200).total_seconds()
+
+
 @RunIf(skip_windows=True)
 def test_timer_track_stages(tmp_path):
     """Test that the timer tracks time also for other stages (train/val/test)."""
