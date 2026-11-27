@@ -129,6 +129,15 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
         assert not SLURMEnvironment.detect()
 
+    # `srun` launched from inside an `salloc` interactive allocation sets
+    # SLURM_STEP_ID, which indicates srun is actively driving the process.
+    with mock.patch.dict(
+        os.environ,
+        {"SLURM_NTASKS": "2", "SLURM_JOB_NAME": "interactive", "SLURM_STEP_ID": "0"},
+        clear=True,
+    ):
+        assert SLURMEnvironment.detect()
+
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
@@ -149,6 +158,36 @@ def test_srun_available_and_not_used(monkeypatch):
     with no_warning_call(PossibleUserWarning, match=expected):
         SLURMEnvironment()
         assert not SLURMEnvironment.detect()
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
+def test_no_srun_warning_inside_salloc_with_srun(monkeypatch):
+    """No `srun` warning when running ``srun python ...`` inside an interactive ``salloc`` allocation.
+
+    Inside an interactive allocation (``SLURM_JOB_NAME`` is ``bash`` or ``interactive``), a nested ``srun`` still
+    sets ``SLURM_STEP_ID``. This distinguishes it from a plain ``python`` invocation in the same shell.
+
+    """
+    monkeypatch.setattr(sys, "argv", ["train.py"])
+    expected = "`srun` .* available .* but is not used"
+
+    with (
+        mock.patch("lightning.fabric.plugins.environments.slurm.shutil.which", return_value="/usr/bin/srun"),
+        mock.patch.dict(
+            os.environ,
+            {
+                "SLURM_NTASKS": "2",
+                "SLURM_NTASKS_PER_NODE": "1",
+                "SLURM_JOB_NAME": "interactive",
+                "SLURM_STEP_ID": "0",
+            },
+            clear=True,
+        ),
+        no_warning_call(PossibleUserWarning, match=expected),
+    ):
+        SLURMEnvironment()
+        assert SLURMEnvironment.detect()
 
 
 def test_srun_variable_validation():
