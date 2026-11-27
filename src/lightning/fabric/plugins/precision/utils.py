@@ -32,13 +32,19 @@ class _DtypeContextManager:
 
     def __init__(self, dtype: torch.dtype) -> None:
         self._previous_dtype: torch.dtype = torch.get_default_dtype()
+        self._previous_dtypes: list[torch.dtype] = []
         self._new_dtype = dtype
 
     def __enter__(self) -> None:
+        current_dtype = torch.get_default_dtype()
+        self._previous_dtype = current_dtype
+        self._previous_dtypes.append(current_dtype)
         torch.set_default_dtype(self._new_dtype)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        torch.set_default_dtype(self._previous_dtype)
+        previous_dtype = self._previous_dtypes.pop() if self._previous_dtypes else self._previous_dtype
+        self._previous_dtype = self._previous_dtypes[-1] if self._previous_dtypes else previous_dtype
+        torch.set_default_dtype(previous_dtype)
 
 
 class _ClassReplacementContextManager:
@@ -47,6 +53,7 @@ class _ClassReplacementContextManager:
     def __init__(self, mapping: Mapping[str, type]) -> None:
         self._mapping = mapping
         self._originals = {}
+        self._originals_stack: list[dict[str, type]] = []
         self._modules = {}
         for class_string in mapping:
             module_name, class_name = class_string.rsplit(".", 1)
@@ -55,11 +62,17 @@ class _ClassReplacementContextManager:
             self._originals[class_string] = getattr(module, class_name)
 
     def __enter__(self) -> None:
+        current_originals: dict[str, type] = {}
         for class_string, replacement in self._mapping.items():
             _, class_name = class_string.rsplit(".", 1)
+            current_originals[class_string] = getattr(self._modules[class_string], class_name)
             setattr(self._modules[class_string], class_name, replacement)
+        self._originals = current_originals
+        self._originals_stack.append(current_originals)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        for class_string, replacement in self._mapping.items():
+        originals = self._originals_stack.pop() if self._originals_stack else self._originals
+        self._originals = self._originals_stack[-1] if self._originals_stack else originals
+        for class_string in self._mapping:
             _, class_name = class_string.rsplit(".", 1)
-            setattr(self._modules[class_string], class_name, self._originals[class_string])
+            setattr(self._modules[class_string], class_name, originals[class_string])
