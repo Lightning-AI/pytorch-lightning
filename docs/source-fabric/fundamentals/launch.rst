@@ -69,7 +69,20 @@ An alternative way to launch your Python script in multiple processes is to use 
 
     fabric run path/to/your/script.py
 
-This is essentially the same as running ``python path/to/your/script.py``, but it also lets you configure the following settings externally without changing your code:
+To run a module from an importable Python package, use ``--module`` (or ``-m``), as with ``python -m``:
+
+.. code-block:: bash
+
+    fabric run --accelerator=cpu --devices=2 --module my_package.train
+
+The module can use relative imports within its package. You can also pass a package name if it contains a ``__main__.py``.
+Pass ``--`` before arguments that belong to your module to keep them separate from Fabric options:
+
+.. code-block:: bash
+
+    fabric run --module my_package.train -- --batch-size=32
+
+The CLI also lets you configure the following settings externally without changing your code:
 
 - ``--accelerator``: The accelerator to use
 - ``--devices``: The number of devices to use (per machine)
@@ -86,13 +99,15 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
 
       Run a Lightning Fabric script.
 
-      SCRIPT is the path to the Python script with the code to run. The script
-      must contain a Fabric object.
+      SCRIPT is the path to the Python script with the code to run, or a module
+      name when --module is set. The script or module must contain a Fabric object.
 
       SCRIPT_ARGS are the remaining arguments that you can pass to the script
       itself and are expected to be parsed there.
 
     Options:
+      -m, --module                    Run SCRIPT as a Python module, equivalent
+                                      to 'python -m'.
       --accelerator [cpu|gpu|cuda|mps|tpu]
                                       The hardware accelerator to run on.
       --strategy [ddp|dp|deepspeed]   Strategy for how to run across multiple

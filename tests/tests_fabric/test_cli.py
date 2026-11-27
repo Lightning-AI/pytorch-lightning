@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 from io import StringIO
+from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
@@ -202,3 +205,100 @@ def test_consolidate(save_mock, _, tmp_path, caplog, monkeypatch):
         _consolidate.main([str(checkpoint_folder)])
     assert e.value.code == 0
     save_mock.assert_called_once()
+
+
+@pytest.mark.parametrize("module_flag", ["-m", "--module"])
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_run_torchrun_module(module_flag, monkeypatch):
+    torchrun_mock = Mock()
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
+    with pytest.raises(SystemExit) as ex:
+        _run.main(["--accelerator=cpu", module_flag, "package.train", "--", "--module", "value with spaces"])
+    assert ex.value.code == 0
+    torchrun_mock.main.assert_called_once_with([
+        "--nproc_per_node=1",
+        "--nnodes=1",
+        "--node_rank=0",
+        "--master_addr=127.0.0.1",
+        "--master_port=29400",
+        "--module",
+        "package.train",
+        "--module",
+        "value with spaces",
+    ])
+
+
+def test_run_missing_script(monkeypatch):
+    torchrun_mock = Mock()
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as ex, contextlib.redirect_stderr(ioerr):
+        _run.main(["missing_script.py"])
+    assert ex.value.code == 2
+    assert "Invalid value for 'SCRIPT'" in ioerr.getvalue()
+    assert "does not exist" in ioerr.getvalue()
+    torchrun_mock.main.assert_not_called()
+
+
+@pytest.mark.parametrize("module_name", ["training_package.train", "training_package"])
+def test_run_module_distributed(tmp_path, module_name):
+    package = tmp_path / "training_package"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "constants.py").write_text("VALUE = 'relative import succeeded'\n")
+    script = """
+import json
+import sys
+from pathlib import Path
+
+import torch
+from lightning.fabric import Fabric
+
+from .constants import VALUE
+
+fabric = Fabric()
+value = fabric.all_reduce(torch.tensor(float(fabric.global_rank + 1)), reduce_op="sum")
+Path(f"rank_{fabric.global_rank}.json").write_text(json.dumps({
+    "value": value.item(),
+    "world_size": fabric.world_size,
+    "relative_import": VALUE,
+    "args": sys.argv[1:],
+}))
+"""
+    (package / "train.py").write_text(script)
+    (package / "__main__.py").write_text(script)
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    env = os.environ.copy()
+    # Keep the source checkout importable after changing to the temporary package directory.
+    source_root = str(Path(__file__).resolve().parents[2] / "src")
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, [source_root, env.get("PYTHONPATH")]))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "lightning.fabric.cli",
+            "--accelerator=cpu",
+            "--devices=2",
+            f"--main-port={port}",
+            "--module",
+            module_name,
+            "--",
+            "--message",
+            "value with spaces",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    for rank in range(2):
+        assert json.loads((tmp_path / f"rank_{rank}.json").read_text()) == {
+            "value": 3.0,
+            "world_size": 2,
+            "relative_import": "relative import succeeded",
+            "args": ["--message", "value with spaces"],
+        }
