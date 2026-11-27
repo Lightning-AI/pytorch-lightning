@@ -206,7 +206,6 @@ ______________________________________________________________________
 
 Lightning is rigorously tested across multiple CPUs and GPUs and against major Python and PyTorch versions.
 
-
 <details>
   <summary>Current build statuses</summary>
 

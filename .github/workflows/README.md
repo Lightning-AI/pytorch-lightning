@@ -33,10 +33,11 @@ Library docs are synced and published externally.
 
 ## Code Quality
 
-| workflow file                     | action                                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------- |
-| .github/workflows/code-checks.yml | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/).                  |
-| .github/workflows/ci-schema.yml   | Validate the syntax of workflow files.                                                    |
+| workflow file                     | action                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| .github/workflows/code-checks.yml | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/). |
+| .github/workflows/pre-commit.yml  | Run the configured pre-commit hooks across the repository.               |
+| .github/workflows/ci-schema.yml   | Validate the syntax of workflow files.                                   |
 
 ## Others
 
@@ -50,19 +51,18 @@ The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/py
 
 ## Deployment
 
-| workflow file                              | action                                                                         |
-| ------------------------------------------ | ------------------------------------------------------------------------------ |
-| .github/workflows/docker-build.yml         | Build docker images used for releases and push them to the Docker Hub.         |
-| .github/workflows/release-pkg.yml          | Publish a release to PyPI and upload to the GH release page as artifact.       |
-| .github/workflows/\_legacy-checkpoints.yml | Add on request generate legacy checkpoints and upload them to AWS S3.          |
+| workflow file                              | action                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------ |
+| .github/workflows/docker-build.yml         | Build docker images used for releases and push them to the Docker Hub.   |
+| .github/workflows/release-pkg.yml          | Publish a release to PyPI and upload to the GH release page as artifact. |
+| .github/workflows/\_legacy-checkpoints.yml | Add on request generate legacy checkpoints and upload them to AWS S3.    |
 
 ## Bots
 
-| workflow file                                                          | action                                                                                                                                                   |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/mergify.yml                                                    | Label PRs as conflicts or ready, and request reviews if needed.                                                                                          |
-| .github/workflows/probot-auto-cc.yml <br> .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                           |
-| .github/workflows/probot-check-group.yml <br> .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                                              |
-| .pre-commit-config.yaml                                                | It applies a set of linters and formatters and can be registered with your local dev. If needed [bot](https://pre-commit.ci/) pushc changes to each PRs. |
-| .github/workflows/labeler-pr.yml, .github/label-change.yml             | Integration of https://github.com/actions/labeler                                                                                                        |
-| .github/workflows/labeler-issue.yml                                    | Parse user provided `lightning` version and set it as label.                                                                                             |
+| workflow file                                                          | action                                                                                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| .github/mergify.yml                                                    | Label PRs as conflicts or ready, and request reviews if needed.                                                                |
+| .github/workflows/probot-auto-cc.yml <br> .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot. |
+| .github/workflows/probot-check-group.yml <br> .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                    |
+| .github/workflows/labeler-pr.yml, .github/label-change.yml             | Integration of https://github.com/actions/labeler                                                                              |
+| .github/workflows/labeler-issue.yml                                    | Parse user provided `lightning` version and set it as label.                                                                   |
