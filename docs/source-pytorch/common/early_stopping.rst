@@ -40,6 +40,7 @@ To enable it:
 - Pass the :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback to the :class:`~lightning.pytorch.trainer.trainer.Trainer` callbacks flag.
 
 .. code-block:: python
+    :emphasize-lines: 7,11
 
     from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 
@@ -76,6 +77,7 @@ After training completes, you can programmatically check why early stopping occu
 attribute, which returns an ``EarlyStoppingReason`` enum value.
 
 .. code-block:: python
+    :emphasize-lines: 9,11,13,17-18
 
     from lightning.pytorch.callbacks import EarlyStopping
     from lightning.pytorch.callbacks.early_stopping import EarlyStoppingReason
