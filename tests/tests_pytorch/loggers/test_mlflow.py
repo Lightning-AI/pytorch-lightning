@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
+from types import ModuleType
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -279,14 +281,6 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
     )
     param.assert_called_with(key="test", value="test_param")
 
-    long_params = {"test": "test_param" * 50}
-    logger.log_hyperparams(long_params)
-
-    logger.experiment.log_batch.assert_called_with(
-        run_id=logger.run_id, params=[param(key="test", value="test_param" * 50)]
-    )
-    param.assert_called_with(key="test", value="test_param" * 50)
-
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
 
@@ -350,17 +344,23 @@ def test_mlflow_logger_no_synchronous_support(mlflow_mock, tmp_path):
         MLFlowLogger("test", save_dir=str(tmp_path), artifact_location="my_artifact_location", synchronous=True)
 
 
+@pytest.mark.parametrize("limit", [None, 500])
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
-def test_mlflow_logger_with_long_param_value(mlflow_mock, tmp_path):
+def test_mlflow_logger_with_long_param_value(mlflow_mock, tmp_path, monkeypatch, limit):
     """Test that long parameter values are handled correctly."""
+    if limit is not None:
+        validation = ModuleType("mlflow.utils.validation")
+        validation.MAX_PARAM_VAL_LENGTH = limit
+        monkeypatch.setitem(sys.modules, "mlflow.utils.validation", validation)
 
     logger = MLFlowLogger("test", save_dir=str(tmp_path))
 
-    params = {"test": "test_param" * 50}
+    params = {"test": "test_param" * 100}
     logger.log_hyperparams(params)
 
-    # assert_called_once_with() won't properly check the parameter value.
     logger.experiment.log_batch.assert_called_once()
+    expected_limit = limit if limit is not None else 250
+    mlflow_mock.entities.Param.assert_called_once_with(key="test", value=params["test"][:expected_limit])
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
