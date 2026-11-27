@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Optional
 
+import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import override
@@ -26,9 +28,15 @@ if TYPE_CHECKING:
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):
-    """``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
+    """``AsyncCheckpointIO`` enables saving checkpoints asynchronously in a single thread.
+
+    While the executor is active, save and removal requests are executed in order. Removals before the first save or
+    after :meth:`teardown` run synchronously. Call :meth:`teardown` to wait for pending operations to finish.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    Tensor values are copied to CPU on the caller thread before the write is queued. Meta tensors remain on meta.
+    This captures a point-in-time snapshot without retaining additional accelerator copies while the writer is busy.
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
@@ -58,25 +66,41 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
 
-        self._ensure_setup()
-
         # rebuild args/kwargs with a cloned checkpoint (supports positional or kw form)
         if "checkpoint" in kwargs:
-            kwargs = {**kwargs, "checkpoint": apply_to_collection(kwargs["checkpoint"], torch.Tensor, _clone_tensor)}
+            kwargs = {
+                **kwargs,
+                "checkpoint": apply_to_collection(
+                    kwargs["checkpoint"], (torch.Tensor, np.ndarray), _clone_tensor_or_array
+                ),
+            }
         elif len(args) >= 1:
-            args = (apply_to_collection(args[0], torch.Tensor, _clone_tensor), *args[1:])
+            args = (apply_to_collection(args[0], (torch.Tensor, np.ndarray), _clone_tensor_or_array), *args[1:])
 
-        def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
+        self._submit(super().save_checkpoint, *args, **kwargs)
+
+    @override
+    def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
+        """Queues removal after earlier checkpoint operations to avoid racing with pending saves."""
+        if self._executor is None:
+            # Callback teardown can remove checkpoints after the strategy has already shut down the executor.
+            super().remove_checkpoint(*args, **kwargs)
+            return
+        self._submit(super().remove_checkpoint, *args, **kwargs)
+
+    def _submit(self, operation: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+        self._ensure_setup()
+
+        def _run_operation() -> None:
             try:
-                assert self.checkpoint_io is not None
-                self.checkpoint_io.save_checkpoint(*args, **kwargs)
+                operation(*args, **kwargs)
             except BaseException as ex:
                 self._error = ex
 
         assert self._executor is not None
-        self._executor.submit(_save_checkpoint, *args, **kwargs)
+        self._executor.submit(_run_operation)
 
-        # if an error was raised between the previous time `save_checkpoint`` was called and now,
+        # if an error was raised between the previous checkpoint operation and now,
         # because `executor.submit` is not blocking
         if self._error:
             raise self._error
@@ -94,7 +118,13 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
 
 # snapshot the checkpoint payload on the caller thread to avoid races with parameter mutation
-def _clone_tensor(t: torch.Tensor) -> torch.Tensor:
-    """Clones a tensor on the caller thread."""
-    # detach to avoid autograd history and clone to take a point-in-time copy
-    return t.detach().clone()
+def _clone_tensor_or_array(value: Any) -> Any:
+    """Clones a tensor or NumPy array on the caller thread.
+
+    Numerical arrays are copied by value. Object arrays are copied shallowly, so their elements still reference the live
+    Python objects.
+
+    """
+    if isinstance(value, torch.Tensor):
+        return value.detach().to(device="meta" if value.is_meta else "cpu", copy=True)
+    return value.copy()

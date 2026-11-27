@@ -139,7 +139,7 @@ class MLFlowLogger(Logger):
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
-        self.tags = tags
+        self.tags = dict(tags) if tags is not None else None
         self._log_model = log_model
         self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
@@ -188,7 +188,7 @@ class MLFlowLogger(Logger):
 
         if self._run_id is None:
             if self._run_name is not None:
-                self.tags = self.tags or {}
+                self.tags = dict(self.tags) if self.tags else {}
 
                 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 
@@ -234,9 +234,12 @@ class MLFlowLogger(Logger):
 
         from mlflow.entities import Param
 
-        # Truncate parameter values to 250 characters.
-        # TODO: MLflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
-        params_list = [Param(key=k, value=str(v)[:250]) for k, v in params.items()]
+        try:
+            from mlflow.utils.validation import MAX_PARAM_VAL_LENGTH
+        except (ImportError, AttributeError):
+            MAX_PARAM_VAL_LENGTH = 250
+
+        params_list = [Param(key=k, value=str(v)[:MAX_PARAM_VAL_LENGTH]) for k, v in params.items()]
 
         # Log in chunks of 100 parameters (the maximum allowed by MLflow).
         for idx in range(0, len(params_list), 100):
