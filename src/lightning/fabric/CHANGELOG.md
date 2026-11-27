@@ -26,13 +26,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed re-instantiating `DataLoader` with positional arguments (e.g. `batch_size`, `shuffle`) raising `TypeError: got multiple values for argument` ([#17991](https://github.com/Lightning-AI/pytorch-lightning/issues/17991))
+- Fixed `_atomic_save` staging local checkpoints through `$TMPDIR`, which caused "no space left on device" on SLURM/HPC setups with a small `/tmp` ([#21744](https://github.com/Lightning-AI/pytorch-lightning/pull/21744))
+
+- Fixed Transformer Engine precision failing on `LayerNorm` layers without weight or bias by keeping those layers in PyTorch ([#21756](https://github.com/Lightning-AI/pytorch-lightning/pull/21756))
 
 - Fixed logging NumPy scalar metrics with `TensorBoardLogger` on NumPy 2.4 and later ([#21549](https://github.com/Lightning-AI/pytorch-lightning/pull/21549))
 
 - Fixed an unintuitive behavior in `Fabric.all_reduce` where passing a CPU tensor on a non-CPU device resulted in a silent backend copy instead of updating the original tensor, by explicitly raising a `RuntimeError` ([#21573](https://github.com/Lightning-AI/pytorch-lightning/pull/21573))
 
 - Fixed the `_FabricModule` call tracker leaking a forward hook per submodule on every failed call and carrying its verdict into the next call ([#21945](https://github.com/Lightning-AI/pytorch-lightning/pull/21945))
+
+- Fixed re-instantiating `DataLoader` with positional arguments (e.g. `batch_size`, `shuffle`) raising `TypeError: got multiple values for argument` ([#17991](https://github.com/Lightning-AI/pytorch-lightning/issues/17991))
 
 - Fixed `_FabricModule.__setattr__` invoking the wrapped module's `property` getters ([#21944](https://github.com/Lightning-AI/pytorch-lightning/pull/21944))
 

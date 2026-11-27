@@ -115,9 +115,11 @@ class ModelCheckpoint(Checkpoint):
             the number of finished epoch and optimizer steps respectively.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, saves a `last.ckpt` copy whenever a checkpoint file gets saved. Can be set to
-            ``'link'`` on a local filesystem to create a symbolic link. This allows accessing the latest checkpoint
-            in a deterministic manner. Default: ``None``.
+        save_last: When ``True``, saves a `last.ckpt` copy whenever a checkpoint file gets saved and at every scheduled
+            checkpoint (e.g. every ``every_n_epochs``), even if the monitored metric did not reach the top k, so it
+            always holds the latest state. Can be set to ``'link'`` on a local filesystem to instead create a symbolic
+            link to the latest saved checkpoint. This allows accessing the latest checkpoint in a deterministic manner.
+            Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
             If ``save_top_k == 0``, no models are saved.
@@ -363,6 +365,7 @@ class ModelCheckpoint(Checkpoint):
                 self._defer_save_until_validation = True
                 return
 
+            self._defer_save_until_validation = False
             # For manual optimization, we save the model state that was captured in training_step
             # before the optimizer step. The test case saves this state in model.saved_models.
             if (
@@ -461,67 +464,65 @@ class ModelCheckpoint(Checkpoint):
             self._defer_save_until_validation = True
             return
 
-        # Even if the monitored key exists, it could be stale from a previous validation.
-        # If validation is scheduled to run right after this batch (e.g., last batch of epoch)
-        # and we are not saving at train epoch end, defer to `on_validation_end` to use fresh metrics.
+        # Even if the monitored key exists, it could be stale from a previous validation. If the training epoch loop
+        # runs validation right after this batch, defer to `on_validation_end` to use fresh metrics.
+        epoch_loop = trainer.fit_loop.epoch_loop
+        data_fetcher = trainer.fit_loop._data_fetcher
         if (
             self.monitor is not None
-            and not self._should_save_on_train_epoch_end(trainer)
-            and getattr(trainer.fit_loop.epoch_loop.batch_progress, "is_last_batch", False)
+            and data_fetcher is not None
+            and not epoch_loop._skip_next_val
+            and epoch_loop._should_check_val_fx(data_fetcher)
         ):
-            # Only defer if a validation loop is expected to run after this batch.
-            will_run_val = False
-            if getattr(trainer, "enable_validation", False):
-                num_val_batches = (
-                    sum(trainer.num_val_batches)
-                    if isinstance(trainer.num_val_batches, list)
-                    else trainer.num_val_batches
-                )
-                if num_val_batches and num_val_batches > 0:
-                    cve = trainer.check_val_every_n_epoch
-                    if cve is None or ((trainer.current_epoch + 1) % cve == 0):
-                        will_run_val = True
-
-            if will_run_val:
+            if epoch_loop.val_loop._combined_loader is None:
+                # The first validation epoch may start after the initial dataloader setup.
+                trainer.validating = True
+                try:
+                    epoch_loop.val_loop.setup_data()
+                finally:
+                    trainer.training = True
+            if not epoch_loop.val_loop.skip:
                 self._defer_save_until_validation = True
                 return
 
+        self._defer_save_until_validation = False
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
+        if self._should_save_on_train_epoch_end(trainer):
+            deferred = self._defer_save_until_validation
+            self._defer_save_until_validation = False
+            if self._should_skip_saving_checkpoint(trainer):
+                return
             monitor_candidates = self._monitor_candidates(trainer)
-            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
+            # A train-epoch metric can first become available after validation has finished.
+            if deferred and self.monitor in monitor_candidates:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
-            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
-            if self._last_global_step_saved == trainer.global_step or (
-                self.save_last == "link" and self._last_checkpoint_saved
-            ):
                 self._save_last_checkpoint(trainer, monitor_candidates)
+                return
+            self._save_epoch_end_checkpoints(trainer, monitor_candidates)
 
     @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
-        if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
-            monitor_candidates = self._monitor_candidates(trainer)
-            # If a step/time-triggered save was deferred due to a missing monitored metric,
-            # perform the save now that validation metrics are available.
-            if self._defer_save_until_validation:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-                self._save_last_checkpoint(trainer, monitor_candidates)
-                self._defer_save_until_validation = False
-                return
+        if self._should_skip_saving_checkpoint(trainer):
+            return
+        monitor_candidates = self._monitor_candidates(trainer)
+        save_on_train_epoch_end = self._should_save_on_train_epoch_end(trainer)
+        # If a step/time-triggered save was deferred due to a missing or stale monitored metric, perform the save now
+        # that validation metrics are available. When saving on train epoch end, the monitored key can be a train
+        # epoch metric that is not logged yet, so keep waiting for it instead of failing.
+        if self._defer_save_until_validation and (not save_on_train_epoch_end or self.monitor in monitor_candidates):
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
+            self._defer_save_until_validation = False
+            return
 
-            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
-                self._save_topk_checkpoint(trainer, monitor_candidates)
-            # Only save last checkpoint if a checkpoint was actually saved in this step or if save_last="link"
-            if self._last_global_step_saved == trainer.global_step or (
-                self.save_last == "link" and self._last_checkpoint_saved
-            ):
-                self._save_last_checkpoint(trainer, monitor_candidates)
+        if not save_on_train_epoch_end:
+            self._save_epoch_end_checkpoints(trainer, monitor_candidates)
 
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
@@ -597,6 +598,20 @@ class ModelCheckpoint(Checkpoint):
             self._save_monitor_checkpoint(trainer, monitor_candidates)
         else:
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
+
+    def _save_epoch_end_checkpoints(self, trainer: "pl.Trainer", monitor_candidates: dict[str, Tensor]) -> None:
+        is_checkpoint_epoch = self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
+        if is_checkpoint_epoch:
+            self._save_topk_checkpoint(trainer, monitor_candidates)
+        # With `save_last=True`, `last` follows the checkpointing schedule, not the top-k result: it must hold the
+        # latest state even when the monitored metric did not improve. With `save_last="link"`, `last` points to the
+        # latest saved checkpoint, so it is only updated when one exists.
+        if (
+            (is_checkpoint_epoch and self.save_last is True)
+            or self._last_global_step_saved == trainer.global_step
+            or (self.save_last == "link" and self._last_checkpoint_saved)
+        ):
+            self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Save the checkpoint to the given filepath.
@@ -886,7 +901,13 @@ class ModelCheckpoint(Checkpoint):
             return path.suffix == self.FILE_EXTENSION and bool(re.match(last_pattern, path.stem))
 
         if self._fs.exists(ckpt_path):
-            return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))}
+            candidates = [p for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))]
+            if _is_local_file_protocol(ckpt_path):
+                return {os.path.normpath(p) for p in candidates}
+            # `ls` returns remote paths without their protocol, and `normpath` would corrupt one
+            # ("gs://bucket" -> "gs:/bucket"). Either way the path resolves to the local filesystem,
+            # so the checkpoint is never found again.
+            return {self._fs.unstrip_protocol(p) for p in candidates}
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
