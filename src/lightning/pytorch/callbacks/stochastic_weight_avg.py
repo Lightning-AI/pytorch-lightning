@@ -184,7 +184,13 @@ class StochasticWeightAveraging(Callback):
             self._clear_schedulers(trainer)
 
     @override
-    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # `on_train_epoch_start` is skipped when resuming mid-epoch, so restore the SWA scheduler and averaging
+        # state here if the checkpoint was saved inside the SWA window
+        if trainer.fit_loop.restarted_mid_epoch and self._scheduler_state is not None:
+            self._initialize_swa(trainer, pl_module)
+
+    def _initialize_swa(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
             self._initialized = True
 
@@ -240,6 +246,10 @@ class StochasticWeightAveraging(Callback):
 
             if self.n_averaged is None:
                 self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
+
+    @override
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._initialize_swa(trainer, pl_module)
 
         if (self.swa_start <= trainer.current_epoch <= self.swa_end) and (
             trainer.current_epoch > self._latest_update_epoch
