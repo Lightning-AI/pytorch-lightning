@@ -36,6 +36,8 @@ class _LoggerConnector:
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
         self._current_fx: Optional[str] = None
+        # hooks that have logged since the current batch started
+        self._batch_fxs: set[str] = set()
         # None: hasn't started, True: first loop iteration, False: subsequent iterations
         self._first_loop_iter: Optional[bool] = None
 
@@ -202,6 +204,7 @@ class _LoggerConnector:
         results.batch = batch
         results.batch_size = None
         results.dataloader_idx = dataloader_idx
+        self._batch_fxs.clear()
 
     def epoch_end_reached(self) -> None:
         self._first_loop_iter = None
@@ -227,7 +230,8 @@ class _LoggerConnector:
         self.trainer._results.batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
-        return self._current_fx != fx and self._first_loop_iter in (None, True)
+        # a hook that already logged in this batch holds current values, even if a nested hook logged in between
+        return fx not in self._batch_fxs and self._current_fx != fx and self._first_loop_iter in (None, True)
 
     def reset_metrics(self) -> None:
         self._progress_bar_metrics = {}
