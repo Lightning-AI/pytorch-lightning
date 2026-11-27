@@ -41,6 +41,41 @@ def test_missing_tensorrt_package():
         model.to_tensorrt("model.trt")
 
 
+def test_tensorrt_restores_training_mode_and_device_on_error(monkeypatch):
+    import sys
+    import types
+
+    import lightning.pytorch.core.module as module_mod
+
+    monkeypatch.setattr(module_mod, "_TORCH_TRT_AVAILABLE", True)
+    model = BoringModel()
+    model.train(True)
+    model.example_input_array = None
+
+    with pytest.raises(ValueError, match="Could not export to TensorRT"):
+        model.to_tensorrt("model.trt")
+    assert model.training
+    assert model.device == torch.device("cpu")
+
+    fake_trt = types.ModuleType("torch_tensorrt")
+
+    def _failing_compile(module, *args, **kwargs):
+        assert not module.training
+        raise RuntimeError("trt compile failed")
+
+    fake_trt.compile = _failing_compile
+    monkeypatch.setitem(sys.modules, "torch_tensorrt", fake_trt)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    # Simulate CUDA environment without attempting real tensor CUDA transfer on CPU-only builds
+    monkeypatch.setattr(BoringModel, "device", property(lambda self: torch.device("cuda:0")))
+    monkeypatch.setattr(BoringModel, "to", lambda self, *args, **kwargs: self)
+    monkeypatch.setattr(model, "_apply_batch_transfer_handler", lambda x: x)
+
+    with pytest.raises(RuntimeError, match="trt compile failed"):
+        model.to_tensorrt("model.trt", input_sample=torch.randn(1, 32))
+    assert model.training
+
+
 @RunIf(tensorrt=True, min_torch="2.2.0")
 def test_tensorrt_with_wrong_default_device(tmp_path):
     model = BoringModel()

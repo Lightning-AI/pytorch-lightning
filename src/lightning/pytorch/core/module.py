@@ -1502,8 +1502,10 @@ class LightningModule(
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
         # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
         #               BytesIO does work, too.
-        ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
-        self.train(mode)
+        try:
+            ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
+        finally:
+            self.train(mode)
         return ret
 
     @torch.no_grad()
@@ -1568,33 +1570,35 @@ class LightningModule(
             "See https://pytorch.org/docs/stable/export.html for more information."
         )
         mode = self.training
+        try:
+            if method == "script":
+                with _jit_is_scripting():
+                    torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == "trace":
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    if self.example_input_array is None:
+                        raise ValueError(
+                            "Choosing method=`trace` requires either `example_inputs`"
+                            " or `model.example_input_array` to be defined."
+                        )
+                    example_inputs = self.example_input_array
 
-        if method == "script":
-            with _jit_is_scripting():
-                torchscript_module = torch.jit.script(self.eval(), **kwargs)
-        elif method == "trace":
-            # if no example inputs are provided, try to see if model has example_input_array set
-            if example_inputs is None:
-                if self.example_input_array is None:
-                    raise ValueError(
-                        "Choosing method=`trace` requires either `example_inputs`"
-                        " or `model.example_input_array` to be defined."
-                    )
-                example_inputs = self.example_input_array
+                if kwargs.get("check_inputs") is not None:
+                    kwargs["check_inputs"] = self._on_before_batch_transfer(kwargs["check_inputs"])
+                    kwargs["check_inputs"] = self._apply_batch_transfer_handler(kwargs["check_inputs"])
 
-            if kwargs.get("check_inputs") is not None:
-                kwargs["check_inputs"] = self._on_before_batch_transfer(kwargs["check_inputs"])
-                kwargs["check_inputs"] = self._apply_batch_transfer_handler(kwargs["check_inputs"])
-
-            # automatically send example inputs to the right device and use trace
-            example_inputs = self._on_before_batch_transfer(example_inputs)
-            example_inputs = self._apply_batch_transfer_handler(example_inputs)
-            with _jit_is_scripting():
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
-        else:
-            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
-
-        self.train(mode)
+                # automatically send example inputs to the right device and use trace
+                example_inputs = self._on_before_batch_transfer(example_inputs)
+                example_inputs = self._apply_batch_transfer_handler(example_inputs)
+                with _jit_is_scripting():
+                    torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            else:
+                raise ValueError(
+                    f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}"
+                )
+        finally:
+            self.train(mode)
 
         if file_path is not None:
             fs = get_filesystem(file_path)
@@ -1649,19 +1653,6 @@ class LightningModule(
                 f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "
             )
 
-        mode = self.training
-        device = self.device
-        if self.device.type != "cuda":
-            default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
-
-            if not torch.cuda.is_available() or default_device.type != "cuda":
-                raise MisconfigurationException(
-                    f"TensorRT only supports CUDA devices. The current device is {self.device}."
-                    f" Please set the `default_device` argument to a CUDA device."
-                )
-
-            self.to(default_device)
-
         if input_sample is None:
             if self.example_input_array is None:
                 raise ValueError(
@@ -1670,21 +1661,36 @@ class LightningModule(
                 )
             input_sample = self.example_input_array
 
-        import torch_tensorrt
+        mode = self.training
+        device = self.device
+        try:
+            if self.device.type != "cuda":
+                default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
 
-        input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
-        input_sample = self._on_before_batch_transfer(input_sample)
-        input_sample = self._apply_batch_transfer_handler(input_sample)
+                if not torch.cuda.is_available() or default_device.type != "cuda":
+                    raise MisconfigurationException(
+                        f"TensorRT only supports CUDA devices. The current device is {self.device}."
+                        f" Please set the `default_device` argument to a CUDA device."
+                    )
 
-        with _jit_is_scripting() if ir == "ts" else nullcontext():
-            trt_obj = torch_tensorrt.compile(
-                module=self.eval(),
-                ir=ir,
-                inputs=input_sample,
-                **compile_kwargs,
-            )
-        self.train(mode)
-        self.to(device)
+                self.to(default_device)
+
+            import torch_tensorrt
+
+            input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
+            input_sample = self._on_before_batch_transfer(input_sample)
+            input_sample = self._apply_batch_transfer_handler(input_sample)
+
+            with _jit_is_scripting() if ir == "ts" else nullcontext():
+                trt_obj = torch_tensorrt.compile(
+                    module=self.eval(),
+                    ir=ir,
+                    inputs=input_sample,
+                    **compile_kwargs,
+                )
+        finally:
+            self.train(mode)
+            self.to(device)
 
         if file_path is not None:
             if ir == "ts":

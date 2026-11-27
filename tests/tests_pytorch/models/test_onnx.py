@@ -141,6 +141,25 @@ def test_error_if_no_input(tmp_path):
         model.to_onnx(file_path)
 
 
+def test_onnx_restores_training_mode_on_export_error(tmp_path, monkeypatch):
+    """Test that to_onnx restores the model's training state if torch.onnx.export raises."""
+    import lightning.pytorch.core.module as module_mod
+
+    monkeypatch.setattr(module_mod, "_ONNX_AVAILABLE", True)
+    model = BoringModel()
+    model.train(True)
+    input_sample = torch.randn(1, 32)
+
+    def _failing_export(mod, *args, **kwargs):
+        mod.eval()
+        raise RuntimeError("onnx export failed")
+
+    monkeypatch.setattr(torch.onnx, "export", _failing_export)
+    with pytest.raises(RuntimeError, match="onnx export failed"):
+        model.to_onnx(os.path.join(tmp_path, "model.onnx"), input_sample)
+    assert model.training
+
+
 @pytest.mark.parametrize(
     "dynamo",
     [
