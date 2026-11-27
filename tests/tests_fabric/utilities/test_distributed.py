@@ -251,8 +251,9 @@ def test_get_default_process_group_backend_for_device(monkeypatch):
     monkeypatch.setitem(torch.distributed.Backend.default_device_backend_map, "pcu", "pccl")
 
     # test that the default backend is correctly set for each device
-    devices = [torch.device("cpu"), torch.device("cuda:0"), Mock(type="pcu")]
-    backends = ["gloo", "nccl", "pccl"]
+    # ``Mock(type="npu")`` is used for the NPU case since ``torch.device("npu")`` requires ``torch_npu`` to be installed
+    devices = [torch.device("cpu"), torch.device("cuda:0"), Mock(type="pcu"), Mock(type="npu")]
+    backends = ["gloo", "nccl", "pccl", "hccl"]
     for device, backend in zip(devices, backends):
         assert _get_default_process_group_backend_for_device(device) == backend
 

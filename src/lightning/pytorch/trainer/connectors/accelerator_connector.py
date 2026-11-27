@@ -35,6 +35,7 @@ from lightning.pytorch.accelerators import AcceleratorRegistry
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
+from lightning.pytorch.accelerators.npu import NPUAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     _PLUGIN_INPUT,
@@ -221,6 +222,19 @@ class _AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
+        # B11: the string `precision='bitsandbytes'` is not a registered precision value anywhere (upstream), but on
+        # NPU the user gets a clear not-supported hint instead of the platform-agnostic value-domain ValueError.
+        # The CUDA/upstream path is preserved: on every other accelerator the generic invalid-value error still fires.
+        if (
+            isinstance(precision, str)
+            and precision.lower() == "bitsandbytes"
+            and (self._accelerator_flag == "npu" or isinstance(self._accelerator_flag, NPUAccelerator))
+        ):
+            raise MisconfigurationException(
+                "The `bitsandbytes` precision is not supported on NPU (Ascend). bitsandbytes is a"
+                " CUDA-only library; choose a different precision plugin for NPU training."
+            )
+
         precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
@@ -307,6 +321,13 @@ class _AcceleratorConnector:
                             f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                         )
                     self._accelerator_flag = "cuda"
+                if self._strategy_flag.parallel_devices[0].type == "npu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "npu", "gpu"):
+                        raise MisconfigurationException(
+                            f"NPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "npu"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
@@ -336,6 +357,8 @@ class _AcceleratorConnector:
     def _choose_gpu_accelerator_backend() -> str:
         if MPSAccelerator.is_available():
             return "mps"
+        if NPUAccelerator.is_available():
+            return "npu"
         if CUDAAccelerator.is_available():
             return "cuda"
         raise MisconfigurationException("No supported gpu backend found!")
@@ -409,8 +432,8 @@ class _AcceleratorConnector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator, NPUAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps", "npu")
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -430,7 +453,10 @@ class _AcceleratorConnector:
 
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
-        ) and not (self._accelerator_flag in ("cuda", "gpu") or isinstance(self._accelerator_flag, CUDAAccelerator)):
+        ) and not (
+            self._accelerator_flag in ("cuda", "gpu", "npu")
+            or isinstance(self._accelerator_flag, (CUDAAccelerator, NPUAccelerator))
+        ):
             raise ValueError(
                 f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but received "
                 f"`accelerator={self._accelerator_flag!r}`. Please set `accelerator='cuda'`, `accelerator='gpu'`,"
@@ -471,8 +497,20 @@ class _AcceleratorConnector:
         if self._precision_flag == "64-true":
             return DoublePrecision()
         if self._precision_flag == "transformer-engine":
+            # B13: Transformer Engine is an NVIDIA CUDA library; it is not enabled on NPU (Ascend).
+            # The CUDA path below is preserved; NPU gets an explicit not-supported error.
+            if isinstance(self.accelerator, NPUAccelerator):
+                raise MisconfigurationException(
+                    "The `transformer-engine` precision is not enabled on NPU (Ascend). Transformer Engine is an"
+                    " NVIDIA CUDA library; choose a different precision plugin for NPU training."
+                )
             return TransformerEnginePrecision(weights_dtype=torch.bfloat16)
         if self._precision_flag == "transformer-engine-float16":
+            if isinstance(self.accelerator, NPUAccelerator):
+                raise MisconfigurationException(
+                    "The `transformer-engine` precision is not enabled on NPU (Ascend). Transformer Engine is an"
+                    " NVIDIA CUDA library; choose a different precision plugin for NPU training."
+                )
             return TransformerEnginePrecision(weights_dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
@@ -486,7 +524,8 @@ class _AcceleratorConnector:
             rank_zero_info(
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
-            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+            # npu: route AMP autocast to the NPU device_type so `torch.autocast('npu')` is used on Ascend
+            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps", "npu") else "cuda"
             return MixedPrecision(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
@@ -496,6 +535,14 @@ class _AcceleratorConnector:
         if isinstance(self._precision_plugin_flag, BitsandbytesPrecision) and not isinstance(
             self.accelerator, CUDAAccelerator
         ):
+            # B11: bitsandbytes is a CUDA-only library; on NPU (Ascend) the plugin is not enabled
+            # (user decision 20261124). The CUDA branch above is preserved; instead of the generic
+            # "only supported on CUDA GPUs" hard check, raise an explicit not-supported error on NPU.
+            if isinstance(self.accelerator, NPUAccelerator):
+                raise MisconfigurationException(
+                    "The `bitsandbytes` quantization plugin is not enabled on NPU (Ascend). bitsandbytes is a"
+                    " CUDA-only library; choose a different precision plugin for NPU training."
+                )
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
         mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
         if (

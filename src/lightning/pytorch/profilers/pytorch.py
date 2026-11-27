@@ -28,6 +28,7 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
+from lightning.fabric.accelerators.npu import _is_npu_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
@@ -294,6 +295,16 @@ class PyTorchProfiler(Profiler):
 
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
+        if self._emit_nvtx and _is_npu_available():
+            # A15: NVTX (NVIDIA Tools Extension) marking is a CUDA-only tracing feature with no functional value on
+            # NPU (Ascend). `torch.cuda.profiler.profile()`/`emit_nvtx` would fail on NPU builds where PyTorch is
+            # compiled without CUDA, so the marking is removed/ignored here and the standard PyTorch profiler is used
+            # instead (Ascend users can collect traces with msprof / the NPU profiler activity).
+            rank_zero_warn(
+                "`emit_nvtx=True` is not supported on NPU (Ascend); it will be ignored. Use the standard PyTorch"
+                " profiler (or msprof on Ascend) for NPU profiling."
+            )
+            self._emit_nvtx = False
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or _default_sort_by_key(profiler_kwargs)
@@ -405,7 +416,13 @@ class PyTorchProfiler(Profiler):
         if not _KINETO_AVAILABLE:
             return activities
         activities.append(ProfilerActivity.CPU)
-        if is_cuda_available():
+        if _is_npu_available():
+            # A15: map the device activity to NPU (Ascend) so `torch.profiler` collects Ascend events instead of the
+            # CUDA activity. The CUDA branch below is preserved for GPU users.
+            from torch_npu.profiler import ProfilerActivity as NPUProfilerActivity
+
+            activities.append(NPUProfilerActivity.NPU)
+        elif is_cuda_available():
             activities.append(ProfilerActivity.CUDA)
         return activities
 

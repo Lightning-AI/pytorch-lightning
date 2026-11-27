@@ -35,7 +35,7 @@ from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, NPUAccelerator, XLAAccelerator
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
@@ -116,6 +116,9 @@ def _default_map_location(storage: "UntypedStorage", location: str) -> Optional[
         and not MPSAccelerator.is_available()
         or location.startswith("cuda")
         and not CUDAAccelerator.is_available()
+        # A21: NPU (Ascend) checkpoints also need to fall back to CPU when no NPU device is present.
+        or location.startswith("npu")
+        and not NPUAccelerator.is_available()
         or location.startswith("xla")
         and not XLAAccelerator.is_available()
     ):

@@ -18,7 +18,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, NPUAccelerator, XLAAccelerator
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -150,7 +150,10 @@ def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str
 
 
 def _log_device_info(trainer: "pl.Trainer") -> None:
-    if CUDAAccelerator.is_available():
+    if NPUAccelerator.is_available():
+        gpu_available = True
+        gpu_type = " (npu)"
+    elif CUDAAccelerator.is_available():
         gpu_available = True
         gpu_type = " (cuda)"
     elif MPSAccelerator.is_available():
@@ -160,18 +163,24 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         gpu_available = False
         gpu_type = ""
 
-    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
+    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator, NPUAccelerator))
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
     rank_zero_info(f"TPU available: {XLAAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
-    if (
-        CUDAAccelerator.is_available()
-        and not isinstance(trainer.accelerator, CUDAAccelerator)
-        or MPSAccelerator.is_available()
-        and not isinstance(trainer.accelerator, MPSAccelerator)
-    ):
+    if NPUAccelerator.is_available():
+        # On Ascend machines `transfer_to_npu` makes `CUDAAccelerator.is_available()` return True as an alias of
+        # the NPU device, so only the NPU clause is meaningful here. The CUDA/MPS clauses below are preserved for
+        # their respective machines and keep their original semantics.
+        gpu_not_used = not isinstance(trainer.accelerator, NPUAccelerator)
+    elif CUDAAccelerator.is_available():
+        gpu_not_used = not isinstance(trainer.accelerator, CUDAAccelerator)
+    elif MPSAccelerator.is_available():
+        gpu_not_used = not isinstance(trainer.accelerator, MPSAccelerator)
+    else:
+        gpu_not_used = False
+    if gpu_not_used:
         rank_zero_warn(
             "GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.",
             category=PossibleUserWarning,

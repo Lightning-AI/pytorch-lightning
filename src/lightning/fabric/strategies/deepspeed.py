@@ -29,7 +29,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
-from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
+from lightning.fabric.accelerators import Accelerator, CUDAAccelerator, NPUAccelerator
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
@@ -639,7 +639,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @override
     def setup_environment(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        # B12: DeepSpeed is enabled on CUDA GPUs and Ascend NPU (ascend DeepSpeed build, hccl process-group
+        # backend). The CUDA branch is preserved; the previous CUDA-only hard check is relaxed to also allow
+        # NPUAccelerator so an npu device does not hit the "CUDA GPUs only" error during setup. The error
+        # message for non-CUDA/non-NPU devices is kept verbatim to preserve the CUDA branch semantics.
+        if not isinstance(self.accelerator, (CUDAAccelerator, NPUAccelerator)):
             raise RuntimeError(
                 f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
                 " is used."

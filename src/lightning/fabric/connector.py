@@ -23,6 +23,7 @@ from lightning.fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.accelerators.npu import NPUAccelerator
 from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
     BitsandbytesPrecision,
@@ -66,6 +67,7 @@ from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
 from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
 from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
+from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO]
@@ -293,6 +295,13 @@ class _Connector:
                             f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                         )
                     self._accelerator_flag = "cuda"
+                if self._strategy_flag.parallel_devices[0].type == "npu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "npu", "gpu"):
+                        raise ValueError(
+                            f"NPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "npu"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
@@ -316,10 +325,13 @@ class _Connector:
     @staticmethod
     def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
+        # keep in sync with `lightning.fabric.utilities.device_parser._select_auto_accelerator`
         if XLAAccelerator.is_available():
             return "tpu"
         if MPSAccelerator.is_available():
             return "mps"
+        if NPUAccelerator.is_available():
+            return "npu"
         if CUDAAccelerator.is_available():
             return "cuda"
         return "cpu"
@@ -328,6 +340,8 @@ class _Connector:
     def _choose_gpu_accelerator_backend() -> str:
         if MPSAccelerator.is_available():
             return "mps"
+        if NPUAccelerator.is_available():
+            return "npu"
         if CUDAAccelerator.is_available():
             return "cuda"
         raise RuntimeError("No supported gpu backend found!")
@@ -400,8 +414,8 @@ class _Connector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator, NPUAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps", "npu")
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -432,7 +446,7 @@ class _Connector:
             )
         if (
             strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and self._accelerator_flag not in ("cuda", "gpu", "npu"):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
                 " to continue or select a different strategy."
@@ -454,6 +468,14 @@ class _Connector:
             if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(
                 self.accelerator, CUDAAccelerator
             ):
+                # B11: bitsandbytes is a CUDA-only library; on NPU (Ascend) the plugin is not enabled
+                # (user decision 20261124). The CUDA branch above is preserved; instead of the generic
+                # "only supported on CUDA GPUs" hard check, raise an explicit not-supported error on NPU.
+                if isinstance(self.accelerator, NPUAccelerator):
+                    raise MisconfigurationException(
+                        "The `bitsandbytes` quantization plugin is not enabled on NPU (Ascend). bitsandbytes is a"
+                        " CUDA-only library; choose a different precision plugin for NPU training."
+                    )
                 raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
             return self._precision_instance
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
@@ -475,8 +497,20 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
+            # B13: Transformer Engine is an NVIDIA CUDA library; it is not enabled on NPU (Ascend).
+            # The CUDA path below is preserved; NPU gets an explicit not-supported error.
+            if isinstance(self.accelerator, NPUAccelerator):
+                raise MisconfigurationException(
+                    "The `transformer-engine` precision is not enabled on NPU (Ascend). Transformer Engine is an"
+                    " NVIDIA CUDA library; choose a different precision plugin for NPU training."
+                )
             return TransformerEnginePrecision(weights_dtype=torch.bfloat16)
         if self._precision_input == "transformer-engine-float16":
+            if isinstance(self.accelerator, NPUAccelerator):
+                raise MisconfigurationException(
+                    "The `transformer-engine` precision is not enabled on NPU (Ascend). Transformer Engine is an"
+                    " NVIDIA CUDA library; choose a different precision plugin for NPU training."
+                )
             return TransformerEnginePrecision(weights_dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
@@ -492,7 +526,8 @@ class _Connector:
                 if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
+            # npu: route AMP autocast to the NPU device_type so `torch.autocast('npu')` is used on Ascend
+            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps", "npu") else "cuda"
             return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")

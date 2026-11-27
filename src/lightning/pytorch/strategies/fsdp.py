@@ -278,7 +278,9 @@ class FSDPStrategy(ParallelStrategy):
         if isinstance(self.kwargs.get("device_mesh"), tuple):
             from torch.distributed.device_mesh import init_device_mesh
 
-            self.kwargs["device_mesh"] = init_device_mesh("cuda", self.kwargs["device_mesh"])
+            # Use the strategy's actual root device type (``cuda``/``npu``/...) instead of hard-coding ``cuda``;
+            # on CUDA this still resolves to ``"cuda"`` so the existing GPU behavior is preserved.
+            self.kwargs["device_mesh"] = init_device_mesh(self.root_device.type, self.kwargs["device_mesh"])
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -431,7 +433,7 @@ class FSDPStrategy(ParallelStrategy):
     def barrier(self, name: Optional[str] = None) -> None:
         if not _distributed_is_initialized():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() in ("nccl", "hccl"):
             torch.distributed.barrier(device_ids=self._determine_device_ids())
         else:
             torch.distributed.barrier()

@@ -26,6 +26,7 @@ _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
+    min_npu_gpus: int = 0,
     min_torch: Optional[str] = None,
     max_torch: Optional[str] = None,
     min_python: Optional[str] = None,
@@ -49,6 +50,7 @@ def _runif_reasons(
 
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``RUN_ONLY_CUDA_TESTS=1`` environment variable is set.
+        min_npu_gpus: Require this number of NPU (Ascend) devices. NPU-equivalent of ``min_cuda_gpus`` (A25).
         min_torch: Require that PyTorch is greater or equal than this version.
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
@@ -73,6 +75,7 @@ def _runif_reasons(
 
     reasons, kwargs = _fabric_run_if(
         min_cuda_gpus=min_cuda_gpus,
+        min_npu_gpus=min_npu_gpus,
         min_torch=min_torch,
         max_torch=max_torch,
         min_python=min_python,

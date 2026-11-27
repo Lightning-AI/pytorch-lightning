@@ -213,6 +213,19 @@ def _check_bad_cuda_fork() -> None:
     Lightning users.
 
     """
+    # NPU (Ascend) equivalent (A14): torch_npu mirrors `torch.cuda._is_in_bad_fork` with the same fork-state
+    # semantics. The check is only meaningful on machines that expose NPU devices; the CUDA checks below stay
+    # untouched so GPU behavior is preserved.
+    _is_in_npu_bad_fork = getattr(torch, "npu", None) is not None and getattr(torch.npu, "_is_in_bad_fork", None)
+    if _is_in_npu_bad_fork is not None and callable(_is_in_npu_bad_fork) and _is_in_npu_bad_fork():
+        message = (
+            "Cannot re-initialize NPU (Ascend) in forked subprocess. To use NPU with multiprocessing, "
+            "you must use the 'spawn' start method or avoid NPU initialization in the main process."
+        )
+        if _IS_INTERACTIVE:
+            message += " You will have to restart the Python kernel."
+        raise RuntimeError(message)
+
     # Use PyTorch's internal check for bad fork state, which is more accurate than just checking if CUDA
     # is initialized. This allows passive CUDA initialization (e.g., from library imports or device queries)
     # while still catching actual problematic cases where CUDA context was created before forking.

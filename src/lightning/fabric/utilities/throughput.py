@@ -653,6 +653,15 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
             return None
         return int(_TPU_FLOPS[chip])
 
+    if device.type == "npu":
+        # NPU (Ascend) counterpart of the CUDA/TPU lookup above. No authoritative per-chip FLOPs
+        # table is maintained here yet, so we degrade gracefully to ``None`` (the ThroughputMonitor
+        # then simply skips FLOPs-based metrics) instead of raising or returning a bogus value.
+        rank_zero_warn(
+            f"FLOPs not found for NPU device {device!r}. ThroughputMonitor will not report FLOPs-based metrics."
+        )
+        return None
+
 
 def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
     # TODO: integrate this into the precision plugins

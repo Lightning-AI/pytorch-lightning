@@ -11,6 +11,7 @@ Currently there are accelerators for:
 - :doc:`GPU <../accelerators/gpu>`
 - :doc:`TPU <../accelerators/tpu>`
 - :doc:`MPS <../accelerators/mps>`
+- :doc:`NPU <../accelerators/npu>`
 
 The Accelerator is part of the Strategy which manages communication across multiple devices (distributed communication).
 Whenever the Trainer, the loops or any other component in Lightning needs to talk to hardware, it calls into the Strategy and the Strategy calls into the Accelerator.

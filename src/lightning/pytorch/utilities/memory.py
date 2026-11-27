@@ -52,10 +52,12 @@ def is_oom_error(exception: BaseException) -> bool:
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def is_cuda_out_of_memory(exception: BaseException) -> bool:
+    # NPU (Ascend) reports OOM with the "ACL ... out of memory" / "npu ... out of memory" messages;
+    # the CUDA string match is preserved for GPU environments.
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
-        and "CUDA" in exception.args[0]
+        and ("CUDA" in exception.args[0] or "ACL" in exception.args[0] or "npu" in exception.args[0])
         and "out of memory" in exception.args[0]
     )
 

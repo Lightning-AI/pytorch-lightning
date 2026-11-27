@@ -211,3 +211,6 @@ _notebooks/.notebooks/
 
 # standalone test artifacts
 standalone_artifacts/
+
+# torch_npu profiler dump directory (created when profiling runs with cwd == repo root)
+export_only_prof_dir/
