@@ -14,6 +14,10 @@ To export your model to ONNX format call the :meth:`~lightning.pytorch.core.Ligh
 
 .. code-block:: python
 
+    import torch
+    from lightning.pytorch import LightningModule
+
+
     class SimpleModel(LightningModule):
         def __init__(self):
             super().__init__()
@@ -22,42 +26,38 @@ To export your model to ONNX format call the :meth:`~lightning.pytorch.core.Ligh
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-
-    # create the model
-    model = SimpleModel()
-    filepath = "model.onnx"
-    input_sample = torch.randn((1, 64))
-    model.to_onnx(filepath, input_sample, export_params=True)
-
-You can also skip passing the input sample if the ``example_input_array`` property is specified in your :class:`~lightning.pytorch.core.LightningModule`.
+By default, the exported model uses the shape of the example input.
+To serve different batch sizes, pass ``dynamo=True`` and ``dynamic_shapes`` to the exporter. This requires ``onnx`` and ``onnxscript``.
+In this model, ``x`` is the name of the argument to ``forward``. Mark its first dimension as dynamic and keep the 64 features fixed.
+Use a sample batch of at least two because PyTorch specializes dimensions of size one during export.
 
 .. code-block:: python
 
-    class SimpleModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            self.example_input_array = torch.randn(7, 64)
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-
-    # create the model
-    model = SimpleModel()
+    model = SimpleModel().eval()
     filepath = "model.onnx"
-    model.to_onnx(filepath, export_params=True)
+    input_sample = torch.randn(2, 64)
+    dynamic_shapes = {"x": {0: torch.export.Dim("batch")}}
+    model.to_onnx(filepath, input_sample, dynamo=True, dynamic_shapes=dynamic_shapes)
 
-Once you have the exported model, you can run it on your ONNX runtime in the following way:
+You can use the same exported model with different batch sizes in ONNX Runtime.
 
 .. code-block:: python
 
     import onnxruntime
 
-    ort_session = onnxruntime.InferenceSession(filepath)
-    input_name = ort_session.get_inputs()[0].name
-    ort_inputs = {input_name: np.random.randn(1, 64)}
-    ort_outs = ort_session.run(None, ort_inputs)
+    session = onnxruntime.InferenceSession(filepath)
+    input_name = session.get_inputs()[0].name
+    for batch_size in (1, 8):
+        x = torch.randn(batch_size, 64)
+        (output,) = session.run(None, {input_name: x.numpy()})
+        assert output.shape == (batch_size, 4)
+
+To use the module's ``example_input_array`` for export, set it before calling ``to_onnx``.
+
+.. code-block:: python
+
+    model.example_input_array = input_sample
+    model.to_onnx(filepath, dynamo=True, dynamic_shapes=dynamic_shapes)
 
 ----
 
