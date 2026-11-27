@@ -58,6 +58,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `ModelCheckpoint` deleting resumed-from checkpoints on remote filesystems ([#21910](https://github.com/Lightning-AI/pytorch-lightning/pull/21910))
 
+- Fixed `ModelPruning` checkpoint export mistaking ordinary mask buffers for pruning reparameterizations ([#22163](https://github.com/Lightning-AI/pytorch-lightning/pull/22163))
+
 - Fixed `BaseFinetuning` leaving previously unfrozen modules frozen when resuming from a checkpoint, by restoring `requires_grad` on the param groups it had added ([#21901](https://github.com/Lightning-AI/pytorch-lightning/issues/21901))
 
 - Fixed logs being written every step when `trainer.should_stop` is set but stopping is deferred by `min_epochs` or `min_steps` ([#19990](https://github.com/Lightning-AI/pytorch-lightning/issues/19990))
