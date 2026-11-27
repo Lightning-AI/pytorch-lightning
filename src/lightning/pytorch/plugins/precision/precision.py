@@ -24,7 +24,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import Precision as FabricPrecision
-from lightning.fabric.utilities.types import Steppable
+from lightning.fabric.utilities.types import Optimizable, Steppable
 from lightning.pytorch.core.hooks import CheckpointHooks
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -36,6 +36,32 @@ class Precision(FabricPrecision, CheckpointHooks):
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
 
     """
+
+    _optimizer_step_was_skipped: Union[bool, Tensor] = False
+
+    @property
+    def optimizer_step_was_skipped(self) -> bool:
+        """Whether gradient scaling skipped the most recent optimizer update."""
+        return bool(self._optimizer_step_was_skipped)
+
+    def _scaler_step(self, scaler: torch.amp.GradScaler, optimizer: Optimizable, **kwargs: Any) -> Any:
+        if not isinstance(optimizer, Optimizer):
+            scale = scaler.get_scale()
+            output = scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
+            scaler.update()
+            self._optimizer_step_was_skipped = scaler.get_scale() < scale
+            return output
+
+        def record_step(opt: Optimizer, args: Any, kwargs: Any) -> None:
+            # Fused optimizers enter step() even on overflow. GradScaler passes them the device-side flag.
+            found_inf = kwargs.get("found_inf")
+            self._optimizer_step_was_skipped = getattr(opt, "found_inf", False) if found_inf is None else found_inf
+
+        self._optimizer_step_was_skipped = True
+        with optimizer.register_step_pre_hook(record_step):
+            output = scaler.step(optimizer, **kwargs)
+        scaler.update()
+        return output
 
     def connect(
         self, model: Module, optimizers: list[Optimizer], lr_schedulers: list[Any]
