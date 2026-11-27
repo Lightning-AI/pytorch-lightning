@@ -15,6 +15,8 @@ from typing import Any, Callable, Optional
 
 from typing_extensions import override
 
+_MISSING = object()
+
 
 class _StrategyRegistry(dict):
     """This class is a Registry that stores information about the Training Strategies.
@@ -59,7 +61,7 @@ class _StrategyRegistry(dict):
             init_params: parameters to initialize the strategy
 
         """
-        if not (name is None or isinstance(name, str)):
+        if not isinstance(name, str):
             raise TypeError(f"`name` must be a str, found {name}")
 
         if name in self and not override:
@@ -82,7 +84,7 @@ class _StrategyRegistry(dict):
         return do_register
 
     @override
-    def get(self, name: str, default: Optional[Any] = None) -> Any:
+    def get(self, name: str, default: Optional[Any] = _MISSING) -> Any:
         """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:
@@ -93,7 +95,7 @@ class _StrategyRegistry(dict):
             data = self[name]
             return data["strategy"](**data["init_params"])
 
-        if default is not None:
+        if default is not _MISSING:
             return default
 
         err_msg = "'{}' not found in registry. Available names: {}"
