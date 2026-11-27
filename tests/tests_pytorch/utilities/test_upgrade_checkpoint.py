@@ -52,7 +52,7 @@ def test_upgrade_checkpoint_single_file(migrate_mock, load_mock, save_mock, tmp_
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
         upgrade_main()
 
-    load_mock.assert_called_once_with(Path(file), map_location=None)
+    load_mock.assert_called_once_with(Path(file), map_location=None, weights_only=False)
     migrate_mock.assert_called_once()
     save_mock.assert_called_once_with(ANY, Path(file))
 
@@ -104,3 +104,30 @@ def test_upgrade_checkpoint_map_location(_, __, load_mock, tmp_path):
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file), "--map-to-cpu"]):
         upgrade_main()
     assert load_mock.call_args[1]["map_location"] == torch.device("cpu")
+    assert load_mock.call_args[1]["weights_only"] is False
+
+
+def test_upgrade_checkpoint_with_non_primitive_hparams(tmp_path):
+    """Test upgrading a real checkpoint containing non-primitive objects (e.g. argparse.Namespace) under PyTorch 2.6+
+    where torch.load defaults to weights_only=True."""
+    from argparse import Namespace
+
+    file = tmp_path / "legacy_checkpoint.ckpt"
+    legacy_ckpt = {
+        "state_dict": {"layer.weight": torch.tensor([1.0, 2.0])},
+        "pytorch-lightning_version": "1.5.0",
+        "global_step": 0,
+        "epoch": 0,
+        "hyper_parameters": Namespace(lr=1e-3, hidden_dim=64),
+        "callbacks": {},
+    }
+    torch.save(legacy_ckpt, file)
+
+    with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(file)]):
+        upgrade_main()
+
+    upgraded = torch.load(file, weights_only=False)
+    assert upgraded["hyper_parameters"] == Namespace(lr=1e-3, hidden_dim=64)
+    assert torch.equal(upgraded["state_dict"]["layer.weight"], torch.tensor([1.0, 2.0]))
+    assert (tmp_path / "legacy_checkpoint.bak").exists()
+

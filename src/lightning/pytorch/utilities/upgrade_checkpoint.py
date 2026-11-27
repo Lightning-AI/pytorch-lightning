@@ -60,7 +60,11 @@ def _upgrade(args: Namespace) -> None:
     _log.info("Upgrading checkpoints ...")
     for file in tqdm(files):
         with pl_legacy_patch():
-            checkpoint = torch.load(file, map_location=(torch.device("cpu") if args.map_to_cpu else None))
+            checkpoint = torch.load(
+                file,
+                map_location=(torch.device("cpu") if args.map_to_cpu else None),
+                weights_only=False,
+            )
         migrate_checkpoint(checkpoint)
         torch.save(checkpoint, file)
 
