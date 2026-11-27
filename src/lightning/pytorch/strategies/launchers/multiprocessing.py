@@ -32,6 +32,7 @@ from lightning.fabric.strategies.launchers.multiprocessing import (
     _check_bad_cuda_fork,
     _check_missing_main_guard,
     _disable_module_memory_sharing,
+    _join_processes,
 )
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import _set_num_threads_if_needed
@@ -141,8 +142,7 @@ class _MultiProcessingLauncher(_Launcher):
             join=False,  # we will join ourselves to get the process references
         )
         self.procs = process_context.processes
-        while not process_context.join():
-            pass
+        _join_processes(process_context)
 
         worker_output = return_queue.get()
         if trainer is None:

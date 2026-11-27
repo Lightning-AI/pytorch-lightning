@@ -139,7 +139,7 @@ class MLFlowLogger(Logger):
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
-        self.tags = tags
+        self.tags = dict(tags) if tags is not None else None
         self._log_model = log_model
         self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
@@ -188,7 +188,7 @@ class MLFlowLogger(Logger):
 
         if self._run_id is None:
             if self._run_name is not None:
-                self.tags = self.tags or {}
+                self.tags = dict(self.tags) if self.tags else {}
 
                 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 

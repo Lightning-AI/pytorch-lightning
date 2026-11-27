@@ -227,4 +227,4 @@ distributed setting into consideration so you don't have to derive it manually. 
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
         )
-        return optimizer, scheduler
+        return [optimizer], [scheduler]
