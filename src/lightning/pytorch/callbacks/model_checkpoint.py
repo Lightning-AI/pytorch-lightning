@@ -634,16 +634,23 @@ class ModelCheckpoint(Checkpoint):
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
         if trainer.is_global_zero and os.path.abspath(filepath) != os.path.abspath(linkpath):
-            if os.path.islink(linkpath) or os.path.isfile(linkpath):
-                os.remove(linkpath)
-            elif os.path.isdir(linkpath):
+            # `os.replace` cannot overwrite a non-empty directory, so a real directory has to go first. A link to a
+            # directory is replaced like any other link below.
+            if os.path.isdir(linkpath) and not os.path.islink(linkpath):
                 shutil.rmtree(linkpath)
+            # Create the new link under a temporary name and rename it over `linkpath`. The rename replaces the old
+            # link in a single step, so a crash at any point leaves either the old or the new `linkpath`, never none.
+            # The temporary name does not end in `.ckpt`, so a leftover one is never picked up as a checkpoint.
+            tmp_linkpath = f"{linkpath}.tmp-{os.getpid()}"
+            if os.path.lexists(tmp_linkpath):
+                os.remove(tmp_linkpath)
             try:
-                os.symlink(os.path.relpath(filepath, os.path.dirname(linkpath)), linkpath)
+                os.symlink(os.path.relpath(filepath, os.path.dirname(linkpath)), tmp_linkpath)
             except OSError:
                 # on Windows, special permissions are required to create symbolic links as a regular user
                 # fall back to copying the file
-                shutil.copy(filepath, linkpath)
+                shutil.copy(filepath, tmp_linkpath)
+            os.replace(tmp_linkpath, linkpath)
         trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:

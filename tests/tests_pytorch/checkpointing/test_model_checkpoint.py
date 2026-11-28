@@ -607,6 +607,111 @@ def test_model_checkpoint_link_checkpoint_relative_path(tmp_path, monkeypatch):
     assert not os.path.isabs(os.readlink(link))
 
 
+def test_model_checkpoint_link_checkpoint_never_removes_existing_link(tmp_path):
+    """Test that relinking replaces the existing link in one step, so that it exists while the new link is created
+    and no temporary file is left behind."""
+    trainer = Mock()
+    old_file = tmp_path / "old_file"
+    old_file.touch()
+    new_file = tmp_path / "new_file"
+    new_file.touch()
+    link = tmp_path / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(old_file), linkpath=str(link))
+
+    real_symlink = os.symlink
+
+    def symlink(*args, **kwargs):
+        # the old link must still be in place while the new one is being created
+        assert os.path.realpath(link) == str(old_file)
+        real_symlink(*args, **kwargs)
+
+    with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", side_effect=symlink):
+        ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file)
+    assert not os.path.isabs(os.readlink(link))
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["link", "new_file", "old_file"]
+
+
+def test_model_checkpoint_link_checkpoint_removes_stale_temporary_link(tmp_path):
+    """Test that a temporary link left behind by a crashed process with the same PID does not break relinking."""
+    trainer = Mock()
+    file = tmp_path / "file"
+    file.touch()
+    link = tmp_path / "link"
+    stale = tmp_path / f"link.tmp-{os.getpid()}"
+    os.symlink("missing_file", stale)
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert os.path.realpath(link) == str(file)
+    assert not os.path.lexists(stale)
+
+
+def test_model_checkpoint_link_checkpoint_copy_fallback_keeps_old_target(tmp_path):
+    """Test that the copy fallback replaces an existing link instead of writing through it into the old
+    checkpoint."""
+    trainer = Mock()
+    old_file = tmp_path / "old_file"
+    old_file.write_text("old")
+    new_file = tmp_path / "new_file"
+    new_file.write_text("new")
+    link = tmp_path / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(old_file), linkpath=str(link))
+
+    with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
+        ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file), linkpath=str(link))
+    assert not os.path.islink(link)
+    assert link.read_text() == "new"
+    assert old_file.read_text() == "old"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["link", "new_file", "old_file"]
+
+
+def test_save_last_link_resume_after_crash_while_relinking(tmp_path):
+    """Test that `ckpt_path="last"` resumes from a saved checkpoint when the process dies while `last.ckpt` is
+    being relinked, instead of training from scratch (#22179)."""
+
+    class _Crash(BaseException):
+        pass
+
+    start_steps = []
+
+    class Model(BoringModel):
+        def on_train_start(self):
+            start_steps.append(self.trainer.global_step)
+
+    def fit(ckpt_path=None):
+        checkpoint = ModelCheckpoint(
+            dirpath=tmp_path, every_n_train_steps=2, save_top_k=2, monitor="step", mode="max", save_last="link"
+        )
+        trainer = Trainer(
+            max_steps=8,
+            callbacks=[checkpoint],
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(Model(), ckpt_path=ckpt_path)
+
+    real_symlink = os.symlink
+    calls = []
+
+    def symlink(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 2:  # die while relinking `last.ckpt` at step 4
+            raise _Crash
+        real_symlink(*args, **kwargs)
+
+    with (
+        mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", side_effect=symlink),
+        pytest.raises(_Crash),
+    ):
+        fit()
+
+    # the link to the step 2 checkpoint survived the crash
+    assert os.path.realpath(tmp_path / "last.ckpt") == str(tmp_path / "epoch=0-step=2.ckpt")
+    fit(ckpt_path="last")
+    assert start_steps == [0, 2]
+
+
 def test_invalid_top_k(tmp_path):
     """Make sure that a MisconfigurationException is raised for a negative save_top_k argument."""
     with pytest.raises(MisconfigurationException, match=r".*Must be >= -1"):
