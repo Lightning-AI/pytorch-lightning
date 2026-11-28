@@ -226,6 +226,48 @@ class Fabric:
 
         """
 
+    @overload
+    def setup(
+        self, module: nn.Module, *, scheduler: None = ..., move_to_device: bool = ..., _reapply_compile: bool = ...
+    ) -> _FabricModule: ...
+
+    @overload
+    def setup(
+        self,
+        module: nn.Module,
+        optimizer: Optimizer,
+        /,
+        *,
+        scheduler: None = ...,
+        move_to_device: bool = ...,
+        _reapply_compile: bool = ...,
+    ) -> tuple[_FabricModule, _FabricOptimizer]: ...
+
+    @overload
+    def setup(
+        self,
+        module: nn.Module,
+        optimizer: Optimizer,
+        /,
+        *,
+        scheduler: "LRScheduler",
+        move_to_device: bool = ...,
+        _reapply_compile: bool = ...,
+    ) -> tuple[_FabricModule, _FabricOptimizer, "LRScheduler"]: ...
+
+    @overload
+    def setup(
+        self,
+        module: nn.Module,
+        optimizer: Optimizer,
+        second_optimizer: Optimizer,
+        /,
+        *optimizers: Optimizer,
+        scheduler: Optional["LRScheduler"] = ...,
+        move_to_device: bool = ...,
+        _reapply_compile: bool = ...,
+    ) -> tuple[Union[_FabricModule, _FabricOptimizer, "LRScheduler"], ...]: ...
+
     def setup(
         self,
         module: nn.Module,
@@ -373,6 +415,14 @@ class Fabric:
         self._models_setup += 1
         return module
 
+    @overload
+    def setup_optimizers(self, optimizer: Optimizer, /) -> _FabricOptimizer: ...
+
+    @overload
+    def setup_optimizers(
+        self, first_optimizer: Optimizer, second_optimizer: Optimizer, /, *optimizers: Optimizer
+    ) -> tuple[_FabricOptimizer, ...]: ...
+
     def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, tuple[_FabricOptimizer, ...]]:
         r"""Set up one or more optimizers for accelerated training.
 
@@ -408,6 +458,22 @@ class Fabric:
             for optimizer in optimizers
         ]
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
+
+    @overload
+    def setup_dataloaders(
+        self, dataloader: DataLoader, /, *, use_distributed_sampler: bool = ..., move_to_device: bool = ...
+    ) -> DataLoader: ...
+
+    @overload
+    def setup_dataloaders(
+        self,
+        first_dataloader: DataLoader,
+        second_dataloader: DataLoader,
+        /,
+        *dataloaders: DataLoader,
+        use_distributed_sampler: bool = ...,
+        move_to_device: bool = ...,
+    ) -> list[DataLoader]: ...
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
