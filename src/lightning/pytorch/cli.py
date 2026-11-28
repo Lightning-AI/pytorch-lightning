@@ -14,7 +14,6 @@
 import inspect
 import os
 import sys
-import warnings
 from collections.abc import Iterable
 from functools import partial, update_wrapper
 from pathlib import Path
@@ -53,6 +52,12 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         register_unresolvable_import_paths,
     )
 
+    # 4.53 added instantiators scoped to an `instantiate` call, v5 removes the per-parser `add_instantiator`
+    _JSONARGPARSE_SCOPED_INSTANTIATORS = (
+        hasattr(ArgumentParser, "instantiate")
+        and "instantiators" in inspect.signature(ArgumentParser.instantiate).parameters
+    )
+
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
 
     try:
@@ -64,6 +69,7 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 
         set_config_read_mode(fsspec_enabled=True)
 else:
+    _JSONARGPARSE_SCOPED_INSTANTIATORS = False
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
 
@@ -73,7 +79,9 @@ ModuleType = TypeVar("ModuleType")
 _KEEP_NONE_KWARGS: dict[str, bool] = {"skip_unset": False} if _JSONARGPARSE_GREATER_EQUAL_4_50 else {"skip_none": False}
 
 
-def _instantiate(parser: "ArgumentParser", cfg: "Namespace") -> "Namespace":
+def _instantiate(parser: "ArgumentParser", cfg: "Namespace", instantiators: Optional[list] = None) -> "Namespace":
+    if _JSONARGPARSE_SCOPED_INSTANTIATORS:
+        return parser.instantiate(cfg, instantiators=instantiators)
     if _JSONARGPARSE_GREATER_EQUAL_4_50:
         return parser.instantiate(cfg)
     return parser.instantiate_classes(cfg)
@@ -113,6 +121,7 @@ class LightningArgumentParser(ArgumentParser):
         description: str = "Lightning Trainer command line tool",
         env_prefix: str = "PL",
         default_env: bool = False,
+        parser_mode: str = "yaml",  # override the "json_or_yaml" default in jsonargparse v5
         **kwargs: Any,
     ) -> None:
         """Initialize argument parser that supports configuration file input.
@@ -128,7 +137,14 @@ class LightningArgumentParser(ArgumentParser):
         """
         if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
             raise ModuleNotFoundError(f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}")
-        super().__init__(*args, description=description, env_prefix=env_prefix, default_env=default_env, **kwargs)
+        super().__init__(
+            *args,
+            description=description,
+            env_prefix=env_prefix,
+            default_env=default_env,
+            parser_mode=parser_mode,
+            **kwargs,
+        )
         self.callback_keys: list[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: dict[str, tuple[Union[type, tuple[type, ...]], str]] = {}
@@ -429,6 +445,7 @@ class LightningCLI:
 
         self._set_seed()
 
+        self._instantiators: list[tuple[_InstantiatorFn, type, bool]] = []
         if load_from_checkpoint_support:
             self._add_instantiators()
         self.before_instantiate_classes()
@@ -611,29 +628,23 @@ class LightningCLI:
             self.config_dump = self.config_dump[self.config.subcommand]
 
     def _add_instantiators(self) -> None:
-        # the global `jsonargparse.add_instantiator` replacing this deprecated method registers process-wide, leaking
-        # into the parsers of every other `LightningCLI`, so the per-parser method is kept and its warning silenced
-        # TODO: revisit for jsonargparse v5.0, which removes the per-parser method
-        with warnings.catch_warnings():
-            # by category, since jsonargparse pairs the deprecation with a separate one-time banner warning
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            self.parser.add_instantiator(
-                _InstantiatorFn(cli=self, key="model"),
-                _get_module_type(self._model_class),
-                subclasses=self.subclass_mode_model,
-            )
-            self.parser.add_instantiator(
-                _InstantiatorFn(cli=self, key="data"),
-                _get_module_type(self._datamodule_class),
-                subclasses=self.subclass_mode_data,
-            )
+        self._instantiators = [
+            (_InstantiatorFn(cli=self, key="model"), _get_module_type(self._model_class), self.subclass_mode_model),
+            (_InstantiatorFn(cli=self, key="data"), _get_module_type(self._datamodule_class), self.subclass_mode_data),
+        ]
+        if _JSONARGPARSE_SCOPED_INSTANTIATORS:
+            return  # given to `instantiate` in `instantiate_classes`
+        # older versions only have the per-parser method, the global `jsonargparse.add_instantiator` would leak into
+        # the parsers of every other `LightningCLI`
+        for instantiator, class_type, subclasses in self._instantiators:
+            self.parser.add_instantiator(instantiator, class_type, subclasses=subclasses)
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
-        self.config_init = _instantiate(self.parser, self.config)
+        self.config_init = _instantiate(self.parser, self.config, self._instantiators)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
         self._add_configure_optimizers_method_to_model(self.subcommand)
