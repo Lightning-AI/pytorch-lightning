@@ -46,7 +46,7 @@ class TransformerEnginePrecision(Precision):
     Args:
         weights_dtype: The weights dtype to use.
         recipe: Recipe for the DelayedScaling
-            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
+            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
             In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
@@ -169,14 +169,18 @@ def _convert_layers(module: torch.nn.Module) -> None:
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         elif isinstance(child, torch.nn.LayerNorm):
+            if child.weight is None or child.bias is None:
+                rank_zero_warn(
+                    f"Keeping layer {name!r} as torch.nn.LayerNorm because Transformer Engine LayerNorm "
+                    "requires both weight and bias."
+                )
+                continue
             replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
             replacement.weight.data = child.weight.data.clone()
-            # Check if bias exists before attempting to clone its data
-            if child.bias is not None and replacement.bias is not None:
-                replacement.bias.data = child.bias.data.clone()
+            replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         else:
             # there are other transformer engine layers that we could convert but require fusion. full list at:
-            # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
+            # https://docs.nvidia.com/deeplearning/transformer-engine/api/pytorch.html
             _convert_layers(child)

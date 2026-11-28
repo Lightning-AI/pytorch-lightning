@@ -15,12 +15,6 @@
 default_language_version:
   python: python3
 
-ci:
-  autofix_prs: true
-  autoupdate_commit_msg: "[pre-commit.ci] pre-commit suggestions"
-  autoupdate_schedule: quarterly
-  # submodules: true
-
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -61,7 +55,7 @@ repos:
     hooks:
       - id: docformatter
         # TODO: remove language_version pin once docformatter drops the `untokenize` dependency
-        # which uses `ast.Constant.s` — removed in Python 3.14, causing pre-commit.ci to fail
+        # which uses `ast.Constant.s`, removed in Python 3.14.
         language_version: python3.12
         additional_dependencies: [tomli]
         args: ["--in-place"]

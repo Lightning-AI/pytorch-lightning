@@ -25,7 +25,7 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Adam
 
 from lightning.fabric.plugins import HalfPrecision
-from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, TorchElasticEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
@@ -238,6 +238,31 @@ def test_grad_clipping_norm_error():
         match="only possible if the module.*is wrapped in `FullyShardedDataParallel`",
     ):
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
+
+
+@pytest.mark.parametrize("total_norm", [float("nan"), float("inf"), float("-inf")])
+def test_grad_clipping_norm_error_if_nonfinite(total_norm):
+    strategy = FSDPStrategy()
+    module = MagicMock(spec=FullyShardedDataParallel)
+    module.clip_grad_norm_.return_value = torch.tensor(total_norm)
+    optimizer = Mock()
+
+    with pytest.raises(RuntimeError, match="The total norm of order 2.0 for gradients.*is non-finite"):
+        strategy.clip_gradients_norm(module, optimizer, max_norm=1.0, error_if_nonfinite=True)
+
+    module.clip_grad_norm_.assert_called_once_with(max_norm=1.0, norm_type=2.0)
+
+
+def test_grad_clipping_norm_nonfinite_allowed():
+    strategy = FSDPStrategy()
+    module = MagicMock(spec=FullyShardedDataParallel)
+    module.clip_grad_norm_.return_value = torch.tensor(float("nan"))
+    optimizer = Mock()
+
+    norm = strategy.clip_gradients_norm(module, optimizer, max_norm=1.0, error_if_nonfinite=False)
+
+    assert torch.isnan(norm)
+    module.clip_grad_norm_.assert_called_once_with(max_norm=1.0, norm_type=2.0)
 
 
 def test_save_checkpoint_storage_options(tmp_path):
@@ -647,9 +672,12 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     monkeypatch.setattr(
         "lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", lambda module: mock.MagicMock()
     )
-    monkeypatch.setattr("lightning.fabric.strategies.fsdp._distributed_checkpoint_load", lambda state, path: None)
 
     captured = {}
+    monkeypatch.setattr(
+        "lightning.fabric.strategies.fsdp._distributed_checkpoint_load",
+        lambda state, path, strict=True: captured.update(strict=strict),
+    )
 
     def fake_load(path, weights_only=None):
         captured["weights_only"] = weights_only
@@ -660,9 +688,11 @@ def test_load_sharded_checkpoint_metadata_weights_only(monkeypatch):
     model = nn.Linear(2, 2)
     strategy.load_checkpoint("memory:///x/sharded", state={"model": model})
     assert captured["weights_only"] is False
+    assert captured["strict"] is True
 
-    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True)
+    strategy.load_checkpoint("memory:///x/sharded", state={"model": model}, weights_only=True, strict=False)
     assert captured["weights_only"] is True
+    assert captured["strict"] is False
 
 
 def test_get_distributed_checkpoint_writer_missing_fsspec_module(monkeypatch):
@@ -685,3 +715,39 @@ def test_get_distributed_checkpoint_reader_missing_fsspec_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "torch.distributed.checkpoint._fsspec_filesystem", None)
     with pytest.raises(ImportError, match=r"Remote .fsspec. distributed checkpoints require"):
         _get_distributed_checkpoint_reader("memory:///w/ckpt")
+
+
+def test_fsdp_distributed_sampler_kwargs_uses_world_size(monkeypatch):
+    """``num_replicas`` is the actual world size, not ``num_nodes * num_processes`` (#19898)."""
+    # e.g. torchrun over two nodes holding 2 and 1 devices: `num_nodes * num_processes` would report 4 here,
+    # while the true world size is 3.
+    monkeypatch.setenv("WORLD_SIZE", "3")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("LOCAL_RANK", "0")
+    monkeypatch.setenv("MASTER_ADDR", "127.0.0.1")
+    monkeypatch.setenv("MASTER_PORT", "12345")
+    strategy = FSDPStrategy(
+        parallel_devices=[torch.device("cpu")] * 2,
+        cluster_environment=TorchElasticEnvironment(),
+    )
+    strategy.num_nodes = 2
+
+    assert strategy.distributed_sampler_kwargs == {"num_replicas": 3, "rank": 0}
+
+
+def test_distributed_checkpoint_load_strict(tmp_path):
+    """`strict=False` must allow keys that are missing from the sharded checkpoint, `strict=True` must not."""
+    from torch.distributed.checkpoint import save
+    from torch.distributed.checkpoint.api import CheckpointException
+
+    from lightning.fabric.strategies.fsdp import _distributed_checkpoint_load
+
+    save({"model": {"weight": torch.ones(2)}}, checkpoint_id=tmp_path)
+
+    module_state = {"model": {"weight": torch.zeros(2), "extra": torch.zeros(2)}}
+    with pytest.raises(CheckpointException):
+        _distributed_checkpoint_load(module_state, tmp_path)
+
+    _distributed_checkpoint_load(module_state, tmp_path, strict=False)
+    assert torch.equal(module_state["model"]["weight"], torch.ones(2))
+    assert torch.equal(module_state["model"]["extra"], torch.zeros(2))

@@ -331,10 +331,11 @@ class _TrainingEpochLoop(loops._Loop):
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
             # hook
-            call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
+            cb_response = call._call_callback_hooks(trainer, "on_train_batch_start", batch, batch_idx)
             response = call._call_lightning_module_hook(trainer, "on_train_batch_start", batch, batch_idx)
             call._call_strategy_hook(trainer, "on_train_batch_start", batch, batch_idx)
-            should_skip_rest_of_epoch = response == -1
+            should_skip_rest_of_epoch = (response == -1) or (cb_response == -1)
+
             # Signal this is the last batch for the current epoch
             if should_skip_rest_of_epoch:
                 self.batch_progress.increment_by(0, is_last_batch=True)
@@ -479,7 +480,7 @@ class _TrainingEpochLoop(loops._Loop):
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
-            current_idx = self.batch_idx if interval == "step" else trainer.current_epoch
+            current_idx = self.total_batch_idx if interval == "step" else trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
@@ -534,19 +535,24 @@ class _TrainingEpochLoop(loops._Loop):
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         is_last_batch = self.batch_progress.is_last_batch
+        should_check_val = False
         if is_last_batch and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
-            return True
-
-        if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
+            should_check_val = True
+        elif self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
             # allow validation if requesting to stop early through `Trainer.should_stop` (e.g. by early stopping)
             # and when the loop allows to stop (min_epochs/steps met)
-            return True
+            should_check_val = True
 
         interval = self.trainer._val_check_time_interval
         if interval is not None:
-            now = time.monotonic()
-            # if time’s up → tell Trainer to validate
-            return now - self.trainer._last_val_time >= interval
+            if not should_check_val:
+                now = time.monotonic()
+                # if time’s up → tell Trainer to validate
+                should_check_val = now - self.trainer._last_val_time >= interval
+            return bool(self.trainer.strategy.broadcast(should_check_val))
+
+        if should_check_val:
+            return True
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:

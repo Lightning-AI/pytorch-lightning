@@ -5,11 +5,10 @@ from torch.utils._pytree import SUPPORTED_NODES, LeafSpec, PyTree, TreeSpec, _ge
 
 def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
     """Customized :func:`torch.utils._pytree._is_leaf` to avoid flattening containers of primitives."""
-    is_leaf = _get_node_type(pytree) not in SUPPORTED_NODES
-    if is_leaf:
+    node_type = _get_node_type(pytree)
+    if node_type not in SUPPORTED_NODES:
         return True
 
-    node_type = _get_node_type(pytree)
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn
     child_pytrees, _ = flatten_fn(pytree)
     return all(isinstance(child, (int, float, str)) for child in child_pytrees)
@@ -17,12 +16,14 @@ def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
 
 def _tree_flatten(pytree: PyTree) -> tuple[list[Any], TreeSpec]:
     """Copy of :func:`torch.utils._pytree.tree_flatten` using our custom leaf function."""
-    if _is_leaf_or_primitive_container(pytree):
+    node_type = _get_node_type(pytree)
+    if node_type not in SUPPORTED_NODES:
         return [pytree], LeafSpec()
 
-    node_type = _get_node_type(pytree)
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn
     child_pytrees, context = flatten_fn(pytree)
+    if all(isinstance(child, (int, float, str)) for child in child_pytrees):
+        return [pytree], LeafSpec()
 
     result: list[Any] = []
     children_specs: list[TreeSpec] = []

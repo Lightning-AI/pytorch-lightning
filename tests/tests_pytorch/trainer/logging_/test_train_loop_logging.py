@@ -28,9 +28,10 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from lightning.pytorch import Trainer, callbacks
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -743,6 +744,39 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     ])
 
 
+@mock.patch("lightning.pytorch.loggers.CSVLogger.log_metrics")
+def test_log_every_n_steps_while_stop_is_deferred_by_min_epochs(mock_log_metrics, tmp_path):
+    """A `should_stop` that `min_epochs` defers must not make every step log."""
+
+    class StopEveryBatch(Callback):
+        def on_train_batch_end(self, trainer, *_):
+            trainer.should_stop = True
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        min_epochs=2,
+        max_epochs=2,
+        log_every_n_steps=4,
+        callbacks=StopEveryBatch(),
+        logger=CSVLogger(tmp_path),
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(MyModel())
+
+    assert trainer.current_epoch == 2
+    logged_steps = [c.kwargs["step"] for c in mock_log_metrics.call_args_list if "foo" in c.kwargs["metrics"]]
+    assert logged_steps == [3, 7]
+
+
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_trainer_default_log_key_prefix_uses_bare_generated_epoch(mock_log_metrics, tmp_path):
     class MyModel(BoringModel):
@@ -849,3 +883,54 @@ def test_unsqueezed_tensor_logging():
     model.trainer = trainer
     model.log("foo", Tensor([1.2]), on_epoch=True)
     assert trainer.callback_metrics["foo"].ndim == 0
+
+
+@pytest.mark.parametrize("hook", ["on_before_backward", "on_after_backward", "on_before_optimizer_step"])
+def test_log_in_nested_hook_keeps_training_step_metrics(tmp_path, hook):
+    """A hook that logs while `training_step` is running must not reset what `training_step` logged before it."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+            self.step_values = []
+            self.epoch_values = []
+
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+            self.log("before", float(batch_idx), on_step=True, on_epoch=True)
+            opt.zero_grad()
+            self.manual_backward(self.step(batch))
+            opt.step()
+            self.log("after", float(batch_idx), on_step=True, on_epoch=True)
+
+        def on_train_batch_end(self, *_):
+            self.step_values.append(self.trainer.callback_metrics.get("before_step"))
+
+        def on_train_epoch_end(self):
+            self.epoch_values.append((
+                self.trainer.callback_metrics["before_epoch"],
+                self.trainer.callback_metrics["after_epoch"],
+            ))
+
+    def log_in_hook(self, *_):
+        self.log("nested", 1.0)
+
+    setattr(TestModel, hook, log_in_hook)
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        max_epochs=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    assert model.step_values == [0, 1, 2, 0, 1, 2]
+    assert model.epoch_values == [(1, 1), (1, 1)]

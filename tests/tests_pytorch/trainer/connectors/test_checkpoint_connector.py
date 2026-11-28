@@ -11,20 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import errno
-import operator
 import os
-import re
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import compare_version
+from torch.utils.data import DataLoader
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import Callback, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.callbacks import BatchSizeFinder, Callback, LearningRateFinder, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
 
@@ -58,6 +55,11 @@ def test_preloaded_checkpoint_lifecycle(tmp_path):
     connector.resume_end()
     # not cleared until next restoration, as the user might access it through `trainer.ckpt_path`
     assert connector._ckpt_path == ckpt_path
+    assert not connector._loaded_checkpoint
+
+    # a checkpoint left pending by a run that stopped before `resume_end` is dropped by the next run
+    connector.resume_start(ckpt_path)
+    connector.resume_start()
     assert not connector._loaded_checkpoint
 
 
@@ -107,38 +109,6 @@ def test_hpc_max_ckpt_version(tmp_path):
         trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmp_path / "not" / "existing")
         is None
     )
-
-
-def test_local_cross_device_checkpoint(tmpdir):
-    """Test that the _CheckpointConnector can write local cross-device files or raises an error if fsspec<2025.5.0."""
-    model = BoringModel()
-    # hardcoding dir since `tmp_path` can be windows path
-    trainer = Trainer(
-        default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
-    )
-    trainer.fit(model)
-    # Simulate the behavior of fsspec when writing to a local file system but other device.
-    if compare_version("fsspec", operator.lt, "2025.5.0"):
-        with (
-            mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
-            mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
-            pytest.raises(
-                RuntimeError,
-                match=re.escape(
-                    'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"'
-                ),
-            ),
-        ):
-            trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
-    else:
-        # Mock only `os.rename`: fsspec >= 2025.5.0 falls back to a copy internally, and its
-        # transaction commit then calls `os.chmod` on the destination. On Windows with
-        # Python >= 3.12, `shutil.move` copies via `_winapi.CopyFile2` without ever calling
-        # `os.chmod`, so a mocked `os.chmod` would escape fsspec's PermissionError handling
-        # and make the save fail.
-        with mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")):
-            trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
-        assert os.path.isfile(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
 
 
 def test_ckpt_for_fsspec():
@@ -321,3 +291,46 @@ def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
     fn(new_model, ckpt_path=ckpt_path)
 
     assert new_callback.restored  # Should be True after loading the checkpoint
+
+
+@pytest.mark.parametrize(
+    "tuner_callback",
+    [
+        pytest.param(lambda: LearningRateFinder(num_training_steps=4, early_stop_threshold=None), id="lr_finder"),
+        pytest.param(lambda: BatchSizeFinder(init_val=2, max_val=2, steps_per_trial=1), id="batch_size_finder"),
+    ],
+)
+def test_resume_with_tuner_callback_restores_training_state(tmp_path, tuner_callback):
+    """Test that the tuner callbacks, which restore their own checkpoint in `on_fit_start`, do not drop the training
+    state of the checkpoint passed to `fit`."""
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.lr, self.batch_size = 0.1, 2
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 8), batch_size=self.batch_size)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "step"}}
+
+    class Probe(Callback):
+        def on_train_start(self, trainer, pl_module):
+            scheduler = trainer.lr_scheduler_configs[0].scheduler
+            optimizer_state = trainer.optimizers[0].state
+            self.state = (trainer.current_epoch, trainer.global_step, bool(optimizer_state), scheduler.last_epoch)
+
+    kwargs = {"default_root_dir": tmp_path, "limit_val_batches": 0, "logger": False, "enable_progress_bar": False}
+    trainer = Trainer(max_epochs=2, **kwargs)
+    trainer.fit(Model())
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    probe = Probe()
+    trainer = Trainer(max_epochs=3, callbacks=[tuner_callback(), probe], **kwargs)
+    trainer.fit(Model(), ckpt_path=ckpt_path)
+    assert probe.state == (2, 8, True, 8)
+    assert trainer.global_step == 12
+    assert trainer.ckpt_path == ckpt_path

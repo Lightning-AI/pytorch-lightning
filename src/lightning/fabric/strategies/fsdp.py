@@ -216,7 +216,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     @property
     @override
     def distributed_sampler_kwargs(self) -> dict[str, Any]:
-        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -419,7 +419,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 f" Got: {module.__class__.__name__}."
             )
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        total_norm = module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
+        if error_if_nonfinite and torch.logical_or(total_norm.isnan(), total_norm.isinf()):
+            raise RuntimeError(
+                f"The total norm of order {float(norm_type)} for gradients from `parameters` is non-finite, so it "
+                "cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, "
+                "set `error_if_nonfinite=False`"
+            )
+        return total_norm
 
     @override
     def save_checkpoint(
@@ -527,7 +534,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strict: bool = True,
         weights_only: Optional[bool] = None,
     ) -> dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects."""
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Note:
+            ``strict=False`` applies to module and metadata state loading. Loading sharded optimizer state
+            remains strict and requires the model parameters to match the checkpoint.
+
+        """
         if not state:
             raise ValueError(
                 f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
@@ -572,7 +585,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
+                _distributed_checkpoint_load(module_state, path, strict=strict)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 if optimizers:
@@ -958,7 +971,8 @@ def _distributed_checkpoint_save(converted_state: dict[str, Any], path: _PATH) -
     save(converted_state, checkpoint_id=path)
 
 
-def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH) -> None:
+def _distributed_checkpoint_load(module_state: dict[str, Any], path: _PATH, strict: bool = True) -> None:
     from torch.distributed.checkpoint import load
+    from torch.distributed.checkpoint.default_planner import DefaultLoadPlanner
 
-    load(module_state, checkpoint_id=path)
+    load(module_state, checkpoint_id=path, planner=DefaultLoadPlanner(allow_partial_load=not strict))

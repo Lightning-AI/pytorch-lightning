@@ -16,7 +16,7 @@ from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, Fully
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy, always_wrap_policy, size_based_auto_wrap_policy, wrap
 from torchmetrics import Accuracy
 
-from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.plugins.environments import LightningEnvironment, TorchElasticEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.pytorch import Trainer
@@ -964,9 +964,12 @@ def test_load_sharded_checkpoint_metadata_weights_only(load_mock, _is_sharded_mo
 
     strategy.load_checkpoint(checkpoint_path="memory:///x/sharded")
     assert load_mock.call_args.kwargs["weights_only"] is False
+    assert _dist_load_mock.call_args.kwargs["strict"] is True
 
+    model.strict_loading = False
     strategy.load_checkpoint(checkpoint_path="memory:///x/sharded", weights_only=True)
     assert load_mock.call_args.kwargs["weights_only"] is True
+    assert _dist_load_mock.call_args.kwargs["strict"] is False
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
@@ -1097,3 +1100,21 @@ def test_pl_save_checkpoint_does_not_corrupt_remote_path(monkeypatch):
     checkpoint = {"state_dict": {"w": torch.zeros(2)}, "optimizer_states": []}
     strategy.save_checkpoint(checkpoint, "gs://bucket/run/ckpt")
     assert captured["path"] == "gs://bucket/run/ckpt"
+
+
+def test_fsdp_distributed_sampler_kwargs_uses_world_size(monkeypatch):
+    """``num_replicas`` is the actual world size, not ``num_nodes * num_processes`` (#19898)."""
+    # e.g. torchrun over two nodes holding 2 and 1 devices: `num_nodes * num_processes` would report 4 here,
+    # while the true world size is 3.
+    monkeypatch.setenv("WORLD_SIZE", "3")
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("LOCAL_RANK", "0")
+    monkeypatch.setenv("MASTER_ADDR", "127.0.0.1")
+    monkeypatch.setenv("MASTER_PORT", "12345")
+    strategy = FSDPStrategy(
+        parallel_devices=[torch.device("cpu")] * 2,
+        cluster_environment=TorchElasticEnvironment(),
+    )
+    strategy.num_nodes = 2
+
+    assert strategy.distributed_sampler_kwargs == {"num_replicas": 3, "rank": 0}

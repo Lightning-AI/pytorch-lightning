@@ -102,6 +102,8 @@ class WeightAveraging(Callback):
         self._kwargs = kwargs
 
         self._average_model: Optional[AveragedModel] = None
+        # After training, the live model holds the average and this container holds the training weights.
+        self._weights_finalized = False
 
         # Number of optimizer steps taken, when the average model was last updated. Initializing this with zero ensures
         # that self.should_update() will be first called after the first optimizer step, which takes place after N
@@ -157,6 +159,7 @@ class WeightAveraging(Callback):
             self._average_model = AveragedModel(
                 model=pl_module, device=device, use_buffers=self._use_buffers, **self._kwargs
             )
+            self._weights_finalized = False
 
     @override
     def on_train_batch_end(
@@ -177,7 +180,11 @@ class WeightAveraging(Callback):
         # trainer.global_step is the number of optimizer steps taken so far, i.e. 1 after the first optimizer step. To
         # make step_idx consistent with epoch_idx, we'll pass a zero-based index.
         step_idx = trainer.global_step - 1
-        if (trainer.global_step > self._latest_update_step) and self.should_update(step_idx=step_idx):
+        if (
+            trainer.global_step > self._latest_update_step
+            and self.should_update(step_idx=step_idx)
+            and not trainer.precision_plugin.optimizer_step_was_skipped
+        ):
             assert self._average_model is not None
             self._average_model.update_parameters(pl_module)
             self._latest_update_step = trainer.global_step
@@ -202,7 +209,7 @@ class WeightAveraging(Callback):
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when training ends.
 
-        Transfers parameters from the :class:`AveragedModel` to the current model.
+        Swaps the average into the current model, preserving training weights for later checkpoints.
 
         Args:
             trainer: The current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
@@ -210,7 +217,9 @@ class WeightAveraging(Callback):
 
         """
         assert self._average_model is not None
-        self._copy_average_to_current(pl_module)
+        if not self._weights_finalized:
+            self._swap_models(pl_module)
+            self._weights_finalized = True
 
     @override
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -223,7 +232,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and not self._weights_finalized and self._average_model.n_averaged > 0:
             self._swap_models(pl_module)
 
     @override
@@ -237,7 +246,7 @@ class WeightAveraging(Callback):
             pl_module: The current :class:`~lightning.pytorch.core.LightningModule` instance.
 
         """
-        if self._average_model is not None:
+        if self._average_model is not None and not self._weights_finalized and self._average_model.n_averaged > 0:
             self._swap_models(pl_module)
 
     @override
@@ -288,12 +297,16 @@ class WeightAveraging(Callback):
             )
         else:
             average_model_state = self._average_model.state_dict()
-            checkpoint["current_model_state"] = checkpoint["state_dict"]
             # Truncate the "module." prefix (the first 7 characters) from the names of the variables in the
             # AveragedModel state.
-            checkpoint["state_dict"] = {
+            stored_model_state = {
                 name[7:]: value for name, value in average_model_state.items() if name.startswith("module.")
             }
+            if self._weights_finalized:
+                checkpoint["current_model_state"] = stored_model_state
+            else:
+                checkpoint["current_model_state"] = checkpoint["state_dict"]
+                checkpoint["state_dict"] = stored_model_state
             checkpoint["averaging_state"] = {
                 name: value for name, value in average_model_state.items() if not name.startswith("module.")
             }
@@ -327,12 +340,14 @@ class WeightAveraging(Callback):
             # weights) at this point, so overwriting "state_dict" in the checkpoint dictionary makes no difference. We
             # have to reload the model state from "current_model_state".
             pl_module.load_state_dict(checkpoint["current_model_state"])
+            self._weights_finalized = False
         else:
             rank_zero_warn(
                 "The checkpoint was not created with WeightAveraging. Both the current and the average model will be "
                 "initialized with state_dict."
             )
             self._average_model.module.load_state_dict(deepcopy(checkpoint["state_dict"]), strict=False)
+            self._weights_finalized = False
 
     def _swap_models(self, pl_module: "pl.LightningModule") -> None:
         """Swaps the parameter values of the current model and the :class:`AveragedModel`.

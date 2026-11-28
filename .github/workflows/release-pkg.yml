@@ -54,7 +54,7 @@ jobs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VER }}
       - name: install Package
@@ -103,7 +103,7 @@ jobs:
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:
           title: "Bump lightning ver `${{ env.TAG }}`"
           committer: GitHub <noreply@github.com>
@@ -122,10 +122,10 @@ jobs:
 
             Please, act swiftly to land this PR as it is effectively blocking lightning release to be finished...
           assignees: |
-            justusschock
+            justusperillieux
             borda
           reviewers: |
-            justusschock
+            justusperillieux
             ethanwharris
             borda
 
@@ -153,8 +153,7 @@ jobs:
           python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
 
       - name: Publish distribution 📦 to PyPI
-        # pypa/gh-action-pypi-publish v1.13.0
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages_dir: dist/${{ steps.folder.outputs.pkg }}
           verbose: true
