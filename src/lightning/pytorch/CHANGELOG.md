@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed repeated compiled-model conversions retaining Dynamo wrappers after `to_uncompiled` ([#22104](https://github.com/Lightning-AI/pytorch-lightning/pull/22104))
+
 - Fixed metrics logged in `training_step` being dropped on the first batch of each epoch under manual optimization when a hook such as `on_before_optimizer_step` also logs, which left the epoch value computed without that batch ([#22245](https://github.com/Lightning-AI/pytorch-lightning/pull/22245))
 
 - Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
