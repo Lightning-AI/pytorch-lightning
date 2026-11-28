@@ -549,6 +549,7 @@ class LightningModule(
         )
 
         trainer._logger_connector._current_fx = self._current_fx_name
+        trainer._logger_connector._batch_fxs.add(self._current_fx_name)
 
     def log_dict(
         self,

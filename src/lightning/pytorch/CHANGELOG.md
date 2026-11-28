@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed metrics logged in `training_step` being dropped on the first batch of each epoch under manual optimization when a hook such as `on_before_optimizer_step` also logs, which left the epoch value computed without that batch ([#22245](https://github.com/Lightning-AI/pytorch-lightning/pull/22245))
+
 - Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
 
 - Fixed `ModelCheckpoint` manual-optimization pre-step state restoration to support whole-module state dicts, current `batch_idx` lookup across epochs, and cached warnings ([#21842](https://github.com/Lightning-AI/pytorch-lightning/issues/21842))
