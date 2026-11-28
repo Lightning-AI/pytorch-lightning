@@ -84,6 +84,12 @@ Access the mlflow logger from any function (except the LightningModule *init*) t
             fake_images = torch.Tensor(32, 3, 28, 28)
             mlf_logger.add_image("generated_images", fake_images, 0)
 
+Log the model to the run and optionally register it in the MLflow model registry:
+
+.. code-block:: python
+
+    mlf_logger.log_model(model, registered_model_name="my-model")
+
 Here's the full documentation for the :class:`~lightning.pytorch.loggers.MLFlowLogger`.
 
 ----
