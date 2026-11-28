@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `ModelCheckpoint(save_last="link")` leaving no `last.ckpt` when the process dies while the link is being replaced, which made `ckpt_path="last"` silently train from scratch; the new link is now renamed over the old one in a single step ([#22179](https://github.com/Lightning-AI/pytorch-lightning/issues/22179))
+
 - Fixed metrics logged in `training_step` being dropped on the first batch of each epoch under manual optimization when a hook such as `on_before_optimizer_step` also logs, which left the epoch value computed without that batch ([#22245](https://github.com/Lightning-AI/pytorch-lightning/pull/22245))
 
 - Fixed `WeightAveraging` losing the non-averaged training weights in checkpoints saved at or after normal training completion ([#22156](https://github.com/Lightning-AI/pytorch-lightning/pull/22156))
