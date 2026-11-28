@@ -17,10 +17,11 @@ from unittest.mock import Mock, patch
 import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.trainer.trainer import Trainer
 
 
@@ -228,3 +229,88 @@ def test_resume_mid_epoch_warning(tmp_path):
 
     # Resume mid-epoch, stateful dataloader -> no warning
     train_and_resume(dataloader=StatefulIterable(), resume_step=1, expected_warning=False)
+
+
+@pytest.mark.parametrize(("accumulate_grad_batches", "optimizer_step_idxs"), [(1, [0, 1, 2, 3, 4, 5]), (4, [3, 5])])
+def test_resume_from_last_batch_checkpoint_dataloader_without_len(
+    accumulate_grad_batches, optimizer_step_idxs, tmp_path
+):
+    """Test that resuming from a checkpoint saved by `on_train_batch_end` on the last batch of an epoch starts the next
+    epoch at batch 0 when the dataloader has no length."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_batch_idxs = []
+            self.seen_optimizer_step_idxs = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen_batch_idxs.append((self.current_epoch, batch_idx))
+            return super().training_step(batch, batch_idx)
+
+        def optimizer_step(self, epoch, batch_idx, *args, **kwargs):
+            self.seen_optimizer_step_idxs.append(batch_idx)
+            return super().optimizer_step(epoch, batch_idx, *args, **kwargs)
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "devices": 1,
+        "max_epochs": 2,
+        "accumulate_grad_batches": accumulate_grad_batches,
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    dataloader = DataLoader(RandomIterableDataset(32, 6))
+    steps_per_epoch = len(optimizer_step_idxs)
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=steps_per_epoch, save_top_k=-1)
+    trainer = Trainer(**trainer_kwargs, callbacks=checkpoint)
+    trainer.fit(TestModel(), dataloader)
+
+    model = TestModel()
+    trainer = Trainer(**trainer_kwargs, enable_checkpointing=False)
+    trainer.fit(model, dataloader, ckpt_path=tmp_path / f"epoch=0-step={steps_per_epoch}.ckpt")
+
+    assert model.seen_batch_idxs == [(1, i) for i in range(6)]
+    assert model.seen_optimizer_step_idxs == optimizer_step_idxs
+    assert trainer.global_step == 2 * steps_per_epoch
+
+
+def test_resume_from_last_batch_checkpoint_dataloader_iter(tmp_path):
+    """Test that resuming from a checkpoint saved on the last step of an epoch runs the whole next epoch when
+    `training_step(dataloader_iter)` consumes several batches per step."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_batch_idxs = []
+
+        def training_step(self, dataloader_iter):
+            for _ in range(2):
+                batch, batch_idx, _ = next(dataloader_iter)
+                self.seen_batch_idxs.append((self.current_epoch, batch_idx))
+            return self.step(batch)
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "devices": 1,
+        "max_epochs": 2,
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
+    dataloader = DataLoader(RandomDataset(32, 6))
+    checkpoint = ModelCheckpoint(dirpath=tmp_path, every_n_train_steps=3, save_top_k=-1)
+    trainer = Trainer(**trainer_kwargs, callbacks=checkpoint)
+    trainer.fit(TestModel(), dataloader)
+
+    model = TestModel()
+    trainer = Trainer(**trainer_kwargs, enable_checkpointing=False)
+    trainer.fit(model, dataloader, ckpt_path=tmp_path / "epoch=0-step=3.ckpt")
+
+    assert model.seen_batch_idxs == [(1, i) for i in range(6)]
+    assert trainer.global_step == 6
