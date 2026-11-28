@@ -44,11 +44,13 @@ import logging
 from pathlib import Path
 from typing import Union
 
+
+import importlib.util
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
-from torch.optim.optimizer import Optimizer
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 from torchvision import transforms
@@ -60,6 +62,8 @@ from lightning.pytorch.callbacks.finetuning import BaseFinetuning
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.utilities import rank_zero_info
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+
+_TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
