@@ -203,7 +203,9 @@ class _TrainingEpochLoop(loops._Loop):
         if self.restarted_on_train_batch_end:
             self.batch_progress.increment_completed()
             # handle situation in which save happened on_train_batch_end and epoch is at end
-            if self.batch_progress.current.completed >= self.trainer.num_training_batches:
+            # the step count misses `num_training_batches` without a length, or when a step consumes several batches
+            epoch_finished = self.batch_progress.current.completed >= self.trainer.num_training_batches
+            if epoch_finished or self.batch_progress.is_last_batch:
                 self.batch_progress.reset_on_run()
                 self.scheduler_progress.reset_on_run()
                 self.automatic_optimization.optim_progress.reset_on_run()
